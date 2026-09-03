@@ -40,7 +40,7 @@ dependencies {
         // using the machine-specific platformPath every local dev setup relies on.
         // GitHub Actions sets CI=true by convention.
         if (System.getenv("CI") == "true") {
-            androidStudio(providers.gradleProperty("ciAndroidStudioVersion").getOrElse("2026.1.1.1"))
+            androidStudio(providers.gradleProperty("ciAndroidStudioVersion").getOrElse("2026.1.3.8"))
         } else {
             local(providers.gradleProperty("platformPath"))
         }
