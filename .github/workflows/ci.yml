@@ -7,12 +7,23 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+env:
+  # Must match the version this plugin is actually developed/tested against
+  # locally (see gradle.properties' platformPath comments) and plugin.xml's
+  # sinceBuild. ANDROID_STUDIO_CODENAME is the internal release codename, not
+  # the marketing version -- the Google CDN download URL uses the codename, not
+  # ANDROID_STUDIO_VERSION, in its filename. Look both up together at
+  # https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html
+  # if this ever needs to move to a newer release.
+  ANDROID_STUDIO_VERSION: "2026.1.3.8"
+  ANDROID_STUDIO_CODENAME: "quail3-patch1"
+
 jobs:
   test:
     # ubuntu, not macos: macOS runner minutes cost 10x on GitHub Actions' free/
-    # paid tiers, and nothing here actually needs macOS -- the JUnit tests are
-    # plain JVM code, and androidStudio() downloads a Linux distribution for the
-    # platform classpath just fine.
+    # paid tiers, and nothing here needs macOS -- the JUnit tests are plain JVM
+    # code, and Android Studio ships a Linux distribution for exactly this kind
+    # of headless/CI use.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,5 +35,28 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Cache Android Studio distribution
+        id: cache-android-studio
+        uses: actions/cache@v4
+        with:
+          path: /tmp/android-studio
+          key: android-studio-${{ env.ANDROID_STUDIO_VERSION }}-${{ env.ANDROID_STUDIO_CODENAME }}
+
+      - name: Download Android Studio (Linux)
+        if: steps.cache-android-studio.outputs.cache-hit != 'true'
+        run: |
+          # NOTE: the intellijPlatform Gradle plugin's own androidStudio()
+          # dependency helper constructs a broken URL for this artifact as of
+          # plugin version 2.10.5 (verified by hand: the file below resolves
+          # and downloads fine over plain HTTP, but Gradle's own resolution
+          # 404s on it) -- see build.gradle.kts's comment. Downloading directly
+          # and feeding it in as platformPath sidesteps that entirely.
+          curl -fL --retry 3 --retry-delay 5 \
+            -o /tmp/android-studio.tar.gz \
+            "https://redirector.gvt1.com/edgedl/android/studio/ide-zips/${ANDROID_STUDIO_VERSION}/android-studio-${ANDROID_STUDIO_CODENAME}-linux.tar.gz"
+          mkdir -p /tmp/android-studio
+          tar -xzf /tmp/android-studio.tar.gz -C /tmp/android-studio --strip-components=1
+          rm /tmp/android-studio.tar.gz
+
       - name: Run tests
-        run: ./gradlew test --console=plain
+        run: ./gradlew test --console=plain -PplatformPath=/tmp/android-studio

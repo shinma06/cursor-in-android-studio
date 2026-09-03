@@ -24,7 +24,6 @@ if (file(".githooks").exists()) {
 
 repositories {
     mavenCentral()
-    google() // required to resolve androidStudio() artifacts (CI only, see below)
     intellijPlatform {
         defaultRepositories()
     }
@@ -37,14 +36,14 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
 
     intellijPlatform {
-        // CI has no local Android Studio install, so it downloads one instead of
-        // using the machine-specific platformPath every local dev setup relies on.
-        // GitHub Actions sets CI=true by convention.
-        if (System.getenv("CI") == "true") {
-            androidStudio(providers.gradleProperty("ciAndroidStudioVersion").getOrElse("2026.1.3.8"))
-        } else {
-            local(providers.gradleProperty("platformPath"))
-        }
+        // Always local(): the intellijPlatform Gradle plugin's own androidStudio()
+        // dependency resolution (v2.10.5) constructs a broken download URL --
+        // verified directly, the artifact exists and downloads fine by hand, but
+        // Gradle's own resolution 404s on it. CI works around this by downloading
+        // Android Studio itself (see .github/workflows/ci.yml) and passing the
+        // extracted path as -PplatformPath, reusing this exact same code path
+        // instead of maintaining a second, broken resolution mechanism.
+        local(providers.gradleProperty("platformPath"))
     }
 }
 
