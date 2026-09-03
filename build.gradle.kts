@@ -36,7 +36,14 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
 
     intellijPlatform {
-        local(providers.gradleProperty("platformPath"))
+        // CI has no local Android Studio install, so it downloads one instead of
+        // using the machine-specific platformPath every local dev setup relies on.
+        // GitHub Actions sets CI=true by convention.
+        if (System.getenv("CI") == "true") {
+            androidStudio(providers.gradleProperty("ciAndroidStudioVersion").getOrElse("2026.1.1.1"))
+        } else {
+            local(providers.gradleProperty("platformPath"))
+        }
     }
 }
 

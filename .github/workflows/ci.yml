@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    # ubuntu, not macos: macOS runner minutes cost 10x on GitHub Actions' free/
+    # paid tiers, and nothing here actually needs macOS -- the JUnit tests are
+    # plain JVM code, and androidStudio() downloads a Linux distribution for the
+    # platform classpath just fine.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run tests
+        run: ./gradlew test --console=plain
