@@ -14,9 +14,9 @@ version = "0.1.0-SNAPSHOT"
 // a single fast, idempotent `git config` call.
 if (file(".githooks").exists()) {
     try {
-        exec {
+        providers.exec {
             commandLine("git", "config", "core.hooksPath", ".githooks")
-        }
+        }.result.get()
     } catch (e: Exception) {
         logger.warn("Could not configure git core.hooksPath: ${e.message}")
     }
