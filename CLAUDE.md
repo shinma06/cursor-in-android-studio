@@ -57,7 +57,7 @@ those without either a working paid-tier/quota-recovered account to verify again
 signal from whoever's running the session that they have one. Everything else is unblocked; issues
 **#11** and **#12** are explicitly ranked cheapest-first for exactly this reason. This paragraph is
 the single most load-bearing fact for "what can I actually work on right now" — it used to live
-only in GitHub issue #1, which an onboarding dry-run (issue #11) found easy to miss if you assume
+only in GitHub issue #1, which an onboarding dry-run (issue #13) found easy to miss if you assume
 this file is self-contained.
 
 ## Commands
@@ -72,7 +72,7 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 ./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin — run this before every push
 ```
 
-**Correction (2026-09, found by an onboarding dry-run — see GitHub issue #11)**: this section used
+**Correction (2026-09, found by an onboarding dry-run — see GitHub issue #13)**: this section used
 to say no test source set exists. That was true when it was written but has been stale since M1
 (commit `f60c7f6`) added `src/test/kotlin` and JUnit5 wiring in `build.gradle.kts`. There is now a
 real test suite (`GitSnapshotStoreTest`, `MarkdownRendererTest`, `MentionTokenExtractorTest`,
@@ -246,7 +246,7 @@ configured on the machine this was built on).
 
 **F-13 (`@Terminal` mention) API verified, 2026-09**: an earlier pass marked this "verified" in
 GitHub issue #2's checklist without actually doing the check — caught by an onboarding dry-run (see
-GitHub issue #11) that found the claim unsupported. Actually checked now, via context7 against
+GitHub issue #13) that found the claim unsupported. Actually checked now, via context7 against
 `plugins.jetbrains.com/docs/intellij/embedded-terminal.html`: `TerminalView.DATA_KEY` (from a
 `DataContext`) or `TerminalToolWindowTabsManager.getTabs()` gets terminal tabs, and
 `TerminalView.outputModels` (`TerminalOutputModel`, regular/alternative buffers) or
