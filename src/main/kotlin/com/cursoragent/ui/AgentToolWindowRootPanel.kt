@@ -19,6 +19,7 @@ class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
         val controller = AgentUiController(project, timeline, composer, header)
 
         composer.onSend = { text -> controller.sendPrompt(text) }
+        composer.onStop = { controller.stopRun() }
         header.onNewChat = { controller.startNewChat() }
 
         add(header, BorderLayout.NORTH)

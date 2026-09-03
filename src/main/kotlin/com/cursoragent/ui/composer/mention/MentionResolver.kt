@@ -12,23 +12,44 @@ import java.io.File
  * the context blocks the CLI actually sees — file/folder contents, `git diff` output,
  * or a plain hint for the MCP-backed Docs/Web entries (see requirements doc F-10/F-11/
  * F-12/F-14; F-13/Terminal is a no-op pending the IntelliJ Terminal API verification
- * tracked in §13).
+ * tracked in §13). Split into [buildFileAndFolderContext] (EDT-safe) and
+ * [buildShellBackedContext] (spawns a process, call off the EDT) — see their docs.
  */
 class MentionResolver(private val project: Project) {
-    fun buildContext(promptText: String): String? {
+    /**
+     * Split from [buildShellBackedContext] so callers can run the fast, VFS-only
+     * half (file/folder reads) on the EDT and push the slow half (spawns `git`)
+     * to a background thread — `sendPrompt` blocking the EDT on a git subprocess
+     * for every single message would violate the requirements doc's own
+     * non-functional requirement against EDT-blocking work (§7).
+     */
+    fun buildFileAndFolderContext(promptText: String): String? {
         val tokens = MentionTokenExtractor.extractTokens(promptText)
-        if (tokens.isEmpty()) return null
-        return tokens.mapNotNull(::resolveToken).joinToString("\n\n").takeIf { it.isNotBlank() }
+        val blocks = tokens.mapNotNull { token ->
+            when {
+                isFixedToken(token) -> null
+                token.endsWith("/") -> buildFolderBlock(token.removeSuffix("/"))
+                else -> buildFileBlock(token)
+            }
+        }
+        return blocks.joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 
-    private fun resolveToken(token: String): String? = when {
-        token == "git-diff" -> buildGitDiffBlock()
-        token == "terminal" -> null
-        token == "docs" -> "(User referenced @docs — if relevant, use any configured MCP docs-search tool for this.)"
-        token == "web" -> "(User referenced @web — if relevant, use any configured MCP web-search tool for this.)"
-        token.endsWith("/") -> buildFolderBlock(token.removeSuffix("/"))
-        else -> buildFileBlock(token)
+    /** Call off the EDT — shells out to `git diff` for `@git-diff`. */
+    fun buildShellBackedContext(promptText: String): String? {
+        val tokens = MentionTokenExtractor.extractTokens(promptText)
+        val blocks = tokens.mapNotNull { token ->
+            when (token) {
+                "git-diff" -> buildGitDiffBlock()
+                "docs" -> "(User referenced @docs — if relevant, use any configured MCP docs-search tool for this.)"
+                "web" -> "(User referenced @web — if relevant, use any configured MCP web-search tool for this.)"
+                else -> null
+            }
+        }
+        return blocks.joinToString("\n\n").takeIf { it.isNotBlank() }
     }
+
+    private fun isFixedToken(token: String) = token == "git-diff" || token == "terminal" || token == "docs" || token == "web"
 
     private fun buildFileBlock(relativePath: String): String? {
         val projectDir = project.guessProjectDir() ?: return null

@@ -24,6 +24,8 @@ import javax.swing.KeyStroke
 
 class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
+    var onStop: () -> Unit = {}
+    private var isRunning = false
 
     val inputArea = object : EditorTextField(project, PlainTextFileType.INSTANCE) {
         override fun createEditor(): EditorEx {
@@ -80,7 +82,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             override fun actionPerformed(e: AnActionEvent) = submit()
         }.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0)), inputArea)
 
-        sendButton.addActionListener { submit() }
+        sendButton.addActionListener { if (isRunning) onStop() else submit() }
 
         val controls = JPanel(BorderLayout()).apply {
             isOpaque = false
@@ -103,9 +105,16 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     fun setInputEnabled(enabled: Boolean) {
-        sendButton.isEnabled = enabled
+        // sendButton is intentionally left enabled here -- setRunning() repurposes
+        // it as a Stop button while a turn is in flight, so it must stay clickable.
         inputArea.isEnabled = enabled
         modeSelector.isEnabled = enabled
+    }
+
+    fun setRunning(running: Boolean) {
+        isRunning = running
+        sendButton.icon = if (running) AllIcons.Actions.Suspend else AllIcons.Actions.Upload
+        sendButton.toolTipText = if (running) "Stop" else "Send (Enter)"
     }
 
     fun clearInput() {
@@ -127,13 +136,15 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             margin = JBUI.insets(2, 6, 2, 6)
             addActionListener {
                 JPopupMenu().apply {
-                    add(
-                        JCheckBoxMenuItem("Force (auto-approve)", AgentSettingsState.getInstance().forceEnabled).apply {
-                            addActionListener {
-                                AgentSettingsState.getInstance().forceEnabled = isSelected
-                            }
-                        },
-                    )
+                    val settings = AgentSettingsState.getInstance()
+                    com.cursoragent.settings.PermissionMode.entries.forEach { mode ->
+                        add(
+                            JCheckBoxMenuItem(mode.label, settings.permissionMode == mode).apply {
+                                addActionListener { settings.permissionMode = mode }
+                            },
+                        )
+                    }
+                    addSeparator()
                     add(
                         javax.swing.JMenuItem("Summarize context").apply {
                             addActionListener { onSend("/summarize") }

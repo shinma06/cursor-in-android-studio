@@ -1,5 +1,6 @@
 package com.cursoragent.ui
 
+import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.CheckpointService
@@ -12,6 +13,7 @@ import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VfsUtil
@@ -54,35 +56,55 @@ class AgentUiController(
 
         composer.clearInput()
         composer.setInputEnabled(false)
+        composer.setRunning(true)
 
-        val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
         val userBubble = timeline.addUserMessage(userText)
-        userBubble.setCheckpointAvailable(checkpointId != null)
-        if (checkpointId != null) {
-            userBubble.onRollbackRequested = { requestRollback(checkpointId) }
-        }
+        header.setSessionStatus("Preparing…")
 
+        // Active-file context and @file/@folder mentions are VFS reads (fast,
+        // already-cached, and IntelliJ Platform APIs like FileEditorManager expect
+        // EDT anyway) so they stay here. Checkpoint snapshotting and @git-diff both
+        // spawn a `git` subprocess -- slow enough that doing them synchronously on
+        // the EDT would freeze the UI on every single send -- so those move to a
+        // background thread before the actual CLI process is started.
         val contextPrefix = buildActiveFileContext()
-        val mentionContext = mentionResolver.buildContext(userText)
-        val fullPrompt = buildString {
-            if (!contextPrefix.isNullOrBlank()) append(contextPrefix).append("\n\n")
-            if (!mentionContext.isNullOrBlank()) append(mentionContext).append("\n\n")
-            append(userText)
+        val fileMentionContext = mentionResolver.buildFileAndFolderContext(userText)
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
+            val shellMentionContext = mentionResolver.buildShellBackedContext(userText)
+
+            val fullPrompt = buildString {
+                if (!contextPrefix.isNullOrBlank()) append(contextPrefix).append("\n\n")
+                if (!fileMentionContext.isNullOrBlank()) append(fileMentionContext).append("\n\n")
+                if (!shellMentionContext.isNullOrBlank()) append(shellMentionContext).append("\n\n")
+                append(userText)
+            }
+
+            runOnEdt {
+                userBubble.setCheckpointAvailable(checkpointId != null)
+                if (checkpointId != null) {
+                    userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                }
+                header.setSessionStatus("Running...")
+            }
+
+            // OSProcessHandler creation + resolveAgentExecutable's File.canExecute()
+            // stat calls are cheap but still I/O -- start it here rather than back on
+            // the EDT. The listener callbacks below marshal their own UI work via
+            // runOnEdt, so this is safe to call off-EDT.
+            agentService.sendPrompt(fullPrompt, createListener(userText))
         }
-
-        header.setSessionStatus("Running...")
-
-        agentService.sendPrompt(fullPrompt, createListener(userText))
     }
 
     private fun createListener(userText: String): AgentProcessListener {
         var assistantStarted = false
-        val assistantBuffer = StringBuilder()
+        val assistantDeduper = AssistantChunkDeduper()
 
         return object : AgentProcessListener {
             override fun onAssistantDelta(text: String) {
                 runOnEdt {
-                    val chunk = dedupeAssistantChunk(text, assistantBuffer) ?: return@runOnEdt
+                    val chunk = assistantDeduper.dedupe(text) ?: return@runOnEdt
                     if (!assistantStarted) {
                         timeline.ensureAssistantBubble()
                         assistantStarted = true
@@ -194,8 +216,16 @@ class AgentUiController(
     private fun formatTimestamp(epochMs: Long): String =
         SimpleDateFormat("MM/dd HH:mm").format(Date(epochMs))
 
+    fun stopRun() {
+        // No extra UI bookkeeping needed here: destroying the process fires
+        // OSProcessHandler's processTerminated callback, which already routes
+        // through the listener's onCompleted -> finishRun() path below.
+        agentService.killActiveProcess()
+    }
+
     private fun finishRun() {
         composer.setInputEnabled(true)
+        composer.setRunning(false)
         if (header.sessionLabel.text == "Running...") {
             header.setSessionStatus("Ready")
         }
@@ -206,7 +236,8 @@ class AgentUiController(
         val file = FileEditorManager.getInstance(project).selectedFiles.firstOrNull() ?: return null
 
         val selectedText = editor.selectionModel.selectedText?.trim().orEmpty()
-        val relativePath = VfsUtil.getRelativePath(file, project.baseDir) ?: file.path
+        val projectDir = project.guessProjectDir()
+        val relativePath = projectDir?.let { VfsUtil.getRelativePath(file, it) } ?: file.path
 
         return buildString {
             append("Active file: $relativePath")
@@ -214,20 +245,6 @@ class AgentUiController(
                 append("\nSelection:\n```\n$selectedText\n```")
             }
         }
-    }
-
-    private fun dedupeAssistantChunk(text: String, buffer: StringBuilder): String? {
-        if (text.isEmpty()) return null
-        val current = buffer.toString()
-        val chunk = when {
-            current.isEmpty() -> text
-            text.startsWith(current) -> text.substring(current.length)
-            current.endsWith(text) || current.contains(text) -> return null
-            else -> text
-        }
-        if (chunk.isEmpty()) return null
-        buffer.append(chunk)
-        return chunk
     }
 
     private fun runOnEdt(block: () -> Unit) {

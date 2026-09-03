@@ -74,16 +74,23 @@ persisted side-channel read by both the service and the UI.
   `Unknown`). Must stay defensive: unrecognized `type` values or malformed lines become `Unknown`
   or are silently dropped rather than throwing, because the CLI's stream-json schema is explicitly
   unstable across `cursor-agent` versions (see requirements doc §7, §11).
-- **`ui/AgentUiController.dedupeAssistantChunk`** — the CLI has been observed sending both
-  incremental deltas and cumulative/repeated text in `AssistantDelta` events; this dedupes against
-  a running buffer before appending to the UI. Don't remove this without checking against a live
-  stream capture — it's compensating for real observed CLI behavior, not speculative.
+- **`parser/AssistantChunkDeduper`** — guesses whether `AssistantDelta` events are incremental or
+  cumulative/repeated and dedupes against a running buffer before appending to the UI.
+  **Correction (2026-09 codebase review, see GitHub issue #2)**: this was inherited from the
+  original pre-existing code with no verification behind it, and CLAUDE.md previously
+  (incorrectly) described it as based on "observed" CLI behavior — the M0 spike never actually
+  got a real `assistant` event before hitting `resource_exhausted`. Treat it as an unverified
+  guess sitting on the critical path of chat rendering, not a confirmed fact. `AssistantChunkDeduperTest`
+  pins down its current behavior so a future change is at least deliberate, not a spec for
+  correctness.
 - **`settings/AgentSettingsState`** (application-level `@Service` + `PersistentStateComponent`,
   storage `cursor-agent-settings.xml`) — holds `agentExecutablePath`, `selectedModel`, `mode`
   (`AgentMode`: ASK/AGENT/PLAN, each mapping to a `--mode` CLI value or `null` for default agent
-  mode), and `forceEnabled` (maps to `--force`; **must default to false** — this is a deliberate
+  mode), and `permissionMode` (`PermissionMode`: ASK_EVERY_TIME/AUTO_REVIEW/RUN_EVERYTHING, mapping
+  to no flag / `--auto-review` / `--force`). **Must default to `ASK_EVERY_TIME`** — a deliberate
   safety requirement from the requirements doc, not an oversight, to prevent unattended file
-  changes).
+  changes. This replaced an earlier binary `forceEnabled` toggle once research showed the CLI's
+  real approval model is 3-way (requirements doc F-22/F-24, 2026-09).
 - **`ui/composer/`, `ui/header/`, `ui/timeline/`** — plain Swing/JBUI view components with no CLI
   knowledge; they expose callbacks (`onSend`, `onNewChat`) and mutation methods
   (`appendAssistantText`, `showStatus`, etc.) that the controller drives.
@@ -98,8 +105,8 @@ persisted side-channel read by both the service and the UI.
   an interactive "Workspace Trust Required" prompt with no TTY to answer it, so any subprocess run
   (like this plugin's) fails outright unless `--trust`/`--yolo`/`-f` is passed. `AgentProcessService
   .buildCommandLine` now always passes `--trust` unconditionally — opening the project in the IDE
-  is already the user's trust decision, independent of the `forceEnabled` setting (which still
-  separately controls `--force`, i.e. auto-approving individual tool calls).
+  is already the user's trust decision, independent of `permissionMode` (which still separately
+  controls `--auto-review`/`--force`, i.e. how much tool-call approval is auto-granted).
 - **`agent ls` / `agent resume` (past-session picker) are Ink-based interactive TUIs that require
   raw-mode TTY** — they hard-fail (`Raw mode is not supported`) when run through a plain
   subprocess pipe like `OSProcessHandler`/`GeneralCommandLine`. F-50 (past chats list) cannot shell
@@ -119,6 +126,41 @@ persisted side-channel read by both the service and the UI.
   timing (blocks F-30/F-31/F-40 design confirmation), tool-call result payload shape (F-32),
   `--list-models`/`agent mcp list` output format (F-21/F-70), image-attachment support (F-60).
 
+## 2026-09 foundation review
+
+Before building further, the pre-existing codebase (the original `6b6eb2f` commit, before any of
+this work) got a dedicated architecture review, and the requirements doc got a comprehensive
+web-research pass against Cursor's actual current Agent panel/CLI capabilities — see GitHub issue
+#2 for the full findings. Highlights:
+
+- **Fixed**: `AgentProcessService.sendPrompt` didn't catch `OSProcessHandler` construction failures
+  (e.g. the `agent` executable missing entirely) — this threw a raw platform exception instead of
+  going through the plugin's own error UI. Now wrapped, routes to `listener.onError`.
+- **Fixed**: process start + checkpoint snapshot + `@git-diff` resolution used to run synchronously
+  on the EDT (`sendPrompt`, `CheckpointService`, `MentionResolver`). All of that is now on a pooled
+  thread; `MentionResolver` is split into `buildFileAndFolderContext` (EDT-safe VFS reads) and
+  `buildShellBackedContext` (spawns `git`, call off-EDT) for this reason — don't merge them back
+  without keeping that split.
+- **Fixed**: deprecated `project.baseDir` replaced with `project.basePath`/`guessProjectDir(project)`
+  throughout.
+- **Fixed**: no way to cancel a hung/long-running turn — `ComposerPanel`'s send button now doubles
+  as a Stop button while a turn is running (`setRunning`/`onStop`), calling
+  `AgentProcessService.killActiveProcess()`.
+- **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
+  heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
+  overstated this as "observed" behavior; see that class's doc comment.
+- **Known backlog, not yet addressed**: `AgentUiController` is growing into a god-object (prompt
+  building, listener orchestration, checkpoint/mention/past-chats/model-loading all in one class);
+  no Settings/Preferences page exists for `agentExecutablePath` (only reachable by hand-editing the
+  persisted XML); tool-window-close process cleanup relies on project-level `Disposable` only,
+  unverified against the requirements doc's separate "on tool window close" wording (§7).
+- **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
+  see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
+  `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
+  open questions) and what got corrected (F-60 image-attach support is contradicted between the CLI
+  changelog and the parameters reference — don't assume a flag name until verified live; F-22's old
+  binary force framing undersold the real approval model, now F-24).
+
 ## Current implementation status vs. requirements doc
 
 The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
@@ -126,7 +168,8 @@ with feature IDs (F-01, F-02, ...); the live milestone tracker is GitHub issues 
 "Multi-agent collaboration model" above), which is the up-to-date source for what's done.
 
 Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
-mode/force controls (F-20, F-22), workspace pinning (F-51), Markdown rendering for assistant
+mode control (F-20), the 3-way permission model (F-22/F-24 redesign: `PermissionMode`, a Stop
+button on the composer while a turn is running), workspace pinning (F-51), Markdown rendering for assistant
 messages (`AssistantMessageBubble`/`MarkdownRenderer`, commonmark-based, HTML-inline/HTML-block
 nodes rendered as escaped text rather than passed through raw — see that file's doc comment for
 why), the git-stash-create-based checkpoint/rollback system (F-40–44: `CheckpointService` +

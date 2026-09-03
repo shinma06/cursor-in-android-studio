@@ -44,7 +44,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         killActiveProcess()
 
         val settings = AgentSettingsState.getInstance()
-        val workspace = project.basePath ?: project.baseDir?.path
+        val workspace = project.basePath
         if (workspace.isNullOrBlank()) {
             listener.onError("プロジェクトルートが取得できません")
             return
@@ -55,7 +55,17 @@ class AgentProcessService(private val project: Project) : Disposable {
         val commandLine = buildCommandLine(prompt, workspace, settings)
         LOG.info("Starting agent: ${commandLine.commandLineString}")
 
-        val handler = OSProcessHandler(commandLine)
+        val handler = try {
+            OSProcessHandler(commandLine)
+        } catch (e: Exception) {
+            // Most common real-world cause: the `agent` executable isn't installed or
+            // isn't where resolveAgentExecutable guessed. Left uncaught, this throws
+            // out of an IDE action handler as a raw platform exception instead of
+            // going through the plugin's own error UI.
+            LOG.warn("Failed to start agent process", e)
+            listener.onError("cursor-agent CLIの起動に失敗しました: ${e.message}")
+            return
+        }
         activeHandler.set(handler)
 
         val parser = StreamJsonParser { event ->
@@ -202,9 +212,7 @@ class AgentProcessService(private val project: Project) : Disposable {
 
         settings.mode.cliValue?.let { args += listOf("--mode", it) }
 
-        if (settings.forceEnabled) {
-            args += "--force"
-        }
+        settings.permissionMode.cliArg?.let { args += it }
 
         args += prompt
 
