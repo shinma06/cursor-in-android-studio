@@ -80,6 +80,33 @@ it as your only check, though — run `./gradlew test` yourself before pushing s
 failure before the hook does, and never reach for `git push --no-verify` to route around a real
 failure (it exists for genuine edge cases, not for skipping a red test).
 
+**Second, independent safety net: GitHub Actions CI** (`.github/workflows/ci.yml`) runs the test
+suite on every push/PR against `main`, so a `--no-verify` push (or any push from an environment
+where the local hook never got installed) still gets caught. It resolves the IntelliJ platform
+dependency differently than local dev does — worth knowing before touching either file:
+
+- **Local dev** uses `local(providers.gradleProperty("platformPath"))` in `build.gradle.kts`,
+  pointing at a real Android Studio install on the machine (`gradle.properties`).
+- **CI** downloads Android Studio directly in a workflow step (cached by version+codename) and
+  passes the extracted path in as `-PplatformPath`, reusing that exact same `local()` code path
+  rather than a separate resolution mechanism.
+- **Why not the plugin's own `androidStudio()` dependency helper**, which exists for exactly this
+  case: it constructs a broken download URL as of `org.jetbrains.intellij.platform` v2.10.5.
+  Verified by hand — the real artifact (`android-studio-<codename>-linux.tar.gz`) exists and
+  downloads fine over plain HTTP at
+  `https://redirector.gvt1.com/edgedl/android/studio/ide-zips/<version>/android-studio-<codename>-linux.tar.gz`
+  (codename, e.g. `quail3-patch1`, not the version string, in the filename — full list at
+  https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html), but Gradle's own
+  resolution 404s on it regardless of version tried, with or without a `google()` repository added.
+  Upgrading the plugin past 2.10.5 to check for a fix wasn't attempted beyond 2.18.1, which requires
+  Gradle 9 (this project is on 8.13) — a bigger, separate migration, not attempted here. If a future
+  change wants to revisit `androidStudio()` instead of the direct-download workaround, that Gradle
+  9 migration is the prerequisite, not just a version bump in `plugins {}`.
+- If `ci.yml`'s `ANDROID_STUDIO_VERSION`/`ANDROID_STUDIO_CODENAME` ever need to move to a newer
+  release, look both values up together from the releases-list page above — the codename doesn't
+  follow an obvious pattern from the version number alone (e.g. version `2026.1.4.7`'s codename is
+  `quail4`, not `quail4-patch1`, while `2026.1.3.8`'s is `quail3-patch1`).
+
 **Correction (2026-09, found by an onboarding dry-run — see GitHub issue #13)**: this section used
 to say no test source set exists. That was true when it was written but has been stale since M1
 (commit `f60c7f6`) added `src/test/kotlin` and JUnit5 wiring in `build.gradle.kts`. There is now a
