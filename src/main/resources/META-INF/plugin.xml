@@ -1,0 +1,21 @@
+<idea-plugin>
+    <id>com.cursoragent.plugin</id>
+    <name>Cursor Agent</name>
+    <vendor email="dev@example.com">SelfRegi</vendor>
+    <description><![CDATA[
+        Android Studio 上で Cursor Agent CLI を利用するツールウィンドウプラグイン。
+        agent -p --output-format stream-json をサブプロセス実行し、チャット UI にストリーミング表示します。
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow
+                id="Cursor Agent"
+                anchor="right"
+                icon="/icons/cursor-agent.svg"
+                factoryClass="com.cursoragent.toolwindow.CursorAgentToolWindowFactory"/>
+        <projectService serviceImplementation="com.cursoragent.service.AgentProcessService"/>
+        <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
+    </extensions>
+</idea-plugin>
