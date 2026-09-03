@@ -208,8 +208,12 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
 ## Current implementation status vs. requirements doc
 
 The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
-with feature IDs (F-01, F-02, ...); the live milestone tracker is GitHub issues #1–#10 (see
-"Multi-agent collaboration model" above), which is the up-to-date source for what's done.
+with feature IDs (F-01, F-02, ...); the live milestone tracker is **the tracking issue's own
+checklist and its child issues** (GitHub issue #1 — see "Multi-agent collaboration model" above),
+which is the up-to-date source for what's done. Deliberately not naming a specific issue-number
+range here: issue #1's checklist has drifted out of sync with a hardcoded range in this file at
+least once already (this file said "#1–#10" after #11/#12/#13 already existed) — read #1 itself
+rather than trusting a number written into this doc at some point in the past.
 
 Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
 mode control (F-20), the 3-way permission model (F-22/F-24 redesign: `PermissionMode`, a Stop
