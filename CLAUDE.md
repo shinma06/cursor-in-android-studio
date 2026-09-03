@@ -130,15 +130,26 @@ mode/force controls (F-20, F-22), workspace pinning (F-51), Markdown rendering f
 messages (`AssistantMessageBubble`/`MarkdownRenderer`, commonmark-based, HTML-inline/HTML-block
 nodes rendered as escaped text rather than passed through raw — see that file's doc comment for
 why), the git-stash-create-based checkpoint/rollback system (F-40–44: `CheckpointService` +
-`GitSnapshotStore` + `CheckpointHistoryState`, rollback icon on `UserMessageBubble`), and `@mention`
+`GitSnapshotStore` + `CheckpointHistoryState`, rollback icon on `UserMessageBubble`), `@mention`
 context injection for files/folders/git-diff/docs/web hints (F-10–12, F-14: `ComposerPanel`'s
-`EditorTextField` + `MentionPopupController` + `MentionResolver`).
+`EditorTextField` + `MentionPopupController` + `MentionResolver`), context compression (F-06: an
+overflow-menu item that just sends `/summarize`), dynamic model selection (F-21:
+`AgentProcessService.listModels()` + `ModelListParser`, loaded async on tool-window open), and MCP
+server listing/enable/disable (F-70/F-71: `McpServersDialog`, `agent mcp list/enable/disable`).
+
+**Important finding that unblocked F-21/F-70/F-71**: `--list-models` and `agent mcp list/enable/
+disable` are local metadata operations, not chat turns — they don't consume the same
+per-conversation quota `sendPrompt` does, confirmed by running them successfully while the Free-tier
+account used for the M0 spike was still hitting `resource_exhausted` on actual prompts. They run
+synchronously via `ExecUtil.execAndGetOutput` (`AgentProcessService.runAgentCommandSync`), not
+through the streaming `OSProcessHandler` path `sendPrompt` uses.
 
 Session resume (`--resume`) is implemented at the service layer but there's no UI to pick from past
-sessions yet (F-50). **Not yet implemented**: `--list-models` dynamic population (F-21, UI stub
-exists in `ModelSelector`), diff preview/Apply/Reject (F-30/F-31, blocked on the M0 CLI spike),
-`@Terminal` mention (F-13, blocked on IntelliJ Terminal API verification), MCP server listing/
-enable-disable (F-70/F-71), and multimodal input (F-60/F-61).
+sessions yet (F-50). **Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the
+M0 write-timing spike), `@Terminal` mention (F-13, blocked on IntelliJ Terminal API verification),
+and multimodal input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather
+than a parsed table — its format was never verified against a populated `.cursor/mcp.json` (no MCP
+servers were configured on the machine this was built on).
 
 **Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
 + Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),

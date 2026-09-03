@@ -7,6 +7,7 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -25,6 +26,14 @@ class AgentUiController(
 
     init {
         checkpointService.pruneExpired()
+        loadModels()
+    }
+
+    private fun loadModels() {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val models = agentService.listModels()
+            runOnEdt { composer.modelSelector.setModels(models) }
+        }
     }
 
     fun startNewChat() {

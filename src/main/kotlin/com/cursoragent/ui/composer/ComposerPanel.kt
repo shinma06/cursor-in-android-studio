@@ -22,7 +22,7 @@ import javax.swing.JPanel
 import javax.swing.JPopupMenu
 import javax.swing.KeyStroke
 
-class ComposerPanel(project: Project) : JPanel(BorderLayout()) {
+class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
 
     val inputArea = object : EditorTextField(project, PlainTextFileType.INSTANCE) {
@@ -132,6 +132,16 @@ class ComposerPanel(project: Project) : JPanel(BorderLayout()) {
                             addActionListener {
                                 AgentSettingsState.getInstance().forceEnabled = isSelected
                             }
+                        },
+                    )
+                    add(
+                        javax.swing.JMenuItem("Summarize context").apply {
+                            addActionListener { onSend("/summarize") }
+                        },
+                    )
+                    add(
+                        javax.swing.JMenuItem("MCP Servers…").apply {
+                            addActionListener { com.cursoragent.ui.mcp.McpServersDialog(project).show() }
                         },
                     )
                 }.show(this, 0, height)

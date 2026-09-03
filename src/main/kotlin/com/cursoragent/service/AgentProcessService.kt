@@ -9,6 +9,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessOutputTypes
+import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
@@ -17,6 +18,8 @@ import com.intellij.openapi.util.Key
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicReference
+
+data class ModelOption(val id: String, val label: String)
 
 interface AgentProcessListener {
     fun onUserMessage(prompt: String) {}
@@ -117,6 +120,45 @@ class AgentProcessService(private val project: Project) : Disposable {
     }
 
     fun currentChatId(): String? = chatId
+
+    /**
+     * `--list-models` and `agent mcp list`/`enable`/`disable` are local metadata
+     * operations, not chat turns — verified against a live install that they don't
+     * consume the same per-conversation quota `sendPrompt` does (see requirements
+     * doc §13), so these run synchronously (blocking) rather than through the
+     * streaming OSProcessHandler machinery above. Call off the EDT.
+     */
+    fun listModels(): List<ModelOption> {
+        val output = runAgentCommandSync("--list-models") ?: return emptyList()
+        return ModelListParser.parse(output)
+    }
+
+    /** Raw `agent mcp list` output; format unverified against a populated config
+     *  (no MCP servers were configured on the machine this was written on), so the
+     *  UI shows this verbatim rather than attempting a specific parse. */
+    fun listMcpServersRaw(): String = runAgentCommandSync("mcp", "list") ?: "(agent mcp list failed)"
+
+    fun setMcpServerEnabled(identifier: String, enabled: Boolean): Boolean {
+        val subcommand = if (enabled) "enable" else "disable"
+        return runAgentCommandSync("mcp", subcommand, identifier) != null
+    }
+
+    private fun runAgentCommandSync(vararg args: String): String? {
+        val settings = AgentSettingsState.getInstance()
+        val executable = resolveAgentExecutable(settings.agentExecutablePath)
+        val workspace = project.basePath ?: return null
+        return try {
+            val commandLine = GeneralCommandLine(executable, *args)
+                .withWorkDirectory(File(workspace))
+                .withCharset(StandardCharsets.UTF_8)
+                .withEnvironment(System.getenv())
+            val output = ExecUtil.execAndGetOutput(commandLine)
+            output.stdout.takeIf { output.exitCode == 0 }
+        } catch (e: Exception) {
+            LOG.warn("agent ${args.joinToString(" ")} failed", e)
+            null
+        }
+    }
 
     fun startNewChat() {
         killActiveProcess()
