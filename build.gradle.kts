@@ -16,10 +16,17 @@ repositories {
 
 dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.commonmark:commonmark:0.30.0")
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
 
     intellijPlatform {
         local(providers.gradleProperty("platformPath"))
     }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 kotlin {

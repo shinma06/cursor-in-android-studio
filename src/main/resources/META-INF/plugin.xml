@@ -16,6 +16,8 @@
                 icon="/icons/cursor-agent.svg"
                 factoryClass="com.cursoragent.toolwindow.CursorAgentToolWindowFactory"/>
         <projectService serviceImplementation="com.cursoragent.service.AgentProcessService"/>
+        <projectService serviceImplementation="com.cursoragent.service.CheckpointService"/>
+        <projectService serviceImplementation="com.cursoragent.settings.CheckpointHistoryState"/>
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
 </idea-plugin>

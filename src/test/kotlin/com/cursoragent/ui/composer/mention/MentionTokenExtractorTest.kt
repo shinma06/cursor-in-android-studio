@@ -1,0 +1,32 @@
+package com.cursoragent.ui.composer.mention
+
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+
+class MentionTokenExtractorTest {
+    @Test
+    fun `extracts a single file token`() {
+        assertEquals(listOf("src/Foo.kt"), MentionTokenExtractor.extractTokens("Please look at @src/Foo.kt for context"))
+    }
+
+    @Test
+    fun `extracts multiple distinct tokens in send order`() {
+        val prompt = "Compare @git-diff with @src/Foo.kt and also @src/Foo.kt again"
+        assertEquals(listOf("git-diff", "src/Foo.kt"), MentionTokenExtractor.extractTokens(prompt))
+    }
+
+    @Test
+    fun `extracts a folder token keeping its trailing slash`() {
+        assertEquals(listOf("src/main/"), MentionTokenExtractor.extractTokens("Refactor everything under @src/main/"))
+    }
+
+    @Test
+    fun `returns empty list when there are no mention tokens`() {
+        assertEquals(emptyList<String>(), MentionTokenExtractor.extractTokens("just a normal question, no mentions here"))
+    }
+
+    @Test
+    fun `does not treat an email address as a mention`() {
+        assertEquals(emptyList<String>(), MentionTokenExtractor.extractTokens("contact me at user@example.com please"))
+    }
+}

@@ -39,9 +39,11 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         repaint()
     }
 
-    fun addUserMessage(text: String) {
+    fun addUserMessage(text: String): UserMessageBubble {
         hideEmptyState()
-        addRow(UserMessageBubble(text))
+        val bubble = UserMessageBubble(text)
+        addRow(bubble)
+        return bubble
     }
 
     fun ensureAssistantBubble(): AssistantMessageBubble {

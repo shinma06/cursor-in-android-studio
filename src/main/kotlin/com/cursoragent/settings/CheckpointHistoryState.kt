@@ -1,0 +1,54 @@
+package com.cursoragent.settings
+
+import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.project.Project
+
+data class CheckpointRecord(
+    var id: String = "",
+    var promptPreview: String = "",
+    var timestampMs: Long = 0L,
+    var gitSha: String = "",
+    var chatId: String? = null,
+    /** `git ls-files --others --exclude-standard` output at snapshot time, used by
+     *  [com.cursoragent.service.CheckpointService.restore] to remove files the agent
+     *  created after this checkpoint (a plain `git checkout <sha> -- .` only restores
+     *  paths that existed in the snapshot; it never deletes new ones). */
+    var untrackedFilesAtSnapshot: MutableList<String> = mutableListOf(),
+)
+
+@Service(Service.Level.PROJECT)
+@State(name = "CursorAgentCheckpoints", storages = [Storage("cursor-agent-checkpoints.xml")])
+class CheckpointHistoryState : PersistentStateComponent<CheckpointHistoryState.State> {
+    class State {
+        var records: MutableList<CheckpointRecord> = mutableListOf()
+    }
+
+    private var state = State()
+
+    override fun getState(): State = state
+
+    override fun loadState(state: State) {
+        this.state = state
+    }
+
+    fun addRecord(record: CheckpointRecord) {
+        state.records.add(record)
+    }
+
+    fun findRecord(id: String): CheckpointRecord? = state.records.find { it.id == id }
+
+    fun recordsForChat(chatId: String?): List<CheckpointRecord> =
+        state.records.filter { it.chatId == chatId }
+
+    fun pruneOlderThan(cutoffMs: Long) {
+        state.records.removeAll { it.timestampMs < cutoffMs }
+    }
+
+    companion object {
+        fun getInstance(project: Project): CheckpointHistoryState =
+            project.getService(CheckpointHistoryState::class.java)
+    }
+}

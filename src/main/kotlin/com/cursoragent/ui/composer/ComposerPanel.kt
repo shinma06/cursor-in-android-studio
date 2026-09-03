@@ -1,37 +1,47 @@
 package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentSettingsState
-import com.cursoragent.ui.AgentUiColors
+import com.cursoragent.ui.composer.mention.MentionPopupController
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.fileTypes.PlainTextFileType
+import com.intellij.openapi.project.Project
+import com.intellij.ui.EditorTextField
 import com.intellij.ui.JBColor
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JCheckBoxMenuItem
-import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JPopupMenu
+import javax.swing.KeyStroke
 
-class ComposerPanel : JPanel(BorderLayout()) {
+class ComposerPanel(project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
 
-    val inputArea = JBTextArea(4, 20).apply {
-        lineWrap = true
-        wrapStyleWord = true
+    val inputArea = object : EditorTextField(project, PlainTextFileType.INSTANCE) {
+        override fun createEditor(): EditorEx {
+            val editor = super.createEditor()
+            editor.settings.isUseSoftWraps = true
+            editor.settings.isLineNumbersShown = false
+            editor.setVerticalScrollbarVisible(false)
+            editor.setHorizontalScrollbarVisible(false)
+            return editor
+        }
+    }.apply {
+        setOneLineMode(false)
+        setPlaceholder("Plan, @ for context")
         border = JBUI.Borders.empty(8)
+        preferredSize = Dimension(preferredSize.width, JBUI.scale(88))
     }
 
-    private val placeholderLabel = JLabel("Plan, @ for context").apply {
-        foreground = AgentUiColors.mutedText
-        border = JBUI.Borders.empty(8)
-    }
+    private val mentionPopupController = MentionPopupController(project, inputArea)
 
     private val sendButton = JButton(AllIcons.Actions.Upload).apply {
         toolTipText = "Send (Enter)"
@@ -41,7 +51,7 @@ class ComposerPanel : JPanel(BorderLayout()) {
     val modeSelector = ModeSelector()
     val modelSelector = ModelSelector()
 
-    /** Reserved for @mention chips, diff review bar, etc. */
+    /** Reserved for diff review bar etc. */
     val accessoryPanel = JPanel(BorderLayout()).apply {
         isVisible = false
         isOpaque = false
@@ -61,20 +71,14 @@ class ComposerPanel : JPanel(BorderLayout()) {
             )
             background = JBColor.namedColor("TextField.background", JBColor.background())
             isOpaque = true
-            add(placeholderLabel, BorderLayout.NORTH)
-            add(JBScrollPane(inputArea).apply { border = JBUI.Borders.empty() }, BorderLayout.CENTER)
+            add(inputArea, BorderLayout.CENTER)
         }
 
-        updatePlaceholderVisibility()
-        inputArea.addCaretListener { updatePlaceholderVisibility() }
-        inputArea.addKeyListener(object : KeyAdapter() {
-            override fun keyPressed(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_ENTER && !e.isShiftDown) {
-                    e.consume()
-                    submit()
-                }
-            }
-        })
+        mentionPopupController.install()
+
+        object : AnAction() {
+            override fun actionPerformed(e: AnActionEvent) = submit()
+        }.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0)), inputArea)
 
         sendButton.addActionListener { submit() }
 
@@ -106,7 +110,6 @@ class ComposerPanel : JPanel(BorderLayout()) {
 
     fun clearInput() {
         inputArea.text = ""
-        updatePlaceholderVisibility()
     }
 
     fun inputText(): String = inputArea.text.trim()
@@ -116,10 +119,6 @@ class ComposerPanel : JPanel(BorderLayout()) {
         if (text.isNotEmpty()) {
             onSend(text)
         }
-    }
-
-    private fun updatePlaceholderVisibility() {
-        placeholderLabel.isVisible = inputArea.text.isEmpty()
     }
 
     private fun createOverflowButton(): JButton {

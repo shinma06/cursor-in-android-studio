@@ -14,7 +14,7 @@ class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
         isOpaque = true
 
         val timeline = ChatTimelinePanel()
-        val composer = ComposerPanel()
+        val composer = ComposerPanel(project)
         val header = AgentHeaderBar()
         val controller = AgentUiController(project, timeline, composer, header)
 

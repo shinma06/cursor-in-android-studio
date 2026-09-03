@@ -122,12 +122,26 @@ persisted side-channel read by both the service and the UI.
 ## Current implementation status vs. requirements doc
 
 The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
-with feature IDs (F-01, F-02, ...). What's actually implemented today covers the chat-core subset:
-prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15), mode/model/
-force controls (F-20–22, though `agent --list-models` dynamic population for F-21 is not wired
-up), and workspace pinning (F-51). Session resume (`--resume`) is implemented at the service layer
-but there's no UI to pick from past sessions (F-50). **Not yet implemented**: `@mention` file/
-folder completion (F-10/F-11), diff preview/Apply/Reject (F-30/F-31), the Git-backed checkpoint/
-rollback system (F-40–44, flagged in the doc as the most technically uncertain and highest-risk
-area), and MCP server listing (F-70). Check the doc's §12 phase table before assuming a feature is
-out of scope versus simply not built yet.
+with feature IDs (F-01, F-02, ...); the live milestone tracker is GitHub issues #1–#10 (see
+"Multi-agent collaboration model" above), which is the up-to-date source for what's done.
+
+Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
+mode/force controls (F-20, F-22), workspace pinning (F-51), Markdown rendering for assistant
+messages (`AssistantMessageBubble`/`MarkdownRenderer`, commonmark-based, HTML-inline/HTML-block
+nodes rendered as escaped text rather than passed through raw — see that file's doc comment for
+why), the git-stash-create-based checkpoint/rollback system (F-40–44: `CheckpointService` +
+`GitSnapshotStore` + `CheckpointHistoryState`, rollback icon on `UserMessageBubble`), and `@mention`
+context injection for files/folders/git-diff/docs/web hints (F-10–12, F-14: `ComposerPanel`'s
+`EditorTextField` + `MentionPopupController` + `MentionResolver`).
+
+Session resume (`--resume`) is implemented at the service layer but there's no UI to pick from past
+sessions yet (F-50). **Not yet implemented**: `--list-models` dynamic population (F-21, UI stub
+exists in `ModelSelector`), diff preview/Apply/Reject (F-30/F-31, blocked on the M0 CLI spike),
+`@Terminal` mention (F-13, blocked on IntelliJ Terminal API verification), MCP server listing/
+enable-disable (F-70/F-71), and multimodal input (F-60/F-61).
+
+**Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
++ Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),
+and the `@` mention popup's positioning/focus behavior (`MentionPopupController`). Neither is
+unit-testable (Swing/editor keyboard-event routing and popup UI), and no live IDE session has
+exercised them yet.

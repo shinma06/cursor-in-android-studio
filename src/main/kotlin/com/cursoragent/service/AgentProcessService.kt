@@ -116,6 +116,8 @@ class AgentProcessService(private val project: Project) : Disposable {
         handler.startNotify()
     }
 
+    fun currentChatId(): String? = chatId
+
     fun startNewChat() {
         killActiveProcess()
         chatId = null

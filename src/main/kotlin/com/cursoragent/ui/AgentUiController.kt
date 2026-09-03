@@ -2,7 +2,9 @@ package com.cursoragent.ui
 
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.CheckpointService
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -18,6 +20,12 @@ class AgentUiController(
     private val header: AgentHeaderBar,
 ) {
     private val agentService = project.getService(AgentProcessService::class.java)
+    private val checkpointService = project.getService(CheckpointService::class.java)
+    private val mentionResolver = MentionResolver(project)
+
+    init {
+        checkpointService.pruneExpired()
+    }
 
     fun startNewChat() {
         agentService.startNewChat()
@@ -30,10 +38,21 @@ class AgentUiController(
 
         composer.clearInput()
         composer.setInputEnabled(false)
-        timeline.addUserMessage(userText)
+
+        val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
+        val userBubble = timeline.addUserMessage(userText)
+        userBubble.setCheckpointAvailable(checkpointId != null)
+        if (checkpointId != null) {
+            userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+        }
 
         val contextPrefix = buildActiveFileContext()
-        val fullPrompt = if (contextPrefix.isNullOrBlank()) userText else "$contextPrefix\n\n$userText"
+        val mentionContext = mentionResolver.buildContext(userText)
+        val fullPrompt = buildString {
+            if (!contextPrefix.isNullOrBlank()) append(contextPrefix).append("\n\n")
+            if (!mentionContext.isNullOrBlank()) append(mentionContext).append("\n\n")
+            append(userText)
+        }
 
         header.setSessionStatus("Running...")
 
@@ -107,6 +126,22 @@ class AgentUiController(
                     finishRun()
                 }
             }
+        }
+    }
+
+    private fun requestRollback(checkpointId: String) {
+        val confirmed = Messages.showYesNoDialog(
+            project,
+            "このプロンプトを送信する直前の状態までファイルを復元します。この操作は取り消せません。続行しますか？",
+            "チェックポイントへロールバック",
+            Messages.getWarningIcon(),
+        ) == Messages.YES
+        if (!confirmed) return
+
+        if (checkpointService.restore(checkpointId)) {
+            timeline.showStatus("Rolled back to checkpoint")
+        } else {
+            Messages.showErrorDialog(project, "ロールバックに失敗しました", "Cursor Agent")
         }
     }
 
