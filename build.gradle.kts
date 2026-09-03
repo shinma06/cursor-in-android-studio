@@ -14,9 +14,9 @@ version = "0.1.0-SNAPSHOT"
 // a single fast, idempotent `git config` call.
 if (file(".githooks").exists()) {
     try {
-        exec {
+        providers.exec {
             commandLine("git", "config", "core.hooksPath", ".githooks")
-        }
+        }.result.get()
     } catch (e: Exception) {
         logger.warn("Could not configure git core.hooksPath: ${e.message}")
     }
@@ -36,6 +36,13 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
 
     intellijPlatform {
+        // Always local(): the intellijPlatform Gradle plugin's own androidStudio()
+        // dependency resolution (v2.10.5) constructs a broken download URL --
+        // verified directly, the artifact exists and downloads fine by hand, but
+        // Gradle's own resolution 404s on it. CI works around this by downloading
+        // Android Studio itself (see .github/workflows/ci.yml) and passing the
+        // extracted path as -PplatformPath, reusing this exact same code path
+        // instead of maintaining a second, broken resolution mechanism.
         local(providers.gradleProperty("platformPath"))
     }
 }
