@@ -24,6 +24,7 @@ if (file(".githooks").exists()) {
 
 repositories {
     mavenCentral()
+    google() // required to resolve androidStudio() artifacts (CI only, see below)
     intellijPlatform {
         defaultRepositories()
     }
