@@ -120,7 +120,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 | F-10 | `@ファイル名`補完UI | MVP | Android Studioのプロジェクトツリー/開いているファイル一覧からJList/JPopupMenuで候補表示 → 選択時にプロンプト文字列へ`@path`を埋め込み |
 | F-11 | `@フォルダ`指定 | P2 | 同上、ディレクトリ選択対応 |
 | F-12 | `@Git diff`(未コミット差分) | P2 | プラグイン側で`git diff`を実行し結果をプロンプトに埋め込み(CLI自動対応なし) |
-| F-13 | `@Terminals`(ターミナル出力) | P3 | IntelliJ Terminal Pluginのバッファ取得APIと連携 `[要検証]` |
+| F-13 | `@Terminals`(ターミナル出力) | P3(**API検証済み・未実装 2026-09**) | `[検証済]` context7でIntelliJ Platform SDK公式ドキュメント(`embedded-terminal.html`)を確認。`TerminalView.DATA_KEY`/`TerminalToolWindowTabsManager.getTabs()`でターミナルタブを取得し、`TerminalView.outputModels`(`TerminalOutputModel`、regular/alternativeバッファ)または`TerminalBlocksModel`(コマンド単位、作業ディレクトリ・終了コード付き)からテキストを読み取り可能。Reworked Terminal API(2025.2以降デフォルト、本プラグインの対象build 261はこれに該当)向け。未実装(M9, Issue #12参照) |
 | F-14 | `@Docs` / `@Web` | P3 | MCPサーバー追加設定が前提。本フェーズはスコープ外 |
 | F-15 | 現在開いているファイル/選択範囲の自動コンテキスト化 | MVP | エディタの`FileEditorManager`/`SelectionModel`から取得し、送信時に自動付与(ネイティブCursorの「Active file and selection」相当) |
 | F-16 | `@Branch`(現在のブランチ vs mainの差分) | P2 `[2026-09追加]` | プラグイン側で`git diff main...HEAD`相当を実行し埋め込み。F-12と同じパターンで実装可能 |

@@ -1,62 +1,42 @@
 # Cursor Agent Plugin
 
-Android Studio 向け Cursor Agent 統合プラグイン。
+Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI をサブプロセスとして起動し、
+`stream-json` 出力をパースして独自のSwing/JBUI製チャットUIに描画する(CLIをブラックボックスとして
+ラップする方式)。
 
-- **リポジトリ**: https://github.com/shinma-postas/cursor-agent-plugin
-- **ローカルパス**: `~/Dev/cursor-agent-plugin`
-
-## 含まれる機能
-
-- Tool Window「Cursor Agent」（右ペイン）
-- テキストプロンプト送信（F-01）
-- stream-json ストリーミング表示（F-02, 基本）
-- 会話履歴表示（F-03, メモリ内）
-- 新規チャット（F-05）
-- Ask / Agent / Plan モード切替（F-20）
-- Force トグル（F-22, デフォルト OFF、⋯ メニュー内）
-- アクティブファイル/選択範囲の自動コンテキスト付与（F-15）
-- `--workspace` をプロジェクトルートに固定（F-51）
-
-## 前提
-
-- Android Studio 2026.1 以降（build 261+）
-- `agent` CLI（`~/.local/bin/agent` 等）
-- `agent login` または `CURSOR_API_KEY` で認証済み
+> **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
+> 開発を始める前に必ず次の2つを読んでください。
+> 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
+> 2. **[GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues/1)** — 進捗の一次情報源。このリポジトリは複数のAIエージェント(Claude Code、Cursor自身のエージェント)が役割分担なく非同期に作業する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+>
+> 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 
 ## セットアップ
 
 ```bash
-cd ~/Dev/cursor-agent-plugin
-export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"
+git clone https://github.com/shinma-postas/cursor-agent-plugin.git
+cd cursor-agent-plugin
+export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+が必要(Kotlinコンパイル自体はJDK21ツールチェーンを自動取得)
 ./gradlew buildPlugin
 ```
+
+## 前提
+
+- Android Studio 2026.1 以降(build 261+)
+- `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
+- `gradle.properties` の `platformPath` をローカルのAndroid Studio SDKパスに合わせて設定(マシン依存、コメントに例あり)
 
 ## Android Studio へのインストール
 
 1. **Settings → Plugins → ⚙ → Install Plugin from Disk...**
-2. `build/distributions/cursor-agent-plugin-0.1.0-SNAPSHOT.zip` を選択
+2. `build/distributions/cursor-agent-plugin-<version>.zip` を選択
 3. Restart IDE
 4. **View → Tool Windows → Cursor Agent**
 
+サンドボックスでの動作確認: `./gradlew runIde`
+
 ## 開発
 
-`gradle.properties` の `platformPath` で Android Studio SDK を指定します。
-
-| インストール方法 | platformPath |
-|------------------|--------------|
-| brew cask（/Applications） | `/Applications/Android Studio.app/Contents` |
-| Homebrew Caskroom 直指定 | `/opt/homebrew/Caskroom/android-studio/2026.1.3.8,quail3-patch1/Android Studio.app/Contents` |
-
-サンドボックス確認: `./gradlew runIde`
-
-## ドキュメント
-
-- [要件定義書](docs/cursor-agent-plugin-requirements.md)
-
-## ロードマップ
-
-- GUI-2: Markdown 表示
-- F-21: モデル選択（`agent --list-models`）
-- F-10: `@ファイル` 補完
-- F-30/F-31: 差分 Apply/Reject
-- F-40〜42: チェックポイント / ロールバック
+- ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
+- 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
+- 進捗・タスク管理: [GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)

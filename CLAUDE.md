@@ -10,9 +10,30 @@ This repo is worked on by more than one AI coding agent — Claude Code and Curs
 fixed role split**. Whichever agent is active at a given moment picks up whatever work is next;
 neither has visibility into the other's local session history or scratch state, so **GitHub Issues
 on this repo is the shared source of truth for task status**, not any agent-local plan/todo file.
-Before starting work, check open issues for the current milestone status; update an issue's
-checklist/comments as you complete items instead of only reporting progress back to whichever
-human or agent happens to be watching the current session.
+There's also no branch-protection/PR workflow here — everything lands on `main` directly, which
+matters because two agents can be live on this repo at the same time. Concretely, every session
+should:
+
+1. **Before starting work**: check the tracking issue (#1) and the specific milestone issue for
+   current status, then `git pull` (or `git fetch` + check `git log origin/main` against local
+   HEAD) — another agent may have pushed since your last sync, and starting from a stale HEAD is
+   how you end up redoing work or reverting someone else's fix without realizing it.
+2. **Claim the work before doing it**: leave a short comment on the issue (e.g. "Starting M4") so
+   a concurrent session doesn't pick up the same issue. This is the only coordination signal that
+   exists — issues currently carry no labels/assignees, so a comment is the actual mechanism, not
+   just a nicety.
+3. **Before pushing**: `git pull` again if meaningful time has passed since step 1. If a push is
+   rejected as non-fast-forward, that means someone else landed work in the meantime — stop and
+   reconcile (merge/rebase, re-read what changed) rather than force-pushing over it.
+4. **After finishing**: update the issue's checklist and leave a closing comment, and update
+   `CLAUDE.md`/the requirements doc if what you built changes the "current implementation status"
+   or "verified CLI behavior" sections — those are read as ground truth by the next session
+   (agent or human), so a stale claim there is actively worse than no claim at all.
+
+If you're a fresh agent with zero context on this repo: read this whole file, then
+`docs/cursor-agent-plugin-requirements.md`, then the open GitHub issues, in that order, before
+touching any code — the "Current implementation status" and "Verified CLI behavior" sections below
+exist specifically so you don't have to re-derive them by reading every source file.
 
 ## What this is
 
@@ -24,6 +45,21 @@ control and defensive JSON parsing. This is referred to as "方式B" (native UI 
 `docs/cursor-agent-plugin-requirements.md`, which is the full requirements/design doc and the
 source of truth for feature scope and rationale — check it before adding features.
 
+## Current blocker (check this before picking a task)
+
+The verification account used so far is Cursor **Free tier**, which hits `resource_exhausted` on
+any prompt that actually reaches the model (plain chat, file edits, tool calls) — confirmed
+persistent, not transient, across repeated retries. `--list-models` and `agent mcp
+list/enable/disable` are unaffected (they're local metadata operations, not chat turns — see
+"Verified CLI behavior" below). This blocks GitHub issues **#6 (M4, diff Apply/Reject)**, **#7 (M5,
+tool-call/shell output display)**, and the image-attachment half of **#10 (M8)** — don't start
+those without either a working paid-tier/quota-recovered account to verify against, or a clear
+signal from whoever's running the session that they have one. Everything else is unblocked; issues
+**#11** and **#12** are explicitly ranked cheapest-first for exactly this reason. This paragraph is
+the single most load-bearing fact for "what can I actually work on right now" — it used to live
+only in GitHub issue #1, which an onboarding dry-run (issue #11) found easy to miss if you assume
+this file is self-contained.
+
 ## Commands
 
 ```bash
@@ -33,10 +69,18 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 
 ./gradlew buildPlugin   # produces build/distributions/cursor-agent-plugin-<version>.zip
 ./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
+./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin — run this before every push
 ```
 
-There is no test source set and no lint/static-analysis task configured in `build.gradle.kts` —
-don't assume `./gradlew test` or a linter exists.
+**Correction (2026-09, found by an onboarding dry-run — see GitHub issue #11)**: this section used
+to say no test source set exists. That was true when it was written but has been stale since M1
+(commit `f60c7f6`) added `src/test/kotlin` and JUnit5 wiring in `build.gradle.kts`. There is now a
+real test suite (`GitSnapshotStoreTest`, `MarkdownRendererTest`, `MentionTokenExtractorTest`,
+`ModelListParserTest`, `AssistantChunkDeduperTest`, `AgentSettingsStateTest`) — run `./gradlew test`
+and keep it green. There is still no lint/static-analysis task configured. If you're reading a
+stale copy of this file (cached context, an old checkout), don't trust either claim — run
+`./gradlew test` yourself to check, and if this note itself looks wrong, the code is more likely to
+be right than a doc that says "don't assume X exists."
 
 `gradle.properties` sets `platformPath`, which must point at a local Android Studio install
 (`.../Android Studio.app/Contents`) for `buildPlugin`/`runIde` to resolve the platform SDK. This
@@ -195,10 +239,22 @@ turn — the CLI has no way to hand back a past session's transcript, so the tim
 rather than replayed; this is a known, permanent limitation rather than a TODO.
 
 **Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the M0 write-timing
-spike), `@Terminal` mention (F-13, blocked on IntelliJ Terminal API verification), and multimodal
+spike), `@Terminal` mention (F-13 — **not blocked**, just unimplemented; see below), and multimodal
 input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather than a parsed
 table — its format was never verified against a populated `.cursor/mcp.json` (no MCP servers were
 configured on the machine this was built on).
+
+**F-13 (`@Terminal` mention) API verified, 2026-09**: an earlier pass marked this "verified" in
+GitHub issue #2's checklist without actually doing the check — caught by an onboarding dry-run (see
+GitHub issue #11) that found the claim unsupported. Actually checked now, via context7 against
+`plugins.jetbrains.com/docs/intellij/embedded-terminal.html`: `TerminalView.DATA_KEY` (from a
+`DataContext`) or `TerminalToolWindowTabsManager.getTabs()` gets terminal tabs, and
+`TerminalView.outputModels` (`TerminalOutputModel`, regular/alternative buffers) or
+`TerminalBlocksModel` (per-command blocks with working dir + exit code) exposes the text — this is
+the Reworked Terminal API, default since platform 2025.2, which covers this plugin's `sinceBuild
+261`. Feasible; just not implemented yet (tracked in GitHub issue #12). Exact text-extraction method
+signatures weren't in the doc snippets returned — expect to need to browse the actual platform
+sources during implementation.
 
 **Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
 + Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),
