@@ -144,12 +144,18 @@ account used for the M0 spike was still hitting `resource_exhausted` on actual p
 synchronously via `ExecUtil.execAndGetOutput` (`AgentProcessService.runAgentCommandSync`), not
 through the streaming `OSProcessHandler` path `sendPrompt` uses.
 
-Session resume (`--resume`) is implemented at the service layer but there's no UI to pick from past
-sessions yet (F-50). **Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the
-M0 write-timing spike), `@Terminal` mention (F-13, blocked on IntelliJ Terminal API verification),
-and multimodal input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather
-than a parsed table — its format was never verified against a populated `.cursor/mcp.json` (no MCP
-servers were configured on the machine this was built on).
+Past-chats tracking (F-50) is also implemented: `ChatHistoryState` records `(chatId,
+firstPromptPreview, lastUpdatedMs)` on every turn (since `agent ls`/`agent resume` need a raw TTY
+and can't be shelled out to — see the "Verified CLI behavior" section), and `AgentHeaderBar`'s
+history button opens a popup to resume one. Resuming only continues the *session* for the next
+turn — the CLI has no way to hand back a past session's transcript, so the timeline is cleared
+rather than replayed; this is a known, permanent limitation rather than a TODO.
+
+**Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the M0 write-timing
+spike), `@Terminal` mention (F-13, blocked on IntelliJ Terminal API verification), and multimodal
+input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather than a parsed
+table — its format was never verified against a populated `.cursor/mcp.json` (no MCP servers were
+configured on the machine this was built on).
 
 **Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
 + Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),

@@ -18,6 +18,7 @@
         <projectService serviceImplementation="com.cursoragent.service.AgentProcessService"/>
         <projectService serviceImplementation="com.cursoragent.service.CheckpointService"/>
         <projectService serviceImplementation="com.cursoragent.settings.CheckpointHistoryState"/>
+        <projectService serviceImplementation="com.cursoragent.settings.ChatHistoryState"/>
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
 </idea-plugin>

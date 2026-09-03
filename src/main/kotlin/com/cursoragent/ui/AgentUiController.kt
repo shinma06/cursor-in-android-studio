@@ -3,6 +3,8 @@ package com.cursoragent.ui
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.CheckpointService
+import com.cursoragent.settings.ChatHistoryRecord
+import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.header.AgentHeaderBar
@@ -11,7 +13,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VfsUtil
+import java.text.SimpleDateFormat
+import java.util.Date
 import javax.swing.SwingUtilities
 
 class AgentUiController(
@@ -22,11 +27,13 @@ class AgentUiController(
 ) {
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
+    private val chatHistoryState = ChatHistoryState.getInstance(project)
     private val mentionResolver = MentionResolver(project)
 
     init {
         checkpointService.pruneExpired()
         loadModels()
+        header.onPastChatsClicked = { showPastChats() }
     }
 
     private fun loadModels() {
@@ -65,10 +72,10 @@ class AgentUiController(
 
         header.setSessionStatus("Running...")
 
-        agentService.sendPrompt(fullPrompt, createListener())
+        agentService.sendPrompt(fullPrompt, createListener(userText))
     }
 
-    private fun createListener(): AgentProcessListener {
+    private fun createListener(userText: String): AgentProcessListener {
         var assistantStarted = false
         val assistantBuffer = StringBuilder()
 
@@ -113,6 +120,9 @@ class AgentUiController(
                     if (parts.isNotEmpty()) {
                         header.setSessionStatus(parts.joinToString(" | "))
                     }
+                    if (chatId != null) {
+                        chatHistoryState.recordTurn(chatId, userText)
+                    }
                 }
             }
 
@@ -153,6 +163,36 @@ class AgentUiController(
             Messages.showErrorDialog(project, "ロールバックに失敗しました", "Cursor Agent")
         }
     }
+
+    private fun showPastChats() {
+        val records = chatHistoryState.list()
+        if (records.isEmpty()) {
+            Messages.showInfoMessage(project, "過去のチャットはまだありません", "Past Chats")
+            return
+        }
+
+        JBPopupFactory.getInstance()
+            .createPopupChooserBuilder(records)
+            .setTitle("Past Chats")
+            .setRenderer { _, value: ChatHistoryRecord, _, _, _ ->
+                javax.swing.JLabel(" ${value.firstPromptPreview}  (${formatTimestamp(value.lastUpdatedMs)})")
+            }
+            .setItemChosenCallback { record -> resumeChat(record) }
+            .createPopup()
+            .showUnderneathOf(header.pastChatsButton)
+    }
+
+    private fun resumeChat(record: ChatHistoryRecord) {
+        // The CLI has no way to dump a past session's transcript back to us (see
+        // requirements doc §13), so this only resumes the *session* for the next
+        // turn -- it can't replay the prior turns' bubbles into the timeline.
+        agentService.resumeChat(record.chatId)
+        timeline.clearTimeline()
+        header.setSessionStatus("session=${record.chatId.take(8)}… (resumed)")
+    }
+
+    private fun formatTimestamp(epochMs: Long): String =
+        SimpleDateFormat("MM/dd HH:mm").format(Date(epochMs))
 
     private fun finishRun() {
         composer.setInputEnabled(true)

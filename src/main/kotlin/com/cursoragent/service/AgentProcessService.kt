@@ -121,6 +121,10 @@ class AgentProcessService(private val project: Project) : Disposable {
 
     fun currentChatId(): String? = chatId
 
+    fun resumeChat(id: String) {
+        chatId = id
+    }
+
     /**
      * `--list-models` and `agent mcp list`/`enable`/`disable` are local metadata
      * operations, not chat turns — verified against a live install that they don't

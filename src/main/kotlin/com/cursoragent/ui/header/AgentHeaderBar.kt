@@ -11,9 +11,16 @@ import javax.swing.JPanel
 
 class AgentHeaderBar : JPanel(BorderLayout()) {
     var onNewChat: () -> Unit = {}
+    var onPastChatsClicked: () -> Unit = {}
 
     val sessionLabel = JBLabel("Ready").apply {
         foreground = AgentUiColors.mutedText
+    }
+
+    val pastChatsButton = JButton(AllIcons.Vcs.History).apply {
+        toolTipText = "Past Chats"
+        isBorderPainted = false
+        isContentAreaFilled = false
     }
 
     init {
@@ -30,6 +37,7 @@ class AgentHeaderBar : JPanel(BorderLayout()) {
                     addActionListener { onNewChat() }
                 },
             )
+            add(pastChatsButton.apply { addActionListener { onPastChatsClicked() } })
         }
 
         add(left, BorderLayout.WEST)
