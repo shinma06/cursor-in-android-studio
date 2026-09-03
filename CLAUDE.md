@@ -72,6 +72,14 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 ./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin — run this before every push
 ```
 
+**This is enforced automatically, not just a convention**: any `./gradlew <task>` invocation configures
+`git config core.hooksPath .githooks` (see the top of `build.gradle.kts`), and `.githooks/pre-push`
+runs `./gradlew test` and blocks the push if it fails. This is deliberately git-level rather than a
+Claude-Code-specific hook, so it applies no matter which agent (or human) is pushing. Don't rely on
+it as your only check, though — run `./gradlew test` yourself before pushing so you find out about a
+failure before the hook does, and never reach for `git push --no-verify` to route around a real
+failure (it exists for genuine edge cases, not for skipping a red test).
+
 **Correction (2026-09, found by an onboarding dry-run — see GitHub issue #13)**: this section used
 to say no test source set exists. That was true when it was written but has been stale since M1
 (commit `f60c7f6`) added `src/test/kotlin` and JUnit5 wiring in `build.gradle.kts`. There is now a

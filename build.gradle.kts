@@ -7,6 +7,21 @@ plugins {
 group = "com.cursoragent"
 version = "0.1.0-SNAPSHOT"
 
+// Self-installing safety net: point this repo's git hooks at the versioned
+// .githooks/ directory (unversioned hooks under .git/hooks/ never survive a
+// fresh clone) so the pre-push test gate is active for every contributor/agent
+// without a manual setup step to forget. Runs on every Gradle invocation but is
+// a single fast, idempotent `git config` call.
+if (file(".githooks").exists()) {
+    try {
+        exec {
+            commandLine("git", "config", "core.hooksPath", ".githooks")
+        }
+    } catch (e: Exception) {
+        logger.warn("Could not configure git core.hooksPath: ${e.message}")
+    }
+}
+
 repositories {
     mavenCentral()
     intellijPlatform {
