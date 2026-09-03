@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export JAVA_HOME=*)",
+      "Bash(./gradlew test*)",
+      "Bash(./gradlew compileKotlin*)",
+      "Bash(./gradlew buildPlugin*)",
+      "Bash(claude mcp list)",
+      "Bash(gh run watch*)",
+      "mcp__context7__query-docs",
+      "mcp__context7__resolve-library-id"
+    ]
+  }
+}

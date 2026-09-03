@@ -35,6 +35,12 @@ If you're a fresh agent with zero context on this repo: read this whole file, th
 touching any code — the "Current implementation status" and "Verified CLI behavior" sections below
 exist specifically so you don't have to re-derive them by reading every source file.
 
+`.claude/skills/start-work` and `.claude/skills/finish-work` encode steps 1–2 and 3–4 above as
+Claude Code skills, and `.claude/settings.json` allowlists some read-only commands this repo's
+work pattern uses often. Both are Claude-Code-specific (Cursor's agent can't read `.claude/`) — if
+you're Cursor's agent, the numbered rules above are the same information, just not automated for
+you.
+
 ## What this is
 
 An Android Studio (IntelliJ Platform) plugin that reproduces Cursor IDE's Agent tab as a native
