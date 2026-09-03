@@ -283,11 +283,15 @@ agent mcp list
 
 ## 13. 未確定事項(要検証リスト)
 
-- [ ] `[要検証]` CLIでの画像添付方法の有無・実装方法
-- [ ] `[要検証]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否
-- [ ] `[要検証]` stream-jsonの正確なイベントスキーマ(公式リファレンスの詳細ページを別途取得)
+- [ ] `[要検証]` CLIでの画像添付方法の有無・実装方法 — 未検証(Freeプランのクォータ枯渇で保留、下記参照)
+- [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
+- [ ] `[要検証]` stream-jsonの正確なイベントスキーマ(公式リファレンスの詳細ページを別途取得) — `system/init`, `user`, `connection`, `retry`イベントは実機確認済み(`CLAUDE.md`参照)。ファイル編集イベント・tool_call結果イベントは未確認(下記参照)
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値
-- [ ] IntelliJ Platform側で`@`補完UIをどのコンポーネントで実現するのが最も自然か(`TextFieldWithAutoCompletion` vs カスタムEditor実装)の技術検証
+- [ ] IntelliJ Platform側で`@`補完UIをどのコンポーネントで実現するのが最も自然か(`TextFieldWithAutoCompletion` vs カスタムEditor実装)の技術検証 → 方針決定: 実装コスト度外視でネイティブUXを優先し、`EditorTextField`+自作補完コントリビューターを採用する
+- [x] `[検証済 2026-09]` 新規ワークスペースでは`--trust`/`--yolo`/`-f`なしだと「Workspace Trust Required」で即失敗することが判明。プラグインは常に`--trust`を付与するよう修正済み(IDEでプロジェクトを開いている時点がユーザーの信頼判断そのものであるため)
+- [x] `[検証済 2026-09]` `agent ls`/`agent resume`(過去セッション選択)は生TTY必須のInkベースTUIで、`OSProcessHandler`等の非TTYサブプロセスからは`Raw mode is not supported`で失敗する。過去チャット一覧(F-50)はCLIのセッション一覧機能に頼らず、プラグイン側で`chatId`を自前で永続化する設計とする
+- [x] `[検証済 2026-09]` `agent mcp`には`list`/`list-tools <id>`/`enable <id>`/`disable <id>`/`login <id>`サブコマンドが存在する。F-71(MCP有効/無効切替)は`.cursor/mcp.json`相当を直接編集せず、これらのサブコマンドを呼び出す実装で十分
+- [ ] `[未検証・保留]` force ON/OFFでのファイル書き込みタイミングとtool_call結果イベントの内容、`--list-models`/`agent mcp list`の出力形式 — 検証プロンプト実行時に`resource_exhausted`(Freeプランのクォータ枯渇)で行き詰まり中。クォータ回復後またはプラン変更後に再検証する
 
 ---
 

@@ -135,10 +135,14 @@ class AgentProcessService(private val project: Project) : Disposable {
         settings: AgentSettingsState,
     ): GeneralCommandLine {
         val executable = resolveAgentExecutable(settings.agentExecutablePath)
+        // Without --trust the CLI blocks on a "Workspace Trust Required" prompt that
+        // has no TTY to answer it, so every run in a project opened for the first
+        // time fails outright. Opening the project in the IDE is the trust boundary.
         val args = mutableListOf(
             "-p",
             "--output-format", "stream-json",
             "--stream-partial-output",
+            "--trust",
             "--workspace", workspace,
         )
 

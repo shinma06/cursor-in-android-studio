@@ -6,3 +6,4 @@ out/
 .DS_Store
 .intellijPlatform/
 .kotlin/
+local.properties

@@ -1,0 +1,11 @@
+{"type":"system","subtype":"init","apiKeySource":"login","cwd":"/private/tmp/claude-501/-Users-shinma-Dev-Soft/ab0b1ec1-1a54-435a-94bd-58c33a84b66d/scratchpad/cli-spike","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","model":"Auto","permissionMode":"default"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"1+1は何ですか？一言で答えて"}]},"session_id":"b09be474-c36d-42b9-ae76-0275e336b194"}
+{"type":"connection","subtype":"reconnecting","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447450607,"attempt":1,"endpoint_url":"https://agentn.global.api5.cursor.sh"}
+{"type":"retry","subtype":"starting","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447452898,"attempt":1,"is_resume":false}
+{"type":"connection","subtype":"reconnected","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447453144}
+{"type":"connection","subtype":"reconnecting","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447453393,"attempt":2,"endpoint_url":"https://agentn.global.api5.cursor.sh"}
+{"type":"retry","subtype":"starting","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447457416,"attempt":2,"is_resume":false}
+{"type":"connection","subtype":"reconnected","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447457756}
+{"type":"connection","subtype":"reconnecting","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447457997,"attempt":3,"endpoint_url":"https://agentn.global.api5.cursor.sh"}
+{"type":"retry","subtype":"starting","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447467496,"attempt":3,"is_resume":false}
+{"type":"connection","subtype":"reconnected","session_id":"b09be474-c36d-42b9-ae76-0275e336b194","timestamp_ms":1788447467752}
