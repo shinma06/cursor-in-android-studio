@@ -68,7 +68,7 @@ plugin cannot intercept writes before they happen — F-30/F-31 are implemented 
 view + Revert** (restore `beforeFullFileContent` from the completed `editToolCall` event, or use
 checkpoints), not pre-apply approval gating.
 
-Still blocked without further live verification: F-60 image attachment.
+Still out of scope until CLI support appears: F-60 image attachment (`agent --help` has no image flag, verified 2026-09-04).
 
 ## Commands
 
@@ -210,7 +210,8 @@ persisted side-channel read by both the service and the UI.
   `StreamEvent.Unknown`: `"user"` (echoes the sent prompt back), `"connection"` (subtype
   `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
   telemetry, safe to keep ignoring.
-- **Still unverified**: image-attachment support (F-60).
+- **CLI flags verified 2026-09-04**: `--sandbox enabled|disabled`, `-w/--worktree` (no `--image` in `--help`).
+- **Still unverified**: F-17 `@Chats` (likely needs TTY like `agent ls`).
 - **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
   incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
   with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
@@ -245,6 +246,7 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
   could still move out). `AgentTurnListenerFactory` and `PromptContextBuilder` now own the per-turn
   listener and prompt assembly (#11, 2026-09). Settings page and tool-window-close cleanup are done.
   F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
+  F-52 worktree: basic `-w` toggle (`WorktreeMode.ISOLATED`); changes land under `~/.cursor/worktrees/`.
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
   see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
   `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as

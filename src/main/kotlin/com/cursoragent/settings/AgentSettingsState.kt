@@ -32,6 +32,11 @@ enum class SandboxMode(val cliValue: String?, val label: String) {
     DISABLED("disabled", "Sandbox: disabled"),
 }
 
+enum class WorktreeMode(val useIsolatedWorktree: Boolean, val label: String) {
+    DEFAULT(false, "Worktree: off"),
+    ISOLATED(true, "Worktree: isolated (-w)"),
+}
+
 @Service(Service.Level.APP)
 @State(name = "CursorAgentSettings", storages = [Storage("cursor-agent-settings.xml")])
 class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
@@ -42,6 +47,7 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     // file changes (this was the explicit safety requirement behind F-22).
     var permissionMode: PermissionMode = PermissionMode.ASK_EVERY_TIME
     var sandboxMode: SandboxMode = SandboxMode.DEFAULT
+    var worktreeMode: WorktreeMode = WorktreeMode.DEFAULT
     var notifyOnTurnComplete: Boolean = true
     var notifyOnApprovalPending: Boolean = true
 

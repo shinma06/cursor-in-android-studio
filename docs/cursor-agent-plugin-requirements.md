@@ -170,13 +170,13 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 |---|---|---|---|
 | F-50 | 過去チャット一覧(`@Past Chats`相当) | P2(実装済み) | `agent ls`/`agent resume`は生TTY必須で非対話サブプロセスから使用不可と判明済みのため、プラグイン側で`(chatId, 冒頭プロンプト, 更新時刻)`を独自に永続化・一覧表示。選択で次ターンから`--resume`。**既知の制約**: 過去ターンの再描画は非対応(CLIにトランスクリプト取得手段がないため) |
 | F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`をプロジェクトルートに固定 |
-| F-52 | Worktree分離実行 | P3 `[2026-09追加, 要検証]` | `-w/--worktree [name]`、`--worktree-base <branch>`、`--skip-worktree-setup`。Agentを独立したgit worktree(`~/.cursor/worktrees/<repo>/<name>`)上で実行する機能。プロジェクト本体のワーキングツリーを変更しない実行モードとして有用だが、「変更がどこに反映されるか」のUXが複雑になるため、導入する場合はF-30/F-31(diff適用)の設計と合わせて別途検討する |
+| F-52 | Worktree分離実行 | P3 `[2026-09追加]`(**基本実装済み 2026-09**) | `-w`をComposer ⋯メニューから選択(`WorktreeMode.ISOLATED`)。`--worktree-base`/`--skip-worktree-setup`は未実装。変更は`~/.cursor/worktrees/`側 — MV-027で手動確認 |
 
 ### 6.7 マルチモーダル・拡張入力
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-60 | 画像添付 | P3(**`[要検証]`のまま、矛盾情報あり `[2026-09]`**) | CLI changelogは`--image`フラグ・クリップボード貼り付け対応を謳うが、`cursor.com/docs/cli/reference/parameters`の正式リファレンスには`--image`の記載がない。ドキュメント間で矛盾しているため「対応している」と早合点せず、実機検証(M0のクォータ回復後)で確認するまでフラグ名を含め未確定として扱う |
+| F-60 | 画像添付 | P3(**CLI非対応と判断 2026-09-04**) | `agent --help`(CLI `2026.09.02-c22c1a3`)に画像/`--image`フラグなし。changelogとの矛盾は残るが、プラグイン側実装は保留 |
 | F-61 | 音声入力 | P3 | CLIに相当機能なし。macOSのOSレベル辞書入力(Fn Fn)が`EditorTextField`に対して標準のテキスト入力として機能するなら追加実装不要という仮説あり、要検証 |
 | F-62 | ブラウザ視覚検証(`@Browser`相当) | P3 | ネイティブCursorにも直接のCLIフラグはなし。Playwright系MCPサーバー導入 + 汎用MCPツール結果表示(F-32拡張、画像サムネイル対応)で代替可能と判断し、専用実装はしない方針 |
 
@@ -305,7 +305,7 @@ agent mcp list
 | **Phase 1(MVP)** | 基本チャット + `@ファイル`コンテキスト + モード/モデル切替 + 差分Apply/Reject + チェックポイント基本機能 | F-01〜05, F-10, F-15, F-20〜22, F-30〜33, F-40〜42, F-44, F-51 | F-30〜32以外は実装済み。F-30〜32はM0のCLI実機検証待ちでブロック中 |
 | **Phase 2** | フォルダメンション、Git diffメンション、コンテキスト圧縮、過去チャット一覧、MCP一覧表示、Branchメンション | F-06, F-11, F-12, F-16, F-50, F-70 | 実装済み |
 | **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | F-24実装済み。デスクトップ通知実装済み。F-23は`--sandbox`トグル基本実装済み(2026-09) |
-| **Phase 3(将来検討)** | Terminals連携、Docs/Web(MCP前提)、画像添付、音声入力、ブラウザ視覚検証、Worktree、Chats参照、Subagents、Custom Modes | F-13, F-14, F-17, F-52, F-60〜62, F-71 | F-13/F-71実装済み。他は要検証/未着手 |
+| **Phase 3(将来検討)** | Docs/Web(MCP前提)、音声入力、ブラウザ視覚検証、Chats参照、Subagents、Custom Modes | F-14, F-17, F-60〜62 | F-13/F-52(基本)/F-71実装済み。F-60はCLI `--help`にフラグなし(2026-09-04) |
 
 ---
 

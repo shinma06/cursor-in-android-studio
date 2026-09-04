@@ -222,6 +222,10 @@ class AgentProcessService(private val project: Project) : Disposable {
 
         settings.sandboxMode.cliValue?.let { args += listOf("--sandbox", it) }
 
+        if (settings.worktreeMode.useIsolatedWorktree) {
+            args += "-w"
+        }
+
         args += prompt
 
         return GeneralCommandLine(executable)
