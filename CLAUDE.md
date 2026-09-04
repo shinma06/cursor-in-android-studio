@@ -29,6 +29,9 @@ should:
    `CLAUDE.md`/the requirements doc if what you built changes the "current implementation status"
    or "verified CLI behavior" sections — those are read as ground truth by the next session
    (agent or human), so a stale claim there is actively worse than no claim at all.
+5. **When the change needs human-only verification** (runIde, Swing UI, OS notifications, etc.):
+   add or update rows in [`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md)
+   instead of dumping a long QA checklist only in chat. See [`.cursor/rules/manual-verification.mdc`](.cursor/rules/manual-verification.mdc).
 
 If you're a fresh agent with zero context on this repo: read this whole file, then
 `docs/cursor-agent-plugin-requirements.md`, then the open GitHub issues, in that order, before
@@ -238,11 +241,9 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
 - **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
   heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
   overstated this as "observed" behavior; see that class's doc comment.
-- **Known backlog, not yet addressed**: `AgentUiController` is growing into a god-object (prompt
-  building, listener orchestration, checkpoint/mention/past-chats/model-loading all in one class);
-  tool-window-close process cleanup is now wired via `Disposer` on the tool window `Content`
-  (2026-09); settings page for `agentExecutablePath` and notification prefs exists at
-  **Settings → Tools → Cursor Agent**.
+- **Known backlog, not yet addressed**: further `AgentUiController` decomposition (prompt
+  assembly / past-chats UI could still move out). `AgentTurnListenerFactory` now owns the per-turn
+  stream listener (#11, 2026-09). Settings page and tool-window-close cleanup are done.
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
   see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
   `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
@@ -304,8 +305,7 @@ configured on the machine this was built on).
 `TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
 returns a helpful placeholder if none is available.
 
-**Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
-+ Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),
-and the `@` mention popup's positioning/focus behavior (`MentionPopupController`). Neither is
-unit-testable (Swing/editor keyboard-event routing and popup UI), and no live IDE session has
-exercised them yet.
+**Manual verification (runIde, Swing UI)**: tracked in
+[`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md) — Enter/Shift+Enter,
+`@` popup, diff cards, notifications, etc. Agents must keep that file current; humans fill in
+`Status` / `Verified by` / `Date` after `./gradlew runIde`.

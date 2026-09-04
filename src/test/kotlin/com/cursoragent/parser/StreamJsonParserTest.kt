@@ -1,7 +1,7 @@
 package com.cursoragent.parser
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class StreamJsonParserTest {
@@ -15,5 +15,21 @@ class StreamJsonParserTest {
         val completed = events.single() as StreamEvent.ToolCallCompleted
         assertEquals("edit", completed.payload.kind)
         assertEquals("world\n", completed.payload.fileEdit?.afterContent)
+    }
+
+    @Test
+    fun `parses a full happy-path plain question fixture`() {
+        val lines = javaClass.getResource("/stream-json-fixtures/04_plain_question_success.jsonl")!!
+            .readText()
+            .lineSequence()
+            .filter { it.isNotBlank() }
+            .toList()
+        val events = mutableListOf<StreamEvent>()
+        val parser = StreamJsonParser { events += it }
+        lines.forEach(parser::parseLine)
+
+        assertTrue(events.any { it is StreamEvent.SessionInit })
+        assertTrue(events.any { it is StreamEvent.AssistantDelta })
+        assertTrue(events.any { it is StreamEvent.Result })
     }
 }

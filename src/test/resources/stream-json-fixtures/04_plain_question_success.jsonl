@@ -1,0 +1,9 @@
+{"type":"system","subtype":"init","apiKeySource":"login","cwd":"/Users/shinma.takahashi/Dev/cursor-agent-plugin","session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","model":"Composer 2.5 Fast","permissionMode":"default"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Reply with exactly: OK"}]},"session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3"}
+{"type":"thinking","subtype":"delta","text":"The user requested a","session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","timestamp_ms":1788485757368}
+{"type":"thinking","subtype":"delta","text":" reply containing exactly","session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","timestamp_ms":1788485757379}
+{"type":"thinking","subtype":"delta","text":" \"OK\".","session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","timestamp_ms":1788485757379}
+{"type":"thinking","subtype":"completed","session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","timestamp_ms":1788485757379}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"OK"}]},"session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","timestamp_ms":1788485757379}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"OK"}]},"session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3"}
+{"type":"result","subtype":"success","duration_ms":124494,"duration_api_ms":124494,"is_error":false,"result":"OK","session_id":"dd80c62a-05f8-44d0-9b19-0f69c4545db3","request_id":"9e5b9b5d-2f23-4203-aee1-16968e76c1cf","usage":{"inputTokens":21022,"outputTokens":31,"cacheReadTokens":8896,"cacheWriteTokens":0}}

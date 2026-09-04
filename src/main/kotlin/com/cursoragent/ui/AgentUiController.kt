@@ -1,15 +1,10 @@
 package com.cursoragent.ui
 
-import com.cursoragent.notification.AgentNotificationService
-import com.cursoragent.parser.AssistantChunkDeduper
-import com.cursoragent.ui.DiffViewerHelper
-import com.cursoragent.service.AgentProcessListener
+import com.cursoragent.settings.ChatHistoryState
+import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.CheckpointService
-import com.cursoragent.settings.ChatHistoryRecord
-import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
-import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
@@ -19,6 +14,7 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VfsUtil
+import com.cursoragent.settings.ChatHistoryRecord
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.SwingUtilities
@@ -33,6 +29,14 @@ class AgentUiController(
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val chatHistoryState = ChatHistoryState.getInstance(project)
     private val mentionResolver = MentionResolver(project)
+    private val turnListenerFactory = AgentTurnListenerFactory(
+        project = project,
+        timeline = timeline,
+        composer = composer,
+        header = header,
+        chatHistoryState = chatHistoryState,
+        onRunFinished = ::finishRun,
+    )
 
     init {
         checkpointService.pruneExpired()
@@ -63,12 +67,6 @@ class AgentUiController(
         val userBubble = timeline.addUserMessage(userText)
         header.setSessionStatus("Preparing…")
 
-        // Active-file context and @file/@folder mentions are VFS reads (fast,
-        // already-cached, and IntelliJ Platform APIs like FileEditorManager expect
-        // EDT anyway) so they stay here. Checkpoint snapshotting and @git-diff both
-        // spawn a `git` subprocess -- slow enough that doing them synchronously on
-        // the EDT would freeze the UI on every single send -- so those move to a
-        // background thread before the actual CLI process is started.
         val contextPrefix = buildActiveFileContext()
         val fileMentionContext = mentionResolver.buildFileAndFolderContext(userText)
 
@@ -91,126 +89,7 @@ class AgentUiController(
                 header.setSessionStatus("Running...")
             }
 
-            // OSProcessHandler creation + resolveAgentExecutable's File.canExecute()
-            // stat calls are cheap but still I/O -- start it here rather than back on
-            // the EDT. The listener callbacks below marshal their own UI work via
-            // runOnEdt, so this is safe to call off-EDT.
-            agentService.sendPrompt(fullPrompt, createListener(userText))
-        }
-    }
-
-    private fun createListener(userText: String): AgentProcessListener {
-        var assistantStarted = false
-        val assistantDeduper = AssistantChunkDeduper()
-
-        return object : AgentProcessListener {
-            override fun onAssistantDelta(text: String) {
-                runOnEdt {
-                    val chunk = assistantDeduper.dedupe(text) ?: return@runOnEdt
-                    if (!assistantStarted) {
-                        timeline.ensureAssistantBubble()
-                        assistantStarted = true
-                    }
-                    timeline.appendAssistantText(chunk)
-                }
-            }
-
-            override fun onResultFallback(text: String) {
-                runOnEdt {
-                    if (assistantStarted) return@runOnEdt
-                    timeline.setAssistantText(text)
-                    assistantStarted = true
-                }
-            }
-
-            override fun onThinking(text: String) {
-                runOnEdt {
-                    timeline.showStatus("Thinking: ${text.take(80)}")
-                }
-            }
-
-            override fun onToolCall(toolName: String) {
-                runOnEdt {
-                    timeline.showStatus("Running: $toolName")
-                    AgentNotificationService.notifyToolCall(project, toolName)
-                }
-            }
-
-            override fun onToolCallStarted(payload: com.cursoragent.parser.ParsedToolCall) {
-                runOnEdt {
-                    timeline.showStatus(payload.summary)
-                    timeline.addToolCallStarted(payload)
-                    AgentNotificationService.notifyToolCall(project, payload.summary)
-                }
-            }
-
-            override fun onToolCallCompleted(payload: com.cursoragent.parser.ParsedToolCall) {
-                runOnEdt {
-                    timeline.clearStatus()
-                    val edit = payload.fileEdit
-                    if (edit != null && payload.subtype == "completed") {
-                        timeline.addFileEditCard(
-                            details = edit,
-                            onViewDiff = {
-                                val before = edit.beforeContent.orEmpty()
-                                val after = edit.afterContent.orEmpty()
-                                DiffViewerHelper.showFileEditDiff(project, edit.path, before, after)
-                            },
-                            onRevert = {
-                                val before = edit.beforeContent
-                                if (before != null && DiffViewerHelper.revertFileContent(project, edit.path, before)) {
-                                    timeline.showStatus("Reverted ${edit.path}")
-                                } else {
-                                    Messages.showErrorDialog(project, "Could not revert ${edit.path}", "Cursor Agent")
-                                }
-                            },
-                        )
-                        return@runOnEdt
-                    }
-                    if (payload.shellResult != null) {
-                        timeline.addShellResultCard(payload)
-                        return@runOnEdt
-                    }
-                    timeline.addToolCallSummary(payload.summary)
-                }
-            }
-
-            override fun onSessionUpdated(chatId: String?, model: String?) {
-                runOnEdt {
-                    val parts = listOfNotNull(
-                        chatId?.let { "session=${it.take(8)}…" },
-                        model?.let { "model=$it" },
-                    )
-                    if (parts.isNotEmpty()) {
-                        header.setSessionStatus(parts.joinToString(" | "))
-                    }
-                    if (chatId != null) {
-                        chatHistoryState.recordTurn(chatId, userText)
-                    }
-                }
-            }
-
-            override fun onError(message: String) {
-                runOnEdt {
-                    timeline.clearStatus()
-                    timeline.showError(message)
-                    AgentNotificationService.notifyError(project, message)
-                    Messages.showErrorDialog(project, message, "Cursor Agent")
-                    finishRun()
-                }
-            }
-
-            override fun onCompleted(exitCode: Int) {
-                runOnEdt {
-                    timeline.clearStatus()
-                    timeline.finalizeAssistantMessage()
-                    if (exitCode != 0) {
-                        timeline.showError("Agent exited with code $exitCode")
-                    }
-                    AgentNotificationService.notifyTurnCompleted(project, exitCode)
-                    finishRun()
-                }
-            }
+            agentService.sendPrompt(fullPrompt, turnListenerFactory.create(userText))
         }
     }
 
@@ -249,9 +128,6 @@ class AgentUiController(
     }
 
     private fun resumeChat(record: ChatHistoryRecord) {
-        // The CLI has no way to dump a past session's transcript back to us (see
-        // requirements doc §13), so this only resumes the *session* for the next
-        // turn -- it can't replay the prior turns' bubbles into the timeline.
         agentService.resumeChat(record.chatId)
         timeline.clearTimeline()
         header.setSessionStatus("session=${record.chatId.take(8)}… (resumed)")
@@ -261,9 +137,6 @@ class AgentUiController(
         SimpleDateFormat("MM/dd HH:mm").format(Date(epochMs))
 
     fun stopRun() {
-        // No extra UI bookkeeping needed here: destroying the process fires
-        // OSProcessHandler's processTerminated callback, which already routes
-        // through the listener's onCompleted -> finishRun() path below.
         agentService.killActiveProcess()
     }
 
