@@ -1,5 +1,6 @@
 package com.cursoragent.ui
 
+import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
@@ -130,6 +131,7 @@ class AgentUiController(
             override fun onToolCall(toolName: String) {
                 runOnEdt {
                     timeline.showStatus("Running: $toolName")
+                    AgentNotificationService.notifyToolCall(project, toolName)
                 }
             }
 
@@ -152,6 +154,7 @@ class AgentUiController(
                 runOnEdt {
                     timeline.clearStatus()
                     timeline.showError(message)
+                    AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, "Cursor Agent")
                     finishRun()
                 }
@@ -164,6 +167,7 @@ class AgentUiController(
                     if (exitCode != 0) {
                         timeline.showError("Agent exited with code $exitCode")
                     }
+                    AgentNotificationService.notifyTurnCompleted(project, exitCode)
                     finishRun()
                 }
             }

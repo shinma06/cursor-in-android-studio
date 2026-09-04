@@ -236,9 +236,9 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
   overstated this as "observed" behavior; see that class's doc comment.
 - **Known backlog, not yet addressed**: `AgentUiController` is growing into a god-object (prompt
   building, listener orchestration, checkpoint/mention/past-chats/model-loading all in one class);
-  no Settings/Preferences page exists for `agentExecutablePath` (only reachable by hand-editing the
-  persisted XML); tool-window-close process cleanup relies on project-level `Disposable` only,
-  unverified against the requirements doc's separate "on tool window close" wording (§7).
+  tool-window-close process cleanup is now wired via `Disposer` on the tool window `Content`
+  (2026-09); settings page for `agentExecutablePath` and notification prefs exists at
+  **Settings → Tools → Cursor Agent**.
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
   see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
   `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
@@ -284,22 +284,20 @@ turn — the CLI has no way to hand back a past session's transcript, so the tim
 rather than replayed; this is a known, permanent limitation rather than a TODO.
 
 **Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the M0 write-timing
-spike), `@Terminal` mention (F-13 — **not blocked**, just unimplemented; see below), and multimodal
-input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather than a parsed
+spike), and multimodal input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather than a parsed
 table — its format was never verified against a populated `.cursor/mcp.json` (no MCP servers were
 configured on the machine this was built on).
 
-**F-13 (`@Terminal` mention) API verified, 2026-09**: an earlier pass marked this "verified" in
-GitHub issue #2's checklist without actually doing the check — caught by an onboarding dry-run (see
-GitHub issue #13) that found the claim unsupported. Actually checked now, via context7 against
-`plugins.jetbrains.com/docs/intellij/embedded-terminal.html`: `TerminalView.DATA_KEY` (from a
-`DataContext`) or `TerminalToolWindowTabsManager.getTabs()` gets terminal tabs, and
-`TerminalView.outputModels` (`TerminalOutputModel`, regular/alternative buffers) or
-`TerminalBlocksModel` (per-command blocks with working dir + exit code) exposes the text — this is
-the Reworked Terminal API, default since platform 2025.2, which covers this plugin's `sinceBuild
-261`. Feasible; just not implemented yet (tracked in GitHub issue #12). Exact text-extraction method
-signatures weren't in the doc snippets returned — expect to need to browse the actual platform
-sources during implementation.
+**Implemented (2026-09, M9/backlog)**: desktop notifications on turn complete/tool-call start
+(`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor Agent**), F-13
+`@terminal` mention (`TerminalOutputReader` via Reworked Terminal API), F-16 `@branch` mention
+(`BranchDiffBuilder`), settings page for `agentExecutablePath` and notification prefs
+(`AgentSettingsConfigurable`), tool-window-close process cleanup (`Disposer` on tool window
+`Content`).
+
+**F-13 (`@Terminal` mention)**: implemented via `TerminalToolWindowTabsManager` +
+`TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
+returns a helpful placeholder if none is available.
 
 **Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
 + Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),

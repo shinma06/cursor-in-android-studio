@@ -35,6 +35,8 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     // Defaults to the safest option -- must not silently default to auto-approving
     // file changes (this was the explicit safety requirement behind F-22).
     var permissionMode: PermissionMode = PermissionMode.ASK_EVERY_TIME
+    var notifyOnTurnComplete: Boolean = true
+    var notifyOnApprovalPending: Boolean = true
 
     override fun getState(): AgentSettingsState = this
 

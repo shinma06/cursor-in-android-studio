@@ -120,10 +120,10 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 | F-10 | `@ファイル名`補完UI | MVP | Android Studioのプロジェクトツリー/開いているファイル一覧からJList/JPopupMenuで候補表示 → 選択時にプロンプト文字列へ`@path`を埋め込み |
 | F-11 | `@フォルダ`指定 | P2 | 同上、ディレクトリ選択対応 |
 | F-12 | `@Git diff`(未コミット差分) | P2 | プラグイン側で`git diff`を実行し結果をプロンプトに埋め込み(CLI自動対応なし) |
-| F-13 | `@Terminals`(ターミナル出力) | P3(**API検証済み・未実装 2026-09**) | `[検証済]` context7でIntelliJ Platform SDK公式ドキュメント(`embedded-terminal.html`)を確認。`TerminalView.DATA_KEY`/`TerminalToolWindowTabsManager.getTabs()`でターミナルタブを取得し、`TerminalView.outputModels`(`TerminalOutputModel`、regular/alternativeバッファ)または`TerminalBlocksModel`(コマンド単位、作業ディレクトリ・終了コード付き)からテキストを読み取り可能。Reworked Terminal API(2025.2以降デフォルト、本プラグインの対象build 261はこれに該当)向け。未実装(M9, Issue #12参照) |
+| F-13 | `@Terminals`(ターミナル出力) | P3(**実装済み 2026-09**) | Reworked Terminal API経由(`TerminalToolWindowTabsManager`/`TerminalView.outputModels.regular`)。開いているTerminalタブの末尾8KBを`@terminal`送信時に埋め込み。タブ未オープン時はプレースホルダー |
 | F-14 | `@Docs` / `@Web` | P3 | MCPサーバー追加設定が前提。本フェーズはスコープ外 |
 | F-15 | 現在開いているファイル/選択範囲の自動コンテキスト化 | MVP | エディタの`FileEditorManager`/`SelectionModel`から取得し、送信時に自動付与(ネイティブCursorの「Active file and selection」相当) |
-| F-16 | `@Branch`(現在のブランチ vs mainの差分) | P2 `[2026-09追加]` | プラグイン側で`git diff main...HEAD`相当を実行し埋め込み。F-12と同じパターンで実装可能 |
+| F-16 | `@Branch`(現在のブランチ vs mainの差分) | P2 `[2026-09追加]`(**実装済み 2026-09**) | プラグイン側で`git diff <base>...HEAD`相当を実行し埋め込み。baseは`origin/HEAD`→`main`→`master`の順で解決 |
 | F-17 | `@Chats`(別の過去セッションの内容を参照) | P3 `[2026-09追加, 要検証]` | ネイティブCursorには存在する機能。`agent ls`/`resume`が生TTY必須でプラグインから使えないと判明済み(F-50と同じ制約)なため、CLIにトランスクリプト取得の別手段(非対話コマンド等)がない限り実現不可の可能性が高い |
 | — | `@codebase` / `@definitions`(Cursor独自のセマンティック検索・シンボルインデックス) | **恒久的にスコープ外** `[2026-09追加]` | Cursor社の独自インデックスバックエンドに依存しており、CLI経由で相当機能を利用する手段がない。「CLIで再現できること」という本プロジェクトの条件を満たさないため実装しない |
 
@@ -195,7 +195,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 |---|---|---|
 | Subagents / `/multitask` | Agentが複数のサブタスクを並列的な非同期サブエージェントとして実行する機能(Cursor 3.2+)。CLI changelogに「subagent transcript」「サブエージェント用チェックポイント永続化」の言及あり | `[要検証]` 何らかのCLI側サポートがある可能性はあるが、コマンド体系が未確認 |
 | Custom Modes | `/`コマンドで任意のスキルをカスタムモードとしてピン留めする機能 | `[要検証]` `--mode`まわりの拡張である可能性 |
-| デスクトップ通知 | ターン完了時・承認待ち発生時のOSネイティブ通知 | プラグイン側でIntelliJの`Notification` API利用のみで実現可能(CLI側の対応不要)。**実装コストが低く優先度を上げてよい** |
+| デスクトップ通知 | ターン完了時・承認待ち発生時のOSネイティブ通知 | **実装済み 2026-09** — IntelliJ `Notification` API。ターン完了/ツール呼び出し開始時に通知(設定でOFF可) |
 | `permissions.json` | チーム管理者向けのターミナル/MCP許可リスト宣言ファイル。IDEとCLIで設定共有 | F-22/F-23再設計時の参考として調査対象。個人利用が主眼の本プラグインでは優先度低 |
 | CLI Hooks(session start/end, stop, pre-compaction等) | チーム管理向け自動化フック | Agentパネルの「UX」ではなく設定機能のため本プラグインのスコープ外と判断 |
 | クラウドエージェント / バックグラウンドPR自動生成 | 常時稼働のクラウドエージェント、Slack連携等 | §1.3の非目的に該当。恒久的にスコープ外(クラウド実行はローカルCLIサブプロセスのラップという本プラグインの前提と根本的に相容れない) |
@@ -304,8 +304,8 @@ agent mcp list
 |---|---|---|---|
 | **Phase 1(MVP)** | 基本チャット + `@ファイル`コンテキスト + モード/モデル切替 + 差分Apply/Reject + チェックポイント基本機能 | F-01〜05, F-10, F-15, F-20〜22, F-30〜33, F-40〜42, F-44, F-51 | F-30〜32以外は実装済み。F-30〜32はM0のCLI実機検証待ちでブロック中 |
 | **Phase 2** | フォルダメンション、Git diffメンション、コンテキスト圧縮、過去チャット一覧、MCP一覧表示、Branchメンション | F-06, F-11, F-12, F-16, F-50, F-70 | 実装済み |
-| **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | 未着手。CLI検証不要で今すぐ着手可能 |
-| **Phase 3(将来検討)** | Terminals連携、Docs/Web(MCP前提)、画像添付、音声入力、ブラウザ視覚検証、Worktree、Chats参照、Subagents、Custom Modes | F-13, F-14, F-17, F-52, F-60〜62, F-71 | F-71実装済み。他は要検証/未着手 |
+| **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | F-24実装済み。デスクトップ通知実装済み(2026-09)。F-23未着手 |
+| **Phase 3(将来検討)** | Terminals連携、Docs/Web(MCP前提)、画像添付、音声入力、ブラウザ視覚検証、Worktree、Chats参照、Subagents、Custom Modes | F-13, F-14, F-17, F-52, F-60〜62, F-71 | F-13/F-71実装済み。他は要検証/未着手 |
 
 ---
 

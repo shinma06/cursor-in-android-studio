@@ -1,6 +1,6 @@
 package com.cursoragent.ui.composer.mention
 
-enum class MentionKind { FILE, FOLDER, GIT_DIFF, TERMINAL, DOCS, WEB }
+enum class MentionKind { FILE, FOLDER, GIT_DIFF, BRANCH, TERMINAL, DOCS, WEB }
 
 /**
  * [displayLabel] is shown in the popup list; [insertToken] is the space-free text

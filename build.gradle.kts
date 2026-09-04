@@ -44,6 +44,7 @@ dependencies {
         // extracted path as -PplatformPath, reusing this exact same code path
         // instead of maintaining a second, broken resolution mechanism.
         local(providers.gradleProperty("platformPath"))
+        bundledPlugins("org.jetbrains.plugins.terminal")
     }
 }
 
