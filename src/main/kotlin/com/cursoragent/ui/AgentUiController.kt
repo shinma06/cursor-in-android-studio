@@ -2,6 +2,7 @@ package com.cursoragent.ui
 
 import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.AssistantChunkDeduper
+import com.cursoragent.ui.DiffViewerHelper
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.CheckpointService
@@ -132,6 +133,45 @@ class AgentUiController(
                 runOnEdt {
                     timeline.showStatus("Running: $toolName")
                     AgentNotificationService.notifyToolCall(project, toolName)
+                }
+            }
+
+            override fun onToolCallStarted(payload: com.cursoragent.parser.ParsedToolCall) {
+                runOnEdt {
+                    timeline.showStatus(payload.summary)
+                    timeline.addToolCallStarted(payload)
+                    AgentNotificationService.notifyToolCall(project, payload.summary)
+                }
+            }
+
+            override fun onToolCallCompleted(payload: com.cursoragent.parser.ParsedToolCall) {
+                runOnEdt {
+                    timeline.clearStatus()
+                    val edit = payload.fileEdit
+                    if (edit != null && payload.subtype == "completed") {
+                        timeline.addFileEditCard(
+                            details = edit,
+                            onViewDiff = {
+                                val before = edit.beforeContent.orEmpty()
+                                val after = edit.afterContent.orEmpty()
+                                DiffViewerHelper.showFileEditDiff(project, edit.path, before, after)
+                            },
+                            onRevert = {
+                                val before = edit.beforeContent
+                                if (before != null && DiffViewerHelper.revertFileContent(project, edit.path, before)) {
+                                    timeline.showStatus("Reverted ${edit.path}")
+                                } else {
+                                    Messages.showErrorDialog(project, "Could not revert ${edit.path}", "Cursor Agent")
+                                }
+                            },
+                        )
+                        return@runOnEdt
+                    }
+                    if (payload.shellResult != null) {
+                        timeline.addShellResultCard(payload)
+                        return@runOnEdt
+                    }
+                    timeline.addToolCallSummary(payload.summary)
                 }
             }
 

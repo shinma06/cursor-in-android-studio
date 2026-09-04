@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 /**
- * Pins down the CURRENT (unverified, see the class doc comment) dedup heuristic's
- * behavior so a future change can't silently alter it. These are not a spec for
- * "correct" behavior against the real CLI -- nobody has seen real assistant-delta
- * traffic yet (blocked on the M0 CLI quota, see requirements doc §13).
+ * Pins down dedup behavior against live CLI observations (Teams plan, 2026-09).
  */
 class AssistantChunkDeduperTest {
     @Test
@@ -40,8 +37,12 @@ class AssistantChunkDeduperTest {
     }
 
     @Test
-    fun `empty input is dropped`() {
+    fun `disconnected orphan fragment is replaced by a longer message`() {
         val deduper = AssistantChunkDeduper()
-        assertNull(deduper.dedupe(""))
+        assertEquals(" overwrite it with the", deduper.dedupe(" overwrite it with the"))
+        assertEquals(
+            "I'll read the file first, then overwrite it with the new content.\n",
+            deduper.dedupe("I'll read the file first, then overwrite it with the new content.\n"),
+        )
     }
 }

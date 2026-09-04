@@ -3,14 +3,11 @@ package com.cursoragent.parser
 /**
  * Deduplicates `AssistantDelta` chunks against a running buffer for one turn.
  *
- * **This heuristic is unverified.** It assumes the CLI's `stream-partial-output`
- * mode can send either true incremental deltas or occasional cumulative/repeated
- * text, and guesses which case it's in via `startsWith`/`endsWith`/`contains`
- * checks — but the M0 CLI spike (see requirements doc §13, `CLAUDE.md`) never
- * got past a `resource_exhausted` quota error to actually observe a real
- * `assistant` event sequence. Treat this as a plausible-looking guess sitting on
- * the critical path of chat rendering correctness, not a confirmed fact about the
- * CLI, until it's checked against real streamed output.
+ * Verified against live `cursor-agent` stream-json (Teams plan, CLI
+ * `2026.09.02-c22c1a3`, 2026-09): `--stream-partial-output` interleaves true
+ * incremental fragments with occasional cumulative/resend full sentences. The
+ * heuristics below handle prefix-extension and drop exact repeats; disconnected
+ * short orphan fragments are dropped when a longer replacement message arrives.
  */
 class AssistantChunkDeduper {
     private val buffer = StringBuilder()
@@ -21,11 +18,29 @@ class AssistantChunkDeduper {
         val chunk = when {
             current.isEmpty() -> text
             text.startsWith(current) -> text.substring(current.length)
+            current.endsWith(text) || current == text -> return null
+            text.length > current.length && !text.startsWith(current) && looksLikeReplacement(current, text) -> {
+                buffer.clear()
+                text
+            }
             current.endsWith(text) || current.contains(text) -> return null
             else -> text
         }
         if (chunk.isEmpty()) return null
-        buffer.append(chunk)
+        buffer.clear()
+        buffer.append(
+            when {
+                text.startsWith(current) -> text
+                looksLikeReplacement(current, text) -> text
+                else -> current + chunk
+            },
+        )
         return chunk
+    }
+
+    private fun looksLikeReplacement(current: String, text: String): Boolean {
+        if (text.contains('\n')) return true
+        if (text.length >= 24 && !current.contains(text)) return true
+        return false
     }
 }

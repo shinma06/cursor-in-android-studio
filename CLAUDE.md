@@ -53,18 +53,19 @@ source of truth for feature scope and rationale — check it before adding featu
 
 ## Current blocker (check this before picking a task)
 
-The verification account used so far is Cursor **Free tier**, which hits `resource_exhausted` on
-any prompt that actually reaches the model (plain chat, file edits, tool calls) — confirmed
-persistent, not transient, across repeated retries. `--list-models` and `agent mcp
-list/enable/disable` are unaffected (they're local metadata operations, not chat turns — see
-"Verified CLI behavior" below). This blocks GitHub issues **#6 (M4, diff Apply/Reject)**, **#7 (M5,
-tool-call/shell output display)**, and the image-attachment half of **#10 (M8)** — don't start
-those without either a working paid-tier/quota-recovered account to verify against, or a clear
-signal from whoever's running the session that they have one. Everything else is unblocked; issues
-**#11** and **#12** are explicitly ranked cheapest-first for exactly this reason. This paragraph is
-the single most load-bearing fact for "what can I actually work on right now" — it used to live
-only in GitHub issue #1, which an onboarding dry-run (issue #13) found easy to miss if you assume
-this file is self-contained.
+The verification account used for the **original M0 spike** was Cursor **Free tier**, which hit
+`resource_exhausted` on chat turns. That blocker is **resolved for Teams-plan sessions** — verified
+2026-09-04 with `~/.local/bin/agent` logged in as a Teams account: plain chat, file edits, and
+shell tool calls all succeed and produce rich `tool_call` events (`readToolCall`/`editToolCall`/
+`shellToolCall` with `subtype` `started`/`completed`).
+
+**Critical CLI behavior for M4 design (verified live):** in headless subprocess mode, file edits
+are **applied immediately by the CLI even without `--force`** (`permissionMode: default`). The
+plugin cannot intercept writes before they happen — F-30/F-31 are implemented as **post-hoc diff
+view + Revert** (restore `beforeFullFileContent` from the completed `editToolCall` event, or use
+checkpoints), not pre-apply approval gating.
+
+Still blocked without further live verification: F-60 image attachment.
 
 ## Commands
 
@@ -206,10 +207,13 @@ persisted side-channel read by both the service and the UI.
   `StreamEvent.Unknown`: `"user"` (echoes the sent prompt back), `"connection"` (subtype
   `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
   telemetry, safe to keep ignoring.
-- **Still unverified** (blocked on a `resource_exhausted` quota error on the Free-tier account used
-  for the spike — retry once quota/plan allows): file-edit event shape and force ON/OFF write
-  timing (blocks F-30/F-31/F-40 design confirmation), tool-call result payload shape (F-32),
-  `--list-models`/`agent mcp list` output format (F-21/F-70), image-attachment support (F-60).
+- **Still unverified**: image-attachment support (F-60).
+- **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
+  incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
+  with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
+  includes `beforeFullFileContent`, `afterFullFileContent`, `diffString`, line counts. Completed
+  `shellToolCall` includes `stdout`/`stderr`/`interleavedOutput`/`exitCode`. File writes happen
+  immediately in headless mode even with default permission mode (no `--force`).
 
 ## 2026-09 foundation review
 
@@ -283,8 +287,9 @@ history button opens a popup to resume one. Resuming only continues the *session
 turn — the CLI has no way to hand back a past session's transcript, so the timeline is cleared
 rather than replayed; this is a known, permanent limitation rather than a TODO.
 
-**Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the M0 write-timing
-spike), and multimodal input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather than a parsed
+**Implemented (2026-09, M4/M5)**: tool-call timeline cards (F-32: read/edit/shell started +
+completed), file-edit cards with IDE Diff Viewer + Revert (F-30/F-31 as post-hoc model — CLI
+auto-applies edits in headless mode), `ToolCallPayloadParser` + stream-json fixtures from live CLI.
 table — its format was never verified against a populated `.cursor/mcp.json` (no MCP servers were
 configured on the machine this was built on).
 

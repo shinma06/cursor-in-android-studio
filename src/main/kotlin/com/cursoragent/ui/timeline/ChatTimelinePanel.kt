@@ -1,5 +1,7 @@
 package com.cursoragent.ui.timeline
 
+import com.cursoragent.parser.FileEditDetails
+import com.cursoragent.parser.ParsedToolCall
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
@@ -93,6 +95,36 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         clearStatus()
         hideEmptyState()
         addRow(StatusMessageRow("Error: $text"))
+        scrollToBottom()
+    }
+
+    fun addToolCallStarted(payload: ParsedToolCall) {
+        clearStatus()
+        hideEmptyState()
+        addRow(ToolCallBubble(payload.summary))
+        scrollToBottom()
+    }
+
+    fun addFileEditCard(
+        details: FileEditDetails,
+        onViewDiff: () -> Unit,
+        onRevert: () -> Unit,
+    ) {
+        hideEmptyState()
+        addRow(FileEditCard(details, onViewDiff, onRevert))
+        scrollToBottom()
+    }
+
+    fun addShellResultCard(payload: ParsedToolCall) {
+        val result = payload.shellResult ?: return
+        hideEmptyState()
+        addRow(ToolCallBubble.forShell(payload.summary, result))
+        scrollToBottom()
+    }
+
+    fun addToolCallSummary(summary: String) {
+        hideEmptyState()
+        addRow(ToolCallBubble(summary))
         scrollToBottom()
     }
 
