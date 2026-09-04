@@ -15,18 +15,18 @@ class AssistantChunkDeduperTest {
     }
 
     @Test
-    fun `true incremental deltas each pass through unchanged`() {
+    fun `true incremental deltas accumulate into the full displayed text`() {
         val deduper = AssistantChunkDeduper()
         assertEquals("Hello", deduper.dedupe("Hello"))
-        assertEquals(", world", deduper.dedupe(", world"))
-        assertEquals("!", deduper.dedupe("!"))
+        assertEquals("Hello, world", deduper.dedupe(", world"))
+        assertEquals("Hello, world!", deduper.dedupe("!"))
     }
 
     @Test
-    fun `a cumulative resend is reduced to only the new suffix`() {
+    fun `a cumulative resend returns the full merged text, not just the new suffix`() {
         val deduper = AssistantChunkDeduper()
         deduper.dedupe("Hello")
-        assertEquals(", world", deduper.dedupe("Hello, world"))
+        assertEquals("Hello, world", deduper.dedupe("Hello, world"))
     }
 
     @Test

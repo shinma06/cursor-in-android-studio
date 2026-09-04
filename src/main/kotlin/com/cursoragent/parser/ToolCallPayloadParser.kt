@@ -3,19 +3,30 @@ package com.cursoragent.parser
 import com.google.gson.JsonObject
 
 /**
- * Parses `tool_call` events from live `cursor-agent` stream-json (verified 2026-09,
- * CLI `2026.09.02-c22c1a3`, Teams plan). Events use `subtype` `started`/`completed`
- * and nest tool-specific payloads under keys like `readToolCall`, `editToolCall`,
- * `shellToolCall`.
+ * Parses `tool_call` events from live `cursor-agent` stream-json. Events use `subtype`
+ * `started`/`completed` and nest tool-specific payloads under keys like `readToolCall`,
+ * `editToolCall`, `shellToolCall`. Only the `completed` shape is verified against a
+ * captured live event (CLI `2026.09.02-c22c1a3`, Teams plan, 2026-09) — see
+ * `src/test/resources/stream-json-fixtures/`; the `started` handling below is inferred
+ * from that shape, not independently confirmed.
  */
 object ToolCallPayloadParser {
-    fun parse(json: JsonObject): ParsedToolCall? {
+    /**
+     * Defensive per the parser package's stream-json contract: any unexpected shape
+     * (a `*ToolCall` value that isn't an object, a `result`/`success` that isn't one,
+     * etc.) is caught and turned into `null` rather than throwing, so one malformed
+     * `tool_call` line can't abort parsing of the rest of the output chunk.
+     */
+    fun parse(json: JsonObject): ParsedToolCall? = runCatching { parseUnsafe(json) }.getOrNull()
+
+    private fun parseUnsafe(json: JsonObject): ParsedToolCall? {
         val subtype = json.get("subtype")?.asString ?: return null
         val callId = json.get("call_id")?.asString ?: json.get("callId")?.asString ?: return null
         val toolCall = json.getAsJsonObject("tool_call") ?: return null
 
         val kindEntry = toolCall.entrySet().firstOrNull { it.key.endsWith("ToolCall") } ?: return null
         val kind = kindEntry.key.removeSuffix("ToolCall")
+        if (!kindEntry.value.isJsonObject) return null
         val payload = kindEntry.value.asJsonObject
 
         return when (kind) {

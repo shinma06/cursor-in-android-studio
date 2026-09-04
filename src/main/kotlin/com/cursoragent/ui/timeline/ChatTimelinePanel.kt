@@ -27,6 +27,10 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     private var currentAssistantBubble: AssistantMessageBubble? = null
     private var currentStatusRow: StatusMessageRow? = null
 
+    /** Tracks the still-in-progress row for a `started` tool call, keyed by call id, so the
+     * matching `completed` event can replace it in place instead of leaving a stale duplicate. */
+    private val activeToolCallRows = mutableMapOf<String, Component>()
+
     init {
         isOpaque = false
         add(emptyState, BorderLayout.CENTER)
@@ -36,6 +40,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         messagesPanel.removeAll()
         currentAssistantBubble = null
         currentStatusRow = null
+        activeToolCallRows.clear()
         showEmptyState()
         revalidate()
         repaint()
@@ -55,11 +60,6 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         currentAssistantBubble = bubble
         addRow(bubble)
         return bubble
-    }
-
-    fun appendAssistantText(text: String) {
-        ensureAssistantBubble().appendContent(text)
-        scrollToBottom()
     }
 
     fun setAssistantText(text: String) {
@@ -101,16 +101,21 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun addToolCallStarted(payload: ParsedToolCall) {
         clearStatus()
         hideEmptyState()
-        addRow(ToolCallBubble(payload.summary))
+        removeActiveRow(payload.callId)
+        val row = ToolCallBubble(payload.summary)
+        addRow(row)
+        activeToolCallRows[payload.callId] = row
         scrollToBottom()
     }
 
     fun addFileEditCard(
+        callId: String,
         details: FileEditDetails,
         onViewDiff: () -> Unit,
         onRevert: () -> Unit,
     ) {
         hideEmptyState()
+        removeActiveRow(callId)
         addRow(FileEditCard(details, onViewDiff, onRevert))
         scrollToBottom()
     }
@@ -118,14 +123,21 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun addShellResultCard(payload: ParsedToolCall) {
         val result = payload.shellResult ?: return
         hideEmptyState()
+        removeActiveRow(payload.callId)
         addRow(ToolCallBubble.forShell(payload.summary, result))
         scrollToBottom()
     }
 
-    fun addToolCallSummary(summary: String) {
+    fun addToolCallSummary(callId: String?, summary: String) {
         hideEmptyState()
+        callId?.let { removeActiveRow(it) }
         addRow(ToolCallBubble(summary))
         scrollToBottom()
+    }
+
+    /** Removes the still-in-progress row for [callId] (if any) — a `completed` event replaces it. */
+    private fun removeActiveRow(callId: String) {
+        activeToolCallRows.remove(callId)?.let { removeRow(it) }
     }
 
     private fun addRow(component: Component) {
@@ -134,6 +146,17 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         revalidate()
         repaint()
         scrollToBottom()
+    }
+
+    private fun removeRow(component: Component) {
+        val index = messagesPanel.components.indexOf(component)
+        if (index < 0) return
+        messagesPanel.remove(index)
+        if (index < messagesPanel.componentCount && messagesPanel.getComponent(index) is Box.Filler) {
+            messagesPanel.remove(index)
+        }
+        revalidate()
+        repaint()
     }
 
     private fun hideEmptyState() {

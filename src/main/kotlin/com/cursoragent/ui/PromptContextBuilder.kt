@@ -14,7 +14,7 @@ class PromptContextBuilder(
     private val project: Project,
     private val mentionResolver: MentionResolver,
 ) {
-    /** VFS reads — call on the EDT before starting a background thread. */
+    /** VFS reads and terminal output (the Terminal API needs the EDT too) — call on the EDT before starting a background thread. */
     fun buildEdtContext(userText: String): String? {
         val parts = listOfNotNull(
             buildActiveFileContext(),
@@ -23,7 +23,7 @@ class PromptContextBuilder(
         return parts.joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 
-    /** Spawns `git` / reads terminal — call off the EDT. */
+    /** Spawns `git` — call off the EDT. */
     fun buildBackgroundContext(userText: String): String? =
         mentionResolver.buildShellBackedContext(userText)
 

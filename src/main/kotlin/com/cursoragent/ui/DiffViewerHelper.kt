@@ -21,8 +21,20 @@ object DiffViewerHelper {
         DiffManager.getInstance().showDiff(project, request)
     }
 
-    fun revertFileContent(project: Project, path: String, beforeContent: String): Boolean {
+    /**
+     * Restores [beforeContent], but only if the file's current content still matches
+     * [expectedCurrentContent] (the content this specific edit produced). A mismatch means
+     * the file was changed again since — by a later agent edit or the user — and reverting
+     * would silently discard that newer content, so this refuses instead.
+     */
+    fun revertFileContent(project: Project, path: String, beforeContent: String, expectedCurrentContent: String): Boolean {
         val file = LocalFileSystem.getInstance().refreshAndFindFileByPath(path) ?: return false
+        val currentContent = try {
+            String(file.contentsToByteArray(), file.charset)
+        } catch (_: Exception) {
+            return false
+        }
+        if (currentContent != expectedCurrentContent) return false
         return try {
             WriteCommandAction.writeCommandAction(project).run<Throwable> {
                 VfsUtil.saveText(file, beforeContent)

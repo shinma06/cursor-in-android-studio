@@ -32,12 +32,12 @@ class AgentTurnListenerFactory(
         return object : AgentProcessListener {
             override fun onAssistantDelta(text: String) {
                 runOnEdt {
-                    val chunk = assistantDeduper.dedupe(text) ?: return@runOnEdt
+                    val full = assistantDeduper.dedupe(text) ?: return@runOnEdt
                     if (!assistantStarted) {
                         timeline.ensureAssistantBubble()
                         assistantStarted = true
                     }
-                    timeline.appendAssistantText(chunk)
+                    timeline.setAssistantText(full)
                 }
             }
 
@@ -76,6 +76,7 @@ class AgentTurnListenerFactory(
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
                         timeline.addFileEditCard(
+                            callId = payload.callId,
                             details = edit,
                             onViewDiff = {
                                 DiffViewerHelper.showFileEditDiff(
@@ -87,10 +88,17 @@ class AgentTurnListenerFactory(
                             },
                             onRevert = {
                                 val before = edit.beforeContent
-                                if (before != null && DiffViewerHelper.revertFileContent(project, edit.path, before)) {
+                                val after = edit.afterContent
+                                if (before != null && after != null &&
+                                    DiffViewerHelper.revertFileContent(project, edit.path, before, after)
+                                ) {
                                     timeline.showStatus("Reverted ${edit.path}")
                                 } else {
-                                    Messages.showErrorDialog(project, "Could not revert ${edit.path}", "Cursor Agent")
+                                    Messages.showErrorDialog(
+                                        project,
+                                        "Could not revert ${edit.path} — it may have been changed again since this edit.",
+                                        "Cursor Agent",
+                                    )
                                 }
                             },
                         )
@@ -100,7 +108,7 @@ class AgentTurnListenerFactory(
                         timeline.addShellResultCard(payload)
                         return@runOnEdt
                     }
-                    timeline.addToolCallSummary(payload.summary)
+                    timeline.addToolCallSummary(payload.callId, payload.summary)
                 }
             }
 

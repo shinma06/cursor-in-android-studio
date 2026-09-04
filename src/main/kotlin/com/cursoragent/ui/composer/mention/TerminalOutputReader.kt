@@ -35,6 +35,11 @@ object TerminalOutputReader {
         } catch (e: Exception) {
             LOG.info("Could not read terminal output for @terminal mention", e)
             null
+        } catch (e: LinkageError) {
+            // The Terminal plugin (an optional dependency, see plugin.xml) is disabled or
+            // absent, so referencing its classes threw NoClassDefFoundError/LinkageError.
+            LOG.info("Terminal plugin unavailable for @terminal mention", e)
+            null
         }
     }
 

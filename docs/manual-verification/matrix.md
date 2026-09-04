@@ -37,6 +37,8 @@
 | MV-023 | 同上 | #18 | Revert | Revert をクリック | ファイルが編集前に戻る | pending | | |
 | MV-024 | 同上 | #18 | ヘッドレス CLI の仕様 | Permission = Ask Every Time のまま編集依頼 | **CLI 側では即書き込み**（プラグインは事後 diff/revert） | pending | | |
 | MV-025 | 同上 | #18 | チェックポイント | 編集前後でロールバックアイコン | チェックポイントから復元できる | pending | | |
+| MV-029 | `fix/pr18-review-fixes` | #18 | ツールコール行の集約 | 複数ファイルを編集/複数シェルコマンドを実行する依頼を送信 | 各ツールコールにつき「実行中」行が編集/シェルカードに**置き換わる**（重複して両方残らない） | pending | | |
+| MV-030 | `fix/pr18-review-fixes` | #18 | 古いRevertの拒否 | 編集カードのRevertを押す**前**に、同じファイルを別の変更（再度エージェントに編集依頼、または手動編集）で書き換える | Revertはエラーダイアログで拒否され、新しい変更は保持される（黙って上書きされない） | pending | | |
 
 ## D. F-23 / F-52（CLI フラグ）
 
@@ -45,6 +47,7 @@
 | MV-026 | 同上 | #18 | Sandbox トグル | ⋯ → Sandbox: enabled を選択してファイル編集依頼 | CLI が `--sandbox enabled` で起動（ログまたは挙動で確認） | pending | | |
 | MV-027 | 同上 | #18 | Worktree モード | ⋯ → Worktree: isolated を選択して編集依頼 | 変更が `~/.cursor/worktrees/` 側に隔離される（プロジェクト直書きではない） | pending | | |
 | MV-028 | 同上 | #18 | MCP 一覧 | ⋯ → MCP Servers | `id` / `Status` が整列表示される。Enable/Disable が動く | pending | | |
+| MV-031 | `fix/pr18-review-fixes` | #18 | Terminalプラグイン任意化 | Settings → Plugins で「Terminal」を無効化 → IDE再起動 | Cursor Agentプラグイン自体は正常にロードされる（チャット等は使える。`@terminal`のみ利用不可でよい） | pending | | |
 
 ---
 

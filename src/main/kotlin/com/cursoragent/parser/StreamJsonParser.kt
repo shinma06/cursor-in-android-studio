@@ -15,7 +15,8 @@ class StreamJsonParser(
         if (trimmed.isEmpty()) return
 
         val json = runCatching { JsonParser.parseString(trimmed).asJsonObject }.getOrNull() ?: return
-        onEvent(mapEvent(json))
+        val event = runCatching { mapEvent(json) }.getOrElse { StreamEvent.Unknown("unknown", trimmed) }
+        onEvent(event)
     }
 
     private fun mapEvent(json: JsonObject): StreamEvent {

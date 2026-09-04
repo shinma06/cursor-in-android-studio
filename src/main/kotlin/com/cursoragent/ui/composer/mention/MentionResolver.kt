@@ -17,16 +17,18 @@ import java.io.File
  */
 class MentionResolver(private val project: Project) {
     /**
-     * Split from [buildShellBackedContext] so callers can run the fast, VFS-only
-     * half (file/folder reads) on the EDT and push the slow half (spawns `git`)
-     * to a background thread — `sendPrompt` blocking the EDT on a git subprocess
-     * for every single message would violate the requirements doc's own
+     * Split from [buildShellBackedContext] so callers can run the fast, EDT-bound
+     * half (file/folder VFS reads, and terminal output — the Terminal API also
+     * requires the EDT) on the EDT and push the slow half (spawns `git`) to a
+     * background thread — `sendPrompt` blocking the EDT on a git subprocess for
+     * every single message would violate the requirements doc's own
      * non-functional requirement against EDT-blocking work (§7).
      */
     fun buildFileAndFolderContext(promptText: String): String? {
         val tokens = MentionTokenExtractor.extractTokens(promptText)
         val blocks = tokens.mapNotNull { token ->
             when {
+                token == "terminal" -> buildTerminalBlock()
                 isFixedToken(token) -> null
                 token.endsWith("/") -> buildFolderBlock(token.removeSuffix("/"))
                 else -> buildFileBlock(token)
@@ -35,14 +37,13 @@ class MentionResolver(private val project: Project) {
         return blocks.joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 
-    /** Call off the EDT — shells out to `git` and reads terminal output. */
+    /** Call off the EDT — shells out to `git`. */
     fun buildShellBackedContext(promptText: String): String? {
         val tokens = MentionTokenExtractor.extractTokens(promptText)
         val blocks = tokens.mapNotNull { token ->
             when (token) {
                 "git-diff" -> buildGitDiffBlock()
                 "branch" -> buildBranchDiffBlock()
-                "terminal" -> buildTerminalBlock()
                 "docs" -> "(User referenced @docs — if relevant, use any configured MCP docs-search tool for this.)"
                 "web" -> "(User referenced @web — if relevant, use any configured MCP web-search tool for this.)"
                 else -> null

@@ -1,0 +1,12 @@
+<idea-plugin>
+    <!--
+    Loaded only when org.jetbrains.plugins.terminal is present/enabled (see the
+    optional <depends> in plugin.xml). This plugin doesn't register any of its own
+    extensions against the terminal plugin's extension points — @terminal mention
+    support (TerminalOutputReader) calls the Terminal API directly at runtime and
+    already degrades to "(no open terminal tab or output unavailable)" if that API
+    isn't available — but declaring the optional-dependency config file is what
+    keeps the platform from treating org.jetbrains.plugins.terminal as required for
+    this plugin to load at all.
+    -->
+</idea-plugin>

@@ -8,6 +8,13 @@ package com.cursoragent.parser
  * incremental fragments with occasional cumulative/resend full sentences. The
  * heuristics below handle prefix-extension and drop exact repeats; disconnected
  * short orphan fragments are dropped when a longer replacement message arrives.
+ *
+ * [dedupe] always returns the full text that should be displayed (or null if
+ * [text] adds nothing new) rather than an incremental fragment — a "resend the
+ * whole cumulative message" event can't be expressed as a suffix to append, so
+ * callers must always re-set the displayed content from the return value
+ * ([com.cursoragent.ui.timeline.ChatTimelinePanel.setAssistantText]) instead of
+ * appending it.
  */
 class AssistantChunkDeduper {
     private val buffer = StringBuilder()
@@ -15,27 +22,21 @@ class AssistantChunkDeduper {
     fun dedupe(text: String): String? {
         if (text.isEmpty()) return null
         val current = buffer.toString()
-        val chunk = when {
-            current.isEmpty() -> text
-            text.startsWith(current) -> text.substring(current.length)
-            current.endsWith(text) || current == text -> return null
-            text.length > current.length && !text.startsWith(current) && looksLikeReplacement(current, text) -> {
-                buffer.clear()
-                text
+        when {
+            current.isEmpty() -> buffer.append(text)
+            text.startsWith(current) -> {
+                val added = text.substring(current.length)
+                if (added.isEmpty()) return null
+                buffer.append(added)
             }
-            current.endsWith(text) || current.contains(text) -> return null
-            else -> text
+            current.endsWith(text) || current == text || current.contains(text) -> return null
+            looksLikeReplacement(current, text) -> {
+                buffer.clear()
+                buffer.append(text)
+            }
+            else -> buffer.append(text)
         }
-        if (chunk.isEmpty()) return null
-        buffer.clear()
-        buffer.append(
-            when {
-                text.startsWith(current) -> text
-                looksLikeReplacement(current, text) -> text
-                else -> current + chunk
-            },
-        )
-        return chunk
+        return buffer.toString()
     }
 
     private fun looksLikeReplacement(current: String, text: String): Boolean {

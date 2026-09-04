@@ -31,7 +31,7 @@ class AgentSettingsConfigurable : Configurable {
 
         notifyOnTurnCompleteBox = JBCheckBox("Notify when a turn completes", settings.notifyOnTurnComplete)
         notifyOnApprovalPendingBox = JBCheckBox(
-            "Notify when a tool call starts (approval may be required)",
+            "Notify when a tool call starts",
             settings.notifyOnApprovalPending,
         )
 

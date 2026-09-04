@@ -218,6 +218,11 @@ persisted side-channel read by both the service and the UI.
   includes `beforeFullFileContent`, `afterFullFileContent`, `diffString`, line counts. Completed
   `shellToolCall` includes `stdout`/`stderr`/`interleavedOutput`/`exitCode`. File writes happen
   immediately in headless mode even with default permission mode (no `--force`).
+  **Caveat**: only the `completed` shape was actually captured in a live fixture
+  (`src/test/resources/stream-json-fixtures/`); `ToolCallPayloadParser`'s handling of the
+  `started` subtype (reading `args.path`/`args.command`) is inferred from that, not
+  independently confirmed against a captured `started` event — don't treat it as equally
+  verified until one is captured.
 
 ## 2026-09 foundation review
 
@@ -248,6 +253,11 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
   cleanup are done.
   F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
   F-52 worktree: basic `-w` toggle (`WorktreeMode.ISOLATED`); changes land under `~/.cursor/worktrees/`.
+  **Known gap**: `CheckpointService`/`GitSnapshotStore` (F-40–44) is hard-wired to `project.basePath`
+  and has no awareness of `WorktreeMode.ISOLATED` — when it's on, the CLI's edits land in the
+  isolated worktree, not `project.basePath`, so checkpoint rollback silently stops matching what
+  the agent actually changed. Not yet fixed; needs either disabling checkpoint rollback while
+  isolated-worktree mode is active, or pointing `GitSnapshotStore` at the worktree path.
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
   see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
   `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
