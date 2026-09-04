@@ -44,6 +44,7 @@
 |----|--------|-----|------|------|----------|--------|-------------|------|
 | MV-026 | 同上 | #18 | Sandbox トグル | ⋯ → Sandbox: enabled を選択してファイル編集依頼 | CLI が `--sandbox enabled` で起動（ログまたは挙動で確認） | pending | | |
 | MV-027 | 同上 | #18 | Worktree モード | ⋯ → Worktree: isolated を選択して編集依頼 | 変更が `~/.cursor/worktrees/` 側に隔離される（プロジェクト直書きではない） | pending | | |
+| MV-028 | 同上 | #18 | MCP 一覧 | ⋯ → MCP Servers | `id` / `Status` が整列表示される。Enable/Disable が動く | pending | | |
 
 ---
 

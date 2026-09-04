@@ -311,17 +311,17 @@ agent mcp list
 
 ## 13. 未確定事項(要検証リスト)
 
-- [ ] `[要検証・矛盾情報あり 2026-09]` CLIでの画像添付方法の有無・実装方法 — CLI changelogは`--image`フラグ対応を謳うが、公式パラメータリファレンス(`cursor.com/docs/cli/reference/parameters`)には記載なし。ドキュメント間で矛盾しており実機検証必須。未検証(Freeプランのクォータ枯渇で保留、下記参照)
+- [x] `[スコープ外 2026-09-04]` CLIでの画像添付 — `agent --help`(CLI `2026.09.02-c22c1a3`)に画像フラグなし。changelogと矛盾するが実機では非対応と確定(F-60)
 - [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
-- [ ] `[要検証]` stream-jsonの正確なイベントスキーマ(公式リファレンスの詳細ページを別途取得) — `system/init`, `user`, `connection`, `retry`イベントは実機確認済み(`CLAUDE.md`参照)。ファイル編集イベント・tool_call結果イベントは未確認(下記参照)
+- [x] `[検証済 2026-09-04]` stream-jsonのイベントスキーマ(実機) — `system/init`, `user`, `connection`, `retry`, `assistant`(累積/差分混在), `tool_call`(started/completed、`readToolCall`/`editToolCall`/`shellToolCall`)。`editToolCall` completed に `beforeFullFileContent`/`afterFullFileContent`/`diffString` を確認。fixture: `src/test/resources/stream-json-fixtures/`
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値 — デフォルト15日で実装済みだが、ユーザーが変更できる設定UIは未実装
 - [x] `[検証済・方針決定 2026-09]` IntelliJ Platform側で`@`補完UIをどのコンポーネントで実現するのが最も自然か → `EditorTextField`+自作補完コントリビューターで実装済み。ただし`runIde`での実機QA(Enter送信/Shift+Enter改行、ポップアップのフォーカス挙動)は未実施
 - [x] `[検証済 2026-09]` 新規ワークスペースでは`--trust`/`--yolo`/`-f`なしだと「Workspace Trust Required」で即失敗することが判明。プラグインは常に`--trust`を付与するよう修正済み(IDEでプロジェクトを開いている時点がユーザーの信頼判断そのものであるため)
 - [x] `[検証済 2026-09]` `agent ls`/`agent resume`(過去セッション選択)は生TTY必須のInkベースTUIで、`OSProcessHandler`等の非TTYサブプロセスからは`Raw mode is not supported`で失敗する。過去チャット一覧(F-50)はCLIのセッション一覧機能に頼らず、プラグイン側で`chatId`を自前で永続化する設計とする(実装済み)
 - [x] `[検証済 2026-09]` `agent mcp`には`list`/`list-tools <id>`/`enable <id>`/`disable <id>`/`login <id>`サブコマンドが存在する。F-71(MCP有効/無効切替)は`.cursor/mcp.json`相当を直接編集せず、これらのサブコマンドを呼び出す実装で十分(実装済み)
 - [x] `[検証済 2026-09]` `--list-models`と`agent mcp list`/`enable`/`disable`はローカルのメタデータ操作でチャットのクォータを消費しないことが判明。F-21/F-70/F-71はこの発見によりM0のクォータブロッカーを回避して実装済み
-- [ ] `[未検証・保留]` force ON/OFFでのファイル書き込みタイミングとtool_call結果イベントの内容 — 検証プロンプト実行時に`resource_exhausted`(Freeプランのクォータ枯渇)で行き詰まり中。クォータ回復後またはプラン変更後に再検証する。**F-30/F-31/F-32はこれに依存する唯一の残ブロッカー**
-- [ ] `[要検証 2026-09追加]` `dedupeAssistantChunk`(現`AgentUiController`、切り出し予定)のストリーミング重複排除ロジックは、実際の`assistant`イベント(累積 vs 差分)を一度も観測せずに書かれた未検証の推測ロジック。上記のブロッカー解消時に最優先で実データと突き合わせて検証すること
+- [x] `[検証済 2026-09-04]` force ON/OFFでのファイル書き込みタイミングとtool_call結果 — Teamsプラン実機: `permissionMode: default`でもヘッドレス subprocess では**即書き込み**。F-30/F-31は事後 diff/revert モデルで実装済み(PR #18)
+- [x] `[検証済 2026-09-04]` `AssistantChunkDeduper`のストリーミング重複排除 — Teams実機で `--stream-partial-output` が増分断片と累積再送を混在させることを確認。heuristic を更新し `AssistantChunkDeduperTest` で固定
 - [ ] `[要検証 2026-09追加]` Subagents/`/multitask`、Custom Modesの非対話CLIでの対応状況(§6.9参照)
 - [x] `[検証済 2026-09-04]` `agent mcp list`の出力形式(`id: status`行)を実配置環境で確認。`McpListParser`+整列表示に置き換え済み
 
