@@ -15,7 +15,8 @@ class StreamJsonParser(
         if (trimmed.isEmpty()) return
 
         val json = runCatching { JsonParser.parseString(trimmed).asJsonObject }.getOrNull() ?: return
-        onEvent(mapEvent(json))
+        val event = runCatching { mapEvent(json) }.getOrElse { StreamEvent.Unknown("unknown", trimmed) }
+        onEvent(event)
     }
 
     private fun mapEvent(json: JsonObject): StreamEvent {
@@ -47,10 +48,13 @@ class StreamJsonParser(
             }
 
             "tool_call" -> {
-                val name = json.get("name")?.asString
-                    ?: json.getAsJsonObject("tool")?.get("name")?.asString
-                    ?: "tool"
-                StreamEvent.ToolCall(name)
+                ToolCallPayloadParser.parse(json)?.let { parsed ->
+                    when (parsed.subtype) {
+                        "started" -> StreamEvent.ToolCallStarted(parsed)
+                        "completed" -> StreamEvent.ToolCallCompleted(parsed)
+                        else -> StreamEvent.ToolCall(parsed.summary)
+                    }
+                } ?: StreamEvent.ToolCall(extractLegacyToolName(json))
             }
 
             "result" -> {
@@ -96,6 +100,12 @@ class StreamJsonParser(
 
         return null
     }
+
+    private fun extractLegacyToolName(json: JsonObject): String {
+        return json.get("name")?.asString
+            ?: json.getAsJsonObject("tool")?.get("name")?.asString
+            ?: "tool"
+    }
 }
 
 sealed interface StreamEvent {
@@ -103,6 +113,8 @@ sealed interface StreamEvent {
     data class AssistantDelta(val text: String) : StreamEvent
     data class ThinkingDelta(val text: String) : StreamEvent
     data class ToolCall(val toolName: String) : StreamEvent
+    data class ToolCallStarted(val payload: ParsedToolCall) : StreamEvent
+    data class ToolCallCompleted(val payload: ParsedToolCall) : StreamEvent
     data class Result(
         val sessionId: String?,
         val model: String?,

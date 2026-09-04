@@ -7,3 +7,5 @@ out/
 .intellijPlatform/
 .kotlin/
 local.properties
+.tmp-jar-inspect/
+log.log

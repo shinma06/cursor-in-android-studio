@@ -1,0 +1,9 @@
+gitlab: ready
+github: ready
+context7: ready
+android: ready
+jetbrains: ready
+android-mcp-toolkit: ready
+playwright: ready
+excel: ready
+excel-workbook: ready

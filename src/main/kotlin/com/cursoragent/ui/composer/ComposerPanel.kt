@@ -145,6 +145,22 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
                         )
                     }
                     addSeparator()
+                    com.cursoragent.settings.SandboxMode.entries.forEach { mode ->
+                        add(
+                            JCheckBoxMenuItem(mode.label, settings.sandboxMode == mode).apply {
+                                addActionListener { settings.sandboxMode = mode }
+                            },
+                        )
+                    }
+                    addSeparator()
+                    com.cursoragent.settings.WorktreeMode.entries.forEach { mode ->
+                        add(
+                            JCheckBoxMenuItem(mode.label, settings.worktreeMode == mode).apply {
+                                addActionListener { settings.worktreeMode = mode }
+                            },
+                        )
+                    }
+                    addSeparator()
                     add(
                         javax.swing.JMenuItem("Summarize context").apply {
                             addActionListener { onSend("/summarize") }

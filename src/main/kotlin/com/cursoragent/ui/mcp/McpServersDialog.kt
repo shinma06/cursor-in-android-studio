@@ -1,6 +1,7 @@
 package com.cursoragent.ui.mcp
 
 import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.McpListParser
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
@@ -18,15 +19,11 @@ import javax.swing.SwingUtilities
 
 /**
  * Read-only listing (F-70) + enable/disable (F-71) for `agent mcp` servers.
- * Shows `agent mcp list`'s raw output rather than a parsed table — its format was
- * never verified against a populated `.cursor/mcp.json` (see requirements doc §13,
- * no MCP servers were configured on the machine this was built on), only against
- * the empty-config message. Enable/disable just shells out to `agent mcp enable/
- * disable <id>`, which doesn't depend on being able to parse the list output.
+ * Parses `agent mcp list` output (`id: status` per line, verified 2026-09-04).
  */
 class McpServersDialog(private val project: Project) : DialogWrapper(project) {
     private val agentService = project.getService(AgentProcessService::class.java)
-    private val outputArea = JBTextArea(12, 60).apply { isEditable = false; lineWrap = true }
+    private val outputArea = JBTextArea(12, 60).apply { isEditable = false; lineWrap = false }
     private val identifierField = JBTextField(20)
     private val statusLabel = JBLabel(" ")
 
@@ -64,7 +61,14 @@ class McpServersDialog(private val project: Project) : DialogWrapper(project) {
         outputArea.text = "Loading…"
         ApplicationManager.getApplication().executeOnPooledThread {
             val raw = agentService.listMcpServersRaw()
-            SwingUtilities.invokeLater { outputArea.text = raw }
+            val parsed = McpListParser.parse(raw)
+            SwingUtilities.invokeLater {
+                outputArea.text = if (parsed.isNotEmpty()) {
+                    McpListParser.format(parsed)
+                } else {
+                    raw.trim().ifEmpty { "(no MCP servers listed)" }
+                }
+            }
         }
     }
 

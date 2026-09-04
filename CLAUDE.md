@@ -29,6 +29,9 @@ should:
    `CLAUDE.md`/the requirements doc if what you built changes the "current implementation status"
    or "verified CLI behavior" sections — those are read as ground truth by the next session
    (agent or human), so a stale claim there is actively worse than no claim at all.
+5. **When the change needs human-only verification** (runIde, Swing UI, OS notifications, etc.):
+   add or update rows in [`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md)
+   instead of dumping a long QA checklist only in chat. See [`.cursor/rules/manual-verification.mdc`](.cursor/rules/manual-verification.mdc).
 
 If you're a fresh agent with zero context on this repo: read this whole file, then
 `docs/cursor-agent-plugin-requirements.md`, then the open GitHub issues, in that order, before
@@ -53,18 +56,19 @@ source of truth for feature scope and rationale — check it before adding featu
 
 ## Current blocker (check this before picking a task)
 
-The verification account used so far is Cursor **Free tier**, which hits `resource_exhausted` on
-any prompt that actually reaches the model (plain chat, file edits, tool calls) — confirmed
-persistent, not transient, across repeated retries. `--list-models` and `agent mcp
-list/enable/disable` are unaffected (they're local metadata operations, not chat turns — see
-"Verified CLI behavior" below). This blocks GitHub issues **#6 (M4, diff Apply/Reject)**, **#7 (M5,
-tool-call/shell output display)**, and the image-attachment half of **#10 (M8)** — don't start
-those without either a working paid-tier/quota-recovered account to verify against, or a clear
-signal from whoever's running the session that they have one. Everything else is unblocked; issues
-**#11** and **#12** are explicitly ranked cheapest-first for exactly this reason. This paragraph is
-the single most load-bearing fact for "what can I actually work on right now" — it used to live
-only in GitHub issue #1, which an onboarding dry-run (issue #13) found easy to miss if you assume
-this file is self-contained.
+The verification account used for the **original M0 spike** was Cursor **Free tier**, which hit
+`resource_exhausted` on chat turns. That blocker is **resolved for Teams-plan sessions** — verified
+2026-09-04 with `~/.local/bin/agent` logged in as a Teams account: plain chat, file edits, and
+shell tool calls all succeed and produce rich `tool_call` events (`readToolCall`/`editToolCall`/
+`shellToolCall` with `subtype` `started`/`completed`).
+
+**Critical CLI behavior for M4 design (verified live):** in headless subprocess mode, file edits
+are **applied immediately by the CLI even without `--force`** (`permissionMode: default`). The
+plugin cannot intercept writes before they happen — F-30/F-31 are implemented as **post-hoc diff
+view + Revert** (restore `beforeFullFileContent` from the completed `editToolCall` event, or use
+checkpoints), not pre-apply approval gating.
+
+Still out of scope until CLI support appears: F-60 image attachment (`agent --help` has no image flag, verified 2026-09-04).
 
 ## Commands
 
@@ -206,10 +210,19 @@ persisted side-channel read by both the service and the UI.
   `StreamEvent.Unknown`: `"user"` (echoes the sent prompt back), `"connection"` (subtype
   `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
   telemetry, safe to keep ignoring.
-- **Still unverified** (blocked on a `resource_exhausted` quota error on the Free-tier account used
-  for the spike — retry once quota/plan allows): file-edit event shape and force ON/OFF write
-  timing (blocks F-30/F-31/F-40 design confirmation), tool-call result payload shape (F-32),
-  `--list-models`/`agent mcp list` output format (F-21/F-70), image-attachment support (F-60).
+- **CLI flags verified 2026-09-04**: `--sandbox enabled|disabled`, `-w/--worktree` (no `--image` in `--help`).
+- **Scoped out (CLI, 2026-09-04)**: F-17 `@Chats` (no non-TTY transcript API; same TTY constraint as `agent ls`); F-60 image attach (no `--image` flag in `--help`).
+- **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
+  incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
+  with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
+  includes `beforeFullFileContent`, `afterFullFileContent`, `diffString`, line counts. Completed
+  `shellToolCall` includes `stdout`/`stderr`/`interleavedOutput`/`exitCode`. File writes happen
+  immediately in headless mode even with default permission mode (no `--force`).
+  **Caveat**: only the `completed` shape was actually captured in a live fixture
+  (`src/test/resources/stream-json-fixtures/`); `ToolCallPayloadParser`'s handling of the
+  `started` subtype (reading `args.path`/`args.command`) is inferred from that, not
+  independently confirmed against a captured `started` event — don't treat it as equally
+  verified until one is captured.
 
 ## 2026-09 foundation review
 
@@ -234,11 +247,17 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
 - **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
   heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
   overstated this as "observed" behavior; see that class's doc comment.
-- **Known backlog, not yet addressed**: `AgentUiController` is growing into a god-object (prompt
-  building, listener orchestration, checkpoint/mention/past-chats/model-loading all in one class);
-  no Settings/Preferences page exists for `agentExecutablePath` (only reachable by hand-editing the
-  persisted XML); tool-window-close process cleanup relies on project-level `Disposable` only,
-  unverified against the requirements doc's separate "on tool window close" wording (§7).
+- **Known backlog, not yet addressed**: further `AgentUiController` decomposition is largely done —
+  `AgentTurnListenerFactory`, `PromptContextBuilder`, and `PastChatsCoordinator` now own the per-turn
+  listener, prompt assembly, and past-chats popup (#11, 2026-09). Settings page and tool-window-close
+  cleanup are done.
+  F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
+  F-52 worktree: basic `-w` toggle (`WorktreeMode.ISOLATED`); changes land under `~/.cursor/worktrees/`.
+  **Known gap**: `CheckpointService`/`GitSnapshotStore` (F-40–44) is hard-wired to `project.basePath`
+  and has no awareness of `WorktreeMode.ISOLATED` — when it's on, the CLI's edits land in the
+  isolated worktree, not `project.basePath`, so checkpoint rollback silently stops matching what
+  the agent actually changed. Not yet fixed; needs either disabling checkpoint rollback while
+  isolated-worktree mode is active, or pointing `GitSnapshotStore` at the worktree path.
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
   see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
   `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
@@ -283,26 +302,23 @@ history button opens a popup to resume one. Resuming only continues the *session
 turn — the CLI has no way to hand back a past session's transcript, so the timeline is cleared
 rather than replayed; this is a known, permanent limitation rather than a TODO.
 
-**Not yet implemented**: diff preview/Apply/Reject (F-30/F-31, blocked on the M0 write-timing
-spike), `@Terminal` mention (F-13 — **not blocked**, just unimplemented; see below), and multimodal
-input (F-60/F-61). `McpServersDialog` shows `agent mcp list`'s raw output rather than a parsed
-table — its format was never verified against a populated `.cursor/mcp.json` (no MCP servers were
-configured on the machine this was built on).
+**Implemented (2026-09, M4/M5)**: tool-call timeline cards (F-32: read/edit/shell started +
+completed), file-edit cards with IDE Diff Viewer + Revert (F-30/F-31 as post-hoc model — CLI
+auto-applies edits in headless mode), `ToolCallPayloadParser` + stream-json fixtures from live CLI.
+F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
 
-**F-13 (`@Terminal` mention) API verified, 2026-09**: an earlier pass marked this "verified" in
-GitHub issue #2's checklist without actually doing the check — caught by an onboarding dry-run (see
-GitHub issue #13) that found the claim unsupported. Actually checked now, via context7 against
-`plugins.jetbrains.com/docs/intellij/embedded-terminal.html`: `TerminalView.DATA_KEY` (from a
-`DataContext`) or `TerminalToolWindowTabsManager.getTabs()` gets terminal tabs, and
-`TerminalView.outputModels` (`TerminalOutputModel`, regular/alternative buffers) or
-`TerminalBlocksModel` (per-command blocks with working dir + exit code) exposes the text — this is
-the Reworked Terminal API, default since platform 2025.2, which covers this plugin's `sinceBuild
-261`. Feasible; just not implemented yet (tracked in GitHub issue #12). Exact text-extraction method
-signatures weren't in the doc snippets returned — expect to need to browse the actual platform
-sources during implementation.
+**Implemented (2026-09, M9/backlog)**: desktop notifications on turn complete/tool-call start
+(`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor Agent**), F-13
+`@terminal` mention (`TerminalOutputReader` via Reworked Terminal API), F-16 `@branch` mention
+(`BranchDiffBuilder`), settings page for `agentExecutablePath` and notification prefs
+(`AgentSettingsConfigurable`), tool-window-close process cleanup (`Disposer` on tool window
+`Content`).
 
-**Needs manual `./gradlew runIde` verification, not yet done**: the `EditorTextField` Enter-to-send
-+ Shift+Enter-for-newline keybinding (`ComposerPanel`'s `registerCustomShortcutSet` on plain ENTER),
-and the `@` mention popup's positioning/focus behavior (`MentionPopupController`). Neither is
-unit-testable (Swing/editor keyboard-event routing and popup UI), and no live IDE session has
-exercised them yet.
+**F-13 (`@Terminal` mention)**: implemented via `TerminalToolWindowTabsManager` +
+`TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
+returns a helpful placeholder if none is available.
+
+**Manual verification (runIde, Swing UI)**: tracked in
+[`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md) — Enter/Shift+Enter,
+`@` popup, diff cards, notifications, etc. Agents must keep that file current; humans fill in
+`Status` / `Verified by` / `Date` after `./gradlew runIde`.

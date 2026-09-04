@@ -18,4 +18,11 @@ class AgentSettingsStateTest {
     fun `force enabled cli arg is not sent by default`() {
         assertEquals(null, AgentSettingsState().permissionMode.cliArg)
     }
+
+    @Test
+    fun `sandbox and worktree default to off`() {
+        val settings = AgentSettingsState()
+        assertEquals(SandboxMode.DEFAULT, settings.sandboxMode)
+        assertEquals(WorktreeMode.DEFAULT, settings.worktreeMode)
+    }
 }

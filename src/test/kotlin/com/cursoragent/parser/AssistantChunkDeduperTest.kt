@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 /**
- * Pins down the CURRENT (unverified, see the class doc comment) dedup heuristic's
- * behavior so a future change can't silently alter it. These are not a spec for
- * "correct" behavior against the real CLI -- nobody has seen real assistant-delta
- * traffic yet (blocked on the M0 CLI quota, see requirements doc §13).
+ * Pins down dedup behavior against live CLI observations (Teams plan, 2026-09).
  */
 class AssistantChunkDeduperTest {
     @Test
@@ -18,18 +15,18 @@ class AssistantChunkDeduperTest {
     }
 
     @Test
-    fun `true incremental deltas each pass through unchanged`() {
+    fun `true incremental deltas accumulate into the full displayed text`() {
         val deduper = AssistantChunkDeduper()
         assertEquals("Hello", deduper.dedupe("Hello"))
-        assertEquals(", world", deduper.dedupe(", world"))
-        assertEquals("!", deduper.dedupe("!"))
+        assertEquals("Hello, world", deduper.dedupe(", world"))
+        assertEquals("Hello, world!", deduper.dedupe("!"))
     }
 
     @Test
-    fun `a cumulative resend is reduced to only the new suffix`() {
+    fun `a cumulative resend returns the full merged text, not just the new suffix`() {
         val deduper = AssistantChunkDeduper()
         deduper.dedupe("Hello")
-        assertEquals(", world", deduper.dedupe("Hello, world"))
+        assertEquals("Hello, world", deduper.dedupe("Hello, world"))
     }
 
     @Test
@@ -40,8 +37,12 @@ class AssistantChunkDeduperTest {
     }
 
     @Test
-    fun `empty input is dropped`() {
+    fun `disconnected orphan fragment is replaced by a longer message`() {
         val deduper = AssistantChunkDeduper()
-        assertNull(deduper.dedupe(""))
+        assertEquals(" overwrite it with the", deduper.dedupe(" overwrite it with the"))
+        assertEquals(
+            "I'll read the file first, then overwrite it with the new content.\n",
+            deduper.dedupe("I'll read the file first, then overwrite it with the new content.\n"),
+        )
     }
 }

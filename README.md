@@ -10,6 +10,8 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 > 2. **[GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues/1)** — 進捗の一次情報源。このリポジトリは複数のAIエージェント(Claude Code、Cursor自身のエージェント)が役割分担なく非同期に作業する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
+>
+> **手動 QA（runIde 等）**: エージェントが検証できない項目は [docs/manual-verification/matrix.md](docs/manual-verification/matrix.md) に一覧化する。確認前に Branch 列を参照すること。
 
 ## セットアップ
 

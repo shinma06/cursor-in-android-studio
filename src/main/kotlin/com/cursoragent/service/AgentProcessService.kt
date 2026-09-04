@@ -27,6 +27,8 @@ interface AgentProcessListener {
     fun onResultFallback(text: String) {}
     fun onThinking(text: String) {}
     fun onToolCall(toolName: String) {}
+    fun onToolCallStarted(payload: com.cursoragent.parser.ParsedToolCall) {}
+    fun onToolCallCompleted(payload: com.cursoragent.parser.ParsedToolCall) {}
     fun onSessionUpdated(chatId: String?, model: String?) {}
     fun onError(message: String) {}
     fun onCompleted(exitCode: Int) {}
@@ -84,6 +86,10 @@ class AgentProcessService(private val project: Project) : Disposable {
                 }
 
                 is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
+
+                is StreamEvent.ToolCallStarted -> listener.onToolCallStarted(event.payload)
+
+                is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
 
                 is StreamEvent.Result -> {
                     chatId = event.sessionId ?: chatId
@@ -213,6 +219,12 @@ class AgentProcessService(private val project: Project) : Disposable {
         settings.mode.cliValue?.let { args += listOf("--mode", it) }
 
         settings.permissionMode.cliArg?.let { args += it }
+
+        settings.sandboxMode.cliValue?.let { args += listOf("--sandbox", it) }
+
+        if (settings.worktreeMode.useIsolatedWorktree) {
+            args += "-w"
+        }
 
         args += prompt
 

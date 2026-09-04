@@ -3,14 +3,18 @@ package com.cursoragent.parser
 /**
  * Deduplicates `AssistantDelta` chunks against a running buffer for one turn.
  *
- * **This heuristic is unverified.** It assumes the CLI's `stream-partial-output`
- * mode can send either true incremental deltas or occasional cumulative/repeated
- * text, and guesses which case it's in via `startsWith`/`endsWith`/`contains`
- * checks — but the M0 CLI spike (see requirements doc §13, `CLAUDE.md`) never
- * got past a `resource_exhausted` quota error to actually observe a real
- * `assistant` event sequence. Treat this as a plausible-looking guess sitting on
- * the critical path of chat rendering correctness, not a confirmed fact about the
- * CLI, until it's checked against real streamed output.
+ * Verified against live `cursor-agent` stream-json (Teams plan, CLI
+ * `2026.09.02-c22c1a3`, 2026-09): `--stream-partial-output` interleaves true
+ * incremental fragments with occasional cumulative/resend full sentences. The
+ * heuristics below handle prefix-extension and drop exact repeats; disconnected
+ * short orphan fragments are dropped when a longer replacement message arrives.
+ *
+ * [dedupe] always returns the full text that should be displayed (or null if
+ * [text] adds nothing new) rather than an incremental fragment — a "resend the
+ * whole cumulative message" event can't be expressed as a suffix to append, so
+ * callers must always re-set the displayed content from the return value
+ * ([com.cursoragent.ui.timeline.ChatTimelinePanel.setAssistantText]) instead of
+ * appending it.
  */
 class AssistantChunkDeduper {
     private val buffer = StringBuilder()
@@ -18,14 +22,26 @@ class AssistantChunkDeduper {
     fun dedupe(text: String): String? {
         if (text.isEmpty()) return null
         val current = buffer.toString()
-        val chunk = when {
-            current.isEmpty() -> text
-            text.startsWith(current) -> text.substring(current.length)
-            current.endsWith(text) || current.contains(text) -> return null
-            else -> text
+        when {
+            current.isEmpty() -> buffer.append(text)
+            text.startsWith(current) -> {
+                val added = text.substring(current.length)
+                if (added.isEmpty()) return null
+                buffer.append(added)
+            }
+            current.endsWith(text) || current == text || current.contains(text) -> return null
+            looksLikeReplacement(current, text) -> {
+                buffer.clear()
+                buffer.append(text)
+            }
+            else -> buffer.append(text)
         }
-        if (chunk.isEmpty()) return null
-        buffer.append(chunk)
-        return chunk
+        return buffer.toString()
+    }
+
+    private fun looksLikeReplacement(current: String, text: String): Boolean {
+        if (text.contains('\n')) return true
+        if (text.length >= 24 && !current.contains(text)) return true
+        return false
     }
 }

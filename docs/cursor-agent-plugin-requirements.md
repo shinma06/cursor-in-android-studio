@@ -120,11 +120,11 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 | F-10 | `@ファイル名`補完UI | MVP | Android Studioのプロジェクトツリー/開いているファイル一覧からJList/JPopupMenuで候補表示 → 選択時にプロンプト文字列へ`@path`を埋め込み |
 | F-11 | `@フォルダ`指定 | P2 | 同上、ディレクトリ選択対応 |
 | F-12 | `@Git diff`(未コミット差分) | P2 | プラグイン側で`git diff`を実行し結果をプロンプトに埋め込み(CLI自動対応なし) |
-| F-13 | `@Terminals`(ターミナル出力) | P3(**API検証済み・未実装 2026-09**) | `[検証済]` context7でIntelliJ Platform SDK公式ドキュメント(`embedded-terminal.html`)を確認。`TerminalView.DATA_KEY`/`TerminalToolWindowTabsManager.getTabs()`でターミナルタブを取得し、`TerminalView.outputModels`(`TerminalOutputModel`、regular/alternativeバッファ)または`TerminalBlocksModel`(コマンド単位、作業ディレクトリ・終了コード付き)からテキストを読み取り可能。Reworked Terminal API(2025.2以降デフォルト、本プラグインの対象build 261はこれに該当)向け。未実装(M9, Issue #12参照) |
+| F-13 | `@Terminals`(ターミナル出力) | P3(**実装済み 2026-09**) | Reworked Terminal API経由(`TerminalToolWindowTabsManager`/`TerminalView.outputModels.regular`)。開いているTerminalタブの末尾8KBを`@terminal`送信時に埋め込み。タブ未オープン時はプレースホルダー |
 | F-14 | `@Docs` / `@Web` | P3 | MCPサーバー追加設定が前提。本フェーズはスコープ外 |
 | F-15 | 現在開いているファイル/選択範囲の自動コンテキスト化 | MVP | エディタの`FileEditorManager`/`SelectionModel`から取得し、送信時に自動付与(ネイティブCursorの「Active file and selection」相当) |
-| F-16 | `@Branch`(現在のブランチ vs mainの差分) | P2 `[2026-09追加]` | プラグイン側で`git diff main...HEAD`相当を実行し埋め込み。F-12と同じパターンで実装可能 |
-| F-17 | `@Chats`(別の過去セッションの内容を参照) | P3 `[2026-09追加, 要検証]` | ネイティブCursorには存在する機能。`agent ls`/`resume`が生TTY必須でプラグインから使えないと判明済み(F-50と同じ制約)なため、CLIにトランスクリプト取得の別手段(非対話コマンド等)がない限り実現不可の可能性が高い |
+| F-16 | `@Branch`(現在のブランチ vs mainの差分) | P2 `[2026-09追加]`(**実装済み 2026-09**) | プラグイン側で`git diff <base>...HEAD`相当を実行し埋め込み。baseは`origin/HEAD`→`main`→`master`の順で解決 |
+| F-17 | `@Chats`(別の過去セッションの内容を参照) | P3 `[2026-09追加, スコープ外]` | ネイティブCursorには存在する機能。`agent ls`/`resume`が生TTY必須(F-50と同じ)。`agent --help`(2026-09-04)にもトランスクリプト取得の非対話手段はなく、CLI経由では実現不可と確定 |
 | — | `@codebase` / `@definitions`(Cursor独自のセマンティック検索・シンボルインデックス) | **恒久的にスコープ外** `[2026-09追加]` | Cursor社の独自インデックスバックエンドに依存しており、CLI経由で相当機能を利用する手段がない。「CLIで再現できること」という本プロジェクトの条件を満たさないため実装しない |
 
 > `@codebase`/`@definitions`はネイティブCursor Agentパネルの実在機能だが、CLIに公開されていないため対象外とする(§1.3非目的に準ずる恒久的除外)。将来CLIが同等機能を公開した場合に再検討する。
@@ -136,7 +136,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 | F-20 | Ask / Agent / Plan モード切替 | MVP(実装済み) | `--mode=ask` / 通常 / `--mode=plan` |
 | F-21 | モデル選択UI(ドロップダウン) | MVP(実装済み) | `--model <name>`、選択肢は`agent --list-models`で動的取得 |
 | F-22 | 自動承認(force)トグル | MVP(実装済み、**要再設計** `[2026-09]`) | 現状は`--force`のON/OFF二値切替として実装済みだが、実際のCLIの権限モデルは3値(「Run Everything」=`--force`/`--yolo` / 「Auto-Run in Sandbox」=`--sandbox enabled`との組合せ / 「Ask Every Time」=デフォルト)である。加えて`--auto-review`(サーバー側分類器が安全な呼び出しのみ自動実行し残りは確認を求める)という第4のモードも存在する。二値トグルのままでも動作はするが、ネイティブCursorのUXとは乖離があるため、UIを3〜4択のセレクタに再設計することを推奨(P2、後述F-23参照) |
-| F-23 | サンドボックス実行モード | P2 `[2026-09追加]` | `--sandbox enabled\|disabled`、`--allow-paths`/`--readonly-paths`/`--blocked-patterns`/`--network`。F-22の再設計と合わせて「Auto-Run in Sandbox」相当を実現する土台。設定はF-22のUIから選択するモードに応じて組み立てる |
+| F-23 | サンドボックス実行モード | P2 `[2026-09追加]`(**基本実装済み 2026-09**) | `--sandbox enabled\|disabled`をComposerの⋯メニューから選択(`SandboxMode`)。`--allow-paths`等の細粒度フラグは未実装 |
 | F-24 | Auto-review(スマート自動承認) | P2 `[2026-09追加]` | `--auto-review`フラグ。F-22のトグルを「Ask Every Time / Auto-review / Run Everything」の3択にする際の一角 |
 
 ### 6.4 実行結果の可視化・適用
@@ -170,13 +170,13 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 |---|---|---|---|
 | F-50 | 過去チャット一覧(`@Past Chats`相当) | P2(実装済み) | `agent ls`/`agent resume`は生TTY必須で非対話サブプロセスから使用不可と判明済みのため、プラグイン側で`(chatId, 冒頭プロンプト, 更新時刻)`を独自に永続化・一覧表示。選択で次ターンから`--resume`。**既知の制約**: 過去ターンの再描画は非対応(CLIにトランスクリプト取得手段がないため) |
 | F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`をプロジェクトルートに固定 |
-| F-52 | Worktree分離実行 | P3 `[2026-09追加, 要検証]` | `-w/--worktree [name]`、`--worktree-base <branch>`、`--skip-worktree-setup`。Agentを独立したgit worktree(`~/.cursor/worktrees/<repo>/<name>`)上で実行する機能。プロジェクト本体のワーキングツリーを変更しない実行モードとして有用だが、「変更がどこに反映されるか」のUXが複雑になるため、導入する場合はF-30/F-31(diff適用)の設計と合わせて別途検討する |
+| F-52 | Worktree分離実行 | P3 `[2026-09追加]`(**基本実装済み 2026-09**) | `-w`をComposer ⋯メニューから選択(`WorktreeMode.ISOLATED`)。`--worktree-base`/`--skip-worktree-setup`は未実装。変更は`~/.cursor/worktrees/`側 — MV-027で手動確認 |
 
 ### 6.7 マルチモーダル・拡張入力
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-60 | 画像添付 | P3(**`[要検証]`のまま、矛盾情報あり `[2026-09]`**) | CLI changelogは`--image`フラグ・クリップボード貼り付け対応を謳うが、`cursor.com/docs/cli/reference/parameters`の正式リファレンスには`--image`の記載がない。ドキュメント間で矛盾しているため「対応している」と早合点せず、実機検証(M0のクォータ回復後)で確認するまでフラグ名を含め未確定として扱う |
+| F-60 | 画像添付 | P3(**CLI非対応と判断 2026-09-04**) | `agent --help`(CLI `2026.09.02-c22c1a3`)に画像/`--image`フラグなし。changelogとの矛盾は残るが、プラグイン側実装は保留 |
 | F-61 | 音声入力 | P3 | CLIに相当機能なし。macOSのOSレベル辞書入力(Fn Fn)が`EditorTextField`に対して標準のテキスト入力として機能するなら追加実装不要という仮説あり、要検証 |
 | F-62 | ブラウザ視覚検証(`@Browser`相当) | P3 | ネイティブCursorにも直接のCLIフラグはなし。Playwright系MCPサーバー導入 + 汎用MCPツール結果表示(F-32拡張、画像サムネイル対応)で代替可能と判断し、専用実装はしない方針 |
 
@@ -184,7 +184,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-70 | MCPサーバー一覧表示 | P2(実装済み、出力パース精度は要フォローアップ) | `agent mcp list`の結果をUIに反映。現状は生出力をそのまま表示(構造化パース未実装、実配置環境での検証が必要) |
+| F-70 | MCPサーバー一覧表示 | P2(実装済み) | `agent mcp list`の結果をUIに反映。`id: status`行を`McpListParser`でパースし整列表示(2026-09-04検証) |
 | F-71 | MCPサーバーの有効/無効切替 | P3(実装済み) | `.cursor/mcp.json`の直接編集ではなく、`agent mcp enable <id>` / `agent mcp disable <id>`サブコマンドを利用(要件定義時点の想定より簡単に実現できた) |
 
 ### 6.9 将来調査事項(2026-09の網羅的リサーチで新たに判明、優先度未確定)
@@ -195,7 +195,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 |---|---|---|
 | Subagents / `/multitask` | Agentが複数のサブタスクを並列的な非同期サブエージェントとして実行する機能(Cursor 3.2+)。CLI changelogに「subagent transcript」「サブエージェント用チェックポイント永続化」の言及あり | `[要検証]` 何らかのCLI側サポートがある可能性はあるが、コマンド体系が未確認 |
 | Custom Modes | `/`コマンドで任意のスキルをカスタムモードとしてピン留めする機能 | `[要検証]` `--mode`まわりの拡張である可能性 |
-| デスクトップ通知 | ターン完了時・承認待ち発生時のOSネイティブ通知 | プラグイン側でIntelliJの`Notification` API利用のみで実現可能(CLI側の対応不要)。**実装コストが低く優先度を上げてよい** |
+| デスクトップ通知 | ターン完了時・承認待ち発生時のOSネイティブ通知 | **実装済み 2026-09** — IntelliJ `Notification` API。ターン完了/ツール呼び出し開始時に通知(設定でOFF可) |
 | `permissions.json` | チーム管理者向けのターミナル/MCP許可リスト宣言ファイル。IDEとCLIで設定共有 | F-22/F-23再設計時の参考として調査対象。個人利用が主眼の本プラグインでは優先度低 |
 | CLI Hooks(session start/end, stop, pre-compaction等) | チーム管理向け自動化フック | Agentパネルの「UX」ではなく設定機能のため本プラグインのスコープ外と判断 |
 | クラウドエージェント / バックグラウンドPR自動生成 | 常時稼働のクラウドエージェント、Slack連携等 | §1.3の非目的に該当。恒久的にスコープ外(クラウド実行はローカルCLIサブプロセスのラップという本プラグインの前提と根本的に相容れない) |
@@ -304,26 +304,26 @@ agent mcp list
 |---|---|---|---|
 | **Phase 1(MVP)** | 基本チャット + `@ファイル`コンテキスト + モード/モデル切替 + 差分Apply/Reject + チェックポイント基本機能 | F-01〜05, F-10, F-15, F-20〜22, F-30〜33, F-40〜42, F-44, F-51 | F-30〜32以外は実装済み。F-30〜32はM0のCLI実機検証待ちでブロック中 |
 | **Phase 2** | フォルダメンション、Git diffメンション、コンテキスト圧縮、過去チャット一覧、MCP一覧表示、Branchメンション | F-06, F-11, F-12, F-16, F-50, F-70 | 実装済み |
-| **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | 未着手。CLI検証不要で今すぐ着手可能 |
-| **Phase 3(将来検討)** | Terminals連携、Docs/Web(MCP前提)、画像添付、音声入力、ブラウザ視覚検証、Worktree、Chats参照、Subagents、Custom Modes | F-13, F-14, F-17, F-52, F-60〜62, F-71 | F-71実装済み。他は要検証/未着手 |
+| **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | F-24実装済み。デスクトップ通知実装済み。F-23は`--sandbox`トグル基本実装済み(2026-09) |
+| **Phase 3(将来検討)** | Docs/Web(MCP前提)、音声入力、ブラウザ視覚検証、Subagents、Custom Modes | F-14, F-60〜62 | F-13/F-52(基本)/F-71実装済み。F-17 `@Chats`・F-60画像添付はCLI非対応でスコープ外(2026-09-04) |
 
 ---
 
 ## 13. 未確定事項(要検証リスト)
 
-- [ ] `[要検証・矛盾情報あり 2026-09]` CLIでの画像添付方法の有無・実装方法 — CLI changelogは`--image`フラグ対応を謳うが、公式パラメータリファレンス(`cursor.com/docs/cli/reference/parameters`)には記載なし。ドキュメント間で矛盾しており実機検証必須。未検証(Freeプランのクォータ枯渇で保留、下記参照)
+- [x] `[スコープ外 2026-09-04]` CLIでの画像添付 — `agent --help`(CLI `2026.09.02-c22c1a3`)に画像フラグなし。changelogと矛盾するが実機では非対応と確定(F-60)
 - [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
-- [ ] `[要検証]` stream-jsonの正確なイベントスキーマ(公式リファレンスの詳細ページを別途取得) — `system/init`, `user`, `connection`, `retry`イベントは実機確認済み(`CLAUDE.md`参照)。ファイル編集イベント・tool_call結果イベントは未確認(下記参照)
+- [x] `[検証済 2026-09-04]` stream-jsonのイベントスキーマ(実機) — `system/init`, `user`, `connection`, `retry`, `assistant`(累積/差分混在), `tool_call`(started/completed、`readToolCall`/`editToolCall`/`shellToolCall`)。`editToolCall` completed に `beforeFullFileContent`/`afterFullFileContent`/`diffString` を確認。fixture: `src/test/resources/stream-json-fixtures/`
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値 — デフォルト15日で実装済みだが、ユーザーが変更できる設定UIは未実装
 - [x] `[検証済・方針決定 2026-09]` IntelliJ Platform側で`@`補完UIをどのコンポーネントで実現するのが最も自然か → `EditorTextField`+自作補完コントリビューターで実装済み。ただし`runIde`での実機QA(Enter送信/Shift+Enter改行、ポップアップのフォーカス挙動)は未実施
 - [x] `[検証済 2026-09]` 新規ワークスペースでは`--trust`/`--yolo`/`-f`なしだと「Workspace Trust Required」で即失敗することが判明。プラグインは常に`--trust`を付与するよう修正済み(IDEでプロジェクトを開いている時点がユーザーの信頼判断そのものであるため)
 - [x] `[検証済 2026-09]` `agent ls`/`agent resume`(過去セッション選択)は生TTY必須のInkベースTUIで、`OSProcessHandler`等の非TTYサブプロセスからは`Raw mode is not supported`で失敗する。過去チャット一覧(F-50)はCLIのセッション一覧機能に頼らず、プラグイン側で`chatId`を自前で永続化する設計とする(実装済み)
 - [x] `[検証済 2026-09]` `agent mcp`には`list`/`list-tools <id>`/`enable <id>`/`disable <id>`/`login <id>`サブコマンドが存在する。F-71(MCP有効/無効切替)は`.cursor/mcp.json`相当を直接編集せず、これらのサブコマンドを呼び出す実装で十分(実装済み)
 - [x] `[検証済 2026-09]` `--list-models`と`agent mcp list`/`enable`/`disable`はローカルのメタデータ操作でチャットのクォータを消費しないことが判明。F-21/F-70/F-71はこの発見によりM0のクォータブロッカーを回避して実装済み
-- [ ] `[未検証・保留]` force ON/OFFでのファイル書き込みタイミングとtool_call結果イベントの内容 — 検証プロンプト実行時に`resource_exhausted`(Freeプランのクォータ枯渇)で行き詰まり中。クォータ回復後またはプラン変更後に再検証する。**F-30/F-31/F-32はこれに依存する唯一の残ブロッカー**
-- [ ] `[要検証 2026-09追加]` `dedupeAssistantChunk`(現`AgentUiController`、切り出し予定)のストリーミング重複排除ロジックは、実際の`assistant`イベント(累積 vs 差分)を一度も観測せずに書かれた未検証の推測ロジック。上記のブロッカー解消時に最優先で実データと突き合わせて検証すること
+- [x] `[検証済 2026-09-04]` force ON/OFFでのファイル書き込みタイミングとtool_call結果 — Teamsプラン実機: `permissionMode: default`でもヘッドレス subprocess では**即書き込み**。F-30/F-31は事後 diff/revert モデルで実装済み(PR #18)
+- [x] `[検証済 2026-09-04]` `AssistantChunkDeduper`のストリーミング重複排除 — Teams実機で `--stream-partial-output` が増分断片と累積再送を混在させることを確認。heuristic を更新し `AssistantChunkDeduperTest` で固定
 - [ ] `[要検証 2026-09追加]` Subagents/`/multitask`、Custom Modesの非対話CLIでの対応状況(§6.9参照)
-- [ ] `[要検証 2026-09追加]` `agent mcp list`の出力を実際にMCPサーバーが1つ以上設定された状態で確認し、`McpServersDialog`の表示を構造化パースに置き換えるべきか判断する
+- [x] `[検証済 2026-09-04]` `agent mcp list`の出力形式(`id: status`行)を実配置環境で確認。`McpListParser`+整列表示に置き換え済み
 
 ---
 

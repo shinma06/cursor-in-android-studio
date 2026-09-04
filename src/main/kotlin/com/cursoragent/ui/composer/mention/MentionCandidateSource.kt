@@ -12,6 +12,7 @@ private const val MAX_CANDIDATES = 500
 object MentionCandidateSource {
     private val fixedCandidates = listOf(
         Mention(MentionKind.GIT_DIFF, "Git diff (unstaged + staged)", "git-diff"),
+        Mention(MentionKind.BRANCH, "Branch diff (vs main)", "branch"),
         Mention(MentionKind.TERMINAL, "Terminal (recent output)", "terminal"),
         Mention(MentionKind.DOCS, "Docs (via MCP, if configured)", "docs"),
         Mention(MentionKind.WEB, "Web (via MCP, if configured)", "web"),

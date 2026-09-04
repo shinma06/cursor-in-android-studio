@@ -28,6 +28,7 @@ class MentionListCellRenderer : ListCellRenderer<Mention> {
         MentionKind.FILE -> AllIcons.FileTypes.Text
         MentionKind.FOLDER -> AllIcons.Nodes.Folder
         MentionKind.GIT_DIFF -> AllIcons.Actions.Diff
+        MentionKind.BRANCH -> AllIcons.Vcs.Branch
         MentionKind.TERMINAL -> AllIcons.Debugger.Console
         MentionKind.DOCS -> AllIcons.Toolwindows.Documentation
         MentionKind.WEB -> AllIcons.General.Web
