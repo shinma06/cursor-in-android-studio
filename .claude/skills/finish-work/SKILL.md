@@ -26,6 +26,8 @@ mechanical checklist for the "finishing" half.
      built or learned changes either.
    - `docs/cursor-agent-plugin-requirements.md`, if a Feature ID's status or a `[要検証]` item
      resolved.
+   - [`docs/manual-verification/matrix.md`](../docs/manual-verification/matrix.md): add rows for
+     new human-only checks; move merged PR rows to `archive/` when done.
    - Watch for hardcoded facts that can silently drift (e.g. an issue-number range, a "not yet
      implemented" claim about something you just implemented) — this has already happened twice in
      this repo's history (see GitHub issue #13), so don't assume it won't happen again.

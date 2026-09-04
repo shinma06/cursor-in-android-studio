@@ -26,6 +26,12 @@ enum class PermissionMode(val cliArg: String?, val label: String) {
     RUN_EVERYTHING("--force", "Run Everything (auto-approve)"),
 }
 
+enum class SandboxMode(val cliValue: String?, val label: String) {
+    DEFAULT(null, "Sandbox: CLI default"),
+    ENABLED("enabled", "Sandbox: enabled"),
+    DISABLED("disabled", "Sandbox: disabled"),
+}
+
 @Service(Service.Level.APP)
 @State(name = "CursorAgentSettings", storages = [Storage("cursor-agent-settings.xml")])
 class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
@@ -35,6 +41,7 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     // Defaults to the safest option -- must not silently default to auto-approving
     // file changes (this was the explicit safety requirement behind F-22).
     var permissionMode: PermissionMode = PermissionMode.ASK_EVERY_TIME
+    var sandboxMode: SandboxMode = SandboxMode.DEFAULT
     var notifyOnTurnComplete: Boolean = true
     var notifyOnApprovalPending: Boolean = true
 

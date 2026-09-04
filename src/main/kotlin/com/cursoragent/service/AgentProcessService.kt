@@ -220,6 +220,8 @@ class AgentProcessService(private val project: Project) : Disposable {
 
         settings.permissionMode.cliArg?.let { args += it }
 
+        settings.sandboxMode.cliValue?.let { args += listOf("--sandbox", it) }
+
         args += prompt
 
         return GeneralCommandLine(executable)

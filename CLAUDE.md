@@ -241,9 +241,10 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
 - **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
   heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
   overstated this as "observed" behavior; see that class's doc comment.
-- **Known backlog, not yet addressed**: further `AgentUiController` decomposition (prompt
-  assembly / past-chats UI could still move out). `AgentTurnListenerFactory` now owns the per-turn
-  stream listener (#11, 2026-09). Settings page and tool-window-close cleanup are done.
+- **Known backlog, not yet addressed**: further `AgentUiController` decomposition (past-chats UI
+  could still move out). `AgentTurnListenerFactory` and `PromptContextBuilder` now own the per-turn
+  listener and prompt assembly (#11, 2026-09). Settings page and tool-window-close cleanup are done.
+  F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
   see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
   `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as

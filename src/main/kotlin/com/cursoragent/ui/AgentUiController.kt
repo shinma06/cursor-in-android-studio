@@ -8,12 +8,9 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.vfs.VfsUtil
 import com.cursoragent.settings.ChatHistoryRecord
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -28,7 +25,7 @@ class AgentUiController(
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val chatHistoryState = ChatHistoryState.getInstance(project)
-    private val mentionResolver = MentionResolver(project)
+    private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
         timeline = timeline,
@@ -67,19 +64,15 @@ class AgentUiController(
         val userBubble = timeline.addUserMessage(userText)
         header.setSessionStatus("Preparing…")
 
-        val contextPrefix = buildActiveFileContext()
-        val fileMentionContext = mentionResolver.buildFileAndFolderContext(userText)
+        val edtContext = promptContextBuilder.buildEdtContext(userText)
 
         ApplicationManager.getApplication().executeOnPooledThread {
             val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
-            val shellMentionContext = mentionResolver.buildShellBackedContext(userText)
-
-            val fullPrompt = buildString {
-                if (!contextPrefix.isNullOrBlank()) append(contextPrefix).append("\n\n")
-                if (!fileMentionContext.isNullOrBlank()) append(fileMentionContext).append("\n\n")
-                if (!shellMentionContext.isNullOrBlank()) append(shellMentionContext).append("\n\n")
-                append(userText)
-            }
+            val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
+            val fullContext = listOfNotNull(edtContext, backgroundContext)
+                .joinToString("\n\n")
+                .takeIf { it.isNotBlank() }
+            val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
 
             runOnEdt {
                 userBubble.setCheckpointAvailable(checkpointId != null)
@@ -145,22 +138,6 @@ class AgentUiController(
         composer.setRunning(false)
         if (header.sessionLabel.text == "Running...") {
             header.setSessionStatus("Ready")
-        }
-    }
-
-    private fun buildActiveFileContext(): String? {
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return null
-        val file = FileEditorManager.getInstance(project).selectedFiles.firstOrNull() ?: return null
-
-        val selectedText = editor.selectionModel.selectedText?.trim().orEmpty()
-        val projectDir = project.guessProjectDir()
-        val relativePath = projectDir?.let { VfsUtil.getRelativePath(file, it) } ?: file.path
-
-        return buildString {
-            append("Active file: $relativePath")
-            if (selectedText.isNotEmpty()) {
-                append("\nSelection:\n```\n$selectedText\n```")
-            }
         }
     }
 

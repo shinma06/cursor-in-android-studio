@@ -136,7 +136,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 | F-20 | Ask / Agent / Plan モード切替 | MVP(実装済み) | `--mode=ask` / 通常 / `--mode=plan` |
 | F-21 | モデル選択UI(ドロップダウン) | MVP(実装済み) | `--model <name>`、選択肢は`agent --list-models`で動的取得 |
 | F-22 | 自動承認(force)トグル | MVP(実装済み、**要再設計** `[2026-09]`) | 現状は`--force`のON/OFF二値切替として実装済みだが、実際のCLIの権限モデルは3値(「Run Everything」=`--force`/`--yolo` / 「Auto-Run in Sandbox」=`--sandbox enabled`との組合せ / 「Ask Every Time」=デフォルト)である。加えて`--auto-review`(サーバー側分類器が安全な呼び出しのみ自動実行し残りは確認を求める)という第4のモードも存在する。二値トグルのままでも動作はするが、ネイティブCursorのUXとは乖離があるため、UIを3〜4択のセレクタに再設計することを推奨(P2、後述F-23参照) |
-| F-23 | サンドボックス実行モード | P2 `[2026-09追加]` | `--sandbox enabled\|disabled`、`--allow-paths`/`--readonly-paths`/`--blocked-patterns`/`--network`。F-22の再設計と合わせて「Auto-Run in Sandbox」相当を実現する土台。設定はF-22のUIから選択するモードに応じて組み立てる |
+| F-23 | サンドボックス実行モード | P2 `[2026-09追加]`(**基本実装済み 2026-09**) | `--sandbox enabled\|disabled`をComposerの⋯メニューから選択(`SandboxMode`)。`--allow-paths`等の細粒度フラグは未実装 |
 | F-24 | Auto-review(スマート自動承認) | P2 `[2026-09追加]` | `--auto-review`フラグ。F-22のトグルを「Ask Every Time / Auto-review / Run Everything」の3択にする際の一角 |
 
 ### 6.4 実行結果の可視化・適用
@@ -304,7 +304,7 @@ agent mcp list
 |---|---|---|---|
 | **Phase 1(MVP)** | 基本チャット + `@ファイル`コンテキスト + モード/モデル切替 + 差分Apply/Reject + チェックポイント基本機能 | F-01〜05, F-10, F-15, F-20〜22, F-30〜33, F-40〜42, F-44, F-51 | F-30〜32以外は実装済み。F-30〜32はM0のCLI実機検証待ちでブロック中 |
 | **Phase 2** | フォルダメンション、Git diffメンション、コンテキスト圧縮、過去チャット一覧、MCP一覧表示、Branchメンション | F-06, F-11, F-12, F-16, F-50, F-70 | 実装済み |
-| **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | F-24実装済み。デスクトップ通知実装済み(2026-09)。F-23未着手 |
+| **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | F-24実装済み。デスクトップ通知実装済み。F-23は`--sandbox`トグル基本実装済み(2026-09) |
 | **Phase 3(将来検討)** | Terminals連携、Docs/Web(MCP前提)、画像添付、音声入力、ブラウザ視覚検証、Worktree、Chats参照、Subagents、Custom Modes | F-13, F-14, F-17, F-52, F-60〜62, F-71 | F-13/F-71実装済み。他は要検証/未着手 |
 
 ---
