@@ -143,9 +143,9 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-30 | 差分プレビュー(IDE純正Diff Viewerで表示) | MVP(M0のforce ON/OFF書き込みタイミング検証待ちでブロック中) | AgentのJSON出力からファイル変更内容を抽出し、`DiffManager`で表示 |
-| F-31 | Apply / Reject ボタン | MVP(同上、ブロック中) | Apply時に実ファイルへ書き込み、Reject時は破棄。**force=OFF時のデフォルト運用** |
-| F-32 | Shell実行結果の表示 | MVP(M0のtool_call結果イベント検証待ちでブロック中) | stream-jsonのtool_callイベント(shell系)をコンソール風に整形表示 |
+| F-30 | 差分プレビュー(IDE純正Diff Viewerで表示) | MVP(**実装済み 2026-09**) | `ToolCallPayloadParser`が完了した`editToolCall`イベントから`FileEditDetails`(before/after/diff)を抽出、`ui/timeline/FileEditCard.kt`の View Diff から`DiffManager`/`DiffContentFactory`で表示 |
+| F-31 | Apply / Reject ボタン | MVP(**実装済み 2026-09、事後Revertモデルに変更**) | Teams プランでの実CLI検証により、ヘッドレスモードではforce有無に関わらずCLIが即座にファイルへ書き込むことが確定(分岐B)。事前のApply/Reject方式は不可能なため、`FileEditCard`のRevertボタン(`DiffViewerHelper.revertFileContent`)による事後取り消しとして実装。現在のファイル内容がそのeditの`afterFullFileContent`と一致する場合のみ復元を実行し、それ以降に変更されていれば拒否する |
+| F-32 | Shell実行結果の表示 | MVP(**実装済み 2026-09**) | stream-jsonの`tool_call`(`started`/`completed`)イベントを`ToolCallPayloadParser`で解析、`ui/timeline/ToolCallBubble.kt`でコンソール風に整形表示(stdout/stderr/interleavedOutput) |
 | F-33 | エラー発生時の分かりやすい表示 | MVP(実装済み) | プロセスのstderr / 非ゼロ終了コードをUIにトースト+ログパネルで表示 |
 
 > `[2026-09追加]` ネイティブCursor CLIには`/changes`(Ctrl+R)という、そのセッションでの全編集を集約した統合レビューUIが存在する模様(CLI changelogで言及)。非対話モードでの相当コマンドの有無は未確認。F-30/F-31の設計を確定させるM0検証と合わせて調査し、単純なdiffカードの羅列ではなく統合ビューにすべきか再検討する。
