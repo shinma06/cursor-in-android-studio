@@ -184,7 +184,7 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-70 | MCPサーバー一覧表示 | P2(実装済み、出力パース精度は要フォローアップ) | `agent mcp list`の結果をUIに反映。現状は生出力をそのまま表示(構造化パース未実装、実配置環境での検証が必要) |
+| F-70 | MCPサーバー一覧表示 | P2(実装済み) | `agent mcp list`の結果をUIに反映。`id: status`行を`McpListParser`でパースし整列表示(2026-09-04検証) |
 | F-71 | MCPサーバーの有効/無効切替 | P3(実装済み) | `.cursor/mcp.json`の直接編集ではなく、`agent mcp enable <id>` / `agent mcp disable <id>`サブコマンドを利用(要件定義時点の想定より簡単に実現できた) |
 
 ### 6.9 将来調査事項(2026-09の網羅的リサーチで新たに判明、優先度未確定)
@@ -323,7 +323,7 @@ agent mcp list
 - [ ] `[未検証・保留]` force ON/OFFでのファイル書き込みタイミングとtool_call結果イベントの内容 — 検証プロンプト実行時に`resource_exhausted`(Freeプランのクォータ枯渇)で行き詰まり中。クォータ回復後またはプラン変更後に再検証する。**F-30/F-31/F-32はこれに依存する唯一の残ブロッカー**
 - [ ] `[要検証 2026-09追加]` `dedupeAssistantChunk`(現`AgentUiController`、切り出し予定)のストリーミング重複排除ロジックは、実際の`assistant`イベント(累積 vs 差分)を一度も観測せずに書かれた未検証の推測ロジック。上記のブロッカー解消時に最優先で実データと突き合わせて検証すること
 - [ ] `[要検証 2026-09追加]` Subagents/`/multitask`、Custom Modesの非対話CLIでの対応状況(§6.9参照)
-- [ ] `[要検証 2026-09追加]` `agent mcp list`の出力を実際にMCPサーバーが1つ以上設定された状態で確認し、`McpServersDialog`の表示を構造化パースに置き換えるべきか判断する
+- [x] `[検証済 2026-09-04]` `agent mcp list`の出力形式(`id: status`行)を実配置環境で確認。`McpListParser`+整列表示に置き換え済み
 
 ---
 

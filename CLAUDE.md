@@ -295,8 +295,7 @@ rather than replayed; this is a known, permanent limitation rather than a TODO.
 **Implemented (2026-09, M4/M5)**: tool-call timeline cards (F-32: read/edit/shell started +
 completed), file-edit cards with IDE Diff Viewer + Revert (F-30/F-31 as post-hoc model — CLI
 auto-applies edits in headless mode), `ToolCallPayloadParser` + stream-json fixtures from live CLI.
-table — its format was never verified against a populated `.cursor/mcp.json` (no MCP servers were
-configured on the machine this was built on).
+F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
 
 **Implemented (2026-09, M9/backlog)**: desktop notifications on turn complete/tool-call start
 (`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor Agent**), F-13
