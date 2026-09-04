@@ -37,6 +37,13 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 - `fail` — 不具合あり（Issue / PR に詳細を残す）
 - `merged` — PR マージ済み。archive へ移す前の中間状態
 
+## マージ後
+
+1. `matrix.md` の該当行の `Status` を `merged` に更新（人間 QA が終わっていれば `pass` のままでも可）
+2. 必要なら [`archive/`](archive/) に行を退避
+3. GitHub で **PR #16 / #17 を close**（#18 に包含済み）
+4. Issue #1 / #6 / #7 / #11 / #12 のチェックリストを更新
+
 ## プロジェクトルール
 
 Cursor エージェント向けルール: [`.cursor/rules/manual-verification.mdc`](../../.cursor/rules/manual-verification.mdc)
