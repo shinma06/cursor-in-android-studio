@@ -211,7 +211,7 @@ persisted side-channel read by both the service and the UI.
   `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
   telemetry, safe to keep ignoring.
 - **CLI flags verified 2026-09-04**: `--sandbox enabled|disabled`, `-w/--worktree` (no `--image` in `--help`).
-- **Still unverified**: F-17 `@Chats` (likely needs TTY like `agent ls`).
+- **Scoped out (CLI, 2026-09-04)**: F-17 `@Chats` (no non-TTY transcript API; same TTY constraint as `agent ls`); F-60 image attach (no `--image` flag in `--help`).
 - **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
   incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
   with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
@@ -242,9 +242,10 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
 - **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
   heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
   overstated this as "observed" behavior; see that class's doc comment.
-- **Known backlog, not yet addressed**: further `AgentUiController` decomposition (past-chats UI
-  could still move out). `AgentTurnListenerFactory` and `PromptContextBuilder` now own the per-turn
-  listener and prompt assembly (#11, 2026-09). Settings page and tool-window-close cleanup are done.
+- **Known backlog, not yet addressed**: further `AgentUiController` decomposition is largely done —
+  `AgentTurnListenerFactory`, `PromptContextBuilder`, and `PastChatsCoordinator` now own the per-turn
+  listener, prompt assembly, and past-chats popup (#11, 2026-09). Settings page and tool-window-close
+  cleanup are done.
   F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
   F-52 worktree: basic `-w` toggle (`WorktreeMode.ISOLATED`); changes land under `~/.cursor/worktrees/`.
 - **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
