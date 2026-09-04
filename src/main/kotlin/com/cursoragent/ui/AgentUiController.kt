@@ -10,10 +10,6 @@ import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.cursoragent.settings.ChatHistoryRecord
-import java.text.SimpleDateFormat
-import java.util.Date
 import javax.swing.SwingUtilities
 
 class AgentUiController(
@@ -34,11 +30,18 @@ class AgentUiController(
         chatHistoryState = chatHistoryState,
         onRunFinished = ::finishRun,
     )
+    private val pastChatsCoordinator = PastChatsCoordinator(
+        project = project,
+        timeline = timeline,
+        header = header,
+        agentService = agentService,
+        chatHistoryState = chatHistoryState,
+    )
 
     init {
         checkpointService.pruneExpired()
         loadModels()
-        header.onPastChatsClicked = { showPastChats() }
+        header.onPastChatsClicked = { pastChatsCoordinator.showPopup() }
     }
 
     private fun loadModels() {
@@ -101,33 +104,6 @@ class AgentUiController(
             Messages.showErrorDialog(project, "ロールバックに失敗しました", "Cursor Agent")
         }
     }
-
-    private fun showPastChats() {
-        val records = chatHistoryState.list()
-        if (records.isEmpty()) {
-            Messages.showInfoMessage(project, "過去のチャットはまだありません", "Past Chats")
-            return
-        }
-
-        JBPopupFactory.getInstance()
-            .createPopupChooserBuilder(records)
-            .setTitle("Past Chats")
-            .setRenderer { _, value: ChatHistoryRecord, _, _, _ ->
-                javax.swing.JLabel(" ${value.firstPromptPreview}  (${formatTimestamp(value.lastUpdatedMs)})")
-            }
-            .setItemChosenCallback { record -> resumeChat(record) }
-            .createPopup()
-            .showUnderneathOf(header.pastChatsButton)
-    }
-
-    private fun resumeChat(record: ChatHistoryRecord) {
-        agentService.resumeChat(record.chatId)
-        timeline.clearTimeline()
-        header.setSessionStatus("session=${record.chatId.take(8)}… (resumed)")
-    }
-
-    private fun formatTimestamp(epochMs: Long): String =
-        SimpleDateFormat("MM/dd HH:mm").format(Date(epochMs))
 
     fun stopRun() {
         agentService.killActiveProcess()
