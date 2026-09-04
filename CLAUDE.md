@@ -159,12 +159,22 @@ persisted side-channel read by both the service and the UI.
   `PATH`) unless a path is explicitly configured in settings. `dispose()` kills the process —
   this is load-bearing for not leaking zombie CLI processes when the tool window/project closes.
 - **`parser/StreamJsonParser`** — line-oriented (JSON Lines), maps each line to a `StreamEvent`
-  sealed interface (`SessionInit`, `AssistantDelta`, `ThinkingDelta`, `ToolCall`, `Result`,
-  `Unknown`). Must stay defensive: unrecognized `type` values or malformed lines become `Unknown`
-  or are silently dropped rather than throwing, because the CLI's stream-json schema is explicitly
-  unstable across `cursor-agent` versions (see requirements doc §7, §11).
+  sealed interface (`SessionInit`, `AssistantDelta`, `ThinkingDelta`, `ToolCall`, `ToolCallStarted`,
+  `ToolCallCompleted`, `Result`, `Unknown`). Must stay defensive: unrecognized `type` values or
+  malformed lines become `Unknown` or are silently dropped rather than throwing, because the CLI's
+  stream-json schema is explicitly unstable across `cursor-agent` versions (see requirements doc
+  §7, §11). Both `mapEvent()` (in `parseLine`) and `ToolCallPayloadParser.parse()` are wrapped in
+  `runCatching` for this reason — a 2026-09 review found the original `tool_call` parsing did an
+  unguarded `JsonElement.asJsonObject` cast that could throw and abort the rest of that output
+  chunk; keep new event-shape parsing similarly defensive rather than trusting the shape.
 - **`parser/AssistantChunkDeduper`** — guesses whether `AssistantDelta` events are incremental or
-  cumulative/repeated and dedupes against a running buffer before appending to the UI.
+  cumulative/repeated against a running buffer, and returns the **full** text to display (never a
+  fragment) — `AgentTurnListenerFactory.onAssistantDelta` calls `timeline.setAssistantText(full)`
+  (replace), not append. **This return-full-text contract is load-bearing**: the original PR #18
+  implementation returned a fragment for the "cumulative resend" case while the caller appended it,
+  which duplicated/garbled the assistant bubble whenever the CLI resent a corrected message — fixed
+  in the 2026-09 review pass below. Don't reintroduce an append-based caller without also reverting
+  `dedupe()` to return fragments consistently.
   **Correction (2026-09 codebase review, see GitHub issue #2)**: this was inherited from the
   original pre-existing code with no verification behind it, and CLAUDE.md previously
   (incorrectly) described it as based on "observed" CLI behavior — the M0 spike never actually
@@ -182,7 +192,11 @@ persisted side-channel read by both the service and the UI.
   real approval model is 3-way (requirements doc F-22/F-24, 2026-09).
 - **`ui/composer/`, `ui/header/`, `ui/timeline/`** — plain Swing/JBUI view components with no CLI
   knowledge; they expose callbacks (`onSend`, `onNewChat`) and mutation methods
-  (`appendAssistantText`, `showStatus`, etc.) that the controller drives.
+  (`setAssistantText`, `showStatus`, etc.) that the controller drives. `ChatTimelinePanel` tracks
+  in-progress tool-call rows by `callId` (`activeToolCallRows`) so a `completed` event's card
+  replaces the `started` row instead of leaving a stale duplicate — don't add a tool-call row type
+  without going through that map, or it'll orphan rows the same way the pre-fix code did (2026-09
+  PR #18 review, see below).
 
 ## Verified CLI behavior (from a live spike, 2026-09)
 
@@ -264,6 +278,48 @@ web-research pass against Cursor's actual current Agent panel/CLI capabilities �
   open questions) and what got corrected (F-60 image-attach support is contradicted between the CLI
   changelog and the parameters reference — don't assume a flag name until verified live; F-22's old
   binary force framing undersold the real approval model, now F-24).
+
+## 2026-09 PR #18 review pass
+
+PR #18 (the M4/M5/M9/backlog consolidation described below) got a multi-angle code review before
+merge (4 finder passes + manual verification), which found and fixed several real bugs on paths it
+added — all fixed on top of the original PR before it landed on `main`:
+
+- `AssistantChunkDeduper` returning a fragment for the "cumulative resend" case while the caller
+  appended it — garbled/duplicated the assistant bubble. Fixed by making `dedupe()` always return
+  the full text and the caller always replace (`setAssistantText`), not append. See that class's
+  entry in "Architecture" above.
+- `ChatTimelinePanel` never reconciling a tool call's `started` row with its `completed` card —
+  every tool call left a permanent duplicate row. Fixed via `activeToolCallRows` (keyed by
+  `callId`). See that class's entry in "Architecture" above.
+- `ToolCallPayloadParser` doing an unguarded JSON cast that could throw and abort parsing of the
+  rest of an output chunk — violated the parser package's own defensive-parsing rule. Fixed with
+  `runCatching`, plus a second safety net around `mapEvent()` in `StreamJsonParser.parseLine`.
+- `DiffViewerHelper.revertFileContent` clobbering the file unconditionally — reverting a stale
+  `FileEditCard` (the file changed again since, by a later agent edit or the user) silently
+  discarded that newer content. Fixed: it now refuses (returns `false`) unless the file's current
+  content still matches what that specific edit produced.
+- `plugin.xml` declaring `org.jetbrains.plugins.terminal` as a required dependency — disabling the
+  bundled Terminal plugin would fail the *entire* Cursor Agent plugin to load over one `@terminal`
+  mention feature. Fixed: `optional="true"` + `cursor-agent-terminal.xml`, and
+  `TerminalOutputReader` now also catches `LinkageError` (a disabled/absent Terminal plugin throws
+  that, not a plain `Exception`, when its classes are referenced).
+- `@terminal` mention resolution ran on the background prompt-assembly thread and blocked it on
+  `invokeAndWait` back onto the EDT (the Terminal API needs the EDT) — reintroducing the EDT
+  dependency `MentionResolver`'s file/folder-vs-git split exists to avoid. Fixed by moving
+  `@terminal` into `buildFileAndFolderContext` (the EDT-run half) instead of
+  `buildShellBackedContext` (the background half, now git-only).
+- `AgentNotificationService`'s tool-call notification text claimed "approval may be required,"
+  contradicting this same PR's own finding that the headless CLI applies edits immediately.
+  Reworded (code and Settings page checkbox label).
+
+Not fixed in this pass (documented instead, since each needs a larger design call, not a
+mechanical fix): the `WorktreeMode.ISOLATED`/`CheckpointService` mismatch (see "Known gap" above);
+tool-call notifications still fire once per call with no debouncing; `ToolCallPayloadParser`'s
+`started`-subtype field reads are still unverified against a captured live event (see "Verified
+CLI behavior" above). `./gradlew test` was green throughout (40 tests after this pass, 3 new:
+`StreamJsonParserTest`'s malformed-input case, two `ToolCallPayloadParserTest` defensive-parsing
+cases).
 
 ## Current implementation status vs. requirements doc
 
