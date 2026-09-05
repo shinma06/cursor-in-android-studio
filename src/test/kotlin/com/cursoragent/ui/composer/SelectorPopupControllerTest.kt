@@ -1,5 +1,6 @@
 package com.cursoragent.ui.composer
 
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupListener
 import com.intellij.openapi.ui.popup.LightweightWindowEvent
@@ -50,6 +51,17 @@ class SelectorPopupControllerTest {
         assertEquals(original, manager.getPropertyChangeListeners("focusOwner").toSet())
     }
 
+    @Test
+    fun `direct IDE disposal also detaches the global focus listener`() = SwingUtilities.invokeAndWait {
+        val manager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
+        val original = manager.getPropertyChangeListeners("focusOwner").toSet()
+        val popup = fakePopup()
+        SelectorPopupController(JButton()).toggle { popup }
+        assertEquals(original.size + 1, manager.getPropertyChangeListeners("focusOwner").size)
+        Disposer.dispose(popup)
+        assertEquals(original, manager.getPropertyChangeListeners("focusOwner").toSet())
+    }
+
     private fun fakePopup(): JBPopup {
         var visible = false
         var disposed = false
@@ -66,8 +78,10 @@ class SelectorPopupControllerTest {
                     visible = false
                     disposed = true
                     listeners.forEach { it.onClosed(LightweightWindowEvent(proxy as JBPopup, false)) }
+                    Disposer.dispose(proxy as JBPopup)
                     null
                 }
+                "dispose" -> { disposed = true; visible = false; null }
                 "toString" -> "TestPopup"
                 "hashCode" -> System.identityHashCode(proxy)
                 "equals" -> proxy === args!![0]

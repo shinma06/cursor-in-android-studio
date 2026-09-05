@@ -1,5 +1,7 @@
 package com.cursoragent.ui.composer
 
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupListener
 import com.intellij.openapi.ui.popup.LightweightWindowEvent
@@ -37,25 +39,27 @@ internal class SelectorPopupController(private val button: JComponent) {
         val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
         val focusListener = PropertyChangeListener { event ->
             val owner = event.newValue as? Component
-            if (owner != null && owner !== button && !SwingUtilities.isDescendingFrom(owner, button) &&
-                !SwingUtilities.isDescendingFrom(owner, next.content) && owner !== next.content &&
-                next.isVisible && !next.isDisposed
+            if (next.isVisible && !next.isDisposed && owner != null && owner !== button && !SwingUtilities.isDescendingFrom(owner, button) &&
+                !SwingUtilities.isDescendingFrom(owner, next.content) && owner !== next.content
             ) {
                 next.cancel()
             }
         }
         focusManager.addPropertyChangeListener("focusOwner", focusListener)
+        val cleanup = {
+            focusManager.removePropertyChangeListener("focusOwner", focusListener)
+            if (popup === next) popup = null
+        }
+        Disposer.register(next, Disposable { cleanup() })
         next.addListener(object : JBPopupListener {
             override fun onClosed(event: LightweightWindowEvent) {
-                focusManager.removePropertyChangeListener("focusOwner", focusListener)
-                if (popup === next) popup = null
+                cleanup()
             }
         })
         try {
             next.show(PopupShowOptions.aboveComponent(button).withPopupComponentUnscaledGap(4))
         } catch (failure: Throwable) {
-            focusManager.removePropertyChangeListener("focusOwner", focusListener)
-            if (popup === next) popup = null
+            cleanup()
             next.cancel()
             throw failure
         }
