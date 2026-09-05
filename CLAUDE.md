@@ -361,8 +361,9 @@ sandbox and worktree current values, summarize/MCP/settings actions, and `Immedi
 The same Japanese explanation appears in Settings. It explains immediate edits and post-edit Revert.
 The visible Agent/Plan/Ask/model labels and the specified placeholder are retained. Linked Settings
 and MCP dialog labels are Japanese. MV-040 supersedes the former always-visible-notice criterion.
-Permission values/defaults and CLI arguments are unchanged. Identified-build GUI acceptance remains
-pending; this does not resolve the isolated-worktree/checkpoint mismatch or complete #20.
+Permission values/defaults and CLI arguments are unchanged. MV-040 passed on installed `054e2ba`
+([run](docs/loop-engineering/runs/2026-09-06-japanese-options.md)); this does not resolve the
+isolated-worktree/checkpoint mismatch or complete #20.
 
 **UI parity follow-up (2026-09-05; no feature implementation):** the read-only Cursor UI survey is
 [`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).
