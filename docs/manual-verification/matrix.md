@@ -3,7 +3,7 @@
 **更新ルール**: エージェントが人間確認が必要な変更を入れたら行を追加。人間が確認したら `Status` / `Verified by` / `Date` を更新。
 
 **UI差分計画（2026-09-05）**: [取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [#19](https://github.com/shinma06/cursor-agent-plugin/issues/19)。
-今回追加したのは調査記録と計画のみ。以下の既存QAは未実施のまま、新機能用の行は各 UX Issue の実装時に実際の Branch・手順を確定して追加する。
+[Android Studio実機追補](../research/android-studio-ui-followup-2026-09-05.md)で設定・表示を限定確認した（E節）。以下の既存QAは未実施のまま、新機能用の行は各 UX Issue の実装時に実際の Branch・手順を確定して追加する。
 Cursor の閲覧調査を、このプラグインの `pass` や実行・送信を伴う検証の実施許可と扱わない。
 
 **推奨ブランチ（2026-09-04 時点）**: `feature/f23-sandbox-prompt-builder` — PR [#18](https://github.com/shinma-postas/cursor-agent-plugin/pull/18)（#16 / #17 を包含。マージ後は #16/#17 を close）
@@ -52,6 +52,21 @@ Cursor の閲覧調査を、このプラグインの `pass` や実行・送信�
 | MV-027 | 同上 | #18 | Worktree モード | ⋯ → Worktree: isolated を選択して編集依頼 | 変更が `~/.cursor/worktrees/` 側に隔離される（プロジェクト直書きではない） | pending | | |
 | MV-028 | 同上 | #18 | MCP 一覧 | ⋯ → MCP Servers | `id` / `Status` が整列表示される。Enable/Disable が動く | pending | | |
 | MV-031 | `fix/pr18-review-fixes` | #18 | Terminalプラグイン任意化 | Settings → Plugins で「Terminal」を無効化 → IDE再起動 | Cursor Agentプラグイン自体は正常にロードされる（チャット等は使える。`@terminal`のみ利用不可でよい） | pending | | |
+
+---
+
+## E. 2026-09-05 実機閲覧の追補
+
+対象はインストール済み `0.1.0-SNAPSHOT`。コミット/ブランチとの対応は未特定。CUAによる実画面/AX確認であり、A〜Dの送信・設定保存QAとは別。幅は画像からの概算で、実装時に対象版と実測幅を更新する。
+
+| ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
+|----|--------|-----|------|------|----------|--------|-------------|------|
+| MV-032 | 未特定（installed SNAPSHOT） | - / #27 | モデル名のインライン可読性 | 約350〜400px幅で閉じたモデル選択部品を見る | 完全名をインラインで読める | fail | Codex / CUA: Autoの名前が省略。代替の完全名導線は未確認 | 2026-09-05 |
+| MV-033 | 未特定（installed SNAPSHOT） | - / #21 | 設定ページの閲覧到達 | Cmd+, → Tools → Cursor Agent、変更せずEscape | CLIパス・通知2項目が表示され、Apply無効のまま閉じる | pass | Codex / CUA（保存動作は対象外） | 2026-09-05 |
+| MV-034 | 未特定（installed SNAPSHOT） | - / #28 | インストール済みビルドの識別 | Plugins → Installed / 診断画面の版を照合 | インストール済みバイナリのSHA等を特定できる | pending | Codex / CUA: 0.1.0-SNAPSHOTのみ確認 | 2026-09-05 |
+| MV-035 | 未特定（installed SNAPSHOT） | - / #25 #27 | メニュー展開・取消 | モデル/モード/⋯を開き、変更せずEscape | 候補と現在値が読め、取消で値が変わらない | pending | Codex / CUA: 操作ツールのウィンドウ取得失敗で未確認 | 2026-09-05 |
+
+MV-032はこの幅での表示結果。ツールチップ等で補完する仕様を採る場合は、#27の受入条件に従って完全名の確認手段も追加検証する。操作ツールの取得失敗は製品のfailにしない。
 
 ---
 

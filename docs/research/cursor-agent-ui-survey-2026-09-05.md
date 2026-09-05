@@ -2,6 +2,8 @@
 
 関連: [差分取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19)
 
+追補: その後、[Android Studioプラグインの実機UI調査](android-studio-ui-followup-2026-09-05.md)を実施。以下の元表はコード比較として保持し、実機で確認できた範囲は追補に分けて記録した。
+
 ## 調査条件と証跡の読み方
 
 - macOS の Cursor、ワークスペース `cursor-agent-plugin` を UI ベースで閲覧。Cursor のバージョン番号は `[要検証]`。

@@ -44,3 +44,5 @@ export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+�
 - ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
 - 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
 - 進捗・タスク管理: [GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)
+
+- Android Studioで実際に確認した範囲と追加タスク: [実機UI追補](docs/research/android-studio-ui-followup-2026-09-05.md)

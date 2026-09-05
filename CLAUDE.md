@@ -323,11 +323,15 @@ cases).
 
 ## Current implementation status vs. requirements doc
 
-**UI parity follow-up (2026-09-05; planning only):** the read-only Cursor UI survey is
+**UI parity follow-up (2026-09-05; no feature implementation):** the read-only Cursor UI survey is
 [`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).
 The ordered gap plan and acceptance criteria are in
 [`docs/plans/cursor-agent-ui-gap-plan.md`](docs/plans/cursor-agent-ui-gap-plan.md), tracked by
 [issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19) under #1.
+The subsequent [Android Studio UI follow-up](docs/research/android-studio-ui-followup-2026-09-05.md)
+confirmed settings navigation and limited display states on an installed `0.1.0-SNAPSHOT`; its
+source SHA is unknown. Model readability (#27) and build/CLI diagnostics (#28) were added.
+Input/menu interactions remain unverified due to UI-tool capture failures; do not mark existing QA passed.
 These are proposed changes, not implemented features. Cursor UI shows four Run Mode options;
 this does not prove matching headless CLI behavior or invalidate the immediate-write finding above.
 Start with permission/sandbox clarity and the known isolated-worktree/checkpoint mismatch, then
