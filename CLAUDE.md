@@ -330,6 +330,14 @@ cases).
 
 **#19 static UI parity (2026-09-06):** conversation rows now use natural heights and viewport-width wrapping, full-width rounded user cards and unframed assistant text. Composer is a unified rounded surface with button-backed mode/model choosers; model labels/IDs are available in tooltips. `MessageTextPane` caches measured height by width/content/font. This changes the UI only; CLI permissions and rollback semantics are unchanged. Identified-build GUI acceptance is tracked as MV-038 in [the run](docs/loop-engineering/runs/2026-09-06-ui-parity.md); do not infer that all #19/#21/#27 acceptance is complete.
 
+**#27 composer enhancement (2026-09-06):** Model popup has a visible name/ID search field,
+current-selection check, and Auto toggle (collapse manual choices while on; restore the last manual
+model while the selector instance lives). Model trigger uses natural width and clips only when the
+row is narrow, preserving full label/ID in its tooltip. Agent/Plan/Ask have icons and colored pills.
+Input grows to 12 visual lines, then scrolls vertically, and uses the user-requested placeholder
+`Plan, Build, / for skills, @ for context`. Debug/Multitask, Add Models management, and skill execution
+are not added by this appearance change. MV-039 tracks identified-build GUI acceptance.
+
 **#20 partial implementation (2026-09-06):** Composer and Settings share an `ImmediateEditNotice`
 explaining that edits can apply immediately even with Ask Every Time, and Revert is post-edit undo.
 Permission values/defaults and CLI arguments are unchanged. Identified-build GUI acceptance remains

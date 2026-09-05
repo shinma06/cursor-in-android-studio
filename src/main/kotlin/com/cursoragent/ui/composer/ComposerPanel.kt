@@ -8,13 +8,9 @@ import com.cursoragent.ui.composer.mention.MentionPopupController
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
-import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.project.Project
-import com.intellij.ui.EditorTextField
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
-import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.JButton
 import javax.swing.JCheckBoxMenuItem
@@ -27,29 +23,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onStop: () -> Unit = {}
     private var isRunning = false
 
-    val inputArea = object : EditorTextField(project, PlainTextFileType.INSTANCE) {
-        override fun createEditor(): EditorEx {
-            val editor = super.createEditor()
-            editor.setBackgroundColor(AgentUiColors.composerBackground)
-            editor.settings.isUseSoftWraps = true
-            editor.settings.isRightMarginShown = false
-            editor.settings.isFoldingOutlineShown = false
-            editor.settings.isCaretRowShown = false
-            editor.scrollPane.border = JBUI.Borders.empty()
-            editor.contentComponent.border = JBUI.Borders.empty()
-            editor.settings.isLineNumbersShown = false
-            editor.setVerticalScrollbarVisible(false)
-            editor.setHorizontalScrollbarVisible(false)
-            return editor
-        }
-    }.apply {
-        setOneLineMode(false)
-        setPlaceholder("Plan, build, @ for context")
-        setShowPlaceholderWhenFocused(true)
-        border = JBUI.Borders.empty(10, 10, 4, 10)
-        isOpaque = false
-        preferredSize = Dimension(preferredSize.width, JBUI.scale(58))
-    }
+    val inputArea = GrowingPromptField(project)
 
     private val mentionPopupController = MentionPopupController(project, inputArea)
 
@@ -94,10 +68,10 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         val controls = JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
             isOpaque = false
             border = JBUI.Borders.empty(0, 8, 8, 8)
-            val selectors = JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
+            val selectors = JPanel(SelectorRowLayout()).apply {
                 isOpaque = false
-                add(modeSelector, BorderLayout.WEST)
-                add(modelSelector, BorderLayout.CENTER)
+                add(modeSelector)
+                add(modelSelector)
             }
             val actions = JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 isOpaque = false

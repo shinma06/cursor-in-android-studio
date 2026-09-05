@@ -2,37 +2,71 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.ui.AgentUiColors
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
+import java.awt.BorderLayout
+import java.awt.Color
 import javax.swing.DefaultListCellRenderer
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.UIManager
 
 class ModeSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
     init {
-        preferredSize = JBUI.size(82, 26)
         refreshLabel()
         addActionListener {
             val renderer = DefaultListCellRenderer()
             JBPopupFactory.getInstance()
-                .createPopupChooserBuilder(AgentMode.entries.toList())
+                .createPopupChooserBuilder(listOf(AgentMode.AGENT, AgentMode.PLAN, AgentMode.ASK))
+                .setSelectedValue(settings.mode, true)
                 .setRenderer { list, value, index, selected, focus ->
-                    renderer.getListCellRendererComponent(list, label(value), index, selected, focus)
+                    val label = renderer.getListCellRendererComponent(list, label(value), index, selected, focus) as JLabel
+                    label.icon = ModeIcon(value)
+                    label.iconTextGap = JBUI.scale(9)
+                    JPanel(BorderLayout()).apply {
+                        background = label.background
+                        foreground = label.foreground
+                        border = JBUI.Borders.empty(5, 8)
+                        preferredSize = JBUI.size(210, 30)
+                        add(label, BorderLayout.CENTER)
+                        add(JLabel(if (value == settings.mode) "✓" else "").apply {
+                            foreground = label.foreground
+                        }, BorderLayout.EAST)
+                    }
                 }
-                .setItemChosenCallback { mode ->
-                    settings.mode = mode
-                    refreshLabel()
-                }
+                .setItemChosenCallback(::selectMode)
                 .createPopup()
                 .showUnderneathOf(this)
         }
     }
 
+    internal fun selectMode(mode: AgentMode) {
+        settings.mode = mode
+        refreshLabel()
+    }
+
     private fun refreshLabel() {
         val name = label(settings.mode)
         text = "$name  ⌄"
+        icon = ModeIcon(settings.mode)
+        foreground = when (settings.mode) {
+            AgentMode.PLAN -> JBColor(Color(0x865000), Color(0xF2B45F))
+            AgentMode.ASK -> JBColor(Color(0x187343), Color(0x43AD72))
+            AgentMode.AGENT -> UIManager.getColor("Label.foreground")
+        }
+        pillColor = when (settings.mode) {
+            AgentMode.PLAN -> JBColor(Color(0xF8E8CF), Color(0x514330))
+            AgentMode.ASK -> JBColor(Color(0xDCF0E3), Color(0x293F32))
+            AgentMode.AGENT -> AgentUiColors.userBubbleBackground
+        }
         toolTipText = "Mode: $name"
         getAccessibleContext().accessibleName = toolTipText
+        revalidate()
+        repaint()
     }
 
     private fun label(mode: AgentMode): String = when (mode) {
