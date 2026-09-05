@@ -23,22 +23,22 @@ class AgentSettingsConfigurable : Configurable {
         agentPathField = TextFieldWithBrowseButton().apply {
             text = settings.agentExecutablePath
             addBrowseFolderListener(
-                "Select cursor-agent executable",
-                "Path to the `agent` CLI executable",
+                "cursor-agentの実行ファイルを選択",
+                "agentコマンドの実行ファイルを指定してください",
                 null,
                 FileChooserDescriptorFactory.createSingleFileDescriptor(),
             )
         }
 
-        notifyOnTurnCompleteBox = JBCheckBox("Notify when a turn completes", settings.notifyOnTurnComplete)
+        notifyOnTurnCompleteBox = JBCheckBox("応答が完了したら通知する", settings.notifyOnTurnComplete)
         notifyOnApprovalPendingBox = JBCheckBox(
-            "Notify when a tool call starts",
+            "ツールの実行が始まったら通知する",
             settings.notifyOnApprovalPending,
         )
 
         panel = FormBuilder.createFormBuilder()
             .addComponent(ImmediateEditNotice())
-            .addLabeledComponent("Agent executable path:", agentPathField!!)
+            .addLabeledComponent("CLIの実行ファイル:", agentPathField!!)
             .addComponent(notifyOnTurnCompleteBox!!)
             .addComponent(notifyOnApprovalPendingBox!!)
             .addComponentFillVertically(JPanel(), 0)

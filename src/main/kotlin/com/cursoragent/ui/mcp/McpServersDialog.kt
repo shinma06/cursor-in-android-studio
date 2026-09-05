@@ -28,8 +28,9 @@ class McpServersDialog(private val project: Project) : DialogWrapper(project) {
     private val statusLabel = JBLabel(" ")
 
     init {
-        title = "MCP Servers"
+        title = "MCPサーバー"
         init()
+        setOKButtonText("閉じる")
         refresh()
     }
 
@@ -39,10 +40,10 @@ class McpServersDialog(private val project: Project) : DialogWrapper(project) {
         panel.add(JBScrollPane(outputArea), BorderLayout.CENTER)
 
         val actionRow = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
-            add(JBLabel("Server id:"))
+            add(JBLabel("サーバーID:"))
             add(identifierField)
-            add(JButton("Enable").apply { addActionListener { toggle(enable = true) } })
-            add(JButton("Disable").apply { addActionListener { toggle(enable = false) } })
+            add(JButton("有効にする").apply { addActionListener { toggle(enable = true) } })
+            add(JButton("無効にする").apply { addActionListener { toggle(enable = false) } })
         }
 
         panel.add(
@@ -58,7 +59,7 @@ class McpServersDialog(private val project: Project) : DialogWrapper(project) {
     override fun createActions() = arrayOf(okAction)
 
     private fun refresh() {
-        outputArea.text = "Loading…"
+        outputArea.text = "読み込み中…"
         ApplicationManager.getApplication().executeOnPooledThread {
             val raw = agentService.listMcpServersRaw()
             val parsed = McpListParser.parse(raw)
@@ -66,7 +67,7 @@ class McpServersDialog(private val project: Project) : DialogWrapper(project) {
                 outputArea.text = if (parsed.isNotEmpty()) {
                     McpListParser.format(parsed)
                 } else {
-                    raw.trim().ifEmpty { "(no MCP servers listed)" }
+                    raw.trim().ifEmpty { "MCPサーバーが見つかりませんでした" }
                 }
             }
         }
@@ -75,14 +76,14 @@ class McpServersDialog(private val project: Project) : DialogWrapper(project) {
     private fun toggle(enable: Boolean) {
         val identifier = identifierField.text.trim()
         if (identifier.isEmpty()) return
-        statusLabel.text = "Working…"
+        statusLabel.text = "変更中…"
         ApplicationManager.getApplication().executeOnPooledThread {
             val ok = agentService.setMcpServerEnabled(identifier, enable)
             SwingUtilities.invokeLater {
                 statusLabel.text = if (ok) {
-                    "${if (enable) "Enabled" else "Disabled"} $identifier"
+                    "$identifier を${if (enable) "有効" else "無効"}にしました"
                 } else {
-                    "Failed to ${if (enable) "enable" else "disable"} $identifier"
+                    "$identifier を${if (enable) "有効" else "無効"}にできませんでした"
                 }
                 refresh()
             }

@@ -42,6 +42,23 @@ matching Claude entrypoints. Cursor follows this file and `.cursor/rules/loop-en
 All route to the same loop protocol. Existing user authorization applies; routine reversible
 work within an assigned scope does not require repeated confirmation.
 
+## UIの言語と見た目の方針
+
+このプラグインは**日本語での利用を前提**とする。CursorからUIを移植するときは、
+見た目だけでなく、その文言を理解して判断する重要性に応じて言語を選ぶ。
+
+- 設定項目、選択肢の説明、注意点、エラー、確認文、ヘルプなど、意味の理解が操作判断に
+  関わる文章は、自然で簡潔な日本語にする。Cursorにある長い英語説明をそのまま持ち込まない。
+- 常時見える短いラベルは、Cursorの外観と慣れた呼び方を尊重する。`Agent` / `Plan` / `Ask` /
+  `Auto`、モデル名、`MCP`、アイコン、`@` / `/`、ユーザーが指定したplaceholderは、
+  無理に日本語へ置き換えない。英語を残す場合も、詳しい意味は日本語のtooltipや設定内で補う。
+- 通常の入力画面は簡潔に保つ。詳しい設定や編集の注意点は「…」のチャット設定・設定画面に
+  まとめ、説明文を入力欄の下に常時追加しない。警告文の追加でCursorとの外観差を広げない。
+- 「標準」を「毎回必ず事前確認」などと訳して、CLIが保証しない保護を示唆しない。
+  即時編集と事後Revertの意味を日本語で正確に説明する。
+- CLIフラグ・保存済みenum/ID・モデル固有名・パス・生ログ・ユーザー/モデルの会話本文は
+  翻訳の対象にしない。新規/変更箇所とその直近の設定導線から整え、無関係な画面の一括置換は避ける。
+
 ## What this is
 
 An Android Studio (IntelliJ Platform) plugin that reproduces Cursor IDE's Agent tab as a native
@@ -338,8 +355,12 @@ Input grows to 12 visual lines, then scrolls vertically, and uses the user-reque
 `Plan, Build, / for skills, @ for context`. Debug/Multitask, Add Models management, and skill execution
 are not added by this appearance change. MV-039 tracks identified-build GUI acceptance.
 
-**#20 partial implementation (2026-09-06):** Composer and Settings share an `ImmediateEditNotice`
-explaining that edits can apply immediately even with Ask Every Time, and Revert is post-edit undo.
+**#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
+always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
+sandbox and worktree current values, summarize/MCP/settings actions, and `ImmediateEditNotice`.
+The same Japanese explanation appears in Settings. It explains immediate edits and post-edit Revert.
+The visible Agent/Plan/Ask/model labels and the specified placeholder are retained. Linked Settings
+and MCP dialog labels are Japanese. MV-040 supersedes the former always-visible-notice criterion.
 Permission values/defaults and CLI arguments are unchanged. Identified-build GUI acceptance remains
 pending; this does not resolve the isolated-worktree/checkpoint mismatch or complete #20.
 

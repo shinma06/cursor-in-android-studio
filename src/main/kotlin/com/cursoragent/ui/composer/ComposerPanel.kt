@@ -1,21 +1,22 @@
 package com.cursoragent.ui.composer
 
+import com.cursoragent.settings.AgentSettingsConfigurable
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.AgentUiColors
-import com.cursoragent.ui.ImmediateEditNotice
 import com.cursoragent.ui.RoundedSurface
 import com.cursoragent.ui.composer.mention.MentionPopupController
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopup
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.JButton
-import javax.swing.JCheckBoxMenuItem
 import javax.swing.JPanel
-import javax.swing.JPopupMenu
 import javax.swing.KeyStroke
 
 class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
@@ -30,13 +31,13 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     private val sendButton = SelectorButton().apply {
         text = "↑"
         horizontalAlignment = javax.swing.SwingConstants.CENTER
-        toolTipText = "Send (Enter)"
+        toolTipText = "送信（Enter）"
         preferredSize = JBUI.size(28, 28)
         font = font.deriveFont(18f)
         isBorderPainted = false
         isContentAreaFilled = false
         margin = JBUI.emptyInsets()
-        accessibleContext.accessibleName = "Send (Enter)"
+        accessibleContext.accessibleName = "送信（Enter）"
     }
 
     val modeSelector = ModeSelector()
@@ -84,11 +85,6 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         inputWrapper.add(controls, BorderLayout.SOUTH)
         add(accessoryPanel, BorderLayout.NORTH)
         add(inputWrapper, BorderLayout.CENTER)
-        add(ImmediateEditNotice().apply {
-            foreground = AgentUiColors.mutedText
-            font = font.deriveFont(font.size2D - 1f)
-            border = JBUI.Borders.empty(6, 2, 0, 2)
-        }, BorderLayout.SOUTH)
     }
 
     fun setInputEnabled(enabled: Boolean) {
@@ -101,7 +97,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     fun setRunning(running: Boolean) {
         isRunning = running
         sendButton.text = if (running) "■" else "↑"
-        sendButton.toolTipText = if (running) "Stop" else "Send (Enter)"
+        sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
         sendButton.accessibleContext.accessibleName = sendButton.toolTipText
     }
 
@@ -123,50 +119,29 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         return SelectorButton().apply {
             text = "⋯"
             horizontalAlignment = javax.swing.SwingConstants.CENTER
-            toolTipText = "More options"
+            toolTipText = "チャット設定"
             margin = JBUI.emptyInsets()
             preferredSize = JBUI.size(26, 28)
             isBorderPainted = false
             isContentAreaFilled = false
             foreground = AgentUiColors.mutedText
             addActionListener {
-                JPopupMenu().apply {
-                    val settings = AgentSettingsState.getInstance()
-                    com.cursoragent.settings.PermissionMode.entries.forEach { mode ->
-                        add(
-                            JCheckBoxMenuItem(mode.label, settings.permissionMode == mode).apply {
-                                addActionListener { settings.permissionMode = mode }
-                            },
-                        )
-                    }
-                    addSeparator()
-                    com.cursoragent.settings.SandboxMode.entries.forEach { mode ->
-                        add(
-                            JCheckBoxMenuItem(mode.label, settings.sandboxMode == mode).apply {
-                                addActionListener { settings.sandboxMode = mode }
-                            },
-                        )
-                    }
-                    addSeparator()
-                    com.cursoragent.settings.WorktreeMode.entries.forEach { mode ->
-                        add(
-                            JCheckBoxMenuItem(mode.label, settings.worktreeMode == mode).apply {
-                                addActionListener { settings.worktreeMode = mode }
-                            },
-                        )
-                    }
-                    addSeparator()
-                    add(
-                        javax.swing.JMenuItem("Summarize context").apply {
-                            addActionListener { onSend("/summarize") }
-                        },
-                    )
-                    add(
-                        javax.swing.JMenuItem("MCP Servers…").apply {
-                            addActionListener { com.cursoragent.ui.mcp.McpServersDialog(project).show() }
-                        },
-                    )
-                }.show(this, 0, height)
+                var popup: JBPopup? = null
+                val content = ComposerOptionsPanel(
+                    settings = AgentSettingsState.getInstance(),
+                    isRunning = isRunning,
+                    onSummarize = { if (!isRunning) onSend("/summarize") },
+                    onMcp = { com.cursoragent.ui.mcp.McpServersDialog(project).show() },
+                    onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
+                    onClose = { popup?.cancel() },
+                )
+                popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.permissionChoice)
+                    .setFocusable(true)
+                    .setRequestFocus(true)
+                    .setCancelOnClickOutside(true)
+                    .setCancelKeyEnabled(true)
+                    .createPopup()
+                popup.showUnderneathOf(this)
             }
         }
     }
