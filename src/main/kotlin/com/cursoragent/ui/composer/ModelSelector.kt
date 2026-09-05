@@ -5,7 +5,9 @@ import com.cursoragent.settings.AgentSettingsState
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import javax.swing.DefaultListCellRenderer
 
-class ModelSelector : SelectorButton() {
+class ModelSelector(
+    private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
+) : SelectorButton() {
     private var models: List<ModelOption> = emptyList()
 
     init {
@@ -22,7 +24,7 @@ class ModelSelector : SelectorButton() {
                     renderer.getListCellRendererComponent(list, value.label, index, selected, focus)
                 }
                 .setItemChosenCallback { option ->
-                    AgentSettingsState.getInstance().selectedModel = option.id
+                    settings.selectedModel = option.id
                     showSelection(option)
                 }
                 .createPopup()
@@ -38,7 +40,6 @@ class ModelSelector : SelectorButton() {
             toolTipText = "No models available (agent --list-models failed)"
             return
         }
-        val settings = AgentSettingsState.getInstance()
         val selected = models.find { it.id == settings.selectedModel } ?: models.first()
         settings.selectedModel = selected.id
         showSelection(selected)
@@ -50,6 +51,6 @@ class ModelSelector : SelectorButton() {
             .replace(" (default)", "").replace(" (current)", "")
         text = "$name  ⌄"
         toolTipText = "${option.label} — ${option.id}"
-        accessibleContext.accessibleName = "Model: ${option.label}"
+        getAccessibleContext().accessibleName = "Model: ${option.label}"
     }
 }

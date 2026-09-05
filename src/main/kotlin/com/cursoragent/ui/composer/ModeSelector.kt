@@ -6,7 +6,9 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.util.ui.JBUI
 import javax.swing.DefaultListCellRenderer
 
-class ModeSelector : SelectorButton() {
+class ModeSelector(
+    private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
+) : SelectorButton() {
     init {
         preferredSize = JBUI.size(82, 26)
         refreshLabel()
@@ -18,7 +20,7 @@ class ModeSelector : SelectorButton() {
                     renderer.getListCellRendererComponent(list, label(value), index, selected, focus)
                 }
                 .setItemChosenCallback { mode ->
-                    AgentSettingsState.getInstance().mode = mode
+                    settings.mode = mode
                     refreshLabel()
                 }
                 .createPopup()
@@ -27,10 +29,10 @@ class ModeSelector : SelectorButton() {
     }
 
     private fun refreshLabel() {
-        val name = label(AgentSettingsState.getInstance().mode)
+        val name = label(settings.mode)
         text = "$name  ⌄"
         toolTipText = "Mode: $name"
-        accessibleContext.accessibleName = toolTipText
+        getAccessibleContext().accessibleName = toolTipText
     }
 
     private fun label(mode: AgentMode): String = when (mode) {
