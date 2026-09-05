@@ -356,7 +356,9 @@ Input grows to 12 visual lines, then scrolls vertically, and uses the user-reque
 are not added by this appearance change. MV-039 tracks identified-build GUI acceptance.
 A compact UI follow-up uses the IDE label font at 92%, smaller composer spacing/icons, and
 geometric centered chevrons. Selector hit widths come from the painted content, bypassing IDE
-button delegate minimum widths. MV-041 tracks this sizing follow-up independently of MV-039.
+button delegate minimum widths. Final `2fe07ae` is installed; compact geometry and input growth
+were observed, but popup/margin-click GUI QA is blocked by CUA. [MV-041 run](docs/loop-engineering/runs/2026-09-06-compact-ui.md)
+tracks this sizing follow-up independently of MV-039.
 
 **#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
 always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
