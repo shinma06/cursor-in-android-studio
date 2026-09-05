@@ -112,6 +112,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     fun inputText(): String = inputArea.text.trim()
 
     private fun submit() {
+        if (isRunning) return
         val text = inputText()
         if (text.isNotEmpty()) {
             onSend(text)

@@ -34,6 +34,16 @@ class ComposerControlsTest {
     }
 
     @Test
+    fun `model list hover exposes full name and id for the pointed row`() = SwingUtilities.invokeAndWait {
+        val panel = ModelPopupPanel(options, "sol-medium", null, {}, {}, {})
+        panel.modelList.setSize(330, 120)
+        val row = panel.modelList.getCellBounds(1, 1)
+        val hover = java.awt.event.MouseEvent(panel.modelList, java.awt.event.MouseEvent.MOUSE_MOVED,
+            0, 0, row.x + 5, row.y + 5, 0, false)
+        assertEquals("Claude Opus High — opus-high", panel.modelList.getToolTipText(hover))
+    }
+
+    @Test
     fun `empty search result and Escape never change persisted selection`() = SwingUtilities.invokeAndWait {
         var selections = 0
         var closed = false

@@ -42,6 +42,11 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
             additionalColumnsCount = 0
         }
         editor.scrollPane.border = JBUI.Borders.empty()
+        editor.scrollPane.verticalScrollBar.apply {
+            setUI(PromptScrollBarUI())
+            preferredSize = JBUI.size(10, 0)
+            isOpaque = false
+        }
         editor.contentComponent.border = JBUI.Borders.empty()
         editor.setVerticalScrollbarVisible(false)
         editor.setHorizontalScrollbarVisible(false)

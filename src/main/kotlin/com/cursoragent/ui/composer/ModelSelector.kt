@@ -32,6 +32,7 @@ class ModelSelector(
                 .setCancelKeyEnabled(true)
                 .createPopup()
             popup.showUnderneathOf(this)
+            content.modelList.ensureIndexIsVisible(content.modelList.selectedIndex)
         }
     }
 

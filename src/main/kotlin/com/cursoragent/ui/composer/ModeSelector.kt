@@ -25,9 +25,12 @@ class ModeSelector(
                 .setSelectedValue(settings.mode, true)
                 .setRenderer { list, value, index, selected, focus ->
                     val label = renderer.getListCellRendererComponent(list, label(value), index, selected, focus) as JLabel
+                    label.background = if (selected) AgentUiColors.userBubbleBackground else AgentUiColors.panelBackground
+                    label.foreground = UIManager.getColor("Label.foreground")
                     label.icon = ModeIcon(value)
                     label.iconTextGap = JBUI.scale(9)
                     JPanel(BorderLayout()).apply {
+                        getAccessibleContext().accessibleName = label(value)
                         background = label.background
                         foreground = label.foreground
                         border = JBUI.Borders.empty(5, 8)
