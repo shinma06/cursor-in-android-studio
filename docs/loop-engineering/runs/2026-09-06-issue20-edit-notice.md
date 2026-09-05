@@ -58,3 +58,20 @@ GPTがIssue #1の推奨順と#20のコメントを確認し、P0 #20を選択し
 4. 合格した範囲だけmatrix/Issueを更新する。次の機能修正も引き続きP0 #20のWorktree復元方針と古い復元ボタンの整合性を優先する。
 
 #20/#19/#1の未完了条件、#29の両面GUI初回完走は完了扱いにしていない。
+
+## 再開: r3（2026-09-06 01:27 JST〜）
+
+ユーザーの「次のステップに進んでください」で再開。[再開claim](https://github.com/shinma06/cursor-agent-plugin/issues/20#issuecomment-5553189023)を登録し、cleanな`310acbf5823790f74a31771ab3950fc9c38dfb29`から`20260906-issue20-r3`をprepare/buildした。選択ケースはr2と同じ。追加実装はなく、既存の修正2/3回と01:45:27の上限を継承した。
+
+- **新しい前進:** 通常版Android Studioでr3/pluginを開き、`LOOP_FIXTURE.txt`のrun・面・絶対パスをAXとウィンドウタイトルで照合。スクリーンショットでもrun/面を確認できた。長いパス行は画面で省略されているため、全文はAXとプロジェクトのパスで照合した。
+- **ビルド照合:** インストール済みプラグインJARはr3 ZIP内のJARと同じ`43499cc7…f4e40f27f`。インストール先ファイルのmtimeは01:24:18.259 JST、通常版の最新起動ログは01:24:18.375にCursor Agentロードを記録。GUIにも今回の新文言が表示されており、同じバイナリをロードしていることを照合した。r3 ZIPのSHA-256はr2と同じ`b3c5dc67…5361cd3`。インストール・再起動そのものをGPTがGUI操作したという意味ではない。
+- **表示の限界:** 開発リポジトリのウィンドウでは3行説明と入力/Sendが画面で見えた。fixtureの約350px幅の画面ではIDE errorトーストが説明の一部に重なった。Settings・広幅表示・Apply状態は未確認なのでMV-037全体はblockedを維持する。最新のIDE起動以後にERRORログ行はなく、トーストの原因は未特定。
+- **再発した環境障害:** プラグインの⋯を開くとAXにメニュー項目だけが返り、選択状態は得られず、スクリーンショットは取得不能。Escape、全AX再取得、アプリ再取得、CUAセッション再初期化後もウィンドウ名だけで本文/画像が戻らなかった。人間にメニュー終了・入力欄へのフォーカス復帰を依頼し、以後のGUI操作を停止した。
+- **Cursor側:** フォルダ選択に到達。パス入力はAX上で完全パスを表示したが確定時に`/`へ変化し、貼り付けは`Timed out waiting for the application to read the clipboard`。fixtureのマーカー確認は未了。新しい課題は入力も送信もしていない。
+- **送信・fixture:** r3は両面とも送信0、Git差分なし、`Hello loop\n`のまま。通常版ログには前回終了後・今回再開前の01:26台にr1/pluginへの2送信があるが、操作者とGUI結果は未確認で、GPTのMV実施とは扱わない。予算は保守的にこの2送信を含めて残り6/8回とする。
+
+ローカル証拠: r3の`evidence/gui-observations.txt`、`evidence/installed-identity.txt`、`build.log`、`check.log`。`loop.py check`は全7ケースがblockedのためINCOMPLETE。MV-037および両面のMV-024/021/023をpassにしていない。
+
+再開に必要な操作は、**Android Studioのr3/pluginウィンドウで⋯メニューを閉じて入力欄へフォーカスを戻し、Cursorでr3/cursorをフォルダとして開くこと**。操作を戻した旨の返信後にGPTが最新の画面を取得して判断する。古い座標・要素番号で送信しない。上限時刻を越えて再開する場合は、予算の扱いも先に確定する。
+
+r3のClaude Pro独立レビュー（ツール無効、資料のみ）は報告範囲に誇張なしと評価し、(1)source↔ZIPの証拠を資料に含めること、(2)メニュー項目の列挙と選択状態確認を区別することを指摘した。両方採用した。前者は`loop.py build`がclean `310acbf`で`test buildPlugin`を実行し、前後のHEAD/dirty状態を検査して生成したr3の`run.json`（`source_clean=true`、`built_at`、ZIP SHA-256）と`build.log`で補完する。この紐付け検証の実施者はGPTであり、Claudeがビルドしたとはしない。後者は**権限・sandbox・Worktreeの実行時選択は未確認**と明記し、保存XMLにoverrideがないことやソースのデフォルトから実行時設定を断定しない。モデル表示もAXと画像が一致せず未確定。実送信前にこれらの状態を確認する必要がある。

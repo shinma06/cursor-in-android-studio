@@ -36,10 +36,10 @@ Cursor の閲覧調査を、このプラグインの `pass` や実行・送信�
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
 | MV-020 | `main`（run SHA参照） | #18 | シェル出力カード | 「`echo HELLO_TEST` を実行して」と依頼 | タイムラインに stdout 付きシェルカード | pending | | |
-| MV-021 | `main`（run SHA参照） | #18 | ファイル編集カード | プロジェクト内ファイルの 1 行変更を依頼 | `+N / -M path` の編集カードが表示 | blocked | GPT / CUA: fixture・ロード実体の画面確認が未了。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
+| MV-021 | `main`（run SHA参照） | #18 | ファイル編集カード | プロジェクト内ファイルの 1 行変更を依頼 | `+N / -M path` の編集カードが表示 | blocked | GPT / CUA: r3でfixture・ビルド照合済み。メニュー後の画面取得が空になり送信前で停止。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
 | MV-022 | `main`（run SHA参照） | #18 | View Diff | 編集カードの View Diff | IDE Diff Viewer で before/after | pending | | |
-| MV-023 | `main`（run SHA参照） | #18 | Revert | Revert をクリック | ファイルが編集前に戻る | blocked | GPT / CUA: fixture・ロード実体の画面確認が未了。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
-| MV-024 | `main`（run SHA参照） | #18 | ヘッドレス CLI の仕様 | Permission = Ask Every Time のまま編集依頼 | **CLI 側では即書き込み**（プラグインは事後 diff/revert） | blocked | GPT / CUA: fixture・ロード実体の画面確認が未了。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
+| MV-023 | `main`（run SHA参照） | #18 | Revert | Revert をクリック | ファイルが編集前に戻る | blocked | GPT / CUA: r3でfixture・ビルド照合済み。メニュー後の画面取得が空になり送信前で停止。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
+| MV-024 | `main`（run SHA参照） | #18 | ヘッドレス CLI の仕様 | Permission = Ask Every Time のまま編集依頼 | **CLI 側では即書き込み**（プラグインは事後 diff/revert） | blocked | GPT / CUA: r3でfixture・ビルド照合済み。メニュー後の画面取得が空になり送信前で停止。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
 | MV-025 | `main`（run SHA参照） | #18 | チェックポイント | 編集前後でロールバックアイコン | チェックポイントから復元できる | pending | | |
 | MV-029 | `main`（run SHA参照） | #18 | ツールコール行の集約 | 複数ファイルを編集/複数シェルコマンドを実行する依頼を送信 | 各ツールコールにつき「実行中」行が編集/シェルカードに**置き換わる**（重複して両方残らない） | pending | | |
 | MV-030 | `main`（run SHA参照） | #18 | 古いRevertの拒否 | 編集カードのRevertを押す**前**に、同じファイルを別の変更（再度エージェントに編集依頼、または手動編集）で書き換える | Revertはエラーダイアログで拒否され、新しい変更は保持される（黙って上書きされない） | pending | | |
@@ -88,6 +88,6 @@ MV-036は接続環境の結果で、製品のfailではない。#29の基盤実�
 
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
-| MV-037 | `main`（run SHA参照） | - / #20 | 入力付近・設定の即時編集説明 | 識別済みビルドのfixtureでComposer（約350px幅と広幅）とSettings → Tools → Cursor Agentを表示。説明を読み、設定変更なしで閉じる | Ask Every Timeでも即時編集が起こり得ること、Revertが事後undoであることが両画面で省略なく読める。入力・Sendが使用可能で、説明表示だけではApplyが有効化されない | blocked | GPT / CUA: fixture・ロード実体の画面確認が未了。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
+| MV-037 | `main`（run SHA参照） | - / #20 | 入力付近・設定の即時編集説明 | 識別済みビルドのfixtureでComposer（約350px幅と広幅）とSettings → Tools → Cursor Agentを表示。説明を読み、設定変更なしで閉じる | Ask Every Timeでも即時編集が起こり得ること、Revertが事後undoであることが両画面で省略なく読める。入力・Sendが使用可能で、説明表示だけではApplyが有効化されない | blocked | GPT / CUA: r3で説明表示を一部確認。Settings/広幅未了、CUA取得blocked。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
 
 MV-037は説明表示だけの受入。MV-024/021/023の実送信・編集・復元、および#20のWorktree復元整合性を代替しない。
