@@ -10,6 +10,8 @@
 - dirtyなソースでの`build`と、環境/ビルド/GUI証拠が不足する`check`が非0で終了することを確認。
 - skill-creatorの`quick_validate.py`はシステムPythonにPyYAMLがなく実行不可。スキルのfrontmatter・参照先・GPT/Claude双方の内容一致を別途確認。外部依存は追加していない。
 
+cleanコミット後に新しい`loop.py build`自体も実行し、成功した。対象SHA: `b12ccbef57097872bac4e60e5d7b0bc6ae5f9dea`、ZIP SHA-256: `325c8f8017494c02ed443673fecf513fe51c63f71f4a68a40d3659980a39f290`。起動中ビルドの照合は依然未了のため、`check`がINCOMPLETEを返すことも確認した。
+
 ## Computer Useで観察した事実
 
 2026-09-06（JST）、このタスクのCUAツール出力が一次証拠。共有要約には他プロジェクト・個人情報を含めていない。
