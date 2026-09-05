@@ -114,6 +114,17 @@ class ComposerControlsTest {
     }
 
     @Test
+    fun `IDE UI refresh retains the prompt scrollbar instead of an auto hiding delegate`() = SwingUtilities.invokeAndWait {
+        val bar = javax.swing.JScrollBar()
+        installPromptScrollBarUI(bar)
+        bar.updateUI()
+        assertTrue(bar.getUI() is PromptScrollBarUI)
+        assertTrue(bar.isOpaque)
+        bar.setUI(javax.swing.plaf.basic.BasicScrollBarUI())
+        assertTrue(bar.getUI() is PromptScrollBarUI)
+    }
+
+    @Test
     fun `prompt grows to twelve visual lines then scrolls and shrinks on deletion`() {
         assertEquals(PromptSizing(58, false), promptSizing(20, 20, 14, 58))
         assertEquals(PromptSizing(174, false), promptSizing(160, 20, 14, 58))

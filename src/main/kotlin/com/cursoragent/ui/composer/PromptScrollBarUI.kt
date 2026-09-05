@@ -9,6 +9,7 @@ import java.awt.Rectangle
 import java.awt.RenderingHints
 import javax.swing.JButton
 import javax.swing.JComponent
+import javax.swing.JScrollBar
 import javax.swing.plaf.basic.BasicScrollBarUI
 
 /** A visible, narrow thumb even when macOS is configured to auto-hide overlay scrollbars. */
@@ -35,5 +36,19 @@ internal class PromptScrollBarUI : BasicScrollBarUI() {
         minimumSize = Dimension(0, 0)
         maximumSize = Dimension(0, 0)
         isFocusable = false
+    }
+}
+
+/** Keep this editor-local UI after an IDE look-and-feel refresh replaces the scrollbar delegate. */
+internal fun installPromptScrollBarUI(scrollBar: JScrollBar) {
+    fun configure() {
+        scrollBar.setUI(PromptScrollBarUI())
+        scrollBar.preferredSize = JBUI.size(10, 0)
+        scrollBar.isOpaque = true
+        scrollBar.background = AgentUiColors.composerBackground
+    }
+    configure()
+    scrollBar.addPropertyChangeListener("UI") {
+        if (scrollBar.getUI() !is PromptScrollBarUI) configure()
     }
 }
