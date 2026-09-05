@@ -1,5 +1,6 @@
 package com.cursoragent.settings
 
+import com.cursoragent.PluginBrand
 import com.cursoragent.ui.ImmediateEditNotice
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
@@ -15,7 +16,7 @@ class AgentSettingsConfigurable : Configurable {
     private var notifyOnTurnCompleteBox: JBCheckBox? = null
     private var notifyOnApprovalPendingBox: JBCheckBox? = null
 
-    override fun getDisplayName(): String = "Cursor Agent"
+    override fun getDisplayName(): String = PluginBrand.NAME
 
     override fun createComponent(): JComponent {
         val settings = AgentSettingsState.getInstance()

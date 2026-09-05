@@ -1,5 +1,6 @@
 package com.cursoragent.notification
 
+import com.cursoragent.PluginBrand
 import com.cursoragent.settings.AgentSettingsState
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
@@ -8,8 +9,6 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
 
 object AgentNotificationService {
-    private const val GROUP_ID = "Cursor Agent"
-
     fun notifyTurnCompleted(project: Project, exitCode: Int) {
         if (!AgentSettingsState.getInstance().notifyOnTurnComplete) return
 
@@ -48,11 +47,11 @@ object AgentNotificationService {
         content: String,
         type: NotificationType,
     ) {
-        val group = NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
+        val group = NotificationGroupManager.getInstance().getNotificationGroup(PluginBrand.NOTIFICATION_GROUP_ID)
         group.createNotification(title, content, type)
-            .addAction(NotificationAction.createSimpleExpiring("Open Cursor Agent") {
+            .addAction(NotificationAction.createSimpleExpiring("${PluginBrand.NAME}を開く") {
                 com.intellij.openapi.wm.ToolWindowManager.getInstance(project)
-                    .getToolWindow("Cursor Agent")
+                    .getToolWindow(PluginBrand.TOOL_WINDOW_ID)
                     ?.activate(null)
             })
             .notify(project)

@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>com.cursoragent.plugin</id>
-    <name>Cursor Agent</name>
+    <name>Cursor in Android Studio</name>
     <vendor email="dev@example.com">SelfRegi</vendor>
     <description><![CDATA[
         Android Studio 上で Cursor Agent CLI を利用するツールウィンドウプラグイン。
@@ -13,12 +13,14 @@
     <depends optional="true" config-file="cursor-agent-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <notificationGroup id="Cursor Agent" displayType="BALLOON"/>
+        <!-- Keep persisted IDs stable when renaming the product. -->
+        <notificationGroup id="Cursor Agent" displayType="BALLOON"
+                           bundle="messages.CursorAgentBundle" key="notification.group.name"/>
         <applicationConfigurable
                 parentId="tools"
                 instance="com.cursoragent.settings.AgentSettingsConfigurable"
                 id="com.cursoragent.settings.AgentSettingsConfigurable"
-                displayName="Cursor Agent"/>
+                displayName="Cursor in Android Studio"/>
         <toolWindow
                 id="Cursor Agent"
                 anchor="right"

@@ -61,6 +61,11 @@ work within an assigned scope does not require repeated confirmation.
 
 ## What this is
 
+The product name is **Cursor in Android Studio** and the repository/artifact slug is
+`cursor-in-android-studio`. Keep `com.cursoragent.plugin`, existing state/storage names,
+and the internal `Cursor Agent` tool-window/notification IDs stable for upgrades.
+Use `PluginBrand.NAME` for runtime product labels. Historical evidence keeps its original names.
+
 An Android Studio (IntelliJ Platform) plugin that reproduces Cursor IDE's Agent tab as a native
 tool window. It works by shelling out to the `cursor-agent` CLI (`agent -p --output-format
 stream-json`) as a subprocess and rendering the JSON-Lines event stream in a custom Swing/JBUI
@@ -99,7 +104,7 @@ Still out of scope until CLI support appears: F-60 image attachment (`agent --he
 # (auto-provisioned via the foojay-resolver plugin, independent of JAVA_HOME).
 export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 
-./gradlew buildPlugin   # produces build/distributions/cursor-agent-plugin-<version>.zip
+./gradlew buildPlugin   # produces build/distributions/cursor-in-android-studio-<version>.zip
 ./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
 ./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin — run this before every push
 ```
@@ -163,7 +168,7 @@ Layered, unidirectional: `ToolWindowFactory` → root panel → `AgentUiControll
 `AgentProcessService` (subprocess + stream parsing) → `StreamJsonParser`. Settings are a separate
 persisted side-channel read by both the service and the UI.
 
-- **`toolwindow/CursorAgentToolWindowFactory`** — registers the "Cursor Agent" right-anchored
+- **`toolwindow/CursorAgentToolWindowFactory`** — registers the "Cursor in Android Studio" right-anchored
   tool window (see `plugin.xml`), instantiates `AgentToolWindowRootPanel`.
 - **`ui/AgentToolWindowRootPanel`** — wires together `AgentHeaderBar` (NORTH), `ChatTimelinePanel`
   (CENTER), `ComposerPanel` (SOUTH), and constructs the `AgentUiController` that owns the wiring
@@ -380,7 +385,7 @@ isolated-worktree/checkpoint mismatch or complete #20.
 [`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).
 The ordered gap plan and acceptance criteria are in
 [`docs/plans/cursor-agent-ui-gap-plan.md`](docs/plans/cursor-agent-ui-gap-plan.md), tracked by
-[issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19) under #1.
+[issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) under #1.
 The subsequent [Android Studio UI follow-up](docs/research/android-studio-ui-followup-2026-09-05.md)
 confirmed settings navigation and limited display states on an installed `0.1.0-SNAPSHOT`; its
 source SHA is unknown. Model readability (#27) and build/CLI diagnostics (#28) were added.
@@ -433,7 +438,7 @@ auto-applies edits in headless mode), `ToolCallPayloadParser` + stream-json fixt
 F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
 
 **Implemented (2026-09, M9/backlog)**: desktop notifications on turn complete/tool-call start
-(`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor Agent**), F-13
+(`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor in Android Studio**), F-13
 `@terminal` mention (`TerminalOutputReader` via Reworked Terminal API), F-16 `@branch` mention
 (`BranchDiffBuilder`), settings page for `agentExecutablePath` and notification prefs
 (`AgentSettingsConfigurable`), tool-window-close process cleanup (`Disposer` on tool window

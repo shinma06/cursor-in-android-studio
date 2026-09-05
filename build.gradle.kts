@@ -58,7 +58,7 @@ kotlin {
 
 intellijPlatform {
     pluginConfiguration {
-        name = "Cursor Agent"
+        name = "Cursor in Android Studio"
         version = project.version.toString()
         ideaVersion {
             sinceBuild = "261"

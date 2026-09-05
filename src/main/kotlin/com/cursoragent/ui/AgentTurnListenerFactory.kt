@@ -1,5 +1,6 @@
 package com.cursoragent.ui
 
+import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
@@ -97,7 +98,7 @@ class AgentTurnListenerFactory(
                                     Messages.showErrorDialog(
                                         project,
                                         "Could not revert ${edit.path} — it may have been changed again since this edit.",
-                                        "Cursor Agent",
+                                        PluginBrand.NAME,
                                     )
                                 }
                             },
@@ -132,7 +133,7 @@ class AgentTurnListenerFactory(
                     timeline.clearStatus()
                     timeline.showError(message)
                     AgentNotificationService.notifyError(project, message)
-                    Messages.showErrorDialog(project, message, "Cursor Agent")
+                    Messages.showErrorDialog(project, message, PluginBrand.NAME)
                     onRunFinished()
                 }
             }

@@ -1,5 +1,6 @@
 package com.cursoragent.ui.timeline
 
+import com.cursoragent.PluginBrand
 import com.cursoragent.ui.AgentUiColors
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
@@ -18,7 +19,7 @@ class EmptyStatePanel : JPanel(BorderLayout()) {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             isOpaque = false
 
-            val title = JBLabel("Cursor Agent").apply {
+            val title = JBLabel(PluginBrand.NAME).apply {
                 alignmentX = CENTER_ALIGNMENT
                 font = font.deriveFont(Font.BOLD, font.size + 2f)
             }

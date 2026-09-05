@@ -1,4 +1,4 @@
-# Cursor Agent Plugin
+# Cursor in Android Studio
 
 Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI をサブプロセスとして起動し、
 `stream-json` 出力をパースして独自のSwing/JBUI製チャットUIに描画する(CLIをブラックボックスとして
@@ -7,7 +7,7 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
 > 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma06/cursor-agent-plugin/issues/1)** — 進捗の一次情報源。GPTが進行・実装・GUI検証と統合、Claude Proが独立レビュー、Cursor ProがGUI検証課題を担当する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues/1)** — 進捗の一次情報源。GPTが進行・実装・GUI検証と統合、Claude Proが独立レビュー、Cursor ProがGUI検証課題を担当する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
@@ -20,8 +20,8 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 ## セットアップ
 
 ```bash
-git clone https://github.com/shinma06/cursor-agent-plugin.git
-cd cursor-agent-plugin
+git clone https://github.com/shinma06/cursor-in-android-studio.git
+cd cursor-in-android-studio
 export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+が必要(Kotlinコンパイル自体はJDK21ツールチェーンを自動取得)
 ./gradlew buildPlugin
 ```
@@ -35,18 +35,20 @@ export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+�
 ## Android Studio へのインストール
 
 1. **Settings → Plugins → ⚙ → Install Plugin from Disk...**
-2. `build/distributions/cursor-agent-plugin-<version>.zip` を選択
+2. `build/distributions/cursor-in-android-studio-<version>.zip` を選択
 3. Restart IDE
-4. **View → Tool Windows → Cursor Agent**
+4. **View → Tool Windows → Cursor in Android Studio**
+
+旧名称「Cursor Agent」からの更新でも、プラグインIDと設定・履歴の保存先は共通です。
 
 サンドボックスでの動作確認: `./gradlew runIde`
 
 ## 開発
 
 - UI比較の証跡: [Cursor Agent UI 閲覧調査（2026-09-05）](docs/research/cursor-agent-ui-survey-2026-09-05.md)
-- 次の対応順・優先度・受入条件: [UI差分取り込み計画](docs/plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19)
+- 次の対応順・優先度・受入条件: [UI差分取り込み計画](docs/plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19)
 - ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
 - 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
-- 進捗・タスク管理: [GitHub Issues](https://github.com/shinma06/cursor-agent-plugin/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)
+- 進捗・タスク管理: [GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)
 
 - Android Studioで実際に確認した範囲と追加タスク: [実機UI追補](docs/research/android-studio-ui-followup-2026-09-05.md)

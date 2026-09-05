@@ -1,5 +1,6 @@
 package com.cursoragent.ui.header
 
+import com.cursoragent.PluginBrand
 import com.cursoragent.ui.AgentUiColors
 import com.intellij.icons.AllIcons
 import com.intellij.ui.components.JBLabel
@@ -29,7 +30,7 @@ class AgentHeaderBar : JPanel(BorderLayout()) {
 
         val title = JBLabel("Agent").apply {
             font = font.deriveFont(java.awt.Font.PLAIN)
-            toolTipText = "Cursor Agent"
+            toolTipText = PluginBrand.NAME
         }
         val actions = JPanel(FlowLayout(FlowLayout.RIGHT, 4, 0)).apply {
             isOpaque = false

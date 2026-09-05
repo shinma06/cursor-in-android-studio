@@ -1,4 +1,4 @@
-# Android Studio向け Cursor Agent 統合プラグイン 要件定義書
+# Cursor in Android Studio 要件定義書
 
 - **文書バージョン**: v0.1(ドラフト)
 - **作成日**: 2026-09-03
@@ -9,7 +9,7 @@
 **2026-09-05 UI比較の追補（計画・未実装）**: [閲覧調査46項目](research/cursor-agent-ui-survey-2026-09-05.md)と
 [差分取り込み計画](plans/cursor-agent-ui-gap-plan.md)を追加。
 UI-xx は観測ID、UX-xx は取り込み単位であり、既存 F-xx を置換しない。
-優先順・依存関係・受入条件は計画、実際の進捗は [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19) と子 Issue を参照する。
+優先順・依存関係・受入条件は計画、実際の進捗は [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) と子 Issue を参照する。
 Cursor のメニュー存在と headless CLI の対応は別の証拠であり、今回の閲覧で CLI 動作や既存の手動QAを検証済みに変更しない。
 
 **2026-09-06 開発運用基盤**: [GPT主導GUIループ](loop-engineering/README.md) / [人間向け手順](loop-engineering/human-runbook.md)を整備。GPTがComputer UseでCursor IDEと本プラグインを操作し、Claude Proが独立レビューする。これは開発・検証の運用であり、F-xx機能追加や既存QA合格ではない。
@@ -317,7 +317,7 @@ agent mcp list
 
 ## 12. フェーズ計画
 
-`[2026-09改訂]` 進捗はGitHub Issues([トラッキングIssue #1](https://github.com/shinma-postas/cursor-agent-plugin/issues/1)、子Issue #2〜#10)が一次情報源。以下は俯瞰用。
+`[2026-09改訂]` 進捗はGitHub Issues([トラッキングIssue #1](https://github.com/shinma06/cursor-in-android-studio/issues/1)、子Issue #2〜#10)が一次情報源。以下は俯瞰用。
 
 | フェーズ | 内容 | 含む主要機能ID | 状態 |
 |---|---|---|---|

@@ -23,7 +23,7 @@ GUI検証では作業中の本物のプロジェクトに編集を依頼しま�
 このプロジェクトの docs/loop-engineering/README.md に従って、Issue #20を1ループ進めて。
 GPTが主担当とComputer Use操作者、Claude Proが独立レビュー担当。
 Cursor ProをGUIから操作して、小さな課題を実行させ、Android Studio内の
-Cursor Agentプラグインと比較して。編集は今回生成するfixtureに限定。
+Cursor in Android Studioプラグインと比較して。編集は今回生成するfixtureに限定。
 上限45分・修正3回・Cursor送信8回。対象Issueの受入条件と関連MV IDを選び、
 再現→修正→レビュー→再検証まで進め、記録と次の一手を残して。
 ```

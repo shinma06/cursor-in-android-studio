@@ -7,6 +7,6 @@ private val LOG = logger<CursorAgentPlugin>()
 @Suppress("unused")
 class CursorAgentPlugin {
     init {
-        LOG.info("Cursor Agent plugin loaded")
+        LOG.info("${PluginBrand.NAME} plugin loaded")
     }
 }

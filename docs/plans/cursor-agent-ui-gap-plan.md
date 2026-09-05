@@ -3,7 +3,7 @@
 作成: 2026-09-05 / 状態: 計画登録済み、追加機能は未実装。
 
 - 根拠: [UI閲覧調査46項目](../research/cursor-agent-ui-survey-2026-09-05.md) / [Android Studio実機追補7項目](../research/android-studio-ui-followup-2026-09-05.md)
-- 進捗の正本: [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19) → [全体 #1](https://github.com/shinma06/cursor-agent-plugin/issues/1)
+- 進捗の正本: [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) → [全体 #1](https://github.com/shinma06/cursor-in-android-studio/issues/1)
 - 既存仕様: [要件定義書](../cursor-agent-plugin-requirements.md)、[CLAUDE.md](../../CLAUDE.md)
 - 実機QAの正本: [手動検証マトリクス](../manual-verification/matrix.md)
 
@@ -21,28 +21,28 @@
 
 | 順 | 優先度 | 計画ID / Issue | 対応内容 | 依存・開始条件 | 規模 [仮説] |
 |---|---|---|---|---|---|
-| 1 | P0 | UX-01 / [#20](https://github.com/shinma06/cursor-agent-plugin/issues/20) | 権限・sandbox の誤認防止と Worktree 復元の整合性 | なし。既存 main の安全性問題を最初に扱う。 | M |
-| 2 | P1 | UX-02 / [#21](https://github.com/shinma06/cursor-agent-plugin/issues/21) | 応答コピー・送信キー選択・設定とモデル状態の導線 | UX-01 完了を推奨。送信キー変更の受入判定で既存 #5 の QA を再利用する。 | S〜M |
-| 2a | P1 | UX-08 / [#27](https://github.com/shinma06/cursor-agent-plugin/issues/27) | 完全なモデル名の確認、多数候補の検索・狭幅対応 | UX-02のモデル取得状態と分担。対象ビルドで現状を再確認。 | M |
-| 3 | P1 | UX-03 / [#22](https://github.com/shinma06/cursor-agent-plugin/issues/22) | 会話本文の永続化・履歴再表示・検索・Markdown出力 | UX-02 完了を推奨。UX-04 のキューより先に会話・ターンIDと保存契約を確定する。 | M〜L |
-| 4 | P1 | UX-04 / [#23](https://github.com/shinma06/cursor-agent-plugin/issues/23) | 追加入力キュー・変更一覧・状態時間・通知の整理 | UX-01（復元安全性）と UX-03（会話/ターンID・永続化）。段階A状態表示→段階Bレビュー→段階Cキューの順で小分けに実装。 | L |
-| 5 | P1 | UX-05 / [#24](https://github.com/shinma06/cursor-agent-plugin/issues/24) | Add to Chat と明示的なコンテキスト表示・mention導線の改善 | 既存 #5 の QA 状態確認、UX-02 の入力キー規約。Cursor候補を再現する箇所は UX-06 の追加UI調査に依存。 | M |
-| 6 | P2 | UX-06 / [#25](https://github.com/shinma06/cursor-agent-plugin/issues/25) | 未確認UI・CLI能力の調査ゲート（Debug/Multitask/権限/分岐等） | 調査設計は随時可能。実行や設定変更を伴う検証は閲覧調査と区別し、対象・環境・データ・操作範囲の許可を確認してから行う。#10を重複作成しない。 | M〜L |
-| 7 | P2 | UX-07 / [#26](https://github.com/shinma06/cursor-agent-plugin/issues/26) | 会話表示・アーカイブ・複数タブなどの拡張候補を段階取り込み | UX-02〜05の基盤。CLI依存項目はUX-06の対応確認、音声は#10。各小項目を着手前に独立Issueへ分割する。 | L（候補群） |
-| 3後・QA準備で先行可 | P2 | UX-09 / [#28](https://github.com/shinma06/cursor-agent-plugin/issues/28) | 実機QA用のビルド識別・CLI解決先の診断表示 | UX-03後を推奨。診断のみなら独立着手可能。 | S〜M |
+| 1 | P0 | UX-01 / [#20](https://github.com/shinma06/cursor-in-android-studio/issues/20) | 権限・sandbox の誤認防止と Worktree 復元の整合性 | なし。既存 main の安全性問題を最初に扱う。 | M |
+| 2 | P1 | UX-02 / [#21](https://github.com/shinma06/cursor-in-android-studio/issues/21) | 応答コピー・送信キー選択・設定とモデル状態の導線 | UX-01 完了を推奨。送信キー変更の受入判定で既存 #5 の QA を再利用する。 | S〜M |
+| 2a | P1 | UX-08 / [#27](https://github.com/shinma06/cursor-in-android-studio/issues/27) | 完全なモデル名の確認、多数候補の検索・狭幅対応 | UX-02のモデル取得状態と分担。対象ビルドで現状を再確認。 | M |
+| 3 | P1 | UX-03 / [#22](https://github.com/shinma06/cursor-in-android-studio/issues/22) | 会話本文の永続化・履歴再表示・検索・Markdown出力 | UX-02 完了を推奨。UX-04 のキューより先に会話・ターンIDと保存契約を確定する。 | M〜L |
+| 4 | P1 | UX-04 / [#23](https://github.com/shinma06/cursor-in-android-studio/issues/23) | 追加入力キュー・変更一覧・状態時間・通知の整理 | UX-01（復元安全性）と UX-03（会話/ターンID・永続化）。段階A状態表示→段階Bレビュー→段階Cキューの順で小分けに実装。 | L |
+| 5 | P1 | UX-05 / [#24](https://github.com/shinma06/cursor-in-android-studio/issues/24) | Add to Chat と明示的なコンテキスト表示・mention導線の改善 | 既存 #5 の QA 状態確認、UX-02 の入力キー規約。Cursor候補を再現する箇所は UX-06 の追加UI調査に依存。 | M |
+| 6 | P2 | UX-06 / [#25](https://github.com/shinma06/cursor-in-android-studio/issues/25) | 未確認UI・CLI能力の調査ゲート（Debug/Multitask/権限/分岐等） | 調査設計は随時可能。実行や設定変更を伴う検証は閲覧調査と区別し、対象・環境・データ・操作範囲の許可を確認してから行う。#10を重複作成しない。 | M〜L |
+| 7 | P2 | UX-07 / [#26](https://github.com/shinma06/cursor-in-android-studio/issues/26) | 会話表示・アーカイブ・複数タブなどの拡張候補を段階取り込み | UX-02〜05の基盤。CLI依存項目はUX-06の対応確認、音声は#10。各小項目を着手前に独立Issueへ分割する。 | L（候補群） |
+| 3後・QA準備で先行可 | P2 | UX-09 / [#28](https://github.com/shinma06/cursor-in-android-studio/issues/28) | 実機QA用のビルド識別・CLI解決先の診断表示 | UX-03後を推奨。診断のみなら独立着手可能。 | S〜M |
 
 既存 Issue は次のように再利用する。完了済み M0〜M9 を、新規差分があるという理由で未完了に戻さない。
 
 | 既存Issue | 優先度 | 計画での扱い | 開始/完了条件 |
 |---|---|---|---|
-| [#5 M3](https://github.com/shinma06/cursor-agent-plugin/issues/5) | P1 | Enter/Shift+Enter、mention、Terminalなど既存UIの手動QA | UX-02/05着手時に現状確認し、変更後に同じQAを再実施。今回の閲覧はpassに数えない |
-| [#10 M8](https://github.com/shinma06/cursor-agent-plugin/issues/10) | P2・画像は保留 | 添付/音声、UI-07/08の調査と採否。重複Issueを作らない | 画像アイコンでCLI対応を断定しない。音声はOS辞書入力の適用可否を先に確認 |
+| [#5 M3](https://github.com/shinma06/cursor-in-android-studio/issues/5) | P1 | Enter/Shift+Enter、mention、Terminalなど既存UIの手動QA | UX-02/05着手時に現状確認し、変更後に同じQAを再実施。今回の閲覧はpassに数えない |
+| [#10 M8](https://github.com/shinma06/cursor-in-android-studio/issues/10) | P2・画像は保留 | 添付/音声、UI-07/08の調査と採否。重複Issueを作らない | 画像アイコンでCLI対応を断定しない。音声はOS辞書入力の適用可否を先に確認 |
 
 ## 3. 作業単位と受入条件
 
 以下は登録時点のスコープ。着手後のチェック状態と変更理由は各 Issue で管理する。
 
-### UX-01: 権限・sandbox の誤認防止と Worktree 復元の整合性 ([#20](https://github.com/shinma06/cursor-agent-plugin/issues/20))
+### UX-01: 権限・sandbox の誤認防止と Worktree 復元の整合性 ([#20](https://github.com/shinma06/cursor-in-android-studio/issues/20))
 
 根拠: UI-26, UI-31, UI-45, UI-46 / 既存要件: F-22〜24, F-30/31, F-40〜44, F-52
 
@@ -57,7 +57,7 @@ Ask Every Time の名称から事前承認を期待する誤認、および分�
 
 スコープ境界: 新しい allowlist/ネットワーク/個別保護の制御実装は UX-06 の検証結果待ち。今回の Issue 作成時点では機能実装未着手。
 
-### UX-02: 応答コピー・送信キー選択・設定とモデル状態の導線 ([#21](https://github.com/shinma06/cursor-agent-plugin/issues/21))
+### UX-02: 応答コピー・送信キー選択・設定とモデル状態の導線 ([#21](https://github.com/shinma06/cursor-in-android-studio/issues/21))
 
 根拠: UI-04, UI-11, UI-15, UI-17 / 既存要件: F-01, F-05, F-21
 
@@ -72,7 +72,7 @@ CLI の新機能に依存せず、毎回使う入力と応答の操作を改善�
 
 スコープ境界: Cursor のアップグレード導線の複製、ブラウザ実装、会話全体のエクスポートは含めない。
 
-### UX-03: 会話本文の永続化・履歴再表示・検索・Markdown出力 ([#22](https://github.com/shinma06/cursor-agent-plugin/issues/22))
+### UX-03: 会話本文の永続化・履歴再表示・検索・Markdown出力 ([#22](https://github.com/shinma06/cursor-in-android-studio/issues/22))
 
 根拠: UI-13, UI-14 / 既存要件: F-03, F-50
 
@@ -87,7 +87,7 @@ CLI の新機能に依存せず、毎回使う入力と応答の操作を改善�
 
 スコープ境界: 過去の Cursor/CLI 会話の遡及取得、会話分岐、アーカイブは別フェーズ。
 
-### UX-04: 追加入力キュー・変更一覧・状態時間・通知の整理 ([#23](https://github.com/shinma06/cursor-agent-plugin/issues/23))
+### UX-04: 追加入力キュー・変更一覧・状態時間・通知の整理 ([#23](https://github.com/shinma06/cursor-in-android-studio/issues/23))
 
 根拠: UI-09, UI-10, UI-19, UI-32, UI-37, UI-41 / 既存要件: F-01, F-30〜32, 通知
 
@@ -102,7 +102,7 @@ CLI の新機能に依存せず、毎回使う入力と応答の操作を改善�
 
 スコープ境界: 実行中プロセスへのライブ割込み、Cursor固有の思考情報・承認プロトコルの推測実装、事前Applyゲートは含めない。
 
-### UX-05: Add to Chat と明示的なコンテキスト表示・mention導線の改善 ([#24](https://github.com/shinma06/cursor-agent-plugin/issues/24))
+### UX-05: Add to Chat と明示的なコンテキスト表示・mention導線の改善 ([#24](https://github.com/shinma06/cursor-in-android-studio/issues/24))
 
 根拠: UI-05, UI-34 / 既存要件: F-10〜16
 
@@ -116,7 +116,7 @@ CLI の新機能に依存せず、毎回使う入力と応答の操作を改善�
 
 スコープ境界: Quick Edit/Terminal内編集、Cursor独自インデックスの再現は含めない。
 
-### UX-06: 未確認UI・CLI能力の調査ゲート（Debug/Multitask/権限/分岐等） ([#25](https://github.com/shinma06/cursor-agent-plugin/issues/25))
+### UX-06: 未確認UI・CLI能力の調査ゲート（Debug/Multitask/権限/分岐等） ([#25](https://github.com/shinma06/cursor-in-android-studio/issues/25))
 
 根拠: UI-03, UI-05〜08, UI-12, UI-15, UI-20, UI-22〜31, UI-35, UI-42〜46 / 既存要件: F-17, F-20, F-22〜24, F-52, F-60〜62, F-70/71, 要件§6.9
 
@@ -131,7 +131,7 @@ UIに存在する機能を根拠なくCLIで保証しない。実装可能性と
 
 スコープ境界: このIssue作成は実行・編集・送信・設定変更の許可ではない。未検証の外部仕様を断定しない。
 
-### UX-07: 会話表示・アーカイブ・複数タブなどの拡張候補を段階取り込み ([#26](https://github.com/shinma06/cursor-agent-plugin/issues/26))
+### UX-07: 会話表示・アーカイブ・複数タブなどの拡張候補を段階取り込み ([#26](https://github.com/shinma06/cursor-in-android-studio/issues/26))
 
 根拠: UI-01, UI-02, UI-12, UI-14, UI-16, UI-18, UI-20〜23, UI-33, UI-35〜44 / 既存要件: F-03, F-05, F-21, F-50, 要件§6.9/§8
 
@@ -146,7 +146,7 @@ UIに存在する機能を根拠なくCLIで保証しない。実装可能性と
 
 スコープ境界: 全候補を一度に実装する約束ではない。P1完了前の大規模なUI置換は行わない。
 
-### UX-08: 実機モデル選択: 完全名の確認と多数候補の検索・狭幅対応 ([#27](https://github.com/shinma06/cursor-agent-plugin/issues/27))
+### UX-08: 実機モデル選択: 完全名の確認と多数候補の検索・狭幅対応 ([#27](https://github.com/shinma06/cursor-in-android-studio/issues/27))
 
 根拠: Android Studio実機追補 APP-01/02。実機操作から追加した観点。機能未実装。
 
@@ -157,7 +157,7 @@ UIに存在する機能を根拠なくCLIで保証しない。実装可能性と
 - 現在選択・既定・取得失敗を区別する部分は #21 と分担し、モデル名や候補数をハードコードしない
 - MV-032 と新しい操作QAを実施し、対象ビルド情報、実測幅、結果を記録する。必要なモデル絞込みテストと `./gradlew test` を通す
 
-### UX-09: 実機QA用のビルド識別・CLI解決先の診断表示 ([#28](https://github.com/shinma06/cursor-agent-plugin/issues/28))
+### UX-09: 実機QA用のビルド識別・CLI解決先の診断表示 ([#28](https://github.com/shinma06/cursor-in-android-studio/issues/28))
 
 根拠: Android Studio実機追補 APP-03/04。実機操作から追加した観点。機能未実装。
 

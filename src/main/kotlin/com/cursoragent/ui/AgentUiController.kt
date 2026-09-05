@@ -1,5 +1,6 @@
 package com.cursoragent.ui
 
+import com.cursoragent.PluginBrand
 import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.service.AgentProcessService
@@ -101,7 +102,7 @@ class AgentUiController(
         if (checkpointService.restore(checkpointId)) {
             timeline.showStatus("Rolled back to checkpoint")
         } else {
-            Messages.showErrorDialog(project, "ロールバックに失敗しました", "Cursor Agent")
+            Messages.showErrorDialog(project, "ロールバックに失敗しました", PluginBrand.NAME)
         }
     }
 

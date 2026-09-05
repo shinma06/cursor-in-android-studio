@@ -2,7 +2,7 @@
 
 **更新ルール**: GUI確認が必要な変更で行を追加。GPTのComputer Useを優先し、人間が補完する。実観察した担当が `Status` / `Verified by` / `Date` と証跡リンク・対象SHAを記録。取得/認証エラーは `blocked`。単体テストやmergeはpassではない。詳細: [ループ手順](../loop-engineering/README.md)。
 
-**UI差分計画（2026-09-05）**: [取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [#19](https://github.com/shinma06/cursor-agent-plugin/issues/19)。
+**UI差分計画（2026-09-05）**: [取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [#19](https://github.com/shinma06/cursor-in-android-studio/issues/19)。
 [Android Studio実機追補](../research/android-studio-ui-followup-2026-09-05.md)で設定・表示を限定確認した（E節）。以下の既存QAは未実施のまま、新機能用の行は各 UX Issue の実装時に実際の Branch・手順を確定して追加する。
 Cursor の閲覧調査を、このプラグインの `pass` や実行・送信を伴う検証の実施許可と扱わない。
 
@@ -124,3 +124,9 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
 | MV-042 | `main`（run SHA参照） | - / #27 #20 | 設定の全文・上方向popup・Agent背景 | チャット設定の値と項目名を確認。モデル/モードを開き、同じボタン/外側フォーカス/Escapeで閉じる。検索・Autoの高さ変更を確認 | 値が余白を使って全文表示。指定の日本語項目名。ボタンを隠さず上に展開、閉じる操作と高さ変更で位置を維持。Agentはグレー背景 | blocked | GPT / CUA: b264791反映・Agent背景を確認。設定/popupの操作取得はScreenCaptureKit -3811・noWindowsAvailableで未了。[記録](../loop-engineering/runs/2026-09-06-popup-ui.md) | 2026-09-06 |
+
+## M. #30 正式名称
+
+| ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
+|----|--------|-----|------|------|----------|--------|-------------|------|
+| MV-043 | main | - / #30 | 正式名称と更新互換性 | 既存版を更新しPlugins/Settings/ツールウィンドウ/空状態を確認 | Cursor in Android Studioと表示。既存設定とウィンドウ配置を維持 | pending | GPT: 63 tests/buildPlugin成功、実機反映待ち | 2026-09-06 |

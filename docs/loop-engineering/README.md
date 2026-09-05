@@ -1,6 +1,6 @@
 # GPT主導のGUIループエンジニアリング
 
-目的は、実画面で使う → 違和感を再現する → 小さく直す → 別の視点でレビューする → 同じ操作で改善を確かめる、を繰り返すこと。進捗の正本は [Issue #1](https://github.com/shinma06/cursor-agent-plugin/issues/1) と子Issue、GUI受入条件の正本は [QAマトリクス](../manual-verification/matrix.md)。この基盤は [#29](https://github.com/shinma06/cursor-agent-plugin/issues/29) で整備した。
+目的は、実画面で使う → 違和感を再現する → 小さく直す → 別の視点でレビューする → 同じ操作で改善を確かめる、を繰り返すこと。進捗の正本は [Issue #1](https://github.com/shinma06/cursor-in-android-studio/issues/1) と子Issue、GUI受入条件の正本は [QAマトリクス](../manual-verification/matrix.md)。この基盤は [#29](https://github.com/shinma06/cursor-in-android-studio/issues/29) で整備した。
 
 ## 役割と担当範囲
 
