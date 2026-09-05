@@ -362,7 +362,9 @@ tracks this sizing follow-up independently of MV-039.
 The next follow-up uses remaining settings-row width for Japanese current values, renames session
 summarize/MCP settings actions, and opens mode/model popups above a visible trigger. A shared
 controller handles same-trigger toggling, external-focus dismissal and model-popup resizing; Agent
-has a distinct gray pill. MV-042 tracks this follow-up.
+has a distinct gray pill. Final `b264791` is installed; Agent background was observed, but settings
+values/popup interactions remain CUA-blocked. [MV-042 run](docs/loop-engineering/runs/2026-09-06-popup-ui.md)
+tracks this follow-up.
 
 **#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
 always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
