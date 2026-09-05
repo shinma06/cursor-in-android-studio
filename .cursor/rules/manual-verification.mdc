@@ -1,50 +1,13 @@
 ---
-description: エージェントが検証できない項目は docs/manual-verification/ に動作確認マトリクスを作成・更新する
+description: GUI変更はComputer Useまたは人間による証跡付き検証をQAマトリクスに残す
 alwaysApply: true
 ---
 
-# 手動動作確認マトリクス
+# GUI検証
 
-## いつ作るか
-
-次のいずれかに該当する変更をしたら、**コミット前**に `docs/manual-verification/` を確認し、不足があれば追加・更新する。
-
-- `./gradlew runIde` や実 IDE 上での確認が必要（Swing、キーボード、ポップアップ、Diff Viewer、通知など）
-- OS / デスクトップ通知、ターミナルタブ連携など IDE 外の環境依存
-- エージェントが CLI スパイクや `./gradlew test` だけでは **完了を証明できない** 受け入れ条件
-
-エージェント単体で `./gradlew test` まで完了している項目はマトリクスに **載せない**（載せるのは人間確認が必要なものだけ）。
-
-## ディレクトリ構成
-
-```
-docs/manual-verification/
-  README.md      … 使い方（人間・エージェント共通）
-  matrix.md      … 現在の確認一覧（単一の正本）
-  archive/       … マージ済み PR 分を必要に応じて退避
-```
-
-## エージェントの義務
-
-1. 新規 PR・大きな機能追加時: `matrix.md` に行を追加（Branch / PR / 観点 / 手順 / 期待結果）
-2. 既存行の Branch が変わったら更新し、マージ後は Status を `merged` にして `archive/` へ移すか行を整理
-3. チャット内に長い QA 手順を書く代わりに、**マトリクスへのリンク**を README / PR 本文 / Issue コメントで案内する
-4. 人間が `pass` / `fail` を記入したら、fail 項目は修正後に Status を `pending` に戻す
-
-## マトリクス行の必須列
-
-| 列 | 内容 |
-|----|------|
-| ID | `MV-` 連番 |
-| Branch | 確認対象ブランチ |
-| PR | 番号または `-` |
-| 観点 | 何を見るか（1行） |
-| 手順 | 再現ステップ |
-| 期待結果 | pass の条件 |
-| Status | `pending` / `pass` / `fail` / `merged` |
-| Verified by | 確認者（空欄可） |
-| Date | 確認日（空欄可） |
-
-## 参照
-
-- 詳細と現在の一覧: [`docs/manual-verification/matrix.md`](../../docs/manual-verification/matrix.md)
+- 正本は `docs/manual-verification/matrix.md`。詳細は `docs/loop-engineering/README.md`。
+- Swing、入力、メニュー、Diff、通知などは対象MV行を追加/更新する。
+- GPTがComputer Useで実画面を観察し、人間が補完する。Cursorは自分の返答をGUI成功の証拠にしない。
+- 対象SHA、起動ビルド、手順、期待/実際、証跡、確認者、日付を記録する。
+- `pending / pass / fail / blocked`を使う。取得失敗はblocked。mergeだけで検証を完了/アーカイブしない。
+- 修正後は新runで再確認。CLIやJUnitだけではGUIのpassにしない。

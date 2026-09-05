@@ -58,5 +58,8 @@ jobs:
           tar -xzf /tmp/android-studio.tar.gz -C /tmp/android-studio --strip-components=1
           rm /tmp/android-studio.tar.gz
 
+      - name: Test GUI loop evidence tooling
+        run: python3 -m unittest discover -s scripts/loop -p 'test_*.py'
+
       - name: Run tests
         run: ./gradlew test --console=plain -PplatformPath=/tmp/android-studio

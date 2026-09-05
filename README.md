@@ -7,16 +7,20 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
 > 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues/1)** — 進捗の一次情報源。このリポジトリは複数のAIエージェント(Claude Code、Cursor自身のエージェント)が役割分担なく非同期に作業する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-agent-plugin/issues/1)** — 進捗の一次情報源。GPTが進行・実装・GUI検証と統合、Claude Proが独立レビュー、Cursor ProがGUI検証課題を担当する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
-> **手動 QA（runIde 等）**: エージェントが検証できない項目は [docs/manual-verification/matrix.md](docs/manual-verification/matrix.md) に一覧化する。確認前に Branch 列を参照すること。
+> **GUI QA（Computer Use優先、人間による補完）**: 実画面で確認する項目は [docs/manual-verification/matrix.md](docs/manual-verification/matrix.md) に一覧化する。確認前に Branch 列を参照すること。
+
+## ループ開発
+
+[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [GPT・Claude・Cursorの役割と開発ループ](docs/loop-engineering/README.md)。GPTへIssueを指定すると、GUIで再現→修正→Claudeレビュー→同じ操作で再確認する。
 
 ## セットアップ
 
 ```bash
-git clone https://github.com/shinma-postas/cursor-agent-plugin.git
+git clone https://github.com/shinma06/cursor-agent-plugin.git
 cd cursor-agent-plugin
 export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+が必要(Kotlinコンパイル自体はJDK21ツールチェーンを自動取得)
 ./gradlew buildPlugin
@@ -43,6 +47,6 @@ export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+�
 - 次の対応順・優先度・受入条件: [UI差分取り込み計画](docs/plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19)
 - ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
 - 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
-- 進捗・タスク管理: [GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)
+- 進捗・タスク管理: [GitHub Issues](https://github.com/shinma06/cursor-agent-plugin/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)
 
 - Android Studioで実際に確認した範囲と追加タスク: [実機UI追補](docs/research/android-studio-ui-followup-2026-09-05.md)

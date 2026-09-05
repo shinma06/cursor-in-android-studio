@@ -9,3 +9,7 @@ out/
 local.properties
 .tmp-jar-inspect/
 log.log
+
+# Local GUI runs contain screenshots, app metadata, and disposable repositories.
+.loop-runs/
+__pycache__/

@@ -5,44 +5,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Multi-agent collaboration model
 
-This repo is worked on by more than one AI coding agent — Claude Code and Cursor's own
-`cursor-agent` (running under a Teams plan, used by the plugin's actual target users) — with **no
-fixed role split**. Whichever agent is active at a given moment picks up whatever work is next;
-neither has visibility into the other's local session history or scratch state, so **GitHub Issues
-on this repo is the shared source of truth for task status**, not any agent-local plan/todo file.
-There's also no branch-protection/PR workflow here — everything lands on `main` directly, which
-matters because two agents can be live on this repo at the same time. Concretely, every session
-should:
+**2026-09-06: GPT-led GUI loop.** GPT (ChatGPT desktop / Codex) is the coordinator,
+main implementation/integration owner, and sole Computer Use operator. Claude Pro is the
+independent reviewer and may implement explicitly delegated work in a separate checkout.
+Cursor Pro is primarily the agent under test: GPT operates Cursor IDE and this plugin through
+GUI tasks to compare real UX. The human owns priorities, login/OS permissions, and subjective
+acceptance. This supersedes the earlier “no fixed roles” arrangement.
 
-1. **Before starting work**: check the tracking issue (#1) and the specific milestone issue for
-   current status, then `git pull` (or `git fetch` + check `git log origin/main` against local
-   HEAD) — another agent may have pushed since your last sync, and starting from a stale HEAD is
-   how you end up redoing work or reverting someone else's fix without realizing it.
-2. **Claim the work before doing it**: leave a short comment on the issue (e.g. "Starting M4") so
-   a concurrent session doesn't pick up the same issue. This is the only coordination signal that
-   exists — issues currently carry no labels/assignees, so a comment is the actual mechanism, not
-   just a nicety.
-3. **Before pushing**: `git pull` again if meaningful time has passed since step 1. If a push is
-   rejected as non-fast-forward, that means someone else landed work in the meantime — stop and
-   reconcile (merge/rebase, re-read what changed) rather than force-pushing over it.
-4. **After finishing**: update the issue's checklist and leave a closing comment, and update
-   `CLAUDE.md`/the requirements doc if what you built changes the "current implementation status"
-   or "verified CLI behavior" sections — those are read as ground truth by the next session
-   (agent or human), so a stale claim there is actively worse than no claim at all.
-5. **When the change needs human-only verification** (runIde, Swing UI, OS notifications, etc.):
-   add or update rows in [`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md)
-   instead of dumping a long QA checklist only in chat. See [`.cursor/rules/manual-verification.mdc`](.cursor/rules/manual-verification.mdc).
+Read [the loop protocol](docs/loop-engineering/README.md) for every loop; the human entrypoint is
+[the runbook](docs/loop-engineering/human-runbook.md). GitHub Issues remain the shared source of
+truth; local run records are evidence, not a second backlog. There is no branch-protection/PR
+requirement: GPT integrates to `main`, with one writer and one GUI operator at a time.
+
+1. **Before work**: read #1 and the target Issue/comments, inspect `git status`, then fetch and
+   compare with `origin/main`. Preserve existing local edits; don't pull/stash/reset over them.
+2. **Claim the scope** in an Issue comment before implementation, including owner, base SHA,
+   files, reviewer, GUI operator, and loop budget. An unfinished claim is not expired merely
+   because time passed. Read-only reviewers do not claim or push independently.
+3. **Delegate explicitly**: Claude receives bounded review materials or a separate checkout,
+   assigned files, and acceptance criteria. GPT integrates returned commits after reviewing them.
+   Cursor GUI edits use disposable fixtures; never run destructive QA against the plugin source.
+4. **Verify**: run unit tests and observe affected GUI cases via Computer Use (or human fallback).
+   Keep [matrix.md](docs/manual-verification/matrix.md) current. Record build identity, actual
+   observations, and evidence; CLI success is not GUI pass. Capture errors are `blocked`.
+5. **Before pushing**: fetch again and reconcile any new `origin/main` commits. Never force push
+   or bypass failing hooks. GPT updates the Issue checklist, evidence summary, and ground-truth
+   docs after integration. Pending GUI acceptance remains open, even if code has landed.
 
 If you're a fresh agent with zero context on this repo: read this whole file, then
 `docs/cursor-agent-plugin-requirements.md`, then the open GitHub issues, in that order, before
 touching any code — the "Current implementation status" and "Verified CLI behavior" sections below
 exist specifically so you don't have to re-derive them by reading every source file.
 
-`.claude/skills/start-work` and `.claude/skills/finish-work` encode steps 1–2 and 3–4 above as
-Claude Code skills, and `.claude/settings.json` allowlists some read-only commands this repo's
-work pattern uses often. Both are Claude-Code-specific (Cursor's agent can't read `.claude/`) — if
-you're Cursor's agent, the numbered rules above are the same information, just not automated for
-you.
+`.agents/skills/start-work` and `finish-work` serve GPT; `.claude/skills/` contains the
+matching Claude entrypoints. Cursor follows this file and `.cursor/rules/loop-engineering.mdc`.
+All route to the same loop protocol. Existing user authorization applies; routine reversible
+work within an assigned scope does not require repeated confirmation.
 
 ## What this is
 
@@ -61,6 +59,13 @@ The verification account used for the **original M0 spike** was Cursor **Free ti
 2026-09-04 with `~/.local/bin/agent` logged in as a Teams account: plain chat, file edits, and
 shell tool calls all succeed and produce rich `tool_call` events (`readToolCall`/`editToolCall`/
 `shellToolCall` with `subtype` `started`/`completed`).
+
+**2026-09-06**: the primary maintainer's own account moved off Free tier to a **Cursor Pro**
+subscription, independent of the Teams-plan finding above. Going forward, day-to-day development
+and verification on this repo happens on **Pro or Teams plan** accounts — Free tier is no longer
+in the loop for anyone actively working on this project, so don't design around or re-verify the
+Free-tier `resource_exhausted` limitation unless someone specifically reintroduces a Free-tier
+account into testing.
 
 **Critical CLI behavior for M4 design (verified live):** in headless subprocess mode, file edits
 are **applied immediately by the CLI even without `--force`** (`permissionMode: default`). The
@@ -390,7 +395,7 @@ F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
 `TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
 returns a helpful placeholder if none is available.
 
-**Manual verification (runIde, Swing UI)**: tracked in
+**GUI verification (Computer Use first, human fallback)**: tracked in
 [`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md) — Enter/Shift+Enter,
-`@` popup, diff cards, notifications, etc. Agents must keep that file current; humans fill in
-`Status` / `Verified by` / `Date` after `./gradlew runIde`.
+`@` popup, diff cards, notifications, etc. Agents must keep that file current; GPT or the human observer fills in `Status` / `Verified by` / `Date` with build identity and evidence.
+The #29 loop infrastructure does not complete the pending product QA in #5/#19–#28.
