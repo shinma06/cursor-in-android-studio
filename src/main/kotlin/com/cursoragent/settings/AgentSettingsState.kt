@@ -14,11 +14,9 @@ enum class AgentMode(val cliValue: String?) {
 }
 
 /**
- * The CLI's real approval model is 3-way, not a single force on/off switch (F-22
- * was redesigned into this per requirements doc §6.3, based on `agent --help` and
- * the CLI changelog): default confirms every tool call, `--auto-review` lets a
- * server-side classifier auto-run calls it judges safe and still asks about the
- * rest, and `--force`/`--yolo` runs everything unattended.
+ * Existing three-way CLI flag mapping (F-22/F-24). These labels do not guarantee
+ * interactive approval in a headless process: live verification found immediate
+ * edits even with no permission flag. The plugin offers post-edit Revert only.
  */
 enum class PermissionMode(val cliArg: String?, val label: String) {
     ASK_EVERY_TIME(null, "Ask Every Time"),
@@ -43,8 +41,8 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     var agentExecutablePath: String = ""
     var selectedModel: String = ""
     var mode: AgentMode = AgentMode.AGENT
-    // Defaults to the safest option -- must not silently default to auto-approving
-    // file changes (this was the explicit safety requirement behind F-22).
+    // Preserve the no-extra-approval-flag default. This does not prevent immediate
+    // headless CLI edits; never silently opt users into --auto-review or --force.
     var permissionMode: PermissionMode = PermissionMode.ASK_EVERY_TIME
     var sandboxMode: SandboxMode = SandboxMode.DEFAULT
     var worktreeMode: WorktreeMode = WorktreeMode.DEFAULT

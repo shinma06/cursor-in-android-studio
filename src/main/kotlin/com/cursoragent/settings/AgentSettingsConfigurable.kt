@@ -1,5 +1,6 @@
 package com.cursoragent.settings
 
+import com.cursoragent.ui.ImmediateEditNotice
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -36,6 +37,7 @@ class AgentSettingsConfigurable : Configurable {
         )
 
         panel = FormBuilder.createFormBuilder()
+            .addComponent(ImmediateEditNotice())
             .addLabeledComponent("Agent executable path:", agentPathField!!)
             .addComponent(notifyOnTurnCompleteBox!!)
             .addComponent(notifyOnApprovalPendingBox!!)

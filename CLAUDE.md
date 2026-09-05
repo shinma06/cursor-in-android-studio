@@ -192,8 +192,8 @@ persisted side-channel read by both the service and the UI.
   (`AgentMode`: ASK/AGENT/PLAN, each mapping to a `--mode` CLI value or `null` for default agent
   mode), and `permissionMode` (`PermissionMode`: ASK_EVERY_TIME/AUTO_REVIEW/RUN_EVERYTHING, mapping
   to no flag / `--auto-review` / `--force`). **Must default to `ASK_EVERY_TIME`** — a deliberate
-  safety requirement from the requirements doc, not an oversight, to prevent unattended file
-  changes. This replaced an earlier binary `forceEnabled` toggle once research showed the CLI's
+  compatibility/safety requirement to avoid silently adding `--auto-review` or `--force`.
+  It does not prevent immediate headless file edits. This replaced an earlier binary `forceEnabled` toggle once research showed the CLI's
   real approval model is 3-way (requirements doc F-22/F-24, 2026-09).
 - **`ui/composer/`, `ui/header/`, `ui/timeline/`** — plain Swing/JBUI view components with no CLI
   knowledge; they expose callbacks (`onSend`, `onNewChat`) and mutation methods
@@ -327,6 +327,11 @@ CLI behavior" above). `./gradlew test` was green throughout (40 tests after this
 cases).
 
 ## Current implementation status vs. requirements doc
+
+**#20 partial implementation (2026-09-06):** Composer and Settings share an `ImmediateEditNotice`
+explaining that edits can apply immediately even with Ask Every Time, and Revert is post-edit undo.
+Permission values/defaults and CLI arguments are unchanged. Identified-build GUI acceptance remains
+pending; this does not resolve the isolated-worktree/checkpoint mismatch or complete #20.
 
 **UI parity follow-up (2026-09-05; no feature implementation):** the read-only Cursor UI survey is
 [`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).

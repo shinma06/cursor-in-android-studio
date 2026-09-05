@@ -149,6 +149,8 @@ Android Studio(IntelliJ Platform)上に、**Cursor IDEのAgentタブと可能な
 
 ### 6.4 実行結果の可視化・適用
 
+`[2026-09-06 / #20部分実装]` 入力付近とSettingsに、Ask Every Timeでも即時編集が起こり得ることとRevertが事後undoであることを共通表示する。権限設定値・CLI引数は変更していない。識別済みビルドでのGUI受入は未完了。Worktree復元整合性など#20の残条件は引き続き未完了。
+
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
 | F-30 | 差分プレビュー(IDE純正Diff Viewerで表示) | MVP(**実装済み 2026-09**) | `ToolCallPayloadParser`が完了した`editToolCall`イベントから`FileEditDetails`(before/after/diff)を抽出、`ui/timeline/FileEditCard.kt`の View Diff から`DiffManager`/`DiffContentFactory`で表示 |

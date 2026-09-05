@@ -1,6 +1,7 @@
 package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.ui.ImmediateEditNotice
 import com.cursoragent.ui.composer.mention.MentionPopupController
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
@@ -101,7 +102,17 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
         add(accessoryPanel, BorderLayout.NORTH)
         add(inputWrapper, BorderLayout.CENTER)
-        add(controls, BorderLayout.SOUTH)
+        add(
+            JPanel(BorderLayout()).apply {
+                isOpaque = false
+                add(controls, BorderLayout.NORTH)
+                add(
+                    ImmediateEditNotice().apply { border = JBUI.Borders.emptyTop(8) },
+                    BorderLayout.SOUTH,
+                )
+            },
+            BorderLayout.SOUTH,
+        )
     }
 
     fun setInputEnabled(enabled: Boolean) {

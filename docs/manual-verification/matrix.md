@@ -83,3 +83,11 @@ MV-032はこの幅での表示結果。ツールチップ等で補完する仕�
 | MV-036 | `main`（run SHA参照） | - / #29 | GUIループの接続・fixture切替 | prepareのfixtureを両IDEで開き、LOOP_FIXTURE.txtのrunと面を確認 | 別のソースツリーへの誤送信を防ぎ、同じ初期状態でGUI課題へ進める | blocked | GPT / CUA: 両アプリの画面取得、CursorのOpen操作を確認。fixture切替結果を確認できず送信未実施。[試運転記録](../loop-engineering/runs/2026-09-06-bootstrap.md) | 2026-09-06 |
 
 MV-036は接続環境の結果で、製品のfailではない。#29の基盤実装完了と、実際のGUIサイクル完走は区別する。
+
+## G. #20 即時編集・事後Revertの説明
+
+| ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
+|----|--------|-----|------|------|----------|--------|-------------|------|
+| MV-037 | `main`（run SHA参照） | - / #20 | 入力付近・設定の即時編集説明 | 識別済みビルドのfixtureでComposer（約350px幅と広幅）とSettings → Tools → Cursor Agentを表示。説明を読み、設定変更なしで閉じる | Ask Every Timeでも即時編集が起こり得ること、Revertが事後undoであることが両画面で省略なく読める。入力・Sendが使用可能で、説明表示だけではApplyが有効化されない | pending | | |
+
+MV-037は説明表示だけの受入。MV-024/021/023の実送信・編集・復元、および#20のWorktree復元整合性を代替しない。
