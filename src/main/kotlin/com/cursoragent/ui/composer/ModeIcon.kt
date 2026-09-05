@@ -1,6 +1,7 @@
 package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentMode
+import com.cursoragent.ui.AgentUiColors
 import com.intellij.util.ui.JBUI
 import java.awt.BasicStroke
 import java.awt.Component
@@ -19,7 +20,7 @@ internal class ModeIcon(private val mode: AgentMode) : Icon {
             copy.translate(x, y)
             copy.scale(iconWidth / 16.0, iconHeight / 16.0)
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            copy.color = c.foreground
+            copy.color = if (c.isEnabled) c.foreground else AgentUiColors.mutedText
             copy.stroke = BasicStroke(1.25f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             when (mode) {
                 AgentMode.AGENT -> copy.draw(Path2D.Double().apply {

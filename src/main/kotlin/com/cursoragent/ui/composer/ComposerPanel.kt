@@ -36,7 +36,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         horizontalAlignment = javax.swing.SwingConstants.CENTER
         toolTipText = "送信（Enter）"
         preferredSize = JBUI.size(24, 24)
-        font = font.deriveFont(JBUI.scale(16).toFloat())
+        font = font.deriveFont(font.size2D * 4f / 3f)
         isBorderPainted = false
         isContentAreaFilled = false
         margin = JBUI.emptyInsets()
