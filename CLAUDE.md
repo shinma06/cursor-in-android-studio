@@ -323,6 +323,18 @@ cases).
 
 ## Current implementation status vs. requirements doc
 
+**UI parity follow-up (2026-09-05; planning only):** the read-only Cursor UI survey is
+[`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).
+The ordered gap plan and acceptance criteria are in
+[`docs/plans/cursor-agent-ui-gap-plan.md`](docs/plans/cursor-agent-ui-gap-plan.md), tracked by
+[issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19) under #1.
+These are proposed changes, not implemented features. Cursor UI shows four Run Mode options;
+this does not prove matching headless CLI behavior or invalidate the immediate-write finding above.
+Start with permission/sandbox clarity and the known isolated-worktree/checkpoint mismatch, then
+input actions, transcript persistence, review/status/queue UX, and context controls. Keep existing
+#5 manual QA and #10 multimodal work rather than duplicating them. New execution-based verification
+is separate from the read-only UI evidence and requires an appropriate authorized test scope.
+
 The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
 with feature IDs (F-01, F-02, ...); the live milestone tracker is **the tracking issue's own
 checklist and its child issues** (GitHub issue #1 — see "Multi-agent collaboration model" above),

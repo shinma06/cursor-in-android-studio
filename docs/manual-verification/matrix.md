@@ -2,6 +2,10 @@
 
 **更新ルール**: エージェントが人間確認が必要な変更を入れたら行を追加。人間が確認したら `Status` / `Verified by` / `Date` を更新。
 
+**UI差分計画（2026-09-05）**: [取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [#19](https://github.com/shinma06/cursor-agent-plugin/issues/19)。
+今回追加したのは調査記録と計画のみ。以下の既存QAは未実施のまま、新機能用の行は各 UX Issue の実装時に実際の Branch・手順を確定して追加する。
+Cursor の閲覧調査を、このプラグインの `pass` や実行・送信を伴う検証の実施許可と扱わない。
+
 **推奨ブランチ（2026-09-04 時点）**: `feature/f23-sandbox-prompt-builder` — PR [#18](https://github.com/shinma-postas/cursor-agent-plugin/pull/18)（#16 / #17 を包含。マージ後は #16/#17 を close）
 
 ---

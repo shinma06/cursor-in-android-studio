@@ -6,6 +6,12 @@
 - **Assumed環境**: Kotlin 2.x / Android Studio (最新安定版) / IntelliJ Platform 2023.1+ 系API / cursor-agent CLI 2026年7月時点仕様
 - **開発方式**: 方式B(ネイティブUI方式) — `agent -p --output-format stream-json` をサブプロセス実行し、独自Swing/JBUI製チャットパネルに描画する
 
+**2026-09-05 UI比較の追補（計画・未実装）**: [閲覧調査46項目](research/cursor-agent-ui-survey-2026-09-05.md)と
+[差分取り込み計画](plans/cursor-agent-ui-gap-plan.md)を追加。
+UI-xx は観測ID、UX-xx は取り込み単位であり、既存 F-xx を置換しない。
+優先順・依存関係・受入条件は計画、実際の進捗は [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19) と子 Issue を参照する。
+Cursor のメニュー存在と headless CLI の対応は別の証拠であり、今回の閲覧で CLI 動作や既存の手動QAを検証済みに変更しない。
+
 ---
 
 ## 1. 背景・目的
@@ -345,6 +351,9 @@ agent mcp list
 
 ## 次のアクション
 
-`[2026-09改訂]` 唯一の残ブロッカーは **M0のforce ON/OFF書き込みタイミング検証**(Freeプランのクォータ枯渇で保留中)。これが解消され次第、F-30〜32(diff Apply/Reject、tool_call結果表示)と、実データに基づく`dedupeAssistantChunk`ロジックの検証を最優先で行う。
+`[2026-09-05訂正]` M0の即時書込み検証、F-30〜32、sandbox基本選択、通知は PR #18 までに完了している。
+旧来のブロッカー記述を次の作業選択に使わない。既存の残作業は #5 の手動QAと #10 の画像/音声対応判断。
 
-クォータに依存しない残作業としては、F-23/F-24(sandbox/auto-reviewによる権限モデル再設計)とデスクトップ通知(§6.9)が実装コスト対効果が高く、次の着手候補。
+UI差分の新規取り込みは [計画書](plans/cursor-agent-ui-gap-plan.md) の UX-01（権限・sandbox表示とWorktree復元整合性）から進める。
+以降は入力操作、本文履歴、状態/レビュー/キュー、コンテキスト導線の順とする。
+Debug/Multitask/権限個別制御などは CLI 検証ゲートを通す。計画作成は機能実装・実行検証の完了を意味しない。

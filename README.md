@@ -39,6 +39,8 @@ export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+�
 
 ## 開発
 
+- UI比較の証跡: [Cursor Agent UI 閲覧調査（2026-09-05）](docs/research/cursor-agent-ui-survey-2026-09-05.md)
+- 次の対応順・優先度・受入条件: [UI差分取り込み計画](docs/plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-agent-plugin/issues/19)
 - ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
 - 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
 - 進捗・タスク管理: [GitHub Issues](https://github.com/shinma-postas/cursor-agent-plugin/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)
