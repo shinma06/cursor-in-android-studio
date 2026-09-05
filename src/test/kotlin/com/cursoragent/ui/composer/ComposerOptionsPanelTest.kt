@@ -11,6 +11,25 @@ import javax.swing.SwingUtilities
 
 class ComposerOptionsPanelTest {
     @Test
+    fun `settings values use spare row width and actions have explicit Japanese labels`() = SwingUtilities.invokeAndWait {
+        val panel = ComposerOptionsPanel(AgentSettingsState(), false, {}, {}, {}, {})
+        fun layout(container: java.awt.Container) {
+            container.doLayout()
+            container.components.filterIsInstance<java.awt.Container>().forEach(::layout)
+        }
+        for (width in listOf(350, 420)) {
+            panel.setSize(width, panel.preferredSize.height)
+            layout(panel)
+            for (choice in listOf(panel.permissionChoice, panel.sandboxChoice, panel.worktreeChoice)) {
+                assertTrue(choice.width > choice.preferredSize.width + 20, choice.text)
+            }
+        }
+        val labels = panel.components.filterIsInstance<JButton>().map { it.text }
+        assertTrue("このセッションの内容を要約" in labels)
+        assertTrue("MCPサーバー設定" in labels)
+    }
+
+    @Test
     fun `opening settings preserves saved policies and does not invoke any actions`() = SwingUtilities.invokeAndWait {
         val settings = AgentSettingsState().apply {
             permissionMode = PermissionMode.AUTO_REVIEW
@@ -47,7 +66,7 @@ class ComposerOptionsPanelTest {
         val panel = ComposerOptionsPanel(AgentSettingsState(), true,
             { calls.add("summarize") }, {}, { calls.add("settings") }, { calls.add("close") })
         val buttons = panel.components.filterIsInstance<JButton>()
-        val summarize = buttons.first { it.text == "会話を要約" }
+        val summarize = buttons.first { it.text == "このセッションの内容を要約" }
         assertFalse(summarize.isEnabled)
         summarize.doClick()
         assertTrue(calls.isEmpty())

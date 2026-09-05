@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 class ModelSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
+    private val popupController = SelectorPopupController(this)
     private var models: List<ModelOption> = emptyList()
     private var lastManualModelId: String? = settings.selectedModel.takeUnless { it == "auto" || it.isEmpty() }
 
@@ -17,23 +18,30 @@ class ModelSelector(
         text = "Loading models…"
         toolTipText = text
         addActionListener {
-            var popup: JBPopup? = null
-            val content = ModelPopupPanel(models, settings.selectedModel, lastManualModelId, onSelect = { option ->
-                settings.selectedModel = option.id
-                if (option.id != "auto") lastManualModelId = option.id
-                showSelection(option)
-            }, onClose = { popup?.cancel() }, onResize = {
-                popup?.pack(true, true)
-                popup?.moveToFitScreen()
-            })
-            popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.searchField)
-                .setFocusable(true)
-                .setRequestFocus(true)
-                .setCancelOnClickOutside(true)
-                .setCancelKeyEnabled(true)
-                .createPopup()
-            popup.showUnderneathOf(this)
-            content.modelList.ensureIndexIsVisible(content.modelList.selectedIndex)
+            popupController.toggle {
+                var popup: JBPopup? = null
+                val content = ModelPopupPanel(models, settings.selectedModel, lastManualModelId, onSelect = { option ->
+                    settings.selectedModel = option.id
+                    if (option.id != "auto") lastManualModelId = option.id
+                    showSelection(option)
+                }, onClose = { popup?.cancel() }, onResize = {
+                    popupController.repackAbove()
+                })
+                popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.searchField)
+                    .setFocusable(true)
+                    .setRequestFocus(true)
+                    .setCancelOnClickOutside(true)
+                    .setCancelOnWindowDeactivation(true)
+                    .setCancelOnOtherWindowOpen(true)
+                    .setCancelKeyEnabled(true)
+                    .createPopup()
+                popup.addListener(object : com.intellij.openapi.ui.popup.JBPopupListener {
+                    override fun beforeShown(event: com.intellij.openapi.ui.popup.LightweightWindowEvent) {
+                        content.modelList.ensureIndexIsVisible(content.modelList.selectedIndex)
+                    }
+                })
+                popup
+            }
         }
     }
 

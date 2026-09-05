@@ -73,7 +73,7 @@ open class SelectorButton : JButton() {
             val iconRect = Rectangle()
             val textRect = Rectangle()
             val label = SwingUtilities.layoutCompoundLabel(
-                this, copy.fontMetrics, text.orEmpty(), icon, SwingConstants.CENTER, horizontalAlignment,
+                this, getFontMetrics(font), text.orEmpty(), icon, SwingConstants.CENTER, horizontalAlignment,
                 SwingConstants.CENTER, SwingConstants.RIGHT, view, iconRect, textRect, iconTextGap,
             )
             val content = copy.create() as Graphics2D

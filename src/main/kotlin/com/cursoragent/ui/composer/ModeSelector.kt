@@ -17,36 +17,44 @@ import javax.swing.UIManager
 class ModeSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
+    private val popupController = SelectorPopupController(this)
+
     init {
         showsChevron = true
         refreshLabel()
         addActionListener {
-            val renderer = DefaultListCellRenderer()
-            JBPopupFactory.getInstance()
-                .createPopupChooserBuilder(listOf(AgentMode.AGENT, AgentMode.PLAN, AgentMode.ASK))
-                .setSelectedValue(settings.mode, true)
-                .setRenderer { list, value, index, selected, focus ->
-                    val label = renderer.getListCellRendererComponent(list, label(value), index, selected, focus) as JLabel
-                    label.font = AgentUiMetrics.textFont()
-                    label.background = if (selected) AgentUiColors.userBubbleBackground else AgentUiColors.panelBackground
-                    label.foreground = UIManager.getColor("Label.foreground")
-                    label.icon = ModeIcon(value)
-                    label.iconTextGap = JBUI.scale(9)
-                    JPanel(BorderLayout()).apply {
-                        getAccessibleContext().accessibleName = label(value)
-                        background = label.background
-                        foreground = label.foreground
-                        border = JBUI.Borders.empty(5, 8)
-                        preferredSize = JBUI.size(190, 28)
-                        add(label, BorderLayout.CENTER)
-                        add(JLabel(if (value == settings.mode) "✓" else "").apply {
+            popupController.toggle {
+                val renderer = DefaultListCellRenderer()
+                JBPopupFactory.getInstance()
+                    .createPopupChooserBuilder(listOf(AgentMode.AGENT, AgentMode.PLAN, AgentMode.ASK))
+                    .setSelectedValue(settings.mode, true)
+                    .setRequestFocus(true)
+                    .setCancelOnClickOutside(true)
+                    .setCancelOnWindowDeactivation(true)
+                    .setCancelOnOtherWindowOpen(true)
+                    .setCancelKeyEnabled(true)
+                    .setRenderer { list, value, index, selected, focus ->
+                        val label = renderer.getListCellRendererComponent(list, label(value), index, selected, focus) as JLabel
+                        label.font = AgentUiMetrics.textFont()
+                        label.background = if (selected) AgentUiColors.userBubbleBackground else AgentUiColors.panelBackground
+                        label.foreground = UIManager.getColor("Label.foreground")
+                        label.icon = ModeIcon(value)
+                        label.iconTextGap = JBUI.scale(9)
+                        JPanel(BorderLayout()).apply {
+                            getAccessibleContext().accessibleName = label(value)
+                            background = label.background
                             foreground = label.foreground
-                        }, BorderLayout.EAST)
+                            border = JBUI.Borders.empty(5, 8)
+                            preferredSize = JBUI.size(190, 28)
+                            add(label, BorderLayout.CENTER)
+                            add(JLabel(if (value == settings.mode) "✓" else "").apply {
+                                foreground = label.foreground
+                            }, BorderLayout.EAST)
+                        }
                     }
-                }
-                .setItemChosenCallback(::selectMode)
-                .createPopup()
-                .showUnderneathOf(this)
+                    .setItemChosenCallback(::selectMode)
+                    .createPopup()
+            }
         }
     }
 
@@ -67,7 +75,7 @@ class ModeSelector(
         pillColor = when (settings.mode) {
             AgentMode.PLAN -> JBColor(Color(0xF8E8CF), Color(0x514330))
             AgentMode.ASK -> JBColor(Color(0xDCF0E3), Color(0x293F32))
-            AgentMode.AGENT -> AgentUiColors.userBubbleBackground
+            AgentMode.AGENT -> JBColor(Color(0xE3E3E3), Color(0x383838))
         }
         toolTipText = "Mode: $name"
         getAccessibleContext().accessibleName = toolTipText

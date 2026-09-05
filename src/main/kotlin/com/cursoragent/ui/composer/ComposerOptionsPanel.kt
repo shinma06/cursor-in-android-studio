@@ -50,7 +50,7 @@ internal class ComposerOptionsPanel(
         ),
     ) { settings.worktreeMode = it }
 
-    private val summarizeButton = action("会話を要約", "会話の内容を要約する依頼を送信します。") {
+    private val summarizeButton = action("このセッションの内容を要約", "会話の内容を要約する依頼を送信します。") {
         onClose()
         onSummarize()
     }
@@ -70,14 +70,14 @@ internal class ComposerOptionsPanel(
                 border = JBUI.Borders.empty(3, 8)
                 alignmentX = Component.LEFT_ALIGNMENT
                 maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(38))
-                add(JLabel(choice.caption).apply { labelFor = choice }, BorderLayout.CENTER)
-                add(choice, BorderLayout.EAST)
+                add(JLabel(choice.caption).apply { labelFor = choice }, BorderLayout.WEST)
+                add(choice.apply { horizontalAlignment = SwingConstants.RIGHT }, BorderLayout.CENTER)
             })
         }
         separator()
         add(summarizeButton)
         setRunning(isRunning)
-        add(action("MCPサーバー…", "外部ツールとの接続を確認・管理します。") {
+        add(action("MCPサーバー設定", "外部ツールとの接続を確認・管理します。") {
             onClose()
             onMcp()
         })

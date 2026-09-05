@@ -359,6 +359,10 @@ geometric centered chevrons. Selector hit widths come from the painted content, 
 button delegate minimum widths. Final `2fe07ae` is installed; compact geometry and input growth
 were observed, but popup/margin-click GUI QA is blocked by CUA. [MV-041 run](docs/loop-engineering/runs/2026-09-06-compact-ui.md)
 tracks this sizing follow-up independently of MV-039.
+The next follow-up uses remaining settings-row width for Japanese current values, renames session
+summarize/MCP settings actions, and opens mode/model popups above a visible trigger. A shared
+controller handles same-trigger toggling, external-focus dismissal and model-popup resizing; Agent
+has a distinct gray pill. MV-042 tracks this follow-up.
 
 **#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
 always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
