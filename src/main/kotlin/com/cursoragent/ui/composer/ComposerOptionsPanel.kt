@@ -50,6 +50,11 @@ internal class ComposerOptionsPanel(
         ),
     ) { settings.worktreeMode = it }
 
+    private val summarizeButton = action("会話を要約", "会話の内容を要約する依頼を送信します。") {
+        onClose()
+        onSummarize()
+    }
+
     init {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
         background = AgentUiColors.panelBackground
@@ -65,15 +70,13 @@ internal class ComposerOptionsPanel(
                 border = JBUI.Borders.empty(3, 8)
                 alignmentX = Component.LEFT_ALIGNMENT
                 maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(38))
-                add(JLabel(choice.caption), BorderLayout.CENTER)
+                add(JLabel(choice.caption).apply { labelFor = choice }, BorderLayout.CENTER)
                 add(choice, BorderLayout.EAST)
             })
         }
         separator()
-        add(action("会話を要約", "会話の内容を要約する依頼を送信します。", !isRunning) {
-            onClose()
-            onSummarize()
-        })
+        add(summarizeButton)
+        setRunning(isRunning)
         add(action("MCPサーバー…", "外部ツールとの接続を確認・管理します。") {
             onClose()
             onMcp()
@@ -109,15 +112,19 @@ internal class ComposerOptionsPanel(
         })
     }
 
-    private fun action(label: String, help: String, enabled: Boolean = true, callback: () -> Unit) = SelectorButton().apply {
+    fun setRunning(running: Boolean) {
+        summarizeButton.isEnabled = !running
+        summarizeButton.toolTipText = if (running) "応答の完了後に会話を要約できます。" else "会話の内容を要約する依頼を送信します。"
+    }
+
+    private fun action(label: String, help: String, callback: () -> Unit) = SelectorButton().apply {
         text = label
-        toolTipText = if (enabled) help else "応答の完了後に会話を要約できます。"
+        toolTipText = help
         getAccessibleContext().accessibleName = label
         horizontalAlignment = SwingConstants.LEFT
         alignmentX = Component.LEFT_ALIGNMENT
         maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(32))
         preferredSize = JBUI.size(330, 32)
-        isEnabled = enabled
         addActionListener { callback() }
     }
 }

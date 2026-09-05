@@ -51,6 +51,11 @@ class ComposerOptionsPanelTest {
         assertFalse(summarize.isEnabled)
         summarize.doClick()
         assertTrue(calls.isEmpty())
+        panel.setRunning(false)
+        assertTrue(summarize.isEnabled)
+        summarize.doClick()
+        assertEquals(listOf("close", "summarize"), calls)
+        calls.clear()
         buttons.first { it.text == "プラグイン設定…" }.doClick()
         assertEquals(listOf("close", "settings"), calls)
     }

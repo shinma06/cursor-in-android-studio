@@ -12,6 +12,8 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.JBPopupListener
+import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.FlowLayout
@@ -23,6 +25,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
     private var isRunning = false
+    private var optionsPanel: ComposerOptionsPanel? = null
 
     val inputArea = GrowingPromptField(project)
 
@@ -96,6 +99,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun setRunning(running: Boolean) {
         isRunning = running
+        optionsPanel?.setRunning(running)
         sendButton.text = if (running) "■" else "↑"
         sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
         sendButton.accessibleContext.accessibleName = sendButton.toolTipText
@@ -141,6 +145,12 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
                     .setCancelOnClickOutside(true)
                     .setCancelKeyEnabled(true)
                     .createPopup()
+                optionsPanel = content
+                popup.addListener(object : JBPopupListener {
+                    override fun onClosed(event: LightweightWindowEvent) {
+                        if (optionsPanel === content) optionsPanel = null
+                    }
+                })
                 popup.showUnderneathOf(this)
             }
         }
