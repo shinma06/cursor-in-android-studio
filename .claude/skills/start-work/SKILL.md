@@ -1,6 +1,6 @@
 ---
 name: start-work
-description: Begin implementation in cursor-agent-plugin by syncing, checking Issue claims, and assigning the GPT-led GUI loop scope.
+description: Begin implementation in Cursor in Android Studio by syncing, checking Issue claims, and assigning the GPT-led GUI loop scope.
 ---
 
 # Start work

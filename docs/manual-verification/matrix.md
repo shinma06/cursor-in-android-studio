@@ -129,4 +129,4 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
-| MV-043 | main | - / #30 | 正式名称と更新互換性 | 既存版を更新しPlugins/Settings/ツールウィンドウ/空状態を確認 | Cursor in Android Studioと表示。既存設定とウィンドウ配置を維持 | pending | GPT: 63 tests/buildPlugin成功、実機反映待ち | 2026-09-06 |
+| MV-043 | main | - / #30 | 正式名称と更新互換性 | 既存版を更新しPlugins/Settings/ツールウィンドウ/空状態を確認 | Cursor in Android Studioと表示。既存設定とウィンドウ配置を維持 | blocked | GPT / CUA: c5abde4反映。見出し・サイドバー・空状態の新名称と選択モデル/配置維持を確認。Settings/Pluginsは操作後も対象画面を取得できず未確認。[記録](../loop-engineering/runs/2026-09-06-rename.md) | 2026-09-06 |

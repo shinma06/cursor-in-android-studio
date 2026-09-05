@@ -1,6 +1,6 @@
 ---
 name: finish-work
-description: Finish assigned cursor-agent-plugin work with tests, evidence-backed GUI status, GPT integration, and Issue handoff.
+description: Finish assigned Cursor in Android Studio work with tests, evidence-backed GUI status, GPT integration, and Issue handoff.
 ---
 
 # Finish work
