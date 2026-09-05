@@ -19,7 +19,7 @@ class AssistantMessageBubble(initialText: String = "") : JPanel(BorderLayout()) 
 
     init {
         isOpaque = false
-        border = JBUI.Borders.empty(0, 10, 0, 10)
+        border = JBUI.Borders.empty(0, 8, 0, 8)
         add(contentLabel, BorderLayout.CENTER)
         if (initialText.isNotEmpty()) {
             setContent(initialText)

@@ -23,7 +23,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }.apply {
         layout = TranscriptLayout(JBUI.scale(14))
         isOpaque = false
-        border = JBUI.Borders.empty(8, 16, 16, 16)
+        border = JBUI.Borders.empty(6, 12, 12, 12)
     }
 
     private val emptyState = EmptyStatePanel()

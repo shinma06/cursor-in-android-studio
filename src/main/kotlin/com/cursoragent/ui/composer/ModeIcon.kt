@@ -11,8 +11,8 @@ import java.awt.geom.Path2D
 import javax.swing.Icon
 
 internal class ModeIcon(private val mode: AgentMode) : Icon {
-    override fun getIconWidth() = JBUI.scale(16)
-    override fun getIconHeight() = JBUI.scale(16)
+    override fun getIconWidth() = JBUI.scale(14)
+    override fun getIconHeight() = JBUI.scale(14)
     override fun paintIcon(c: Component, g: Graphics, x: Int, y: Int) {
         val copy = g.create() as Graphics2D
         try {

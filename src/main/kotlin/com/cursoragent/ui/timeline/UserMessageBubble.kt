@@ -21,7 +21,7 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
     init {
         isOpaque = false
         val bubble = com.cursoragent.ui.RoundedSurface(AgentUiColors.userBubbleBackground).apply {
-            border = AgentUiColors.bubbleBorder(10)
+            border = AgentUiColors.bubbleBorder(8)
             add(MessageTextPane().apply {
                 this.text = "<html><body>${escapeHtml(text).replace("\n", "<br>")}</body></html>"
             }, BorderLayout.CENTER)

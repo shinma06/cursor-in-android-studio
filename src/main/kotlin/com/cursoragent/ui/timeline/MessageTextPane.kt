@@ -1,9 +1,9 @@
 package com.cursoragent.ui.timeline
 
+import com.cursoragent.ui.AgentUiMetrics
 import com.intellij.util.ui.JBUI
 import java.awt.Dimension
 import javax.swing.JEditorPane
-import javax.swing.UIManager
 import javax.swing.text.View
 import javax.swing.text.html.HTMLEditorKit
 
@@ -23,7 +23,7 @@ class MessageTextPane : JEditorPane() {
             styleSheet.addRule("pre { margin: 6px 0; }")
         }
         putClientProperty(HONOR_DISPLAY_PROPERTIES, true)
-        font = UIManager.getFont("Label.font")
+        font = AgentUiMetrics.textFont()
         isEditable = false
         isOpaque = false
         border = JBUI.Borders.empty()

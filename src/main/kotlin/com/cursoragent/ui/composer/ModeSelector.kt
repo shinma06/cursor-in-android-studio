@@ -3,6 +3,7 @@ package com.cursoragent.ui.composer
 import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.AgentUiColors
+import com.cursoragent.ui.AgentUiMetrics
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
@@ -17,6 +18,7 @@ class ModeSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
     init {
+        showsChevron = true
         refreshLabel()
         addActionListener {
             val renderer = DefaultListCellRenderer()
@@ -25,6 +27,7 @@ class ModeSelector(
                 .setSelectedValue(settings.mode, true)
                 .setRenderer { list, value, index, selected, focus ->
                     val label = renderer.getListCellRendererComponent(list, label(value), index, selected, focus) as JLabel
+                    label.font = AgentUiMetrics.textFont()
                     label.background = if (selected) AgentUiColors.userBubbleBackground else AgentUiColors.panelBackground
                     label.foreground = UIManager.getColor("Label.foreground")
                     label.icon = ModeIcon(value)
@@ -34,7 +37,7 @@ class ModeSelector(
                         background = label.background
                         foreground = label.foreground
                         border = JBUI.Borders.empty(5, 8)
-                        preferredSize = JBUI.size(210, 30)
+                        preferredSize = JBUI.size(190, 28)
                         add(label, BorderLayout.CENTER)
                         add(JLabel(if (value == settings.mode) "✓" else "").apply {
                             foreground = label.foreground
@@ -54,7 +57,7 @@ class ModeSelector(
 
     private fun refreshLabel() {
         val name = label(settings.mode)
-        text = "$name  ⌄"
+        text = name
         icon = ModeIcon(settings.mode)
         foreground = when (settings.mode) {
             AgentMode.PLAN -> JBColor(Color(0x865000), Color(0xF2B45F))

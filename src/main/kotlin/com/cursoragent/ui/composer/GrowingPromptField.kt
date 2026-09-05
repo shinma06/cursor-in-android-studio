@@ -1,6 +1,7 @@
 package com.cursoragent.ui.composer
 
 import com.cursoragent.ui.AgentUiColors
+import com.cursoragent.ui.AgentUiMetrics
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
@@ -20,11 +21,12 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
 
     init {
         setOneLineMode(false)
+        font = AgentUiMetrics.textFont()
         setPlaceholder("Plan, Build, / for skills, @ for context")
         setShowPlaceholderWhenFocused(true)
-        border = JBUI.Borders.empty(10, 10, 4, 10)
+        border = JBUI.Borders.empty(8, 8, 3, 8)
         isOpaque = false
-        preferredSize = JBUI.size(100, 58)
+        preferredSize = JBUI.size(100, 48)
         addComponentListener(object : ComponentAdapter() {
             override fun componentResized(e: ComponentEvent) = scheduleResize()
         })
@@ -73,7 +75,7 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
             val lineHeight = activeEditor.lineHeight
             val contentHeight = activeEditor.offsetToXY(document.textLength).y + lineHeight
             val padding = insets.top + insets.bottom
-            val sizing = promptSizing(contentHeight, lineHeight, padding, JBUI.scale(58))
+            val sizing = promptSizing(contentHeight, lineHeight, padding, JBUI.scale(48))
             activeEditor.setVerticalScrollbarVisible(sizing.scrolls)
             if (preferredSize.height != sizing.height) {
                 preferredSize = Dimension(100, sizing.height)

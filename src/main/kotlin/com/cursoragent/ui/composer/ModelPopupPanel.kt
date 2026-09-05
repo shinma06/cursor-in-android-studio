@@ -2,6 +2,7 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.service.ModelOption
 import com.cursoragent.ui.AgentUiColors
+import com.cursoragent.ui.AgentUiMetrics
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
@@ -69,9 +70,10 @@ internal class ModelPopupPanel(
         background = AgentUiColors.panelBackground
         border = JBUI.Borders.empty(5)
         searchField.apply {
+            font = AgentUiMetrics.textFont()
             background = this@ModelPopupPanel.background
             border = JBUI.Borders.empty(5, 6, 8, 6)
-            preferredSize = JBUI.size(330, 32)
+            preferredSize = JBUI.size(300, 28)
             getAccessibleContext().accessibleName = "Search models"
         }
         val top = JPanel(BorderLayout()).apply {
@@ -84,7 +86,8 @@ internal class ModelPopupPanel(
                 border = JBUI.Borders.empty(5, 6)
                 val text = JPanel(BorderLayout(0, JBUI.scale(3))).apply {
                     isOpaque = false
-                    add(JLabel("Auto"), BorderLayout.NORTH)
+                    add(JLabel("Auto").apply { font = AgentUiMetrics.textFont() }, BorderLayout.NORTH)
+                    description.font = AgentUiMetrics.textFont()
                     description.foreground = AgentUiColors.mutedText
                     add(description, BorderLayout.CENTER)
                 }
@@ -98,11 +101,12 @@ internal class ModelPopupPanel(
         }
         add(top, BorderLayout.NORTH)
         modelList.apply {
+            font = AgentUiMetrics.textFont()
             background = this@ModelPopupPanel.background
             selectionBackground = AgentUiColors.userBubbleBackground
             selectionForeground = foreground
             selectionMode = ListSelectionModel.SINGLE_SELECTION
-            fixedCellHeight = JBUI.scale(32)
+            fixedCellHeight = JBUI.scale(28)
             getAccessibleContext().accessibleName = "Models"
             cellRenderer = object : DefaultListCellRenderer() {
                 override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int, selected: Boolean, focus: Boolean): java.awt.Component {
@@ -177,7 +181,7 @@ internal class ModelPopupPanel(
         modelList.selectedIndex = index ?: if (listModel.isEmpty) -1 else 0
         results.removeAll()
         results.add(if (listModel.isEmpty) noResults else scrollPane, BorderLayout.CENTER)
-        scrollPane.preferredSize = Dimension(JBUI.scale(330), minOf(listModel.size(), 8) * JBUI.scale(32) + JBUI.scale(2))
+        scrollPane.preferredSize = Dimension(JBUI.scale(300), minOf(listModel.size(), 8) * JBUI.scale(28) + JBUI.scale(2))
         revalidate()
         repaint()
         onResize()

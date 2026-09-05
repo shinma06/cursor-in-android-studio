@@ -140,6 +140,7 @@ internal class SettingsChoice<T>(
     private var selected = options.first { it.value == initial }
 
     init {
+        showsChevron = true
         refreshLabel()
         addActionListener {
             JBPopupFactory.getInstance().createPopupChooserBuilder(options)
@@ -173,7 +174,7 @@ internal class SettingsChoice<T>(
     }
 
     private fun refreshLabel() {
-        text = "${selected.label}  ⌄"
+        text = selected.label
         toolTipText = selected.explanation.replace('\n', ' ')
         getAccessibleContext().accessibleName = "$caption: ${selected.label}"
         revalidate()

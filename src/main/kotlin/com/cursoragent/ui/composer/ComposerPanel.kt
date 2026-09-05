@@ -35,8 +35,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         text = "↑"
         horizontalAlignment = javax.swing.SwingConstants.CENTER
         toolTipText = "送信（Enter）"
-        preferredSize = JBUI.size(28, 28)
-        font = font.deriveFont(18f)
+        preferredSize = JBUI.size(24, 24)
+        font = font.deriveFont(JBUI.scale(16).toFloat())
         isBorderPainted = false
         isContentAreaFilled = false
         margin = JBUI.emptyInsets()
@@ -53,7 +53,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     init {
-        border = JBUI.Borders.empty(6, 16, 10, 16)
+        border = JBUI.Borders.empty(5, 12, 8, 12)
         isOpaque = false
 
         val inputWrapper = RoundedSurface(AgentUiColors.composerBackground).apply {
@@ -71,7 +71,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
         val controls = JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
             isOpaque = false
-            border = JBUI.Borders.empty(0, 8, 8, 8)
+            border = JBUI.Borders.empty(0, 6, 6, 6)
             val selectors = JPanel(SelectorRowLayout()).apply {
                 isOpaque = false
                 add(modeSelector)
@@ -125,7 +125,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             horizontalAlignment = javax.swing.SwingConstants.CENTER
             toolTipText = "チャット設定"
             margin = JBUI.emptyInsets()
-            preferredSize = JBUI.size(26, 28)
+            preferredSize = JBUI.size(24, 24)
             isBorderPainted = false
             isContentAreaFilled = false
             foreground = AgentUiColors.mutedText

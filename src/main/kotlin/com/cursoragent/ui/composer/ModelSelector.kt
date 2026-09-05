@@ -12,6 +12,7 @@ class ModelSelector(
     private var lastManualModelId: String? = settings.selectedModel.takeUnless { it == "auto" || it.isEmpty() }
 
     init {
+        showsChevron = true
         isEnabled = false
         text = "Loading models…"
         toolTipText = text
@@ -53,7 +54,7 @@ class ModelSelector(
     }
 
     private fun showSelection(option: ModelOption) {
-        text = "${option.displayName()}  ⌄"
+        text = option.displayName()
         toolTipText = "${option.label} — ${option.id}"
         getAccessibleContext().accessibleName = "Model: ${option.label}"
         revalidate()

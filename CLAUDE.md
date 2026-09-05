@@ -354,6 +354,9 @@ row is narrow, preserving full label/ID in its tooltip. Agent/Plan/Ask have icon
 Input grows to 12 visual lines, then scrolls vertically, and uses the user-requested placeholder
 `Plan, Build, / for skills, @ for context`. Debug/Multitask, Add Models management, and skill execution
 are not added by this appearance change. MV-039 tracks identified-build GUI acceptance.
+A compact UI follow-up uses the IDE label font at 92%, smaller composer spacing/icons, and
+geometric centered chevrons. Selector hit widths come from the painted content, bypassing IDE
+button delegate minimum widths. MV-041 tracks this sizing follow-up independently of MV-039.
 
 **#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
 always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
