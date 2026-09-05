@@ -2,7 +2,6 @@ package com.cursoragent.ui.timeline
 
 import com.cursoragent.ui.AgentUiColors
 import com.intellij.icons.AllIcons
-import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import javax.swing.JButton
@@ -21,30 +20,18 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
 
     init {
         isOpaque = false
-        border = JBUI.Borders.empty(4, 4, 4, 4)
-
-        val bubble = JPanel(BorderLayout()).apply {
-            background = AgentUiColors.userBubbleBackground
-            border = AgentUiColors.bubbleBorder()
-            isOpaque = true
-            add(
-                JBLabel("<html>${escapeHtml(text).replace("\n", "<br>")}</html>").apply {
-                    border = JBUI.Borders.empty()
-                },
-                BorderLayout.CENTER,
-            )
+        val bubble = com.cursoragent.ui.RoundedSurface(AgentUiColors.userBubbleBackground).apply {
+            border = AgentUiColors.bubbleBorder(10)
+            add(MessageTextPane().apply {
+                this.text = "<html><body>${escapeHtml(text).replace("\n", "<br>")}</body></html>"
+            }, BorderLayout.CENTER)
+            add(rollbackButton.apply {
+                preferredSize = JBUI.size(24, 24)
+                minimumSize = preferredSize
+                margin = JBUI.emptyInsets()
+            }, BorderLayout.EAST)
         }
-
-        // Bubble stays right-aligned (chat-style) regardless of whether the
-        // rollback icon on the WEST edge is currently visible.
-        val bubbleWrapper = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            border = JBUI.Borders.emptyLeft(44)
-            add(bubble, BorderLayout.EAST)
-        }
-
-        add(rollbackButton, BorderLayout.WEST)
-        add(bubbleWrapper, BorderLayout.CENTER)
+        add(bubble, BorderLayout.CENTER)
     }
 
     fun setCheckpointAvailable(available: Boolean) {

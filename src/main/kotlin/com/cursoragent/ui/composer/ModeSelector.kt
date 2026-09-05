@@ -2,34 +2,40 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.AgentSettingsState
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.util.ui.JBUI
-import javax.swing.JComboBox
+import javax.swing.DefaultListCellRenderer
 
-class ModeSelector : JComboBox<AgentMode>(AgentMode.entries.toTypedArray()) {
+class ModeSelector : SelectorButton() {
     init {
-        renderer = object : javax.swing.DefaultListCellRenderer() {
-            override fun getListCellRendererComponent(
-                list: javax.swing.JList<*>?,
-                value: Any?,
-                index: Int,
-                isSelected: Boolean,
-                cellHasFocus: Boolean,
-            ): java.awt.Component {
-                val component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                text = when (value as? AgentMode) {
-                    AgentMode.ASK -> "Ask"
-                    AgentMode.AGENT -> "Agent"
-                    AgentMode.PLAN -> "Plan"
-                    null -> ""
-                }
-                return component
-            }
-        }
-
-        selectedItem = AgentSettingsState.getInstance().mode
+        preferredSize = JBUI.size(82, 26)
+        refreshLabel()
         addActionListener {
-            AgentSettingsState.getInstance().mode = selectedItem as AgentMode
+            val renderer = DefaultListCellRenderer()
+            JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(AgentMode.entries.toList())
+                .setRenderer { list, value, index, selected, focus ->
+                    renderer.getListCellRendererComponent(list, label(value), index, selected, focus)
+                }
+                .setItemChosenCallback { mode ->
+                    AgentSettingsState.getInstance().mode = mode
+                    refreshLabel()
+                }
+                .createPopup()
+                .showUnderneathOf(this)
         }
-        preferredSize = JBUI.size(90, 28)
+    }
+
+    private fun refreshLabel() {
+        val name = label(AgentSettingsState.getInstance().mode)
+        text = "$name  ⌄"
+        toolTipText = "Mode: $name"
+        accessibleContext.accessibleName = toolTipText
+    }
+
+    private fun label(mode: AgentMode): String = when (mode) {
+        AgentMode.ASK -> "Ask"
+        AgentMode.AGENT -> "Agent"
+        AgentMode.PLAN -> "Plan"
     }
 }

@@ -328,6 +328,8 @@ cases).
 
 ## Current implementation status vs. requirements doc
 
+**#19 static UI parity (2026-09-06):** conversation rows now use natural heights and viewport-width wrapping, full-width rounded user cards and unframed assistant text. Composer is a unified rounded surface with button-backed mode/model choosers; model labels/IDs are available in tooltips. `MessageTextPane` caches measured height by width/content/font. This changes the UI only; CLI permissions and rollback semantics are unchanged. Identified-build GUI acceptance is tracked as MV-038 in [the run](docs/loop-engineering/runs/2026-09-06-ui-parity.md); do not infer that all #19/#21/#27 acceptance is complete.
+
 **#20 partial implementation (2026-09-06):** Composer and Settings share an `ImmediateEditNotice`
 explaining that edits can apply immediately even with Ask Every Time, and Revert is post-edit undo.
 Permission values/defaults and CLI arguments are unchanged. Identified-build GUI acceptance remains

@@ -2,26 +2,36 @@ package com.cursoragent.ui.timeline
 
 import com.cursoragent.parser.FileEditDetails
 import com.cursoragent.parser.ParsedToolCall
+import com.cursoragent.ui.AgentUiColors
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Component
-import javax.swing.Box
-import javax.swing.BoxLayout
+import java.awt.Dimension
+import java.awt.Rectangle
 import javax.swing.JPanel
+import javax.swing.Scrollable
 import javax.swing.SwingUtilities
 
 class ChatTimelinePanel : JPanel(BorderLayout()) {
-    private val messagesPanel = JPanel().apply {
-        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+    private val messagesPanel = object : JPanel(), Scrollable {
+        override fun getPreferredScrollableViewportSize(): Dimension = preferredSize
+        override fun getScrollableUnitIncrement(r: Rectangle, orientation: Int, direction: Int) = JBUI.scale(16)
+        override fun getScrollableBlockIncrement(r: Rectangle, orientation: Int, direction: Int) = (r.height - JBUI.scale(24)).coerceAtLeast(1)
+        override fun getScrollableTracksViewportWidth() = true
+        override fun getScrollableTracksViewportHeight() = false
+    }.apply {
+        layout = TranscriptLayout(JBUI.scale(14))
         isOpaque = false
-        border = JBUI.Borders.empty(8, 0)
+        border = JBUI.Borders.empty(8, 16, 16, 16)
     }
 
     private val emptyState = EmptyStatePanel()
     private val scrollPane = JBScrollPane(messagesPanel).apply {
         border = JBUI.Borders.empty()
-        verticalScrollBar.unitIncrement = 16
+        verticalScrollBar.unitIncrement = JBUI.scale(16)
+        horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        viewport.background = AgentUiColors.panelBackground
     }
 
     private var currentAssistantBubble: AssistantMessageBubble? = null
@@ -84,7 +94,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     fun clearStatus() {
         currentStatusRow?.let { row ->
-            messagesPanel.remove(row)
+            removeRow(row)
             currentStatusRow = null
             revalidate()
             repaint()
@@ -142,7 +152,6 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     private fun addRow(component: Component) {
         messagesPanel.add(component)
-        messagesPanel.add(Box.createVerticalStrut(JBUI.scale(6)))
         revalidate()
         repaint()
         scrollToBottom()
@@ -152,9 +161,6 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         val index = messagesPanel.components.indexOf(component)
         if (index < 0) return
         messagesPanel.remove(index)
-        if (index < messagesPanel.componentCount && messagesPanel.getComponent(index) is Box.Filler) {
-            messagesPanel.remove(index)
-        }
         revalidate()
         repaint()
     }

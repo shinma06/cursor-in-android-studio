@@ -1,8 +1,8 @@
 package com.cursoragent.ui.timeline
 
-import com.cursoragent.ui.AgentUiColors
-import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
+import java.awt.BorderLayout
+import javax.swing.JPanel
 import org.commonmark.node.HtmlBlock
 import org.commonmark.node.HtmlInline
 import org.commonmark.node.Node
@@ -10,27 +10,17 @@ import org.commonmark.parser.Parser
 import org.commonmark.renderer.NodeRenderer
 import org.commonmark.renderer.html.HtmlNodeRendererContext
 import org.commonmark.renderer.html.HtmlRenderer
-import java.awt.BorderLayout
-import javax.swing.JPanel
 
 class AssistantMessageBubble(initialText: String = "") : JPanel(BorderLayout()) {
-    private val contentLabel = JBLabel().apply {
+    private val contentLabel = MessageTextPane().apply {
         border = JBUI.Borders.empty()
     }
     private val contentBuilder = StringBuilder(initialText)
 
     init {
         isOpaque = false
-        border = JBUI.Borders.empty(4, 4, 4, 48)
-
-        val bubble = JPanel(BorderLayout()).apply {
-            background = AgentUiColors.assistantBubbleBackground
-            border = AgentUiColors.bubbleBorder()
-            isOpaque = true
-            add(contentLabel, BorderLayout.CENTER)
-        }
-
-        add(bubble, BorderLayout.WEST)
+        border = JBUI.Borders.empty(0, 10, 0, 10)
+        add(contentLabel, BorderLayout.CENTER)
         if (initialText.isNotEmpty()) {
             setContent(initialText)
         }

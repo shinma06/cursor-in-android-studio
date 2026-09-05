@@ -12,6 +12,7 @@ class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
     init {
         border = JBUI.Borders.empty()
         isOpaque = true
+        background = AgentUiColors.panelBackground
 
         val timeline = ChatTimelinePanel()
         val composer = ComposerPanel(project)

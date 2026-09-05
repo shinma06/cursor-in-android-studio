@@ -91,3 +91,9 @@ MV-036は接続環境の結果で、製品のfailではない。#29の基盤実�
 | MV-037 | `main`（run SHA参照） | - / #20 | 入力付近・設定の即時編集説明 | 識別済みビルドのfixtureでComposer（約350px幅と広幅）とSettings → Tools → Cursor Agentを表示。説明を読み、設定変更なしで閉じる | Ask Every Timeでも即時編集が起こり得ること、Revertが事後undoであることが両画面で省略なく読める。入力・Sendが使用可能で、説明表示だけではApplyが有効化されない | blocked | GPT / CUA: r3で説明表示を一部確認。Settings/広幅未了、CUA取得blocked。[記録](../loop-engineering/runs/2026-09-06-issue20-edit-notice.md) | 2026-09-06 |
 
 MV-037は説明表示だけの受入。MV-024/021/023の実送信・編集・復元、および#20のWorktree復元整合性を代替しない。
+
+## H. #19 静的外観の一致
+
+| ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
+|----|--------|-----|------|------|----------|--------|-------------|------|
+| MV-038 | `main`（run SHA参照） | - / #19 | Cursorに近い会話とComposer | 識別済みビルドで短文/長文の会話を表示し、狭幅/広幅、モデル/モードの開閉・取消を確認 | 上詰めで本文の高さに追従、全幅の角丸ユーザー枠と枠なし応答、一体型Composerの入力/モード/モデル/送信が読める。選択取消で値が変わらない | blocked | GPT / CUA: 初回試運転で外観確認、モード省略を修正済み。再接続後も画面取得不能、最終版未確認。[記録](../loop-engineering/runs/2026-09-06-ui-parity.md) | 2026-09-06 |

@@ -27,24 +27,35 @@ class AgentHeaderBar : JPanel(BorderLayout()) {
         border = JBUI.Borders.empty(4, 12, 4, 12)
         isOpaque = false
 
-        val left = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
-            isOpaque = false
-            add(
-                JButton(AllIcons.General.Add).apply {
-                    toolTipText = "New Chat"
-                    isBorderPainted = false
-                    isContentAreaFilled = false
-                    addActionListener { onNewChat() }
-                },
-            )
-            add(pastChatsButton.apply { addActionListener { onPastChatsClicked() } })
+        val title = JBLabel("Agent").apply {
+            font = font.deriveFont(java.awt.Font.PLAIN)
+            toolTipText = "Cursor Agent"
         }
-
-        add(left, BorderLayout.WEST)
-        add(sessionLabel, BorderLayout.EAST)
+        val actions = JPanel(FlowLayout(FlowLayout.RIGHT, 4, 0)).apply {
+            isOpaque = false
+            add(sessionLabel.apply { font = font.deriveFont(font.size2D - 1f) })
+            add(JButton(AllIcons.General.Add).apply {
+                toolTipText = "New Chat"
+                isBorderPainted = false
+                isContentAreaFilled = false
+                preferredSize = JBUI.size(26, 26)
+                margin = JBUI.emptyInsets()
+                addActionListener { onNewChat() }
+            })
+            add(pastChatsButton.apply {
+                preferredSize = JBUI.size(26, 26)
+                margin = JBUI.emptyInsets()
+                addActionListener { onPastChatsClicked() }
+            })
+        }
+        sessionLabel.isVisible = false
+        add(title, BorderLayout.CENTER)
+        add(actions, BorderLayout.EAST)
     }
 
     fun setSessionStatus(text: String) {
         sessionLabel.text = text
+        sessionLabel.isVisible = text != "Ready" && !text.startsWith("session=")
+        toolTipText = text
     }
 }

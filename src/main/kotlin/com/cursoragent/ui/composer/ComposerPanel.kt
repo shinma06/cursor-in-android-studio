@@ -1,9 +1,10 @@
 package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.ImmediateEditNotice
+import com.cursoragent.ui.RoundedSurface
 import com.cursoragent.ui.composer.mention.MentionPopupController
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
@@ -11,12 +12,10 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.project.Project
 import com.intellij.ui.EditorTextField
-import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
-import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JCheckBoxMenuItem
 import javax.swing.JPanel
@@ -31,7 +30,13 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     val inputArea = object : EditorTextField(project, PlainTextFileType.INSTANCE) {
         override fun createEditor(): EditorEx {
             val editor = super.createEditor()
+            editor.setBackgroundColor(AgentUiColors.composerBackground)
             editor.settings.isUseSoftWraps = true
+            editor.settings.isRightMarginShown = false
+            editor.settings.isFoldingOutlineShown = false
+            editor.settings.isCaretRowShown = false
+            editor.scrollPane.border = JBUI.Borders.empty()
+            editor.contentComponent.border = JBUI.Borders.empty()
             editor.settings.isLineNumbersShown = false
             editor.setVerticalScrollbarVisible(false)
             editor.setHorizontalScrollbarVisible(false)
@@ -39,16 +44,25 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         }
     }.apply {
         setOneLineMode(false)
-        setPlaceholder("Plan, @ for context")
-        border = JBUI.Borders.empty(8)
-        preferredSize = Dimension(preferredSize.width, JBUI.scale(88))
+        setPlaceholder("Plan, build, @ for context")
+        setShowPlaceholderWhenFocused(true)
+        border = JBUI.Borders.empty(10, 10, 4, 10)
+        isOpaque = false
+        preferredSize = Dimension(preferredSize.width, JBUI.scale(58))
     }
 
     private val mentionPopupController = MentionPopupController(project, inputArea)
 
-    private val sendButton = JButton(AllIcons.Actions.Upload).apply {
+    private val sendButton = SelectorButton().apply {
+        text = "↑"
+        horizontalAlignment = javax.swing.SwingConstants.CENTER
         toolTipText = "Send (Enter)"
-        preferredSize = Dimension(JBUI.scale(32), JBUI.scale(32))
+        preferredSize = JBUI.size(28, 28)
+        font = font.deriveFont(18f)
+        isBorderPainted = false
+        isContentAreaFilled = false
+        margin = JBUI.emptyInsets()
+        accessibleContext.accessibleName = "Send (Enter)"
     }
 
     val modeSelector = ModeSelector()
@@ -61,19 +75,11 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     init {
-        border = BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
-            JBUI.Borders.empty(8, 12, 12, 12),
-        )
+        border = JBUI.Borders.empty(6, 16, 10, 16)
         isOpaque = false
 
-        val inputWrapper = JPanel(BorderLayout()).apply {
-            border = BorderFactory.createCompoundBorder(
-                LineBorderRounded(JBColor.border()),
-                JBUI.Borders.empty(),
-            )
-            background = JBColor.namedColor("TextField.background", JBColor.background())
-            isOpaque = true
+        val inputWrapper = RoundedSurface(AgentUiColors.composerBackground).apply {
+            border = AgentUiColors.RoundedBorder()
             add(inputArea, BorderLayout.CENTER)
         }
 
@@ -85,34 +91,30 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
         sendButton.addActionListener { if (isRunning) onStop() else submit() }
 
-        val controls = JPanel(BorderLayout()).apply {
+        val controls = JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
             isOpaque = false
-            border = JBUI.Borders.emptyTop(8)
-
-            val leftControls = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+            border = JBUI.Borders.empty(0, 8, 8, 8)
+            val selectors = JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
                 isOpaque = false
-                add(modeSelector)
-                add(modelSelector)
-                add(createOverflowButton())
+                add(modeSelector, BorderLayout.WEST)
+                add(modelSelector, BorderLayout.CENTER)
             }
-
-            add(leftControls, BorderLayout.WEST)
-            add(sendButton, BorderLayout.EAST)
+            val actions = JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
+                isOpaque = false
+                add(createOverflowButton())
+                add(sendButton)
+            }
+            add(selectors, BorderLayout.CENTER)
+            add(actions, BorderLayout.EAST)
         }
-
+        inputWrapper.add(controls, BorderLayout.SOUTH)
         add(accessoryPanel, BorderLayout.NORTH)
         add(inputWrapper, BorderLayout.CENTER)
-        add(
-            JPanel(BorderLayout()).apply {
-                isOpaque = false
-                add(controls, BorderLayout.NORTH)
-                add(
-                    ImmediateEditNotice().apply { border = JBUI.Borders.emptyTop(8) },
-                    BorderLayout.SOUTH,
-                )
-            },
-            BorderLayout.SOUTH,
-        )
+        add(ImmediateEditNotice().apply {
+            foreground = AgentUiColors.mutedText
+            font = font.deriveFont(font.size2D - 1f)
+            border = JBUI.Borders.empty(6, 2, 0, 2)
+        }, BorderLayout.SOUTH)
     }
 
     fun setInputEnabled(enabled: Boolean) {
@@ -124,8 +126,9 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun setRunning(running: Boolean) {
         isRunning = running
-        sendButton.icon = if (running) AllIcons.Actions.Suspend else AllIcons.Actions.Upload
+        sendButton.text = if (running) "■" else "↑"
         sendButton.toolTipText = if (running) "Stop" else "Send (Enter)"
+        sendButton.accessibleContext.accessibleName = sendButton.toolTipText
     }
 
     fun clearInput() {
@@ -142,9 +145,15 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     private fun createOverflowButton(): JButton {
-        return JButton("⋯").apply {
+        return SelectorButton().apply {
+            text = "⋯"
+            horizontalAlignment = javax.swing.SwingConstants.CENTER
             toolTipText = "More options"
-            margin = JBUI.insets(2, 6, 2, 6)
+            margin = JBUI.emptyInsets()
+            preferredSize = JBUI.size(26, 28)
+            isBorderPainted = false
+            isContentAreaFilled = false
+            foreground = AgentUiColors.mutedText
             addActionListener {
                 JPopupMenu().apply {
                     val settings = AgentSettingsState.getInstance()
@@ -186,7 +195,4 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             }
         }
     }
-
-    /** Simple line border wrapper; avoids custom LAF. */
-    private class LineBorderRounded(color: java.awt.Color) : javax.swing.border.LineBorder(color, 1, true)
 }

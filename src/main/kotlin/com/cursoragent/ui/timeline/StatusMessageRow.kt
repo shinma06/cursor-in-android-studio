@@ -10,14 +10,14 @@ import javax.swing.JPanel
 class StatusMessageRow(text: String) : JPanel(BorderLayout()) {
     private val label = JBLabel(text).apply {
         foreground = AgentUiColors.mutedText
-        font = font.deriveFont(Font.ITALIC, font.size - 1f)
-        border = JBUI.Borders.empty(4, 4, 4, 48)
+        font = font.deriveFont(Font.PLAIN, font.size - 1f)
+        border = JBUI.Borders.empty(2, 10)
     }
 
     init {
         isOpaque = false
         border = JBUI.Borders.emptyBottom(4)
-        add(label, BorderLayout.WEST)
+        add(label, BorderLayout.CENTER)
     }
 
     fun updateText(text: String) {

@@ -14,6 +14,8 @@ Cursor のメニュー存在と headless CLI の対応は別の証拠であり�
 
 **2026-09-06 開発運用基盤**: [GPT主導GUIループ](loop-engineering/README.md) / [人間向け手順](loop-engineering/human-runbook.md)を整備。GPTがComputer UseでCursor IDEと本プラグインを操作し、Claude Proが独立レビューする。これは開発・検証の運用であり、F-xx機能追加や既存QA合格ではない。
 
+**2026-09-06 静的外観改修（#19）**: Cursor実画面に合わせ、会話の自然な高さ/全幅ユーザー枠/枠なし応答、一体型Composer、モード/モデルの小さな選択ボタンを実装。権限やCLI挙動は維持。GUI受入と経過は[MV-038の記録](loop-engineering/runs/2026-09-06-ui-parity.md)を参照。
+
 ---
 
 ## 1. 背景・目的

@@ -2,47 +2,54 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.service.ModelOption
 import com.cursoragent.settings.AgentSettingsState
-import com.intellij.util.ui.JBUI
-import java.awt.Component
-import javax.swing.DefaultComboBoxModel
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import javax.swing.DefaultListCellRenderer
-import javax.swing.JComboBox
-import javax.swing.JList
 
-class ModelSelector : JComboBox<ModelOption>() {
+class ModelSelector : SelectorButton() {
+    private var models: List<ModelOption> = emptyList()
+
     init {
         isEnabled = false
-        toolTipText = "Loading models…"
-        preferredSize = JBUI.size(160, 28)
-        renderer = object : DefaultListCellRenderer() {
-            override fun getListCellRendererComponent(
-                list: JList<*>?,
-                value: Any?,
-                index: Int,
-                isSelected: Boolean,
-                cellHasFocus: Boolean,
-            ): Component {
-                val component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                text = (value as? ModelOption)?.label ?: "Default model"
-                return component
-            }
-        }
+        text = "Loading models…"
+        toolTipText = text
         addActionListener {
-            (selectedItem as? ModelOption)?.let { AgentSettingsState.getInstance().selectedModel = it.id }
+            val renderer = DefaultListCellRenderer()
+            JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(models)
+                .setTitle("Model")
+                .setNamerForFiltering { it.label }
+                .setRenderer { list, value, index, selected, focus ->
+                    renderer.getListCellRendererComponent(list, value.label, index, selected, focus)
+                }
+                .setItemChosenCallback { option ->
+                    AgentSettingsState.getInstance().selectedModel = option.id
+                    showSelection(option)
+                }
+                .createPopup()
+                .showUnderneathOf(this)
         }
     }
 
     fun setModels(models: List<ModelOption>) {
+        this.models = models
         if (models.isEmpty()) {
             isEnabled = false
+            text = "Default model"
             toolTipText = "No models available (agent --list-models failed)"
             return
         }
-
         val settings = AgentSettingsState.getInstance()
-        model = DefaultComboBoxModel(models.toTypedArray())
-        selectedItem = models.find { it.id == settings.selectedModel } ?: models.first()
+        val selected = models.find { it.id == settings.selectedModel } ?: models.first()
+        settings.selectedModel = selected.id
+        showSelection(selected)
         isEnabled = true
-        toolTipText = null
+    }
+
+    private fun showSelection(option: ModelOption) {
+        val name = option.label.replace(" (current, default)", "")
+            .replace(" (default)", "").replace(" (current)", "")
+        text = "$name  ⌄"
+        toolTipText = "${option.label} — ${option.id}"
+        accessibleContext.accessibleName = "Model: ${option.label}"
     }
 }
