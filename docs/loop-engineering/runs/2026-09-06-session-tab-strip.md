@@ -34,3 +34,33 @@ HEAD/base/ZIP SHA256/ロードJAR/fixture/観察者/run IDを記録し、次を�
 7. #65で会話・draft・mode/model・input focusが正しいタブへ結び付くことを別途確認。
 
 budget: 15min、CLI送信0回（部品QA）。結果はcase別にpass/fail/blocked/pendingを記録。
+
+## 部品fixtureの起動（GUI lease取得後のみ）
+
+`src/test/kotlin/com/cursoragent/ui/session/SessionTabStripFixture.kt` は手動起動用で、
+unit suiteからは起動せず、plugin ZIPにも含めない。20個のタブ・close・並べ替え・選択を接続した
+使い捨てwindowで部品のGUIを確認できる。会話本文やCLIは使わない。
+
+専用worktreeの固定HEADとGUI予約を確認して、次の一時Gradle init scriptを作る。
+
+```groovy
+// /tmp/session-tab-fixture.gradle
+allprojects {
+    afterEvaluate {
+        tasks.register('sessionTabFixture', JavaExec) {
+            dependsOn tasks.named('testClasses')
+            classpath = sourceSets.test.runtimeClasspath
+            mainClass = 'com.cursoragent.ui.session.SessionTabStripFixture'
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+            jvmArgs '-Djava.awt.headless=false'
+        }
+    }
+}
+```
+
+`JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew -I /tmp/session-tab-fixture.gradle sessionTabFixture`
+で起動する。leaseなしで実行しない。終了時はこのfixtureのwindowだけを閉じ、起動process終了を確認。
+証拠にはpluginをロードしたと記載せず、fixtureの実行class/hash・classpath・source HEADを記録する。
+この部品fixture結果の登録形式は進行役が確認し、#65の実IDE/CLI受入へ流用しない。
