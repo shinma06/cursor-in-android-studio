@@ -118,6 +118,29 @@ class RootTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs['cwd'], explicit)
 
 
+class BaseReferenceTests(unittest.TestCase):
+    def test_open_pr_uses_live_ref_despite_stale_payload(self):
+        gh = al.GitHub()
+        gh.api = Mock(side_effect=[pr_data(), {'ref': 'refs/heads/main',
+                                              'object': {'type': 'commit', 'sha': NEW}}])
+        pr = gh.pr(36)
+        self.assertEqual(pr['base']['sha'], NEW)
+        self.assertEqual(pr['head']['sha'], HEAD)
+        self.assertEqual(gh.api.call_args.args[0], f'repos/{al.REPO}/git/ref/heads/main')
+
+    def test_closed_pr_keeps_historical_base_without_ref_lookup(self):
+        gh = al.GitHub(); gh.api = Mock(return_value=dict(pr_data(), state='closed', merged=True))
+        self.assertEqual(gh.pr(36)['base']['sha'], BASE)
+        gh.api.assert_called_once()
+
+    def test_invalid_ref_cannot_approve(self):
+        for ref in ({'ref': 'refs/heads/other', 'object': {'type': 'commit', 'sha': NEW}},
+                    {'ref': 'refs/heads/main', 'object': {'type': 'tag', 'sha': NEW}},
+                    {'ref': 'refs/heads/main', 'object': {'type': 'commit', 'sha': 'invalid'}}):
+            gh = al.GitHub(); gh.api = Mock(side_effect=[pr_data(), ref])
+            with self.assertRaises(ValueError): gh.pr(36)
+
+
 class WorkerTests(unittest.TestCase):
     def test_timeout_stops_child_even_when_parent_exits_on_term(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -194,20 +217,24 @@ class FakeGitHub:
 class LoopTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
-        self.gh = FakeGitHub(); self.local_head = HEAD
+        self.gh = FakeGitHub(); self.local_head = HEAD; self.fetched_base = BASE
+        self.fetched_head = HEAD
         self.checkout = Path(self.tmp.name) / 'pr-36/checkout'; self.checkout.mkdir(parents=True)
         def git(*args, **kwargs):
             if args[:2] == ('rev-parse', '--git-common-dir'): return self.tmp.name
             if args[:2] == ('rev-parse', 'HEAD'): return self.local_head
-            if args[:2] == ('rev-parse', 'origin/main'): return BASE
+            if args[:2] == ('rev-parse', 'origin/main'): return self.fetched_base
+            if args[:2] == ('rev-parse', 'origin/codex/35-test'): return self.fetched_head
             return ''
         self.git = patch.object(al, 'git', side_effect=git); self.git.start(); self.addCleanup(self.git.stop)
         self.run = patch.object(al.subprocess, 'run', return_value=Mock(returncode=0)); self.run.start(); self.addCleanup(self.run.stop)
-        self.worker = Mock(side_effect=lambda role, path, packet, out, **kw: report(head=packet['head']))
+        self.worker = Mock(side_effect=lambda role, path, packet, out, **kw: dict(report(head=packet['head']), base=packet['base']))
         self.loop = al.Loop(self.gh, self.tmp.name, self.worker)
         self.loop.source_safe = Mock(); self.loop.checkout = Mock(return_value=self.checkout); self.loop.cleanup = Mock()
         self.loop.commit_fix = Mock(side_effect=lambda *args: setattr(self, 'local_head', NEW))
         def push(pr, path, state):
+            self.loop.invalidate_acceptance(state)
+            self.fetched_head = self.local_head
             self.gh.pull['head']['sha'] = self.local_head
             state.update(expected_head=self.local_head, phase='queued'); state.pop('review', None)
         self.loop.test_and_push = Mock(side_effect=push)
@@ -215,6 +242,113 @@ class LoopTests(unittest.TestCase):
              'branch': 'codex/35-test', 'source': str(self.checkout), 'scope': ['src/'],
              'close_issue': True, 'gui_required': False, 'writer_stopped': True}
         self.gh.comment(36, al.pack(al.HANDOFF, h))
+
+    def test_stale_pr_base_syncs_tests_pushes_then_rereviews(self):
+        self.loop.tick(36)
+        _, state, sid, _ = self.loop.load(36)
+        state['gui'] = {'head': HEAD, 'base': BASE}
+        self.loop.save(self.gh.pull, state, sid)
+        # Exercise the real adapter, while pulls.base.sha remains permanently old.
+        new_base = 'e' * 40
+        adapter = al.GitHub()
+        def api(path):
+            if '/pulls/' in path: return copy.deepcopy(self.gh.pull)
+            return {'ref': 'refs/heads/main', 'object': {'type': 'commit', 'sha': new_base}}
+        adapter.api = Mock(side_effect=api)
+        self.gh.pr = adapter.pr
+        self.fetched_base = new_base
+        original_git = al.git.side_effect
+        def merge_git(*args, **kwargs):
+            if args[:2] == ('merge', '--no-edit'):
+                self.assertEqual(args[2], new_base)
+                self.local_head = NEW
+            return original_git(*args, **kwargs)
+        al.git.side_effect = merge_git
+        al.subprocess.run.return_value.returncode = 1
+        # Run the real publishing method with test commands stubbed, not the transition fake.
+        self.loop.test_and_push = lambda *args: al.Loop.test_and_push(self.loop, *args)
+        with patch.object(al, 'command', return_value='') as commands:
+            self.assertEqual(self.loop.tick(36)['phase'], 'base-synced')
+        self.assertEqual([c.args[0] for c in commands.call_args_list], [
+            ['python3', '-m', 'unittest', 'discover', '-s', 'scripts/workflow', '-p', 'test_*.py'],
+            ['python3', '-m', 'unittest', 'discover', '-s', 'scripts/loop', '-p', 'test_*.py'],
+            ['./gradlew', 'test', '--console=plain']])
+        self.assertTrue(any(c.args == ('push', 'origin', 'HEAD:refs/heads/codex/35-test')
+                            for c in al.git.call_args_list))
+        _, state, _, _ = self.loop.load(36)
+        for key in ('binding', 'review', 'gui'): self.assertNotIn(key, state)
+        self.gh.pull['head']['sha'] = NEW; self.fetched_head = NEW
+        al.subprocess.run.return_value.returncode = 0
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.worker.call_count, 2)
+        self.assertEqual(self.worker.call_args.args[2]['base'], new_base)
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_base_moves_during_fetch_discards_acceptance_then_retries(self):
+        self.loop.tick(36)
+        _, state, sid, _ = self.loop.load(36)
+        state['gui'] = {'head': HEAD, 'base': BASE}
+        self.loop.save(self.gh.pull, state, sid)
+        original = self.gh.pr
+        moved = copy.deepcopy(self.gh.pull); moved['base']['sha'] = NEW
+        self.gh.pr = Mock(side_effect=[original(36), moved])
+        self.assertEqual(self.loop.tick(36)['phase'], 'base-race-retry')
+        _, state, _, _ = self.loop.load(36)
+        for key in ('binding', 'review', 'gui'): self.assertNotIn(key, state)
+        self.loop.test_and_push.assert_not_called()
+        self.assertEqual(self.gh.merges, 0)
+        self.gh.pull = moved; self.gh.pr = original; self.fetched_base = NEW
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.worker.call_args.args[2]['base'], NEW)
+
+    def test_head_moves_during_fetch_preserves_checkout(self):
+        self.loop.tick(36)
+        self.fetched_head = NEW
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        self.loop.test_and_push.assert_not_called()
+        self.assertEqual(self.local_head, HEAD)
+        _, state, _, _ = self.loop.load(36)
+        self.assertNotIn('review', state)
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_base_moves_before_merge_clears_old_approval(self):
+        self.loop.tick(36)
+        original = self.gh.pr
+        moved = copy.deepcopy(self.gh.pull); moved['base']['sha'] = NEW
+        self.gh.pr = Mock(side_effect=[original(36), original(36), moved])
+        self.assertEqual(self.loop.tick(36)['phase'], 'changed-before-merge')
+        _, state, _, _ = self.loop.load(36)
+        self.assertNotIn('review', state)
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_merge_conflict_preserves_work_and_clears_acceptance(self):
+        self.loop.tick(36)
+        al.subprocess.run.return_value.returncode = 1
+        original_git = al.git.side_effect
+        def conflicted(*args, **kwargs):
+            if args[:2] == ('merge', '--no-edit'): raise RuntimeError('merge conflict')
+            return original_git(*args, **kwargs)
+        al.git.side_effect = conflicted
+        result = self.loop.tick(36)
+        self.assertEqual(result['error'], 'merge conflict')
+        _, state, _, _ = self.loop.load(36)
+        for key in ('binding', 'review', 'gui'): self.assertNotIn(key, state)
+        self.loop.test_and_push.assert_not_called()
+        self.assertFalse(any(c.args[0] in ('reset', 'rebase', 'push') for c in al.git.call_args_list))
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_remote_push_during_tests_preserves_unpublished_merge(self):
+        state = {'review': report(), 'binding': {'head': HEAD, 'base': BASE}, 'gui': {}}
+        self.local_head = NEW
+        def commands(*args):
+            self.gh.pull['head']['sha'] = 'f' * 40
+            return ''
+        with patch.object(al, 'command', side_effect=commands):
+            with self.assertRaisesRegex(ValueError, 'during tests'):
+                al.Loop.test_and_push(self.loop, pr_data(), self.checkout, state)
+        self.assertFalse(any(c.args[0] == 'push' for c in al.git.call_args_list))
+        self.assertEqual(self.local_head, NEW)
+        for key in ('binding', 'review', 'gui'): self.assertNotIn(key, state)
 
     def test_review_fix_rereview_merge_issue_cleanup(self):
         reports = [report('changes_requested'), report(), report(head=NEW)]
