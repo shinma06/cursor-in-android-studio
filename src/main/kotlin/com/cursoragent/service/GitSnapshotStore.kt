@@ -68,6 +68,7 @@ class GitSnapshotStore(private val workspaceDir: File) {
             // Delete the directory entry itself (including an untracked symlink), never its target.
             val root = RestoreTarget.realDirectory(workspaceDir.absolutePath)
                 ?: return RestoreResult(RestorePolicy.MISSING_ROOT)
+            if (root.toString() != created.rootPath) return RestoreResult(RestorePolicy.CHANGED_TARGET)
             val path = root.resolve(relativePath).normalize()
             if (!path.startsWith(root) || runCatching { path.parent.toRealPath().startsWith(root) }.getOrDefault(false).not()) {
                 return RestoreResult(RestorePolicy.OUTSIDE_ROOT)

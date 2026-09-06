@@ -1,5 +1,6 @@
 package com.cursoragent.ui
 
+import com.cursoragent.service.FileRevertOperation
 import com.cursoragent.service.RestorePolicy
 import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
@@ -52,21 +53,15 @@ object DiffViewerHelper {
             var result = RestoreResult(RestorePolicy.RESTORE_FAILED)
             WriteCommandAction.writeCommandAction(project).run<Throwable> {
                 // Recheck at the write boundary, including unsaved editor changes.
-                val rejection = RestorePolicy.rejectionReason(target, currentTarget())
-                if (rejection != null) {
-                    result = RestoreResult(rejection)
-                } else if (RestorePolicy.resolveFile(target, currentTarget(), path) != resolved) {
-                    result = RestoreResult(RestorePolicy.OUTSIDE_ROOT)
-                } else {
-                    val documents = FileDocumentManager.getInstance()
-                    val currentContent = String(file.contentsToByteArray(), file.charset)
-                    if (documents.isFileModified(file) || currentContent != expectedCurrentContent) {
-                        result = RestoreResult(RestorePolicy.STALE_EDIT)
-                    } else {
-                        VfsUtil.saveText(file, beforeContent)
-                        result = RestoreResult()
-                    }
-                }
+                result = FileRevertOperation.restore(
+                    target, currentTarget(), path, beforeContent, expectedCurrentContent,
+                    object : FileRevertOperation.FileAccess {
+                        override val path = resolved
+                        override fun hasUnsavedChanges() = FileDocumentManager.getInstance().isFileModified(file)
+                        override fun read() = String(file.contentsToByteArray(), file.charset)
+                        override fun write(content: String) = VfsUtil.saveText(file, content)
+                    },
+                )
             }
             result
         } catch (_: Exception) {

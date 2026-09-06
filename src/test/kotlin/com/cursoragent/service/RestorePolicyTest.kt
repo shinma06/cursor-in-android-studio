@@ -3,7 +3,11 @@ package com.cursoragent.service
 import com.cursoragent.settings.CheckpointHistoryState
 import com.cursoragent.settings.CheckpointRecord
 import com.cursoragent.settings.WorktreeMode
-import org.junit.jupiter.api.Assertions.*
+import com.intellij.openapi.util.JDOMUtil
+import com.intellij.util.xmlb.XmlSerializer
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -38,6 +42,18 @@ class RestorePolicyTest {
             assertEquals(RestorePolicy.UNKNOWN_TARGET, RestorePolicy.rejectionReason(record.restoreTarget(), target()))
         }
         assertEquals(2, history.recordsForChat(null).size)
+    }
+
+    @Test
+    fun `old persisted XML stays unknown and new XML round trips provenance`() {
+        val legacy = XmlSerializer.deserialize(
+            JDOMUtil.load("""<CheckpointRecord><option name="id" value="old"/><option name="gitSha" value="abc"/></CheckpointRecord>"""),
+            CheckpointRecord::class.java,
+        )
+        assertEquals(RestoreTarget.UNKNOWN, legacy.restoreTarget())
+        val original = CheckpointRecord(id = "new", rootPath = target().rootPath, worktreeMode = "DEFAULT")
+        val reloaded = XmlSerializer.deserialize(XmlSerializer.serialize(original), CheckpointRecord::class.java)
+        assertEquals(target(), reloaded.restoreTarget())
     }
 
     @Test
