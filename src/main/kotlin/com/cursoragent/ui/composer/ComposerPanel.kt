@@ -30,6 +30,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         horizontalAlignment = javax.swing.SwingConstants.CENTER
         toolTipText = "送信（Enter）"
         preferredSize = JBUI.size(24, 24)
+        // Reserve 18px for the icon instead of the selector's 12px text area.
+        border = JBUI.Borders.empty(3)
         font = font.deriveFont(font.size2D * 4f / 3f)
         isBorderPainted = false
         isContentAreaFilled = false
@@ -98,7 +100,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     fun setRunning(running: Boolean) {
         isRunning = running
         onRunningChanged(running)
-        sendButton.text = if (running) "■" else "↑"
+        sendButton.text = if (running) "" else "↑"
+        sendButton.icon = if (running) StopIcon else null
         sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
         sendButton.accessibleContext.accessibleName = sendButton.toolTipText
     }
