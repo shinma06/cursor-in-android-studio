@@ -42,6 +42,10 @@ internal class ModelPopupPanel(
     private val onSelect: (ModelOption) -> Unit,
     private val onClose: () -> Unit,
     private val onResize: () -> Unit,
+    private val rowLabel: (ModelOption) -> String = { it.displayName() },
+    private val matchesQuery: (ModelOption, String) -> Boolean = { option, query ->
+        option.label.contains(query, true) || option.id.contains(query, true)
+    },
 ) : JPanel(BorderLayout()) {
     val searchField = object : JTextField() {
         override fun paintComponent(g: Graphics) {
@@ -61,9 +65,9 @@ internal class ModelPopupPanel(
     private var currentId = selectedId
     private var lastManual = manualOptions.find { it.id == lastManualId }
         ?: manualOptions.find { it.id == selectedId } ?: manualOptions.firstOrNull()
-    private val description = JLabel("<html>Balanced quality and speed,<br>recommended for most tasks</html>")
+    private val description = JLabel("<html>品質と速度のバランスを考慮して<br>モデルを自動で選択します</html>")
     private val results = JPanel(BorderLayout())
-    private val noResults = JLabel("No matching models").apply { border = JBUI.Borders.empty(12) }
+    private val noResults = JLabel("一致するモデルがありません").apply { border = JBUI.Borders.empty(12) }
     private val scrollPane = JScrollPane(modelList)
 
     init {
@@ -111,7 +115,7 @@ internal class ModelPopupPanel(
             cellRenderer = object : DefaultListCellRenderer() {
                 override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int, selected: Boolean, focus: Boolean): java.awt.Component {
                     val option = value as ModelOption
-                    val label = super.getListCellRendererComponent(list, option.displayName(), index, selected, focus) as JLabel
+                    val label = super.getListCellRendererComponent(list, rowLabel(option), index, selected, focus) as JLabel
                     label.border = JBUI.Borders.empty(5, 6)
                     return JPanel(BorderLayout()).apply {
                         background = label.background
@@ -175,7 +179,7 @@ internal class ModelPopupPanel(
         val previous = modelList.selectedValue?.id
         val query = searchField.text.trim()
         listModel.clear()
-        manualOptions.filter { it.label.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true) }
+        manualOptions.filter { matchesQuery(it, query) }
             .forEach(listModel::addElement)
         val index = (0 until listModel.size()).firstOrNull { listModel[it].id == (previous ?: currentId) }
         modelList.selectedIndex = index ?: if (listModel.isEmpty) -1 else 0

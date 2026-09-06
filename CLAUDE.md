@@ -350,6 +350,8 @@ cases).
 
 ## Current implementation status vs. requirements doc
 
+**#27 model option grouping (2026-09-06):** The composer model trigger opens Thinking/Fast/Context/Effort controls and a Model picker. `ModelFamilies` groups recognized trailing alias tokens, retains exact CLI IDs, keeps ambiguous aliases separate, and exposes only transitions compatible with other known options. The family picker searches all variant labels/IDs while showing one row per family. Context choices require multiple explicit capacities from the CLI list; no 300K/other overrides are invented from the screenshot or generic bracket syntax. The current live catalog mostly exposes 1M only. Nested choices use pages in one popup for focus/cancel consistency. MV-044 tracks actual GUI acceptance.
+
 **#19 static UI parity (2026-09-06):** conversation rows now use natural heights and viewport-width wrapping, full-width rounded user cards and unframed assistant text. Composer is a unified rounded surface with button-backed mode/model choosers; model labels/IDs are available in tooltips. `MessageTextPane` caches measured height by width/content/font. This changes the UI only; CLI permissions and rollback semantics are unchanged. Identified-build GUI acceptance is tracked as MV-038 in [the run](docs/loop-engineering/runs/2026-09-06-ui-parity.md); do not infer that all #19/#21/#27 acceptance is complete.
 
 **#27 composer enhancement (2026-09-06):** Model popup has a visible name/ID search field,

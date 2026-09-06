@@ -372,3 +372,9 @@ UI差分の新規取り込みは [計画書](plans/cursor-agent-ui-gap-plan.md) 
 Debug/Multitask/権限個別制御などは CLI 検証ゲートを通す。計画作成は機能実装・実行検証の完了を意味しない。
 
 実機UIの限定確認（設定・パネル表示）と追加観点は [Android Studio実機追補](research/android-studio-ui-followup-2026-09-05.md) を参照。UX-08（P1、モデル名・多数候補）とUX-09（P2、ビルド/CLI診断）を計画に追加した。入力・送信・設定保存のQA完了を意味しない。
+
+### 2026-09-06 同一モデルのオプション選択（#27）
+
+同じモデルのThinking/Fast/Context/Effort違いをモデル系列にまとめ、利用可能なオプションだけを表示する。選択値は実際の `agent --list-models` のIDへ解決して既存の `--model` に渡す。モデルや容量の固定カタログは持たず、不明な派生は独立項目として残す。既存IDの設定はそのまま復元する。
+
+取得した一覧でContext容量が1種類しか分からない場合はContextを隠す。CLIヘルプには `model[context=1m,effort=high,fast=false]` 形式の説明があるが、対応値一覧は得られないため、未検証の容量を生成しない。Cursorの画像はUI参考であり、このCLIアカウントでの対応値を保証しない。

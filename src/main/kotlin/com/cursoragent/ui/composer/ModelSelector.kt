@@ -10,6 +10,7 @@ class ModelSelector(
 ) : SelectorButton() {
     private val popupController = SelectorPopupController(this)
     private var models: List<ModelOption> = emptyList()
+    private var families: List<ModelFamily> = emptyList()
     private var lastManualModelId: String? = settings.selectedModel.takeUnless { it == "auto" || it.isEmpty() }
 
     init {
@@ -20,14 +21,14 @@ class ModelSelector(
         addActionListener {
             popupController.toggle {
                 var popup: JBPopup? = null
-                val content = ModelPopupPanel(models, settings.selectedModel, lastManualModelId, onSelect = { option ->
+                val content = ModelOptionsPopupPanel(models, settings.selectedModel, lastManualModelId, onSelect = { option ->
                     settings.selectedModel = option.id
                     if (option.id != "auto") lastManualModelId = option.id
                     showSelection(option)
                 }, onClose = { popup?.cancel() }, onResize = {
                     popupController.repackAbove()
                 })
-                popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.searchField)
+                popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.focusTarget)
                     .setFocusable(true)
                     .setRequestFocus(true)
                     .setCancelOnClickOutside(true)
@@ -37,7 +38,7 @@ class ModelSelector(
                     .createPopup()
                 popup.addListener(object : com.intellij.openapi.ui.popup.JBPopupListener {
                     override fun beforeShown(event: com.intellij.openapi.ui.popup.LightweightWindowEvent) {
-                        content.modelList.ensureIndexIsVisible(content.modelList.selectedIndex)
+                        content.picker?.modelList?.let { it.ensureIndexIsVisible(it.selectedIndex) }
                     }
                 })
                 popup
@@ -47,6 +48,7 @@ class ModelSelector(
 
     fun setModels(models: List<ModelOption>) {
         this.models = models
+        families = modelFamilies(models)
         if (models.isEmpty()) {
             isEnabled = false
             text = "Default model"
@@ -62,7 +64,9 @@ class ModelSelector(
     }
 
     private fun showSelection(option: ModelOption) {
-        text = option.displayName()
+        val family = families.find { it.variants.any { variant -> variant.option.id == option.id } }
+        val variant = family?.variants?.find { it.option.id == option.id }
+        text = if (family != null && variant != null) family.selectionLabel(variant) else option.displayName()
         toolTipText = "${option.label} — ${option.id}"
         getAccessibleContext().accessibleName = "Model: ${option.label}"
         revalidate()
