@@ -10,13 +10,15 @@ import java.io.File
  * spinning up the platform.
  */
 class GitSnapshotStore(private val workspaceDir: File) {
-    fun isGitRepo(): Boolean =
-        runGit("rev-parse", "--is-inside-work-tree").let { it.exitCode == 0 && it.stdout.trim() == "true" }
+    fun isGitRepo(): Boolean = runGit("rev-parse", "--show-toplevel").let {
+        it.exitCode == 0 && RestoreTarget.realDirectory(it.stdout.trim()) ==
+            RestoreTarget.realDirectory(workspaceDir.absolutePath)
+    }
 
     fun listUntrackedFiles(): List<String> {
-        val result = runGit("ls-files", "--others", "--exclude-standard")
+        val result = runGit("ls-files", "--others", "--exclude-standard", "-z")
         if (result.exitCode != 0) return emptyList()
-        return result.stdout.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+        return result.stdout.split('\u0000').filter { it.isNotEmpty() }
     }
 
     /**
@@ -45,15 +47,36 @@ class GitSnapshotStore(private val workspaceDir: File) {
      * a rollback. This only matters if the CLI stages files itself, which ordinary
      * edit/write tool calls don't do.
      */
-    fun restore(sha: String, untrackedFilesAtSnapshot: List<String>): Boolean {
+    fun restore(
+        sha: String,
+        untrackedFilesAtSnapshot: List<String>,
+        created: RestoreTarget,
+        current: RestoreTarget,
+    ): RestoreResult {
+        RestorePolicy.rejectionReason(created, current)?.let { return RestoreResult(it) }
+        if (RestoreTarget.realDirectory(workspaceDir.absolutePath)?.toString() != created.rootPath || !isGitRepo()) {
+            return RestoreResult(RestorePolicy.CHANGED_TARGET)
+        }
+        if (!sha.matches(Regex("[0-9a-fA-F]{40}|[0-9a-fA-F]{64}"))) {
+            return RestoreResult(RestorePolicy.RESTORE_FAILED)
+        }
         val checkoutResult = runGit("checkout", sha, "--", ".")
-        if (checkoutResult.exitCode != 0) return false
+        if (checkoutResult.exitCode != 0) return RestoreResult(RestorePolicy.RESTORE_FAILED)
 
         val newUntrackedFiles = listUntrackedFiles() - untrackedFilesAtSnapshot.toSet()
         for (relativePath in newUntrackedFiles) {
-            File(workspaceDir, relativePath).delete()
+            // Delete the directory entry itself (including an untracked symlink), never its target.
+            val root = RestoreTarget.realDirectory(workspaceDir.absolutePath)
+                ?: return RestoreResult(RestorePolicy.MISSING_ROOT)
+            val path = root.resolve(relativePath).normalize()
+            if (!path.startsWith(root) || runCatching { path.parent.toRealPath().startsWith(root) }.getOrDefault(false).not()) {
+                return RestoreResult(RestorePolicy.OUTSIDE_ROOT)
+            }
+            if (!runCatching { java.nio.file.Files.deleteIfExists(path) }.isSuccess) {
+                return RestoreResult(RestorePolicy.RESTORE_FAILED)
+            }
         }
-        return true
+        return RestoreResult()
     }
 
     private fun runGit(vararg args: String): GitResult {
