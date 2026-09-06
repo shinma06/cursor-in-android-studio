@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -16,6 +17,9 @@ ZERO = '0' * 40
 
 
 class GuardTest(unittest.TestCase):
+    def setUp(self):
+        self.git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+
     def test_commit_rejects_main_detached_and_no_issue(self):
         for branch in ['main', 'master', '', 'codex/topic']:
             with self.assertRaises(ValueError):
@@ -43,7 +47,7 @@ class GuardTest(unittest.TestCase):
     def test_real_commit_hook(self):
         with tempfile.TemporaryDirectory() as tmp:
             def git(*args):
-                return subprocess.run(['git', *args], cwd=tmp, text=True, capture_output=True)
+                return subprocess.run(['git', *args], cwd=tmp, text=True, capture_output=True, env=self.git_env)
             self.assertEqual(git('init', '-b', 'main').returncode, 0)
             git('config', 'user.name', 'Test')
             git('config', 'user.email', 'test@example.invalid')
@@ -58,7 +62,7 @@ class GuardTest(unittest.TestCase):
     def test_guard_rejects_history_rewrite_even_with_current_head(self):
         with tempfile.TemporaryDirectory() as tmp:
             def git(*args):
-                return subprocess.check_output(['git', *args], cwd=tmp, text=True).strip()
+                return subprocess.check_output(['git', *args], cwd=tmp, text=True, env=self.git_env).strip()
             git('init', '-b', 'codex/31-test')
             git('config', 'user.name', 'Test')
             git('config', 'user.email', 'test@example.invalid')
@@ -71,9 +75,23 @@ class GuardTest(unittest.TestCase):
             head = git('rev-parse', 'HEAD')
             result = subprocess.run([sys.executable, str(ROOT / 'scripts/workflow/git_guard.py'), 'push'],
                                     cwd=tmp, input=f'HEAD {head} refs/heads/codex/31-other {remote}\n',
-                                    text=True, capture_output=True)
+                                    text=True, capture_output=True, env=self.git_env)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('Non-fast-forward', result.stderr)
+
+    def test_foreign_repo_tests_ignore_hook_git_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(['git', 'init', '-q', '-b', 'main', tmp], env=self.git_env, check=True)
+            git_dir = Path(tmp) / '.git'
+            before = (git_dir / 'config').read_bytes()
+            contaminated = dict(self.git_env, GIT_DIR=str(git_dir), GIT_WORK_TREE=tmp)
+            result = subprocess.run([sys.executable, '-m', 'unittest',
+                                     'test_workflow.GuardTest.test_real_commit_hook',
+                                     'test_workflow.GuardTest.test_guard_rejects_history_rewrite_even_with_current_head'],
+                                    cwd=ROOT / 'scripts/workflow', env=contaminated,
+                                    text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((git_dir / 'config').read_bytes(), before)
 
 
 class LeaseTest(unittest.TestCase):

@@ -3,6 +3,11 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 mode="$(python3 scripts/workflow/git_guard.py push)"
 if [ "$mode" = skip ]; then exit 0; fi
+# Git exports repository-local variables into hooks. Tests create foreign repos;
+# clear these before any tests/Gradle so git init cannot target the source repo.
+while IFS= read -r git_variable; do
+  unset "$git_variable"
+done < <(git rev-parse --local-env-vars)
 if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then
   JAVA_HOME="$(/usr/libexec/java_home -v 17)"
   export JAVA_HOME
