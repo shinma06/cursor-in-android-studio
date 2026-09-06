@@ -38,7 +38,7 @@ class ModelOptionsPopupPanelTest {
         val panel = ModelOptionsPopupPanel(options, "opus-thinking-high", null, { selected.add(it.id) }, {}, {})
         panel.showModels()
         val picker = panel.picker!!
-        assertEquals(2, picker.modelList.model.size)
+        assertEquals(3, picker.modelList.model.size)
         picker.searchField.text = "max"
         assertEquals(1, picker.modelList.model.size)
         picker.chooseHighlighted()
@@ -57,9 +57,14 @@ class ModelOptionsPopupPanelTest {
         val panel = ModelOptionsPopupPanel(options, "opus-thinking-max", null, { selected.add(it.id) }, {}, {})
         panel.showModels()
         val picker = panel.picker!!
-        picker.autoToggle.doClick()
+        picker.modelList.selectedIndex = 0
+        picker.chooseHighlighted()
         assertEquals("auto", panel.currentId)
-        picker.autoToggle.doClick()
+        assertNull(panel.picker)
+        assertTrue(panel.optionControls.isEmpty())
+        panel.showModels()
+        panel.picker!!.searchField.text = "opus"
+        panel.picker!!.chooseHighlighted()
         assertEquals("opus-thinking-max", panel.currentId)
         panel.showOptions()
         assertEquals(listOf("auto", "opus-thinking-max"), selected)
@@ -107,7 +112,8 @@ class ModelOptionsPopupPanelTest {
     @Test
     fun `Auto startup keeps its manual family variant after visiting another model`() = SwingUtilities.invokeAndWait {
         val panel = ModelOptionsPopupPanel(options, "auto", "opus-thinking-max", {}, {}, {})
-        panel.picker!!.autoToggle.doClick()
+        assertNull(panel.picker)
+        panel.showModels()
         panel.picker!!.searchField.text = "composer"
         panel.picker!!.chooseHighlighted()
         panel.showModels()
@@ -116,4 +122,37 @@ class ModelOptionsPopupPanelTest {
         assertEquals("opus-thinking-max", panel.currentId)
     }
 
+    @Test
+    fun `Model hover opens one child and keeps parent options until selection`() = SwingUtilities.invokeAndWait {
+        var opens = 0
+        var requestedFocus = true
+        var selections = 0
+        val panel = ModelOptionsPopupPanel(options, "opus-thinking-high", null, { selections++ }, {}, {},
+            onShowModels = { _, focus -> opens++; requestedFocus = focus })
+        val controls = panel.optionControls.toMap()
+        val event = java.awt.event.MouseEvent(panel.modelRow, java.awt.event.MouseEvent.MOUSE_ENTERED, 0, 0, 2, 2, 0, false)
+        panel.modelRow.dispatchEvent(event)
+        panel.modelRow.dispatchEvent(event)
+        assertEquals(1, opens)
+        assertFalse(requestedFocus)
+        assertEquals(controls, panel.optionControls)
+        assertEquals(0, selections)
+        panel.picker!!.actionMap.get("cancel").actionPerformed(null)
+        assertNull(panel.picker)
+        assertEquals("opus-thinking-high", panel.currentId)
+    }
+
+    @Test
+    fun `Auto opens with description card and keyboard Model action exposes all candidates`() = SwingUtilities.invokeAndWait {
+        var opens = 0
+        val panel = ModelOptionsPopupPanel(options, "auto", null, {}, {}, {},
+            onShowModels = { _, focus -> assertTrue(focus); opens++ })
+        assertNull(panel.picker)
+        assertTrue(panel.optionControls.isEmpty())
+        assertEquals("Model: Auto", panel.modelRow.accessibleContext.accessibleName)
+        panel.modelRow.actionMap.get("models").actionPerformed(null)
+        assertEquals(1, opens)
+        assertEquals(3, panel.picker!!.modelList.model.size)
+        assertEquals("auto", panel.picker!!.modelList.selectedValue.id)
+    }
 }

@@ -21,7 +21,7 @@ class ComposerControlsTest {
     fun `search by label or id and keyboard selection only changes model on confirmation`() = SwingUtilities.invokeAndWait {
         val selected = mutableListOf<String>()
         var closed = false
-        val panel = ModelPopupPanel(options, "sol-medium", null, { selected.add(it.id) }, { closed = true }, {})
+        val panel = ModelPopupPanel(options, "sol-medium", { selected.add(it.id) }, { closed = true }, {})
         panel.searchField.text = "HIGH"
         assertEquals(2, panel.modelList.model.size)
         assertTrue(selected.isEmpty())
@@ -35,9 +35,9 @@ class ComposerControlsTest {
 
     @Test
     fun `model list hover exposes full name and id for the pointed row`() = SwingUtilities.invokeAndWait {
-        val panel = ModelPopupPanel(options, "sol-medium", null, {}, {}, {})
+        val panel = ModelPopupPanel(options, "sol-medium", {}, {}, {})
         panel.modelList.setSize(330, 120)
-        val row = panel.modelList.getCellBounds(1, 1)
+        val row = panel.modelList.getCellBounds(2, 2)
         val hover = java.awt.event.MouseEvent(panel.modelList, java.awt.event.MouseEvent.MOUSE_MOVED,
             0, 0, row.x + 5, row.y + 5, 0, false)
         assertEquals("Claude Opus High — opus-high", panel.modelList.getToolTipText(hover))
@@ -47,7 +47,7 @@ class ComposerControlsTest {
     fun `empty search result and Escape never change persisted selection`() = SwingUtilities.invokeAndWait {
         var selections = 0
         var closed = false
-        val panel = ModelPopupPanel(options, "sol-medium", null, { selections++ }, { closed = true }, {})
+        val panel = ModelPopupPanel(options, "sol-medium", { selections++ }, { closed = true }, {})
         panel.searchField.text = "missing"
         panel.chooseHighlighted()
         assertEquals(0, panel.modelList.model.size)
@@ -57,24 +57,23 @@ class ComposerControlsTest {
     }
 
     @Test
-    fun `Auto toggle restores last manual model and blocks hidden list confirmation`() = SwingUtilities.invokeAndWait {
+    fun `Auto is a selectable checked row and manual models remain searchable`() = SwingUtilities.invokeAndWait {
         val selected = mutableListOf<String>()
-        val panel = ModelPopupPanel(options, "opus-high", null, { selected.add(it.id) }, {}, {})
-        val expandedHeight = panel.preferredSize.height
-        panel.autoToggle.doClick()
-        assertEquals(listOf("auto"), selected)
-        assertTrue(panel.preferredSize.height < expandedHeight)
+        val panel = ModelPopupPanel(options, "auto", { selected.add(it.id) }, {}, {})
+        assertEquals(4, panel.modelList.model.size)
+        assertEquals("auto", panel.modelList.selectedValue.id)
+        panel.searchField.text = "opus"
         panel.chooseHighlighted()
-        assertEquals(listOf("auto"), selected)
-        panel.autoToggle.doClick()
-        assertEquals(listOf("auto", "opus-high"), selected)
+        assertEquals(listOf("opus-high"), selected)
     }
 
     @Test
-    fun `Auto without any manual models cannot toggle into an invalid selection`() = SwingUtilities.invokeAndWait {
-        val panel = ModelPopupPanel(options.take(1), "auto", null, { fail("No selection expected") }, {}, {})
-        assertTrue(panel.autoToggle.isSelected)
-        assertFalse(panel.autoToggle.isEnabled)
+    fun `Auto only catalog can be selected without inventing a manual model`() = SwingUtilities.invokeAndWait {
+        val selected = mutableListOf<String>()
+        val panel = ModelPopupPanel(options.take(1), "auto", { selected.add(it.id) }, {}, {})
+        assertEquals(1, panel.modelList.model.size)
+        panel.chooseHighlighted()
+        assertEquals(listOf("auto"), selected)
     }
 
     @Test
