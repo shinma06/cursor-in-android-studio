@@ -17,4 +17,4 @@ GPTは<>を埋め、必要な差分と根拠を添える。Claudeアプリの**�
 
 CLIで使う場合は`claude --help`で現在のフラグを確認する。例: GPTがレビュー資料をローカルファイルにまとめ、`claude -p --tools '' --output-format text < review-input.txt > review-output.txt`。ツールを無効にして資料レビューに限定する。CLIがsandbox内で未ログインを返した場合は、通常ターミナルで`claude auth status`を確認して認証の有無と実行環境の制限を切り分ける。認証ファイルをコピーしたり読み出したりしない。
 
-担当を実装に変える場合は、GPTが別途Issueにclaim・別checkout・対象ファイル・基点SHA・テスト・返却コミットを指定する。既存レビュー依頼を実装権限として扱わない。
+担当を実装に変える場合は、GPTが別途Issueにclaim・別checkout・対象ファイル・基点SHA・テスト・専用branch/PRを指定する。mainへの直接commit/pushは禁止し、docs/development/github-workflow.mdに従う。既存レビュー依頼を実装権限として扱わない。

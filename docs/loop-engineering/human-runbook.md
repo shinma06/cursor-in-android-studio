@@ -1,6 +1,8 @@
 # 人間向け：ループ開発の始め方
 
-普段はGPTに対象Issueと確認したいUXを伝えればよいです。GPTがGUI操作・修正・Claudeへのレビュー依頼・再確認・記録を進めます。
+普段は修正内容だけ伝えれば、エージェントがIssueの検索/作成、専用worktree、PRを用意します。Git操作を毎回指示する必要はありません。
+[GitHub開発規約](../development/github-workflow.md)と[GUI予約手順](../development/gui-coordination.md)が全タスクの共通ルールです。
+複数タスクは別worktreeで並列に進め、GUIだけ予約順に操作します。GPTがGUI操作・修正・Claudeへのレビュー依頼・再確認・記録を進めます。
 
 ## 初回の準備
 
@@ -50,4 +52,4 @@ GPTの報告にあるIssue、検証したSHA、[QAマトリクス](../manual-ver
 「ここで止めて、Issueに引継ぎを書いて」と伝えると、GPTが実行中処理と変更を整理し、最後の状態と次の操作を残します。
 翌日は「Issue #番号の引継ぎから再開して」で開始できます。未完了の他エージェントがいる場合はGPTが担当の重複を確認します。
 
-自分で起動したい場合は、[evidence.md](evidence.md)でfixture生成とビルドを行い、`./gradlew runIde`でsandbox IDEを起動します。通常使用するAndroid StudioにZIPを入れる場合は、Settings → Plugins → Install Plugin from Disk → 指定ZIP → 再起動。旧版SNAPSHOTとの取り違えを避け、インストール対象を記録します。
+自分で起動したい場合は、[evidence.md](evidence.md)でfixture生成とビルドを行い、GUI予約の担当と調整した後、`./gradlew runIde`でsandbox IDEを起動します。通常使用するAndroid StudioにZIPを入れる場合は、Settings → Plugins → Install Plugin from Disk → 指定ZIP → 再起動。旧版SNAPSHOTとの取り違えを避け、インストール対象を記録します。

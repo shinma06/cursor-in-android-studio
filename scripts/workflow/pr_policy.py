@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Check PR metadata as data; never execute PR text or use a write token."""
+import json
+import os
+import re
+import sys
+from urllib.request import Request, urlopen
+from git_guard import BRANCH
+
+
+def validate(pr):
+    branch = BRANCH.fullmatch(pr['head']['ref'])
+    if not branch or pr['base']['ref'] != 'main':
+        raise ValueError('Use an Issue branch targeting main')
+    body = pr.get('body') or ''
+    issues = re.findall(r'^Issue: #([1-9][0-9]*)\s*$', body, re.MULTILINE)
+    if issues != [branch.group(2)]:
+        raise ValueError('Exactly one Issue: #N must match the branch Issue number')
+    gui = re.findall(r'^GUI: (required|not-required)\s*$', body, re.MULTILINE)
+    if len(gui) != 1:
+        raise ValueError('Exactly one GUI: required or GUI: not-required is needed')
+    reason = re.findall(r'^GUI reason: (.+)$', body, re.MULTILINE)
+    if len(reason) != 1 or len(reason[0].strip()) < 8 or '<' in reason[0] or 'TODO' in reason[0]:
+        raise ValueError('Provide a concrete GUI reason (or linked cases)')
+    return int(issues[0])
+
+
+def main():
+    try:
+        event = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+        issue = validate(event['pull_request'])
+        repo = os.environ['GITHUB_REPOSITORY']
+        request = Request(f'https://api.github.com/repos/{repo}/issues/{issue}', headers={
+            'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'],
+            'Accept': 'application/vnd.github+json',
+        })
+        with urlopen(request, timeout=30) as response:
+            data = json.load(response)
+        if data.get('state') != 'open' or 'pull_request' in data:
+            raise ValueError('The linked number must be an open Issue, not a PR')
+        print(f'PR policy passed for Issue #{issue}. Human/agent review still verifies claims and evidence.')
+        return 0
+    except (ValueError, KeyError, OSError) as error:
+        print(str(error), file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

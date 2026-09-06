@@ -1,0 +1,35 @@
+name: 開発・調査・GUI検証タスク
+description: 独立した担当と受入条件を持つ作業を登録する
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 目的・現象
+      description: 現在の問題と期待する成果。関連する親Issueも記載。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 範囲・依存
+      description: 対象ファイル/機能、対象外、先行Issue/PR、他担当との重なり。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受入条件
+      description: チェックリストで記載。GUIケース/MV ID、期待結果、GUI不要なら理由。
+    validations:
+      required: true
+  - type: textarea
+    id: tracking
+    attributes:
+      label: 状態・担当
+      value: |
+        status: ready
+        owner: unassigned
+        branch / worktree / base SHA: unassigned
+        reviewer: unassigned
+        gui: required / not-required (reason)
+        next: claim後に着手

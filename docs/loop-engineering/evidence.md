@@ -1,5 +1,7 @@
 # 実行記録と検証コマンド
 
+**GUI操作・runIde・配置/再起動の前に[ホスト共通lease](../development/gui-coordination.md)を取得する。** ビルドだけなら不要。
+
 Python 3.9以降・Git・既存のGradle環境で動く。APIアクセス、送信、GUI操作、Issue更新はスクリプトに含めない。
 
 ## 新しいrunとfixture
