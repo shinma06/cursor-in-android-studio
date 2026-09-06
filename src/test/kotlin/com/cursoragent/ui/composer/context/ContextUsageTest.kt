@@ -49,4 +49,30 @@ class ContextUsageTest {
             assertFalse(descendants(view.panel).filterIsInstance<JLabel>().any { it.text == "21,022" })
         }
     }
+
+    @Test
+    fun `missing counters are hidden while reported zero remains visible and reset clears old rows`() {
+        SwingUtilities.invokeAndWait {
+            val view = ContextUsageView()
+            view.button.doClick()
+            fun visibleTexts(c: Container): List<String> = c.components.filter { it.isVisible }.flatMap {
+                (if (it is JLabel) listOf(it.text) else emptyList()) +
+                    (if (it is Container) visibleTexts(it) else emptyList())
+            }
+            assertTrue(visibleTexts(view.panel).contains("応答後に表示します"))
+            val ticket = view.beginTurn()
+            view.update(ticket, usage)
+            assertTrue(visibleTexts(view.panel).contains("21,022"))
+            view.update(ticket, TokenUsage(null, 0, null, null))
+            val partial = visibleTexts(view.panel)
+            assertTrue(partial.containsAll(listOf("出力", "0")))
+            assertFalse(partial.any { it in listOf("入力", "キャッシュ読み取り", "キャッシュ書き込み", "21,022", "取得不可", "使用率・残量", "種別別内訳") })
+            view.reset()
+            val reset = visibleTexts(view.panel)
+            assertTrue(reset.contains("応答後に表示します"))
+            assertFalse(reset.contains("出力"))
+            assertFalse(reset.contains("0"))
+        }
+    }
+
 }

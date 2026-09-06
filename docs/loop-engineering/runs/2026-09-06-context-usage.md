@@ -1,28 +1,24 @@
-# Context Usage（#59）
+# トークン数パネル（#59 / PR #61）
 
-Case: CONTEXT-USAGE-1 / status: pending / implementation owner: gpt-context-20260906。
-GUI担当は中央進行役がhost lease取得後に割当。今回writerはGUI・IDE配置・CLI送信をしていない。
-統合依存: #57を先にmerge。ComposerPanelのcontext追加とoverflow撤去が両立することを確認する。
+Case: CONTEXT-USAGE-1。GUI pending（2026-09-06の人間フィードバックによる修正版）。
+旧build a3bf151ではユーザーの画像で入力28791/出力120/cacheRead5748/cacheWrite0を表示できた。
+一方で「取得不可」エリアと固定リングの撤去を指定されたため、旧buildを全受入passとはしない。
 
-## 準備
+## 修正版
 
-最新PR HEAD/base、ZIP絶対パス/SHA-256、ロードしたJAR・IDE PID・fixture識別をIssueへ記録する。
-共有mainプロジェクトではなくdisposable fixtureを使う。予算: 30分、3 fixes、Pro/Teamsで最大2送信。
-既存の別PR用GUI leaseを横取りしない。数値確認はまず合成CLI fixtureのresult.usageを使ってよいが、
-その場合は合成と記録し、現在の実CLI能力を新たに検証したとは言わない。
+- 使用率・残量・種別別内訳とゲージを削除。「トークン数」パネルと、紙と横線の静的な明細アイコンに変更。
+- 直近の応答から取得できた入力/出力/キャッシュの項目だけを表示。欠損行は非表示、全欠損は短い案内、0は数値表示。
+- 既存の開閉・focus保持・selectorとの重なり・セッション/送信開始/停止のリセットは維持。
 
-## 操作と期待
+## 固定buildの人間GUI確認
 
-1. 送信/停止ボタンの直前左に18pxリング（24px hit area）があり、tooltipがShow Context Usage。
-2. 押すと入力欄上に角丸Context Usage。初期は使用率・残量/種別別内訳/4種の数値が取得不可。
-3. 入力欄・エディターへfocus、mode popup/model popupを開閉、Escapeでselectorを閉じる。
-   Context Usage自体は残り、selectorが前面に重なる。既存selectorの取消動作が維持される。
-4. 同じリングで閉じ、再度開く。×で閉じ、リングにkeyboard focusが戻る。Enter/Spaceからも開閉。
-5. result.usageがある応答完了で入力/出力/cacheRead/cacheWriteが表示される。
-   開閉で値が消えない。生成中の架空割合や4値の合計は表示されない。
-6. 次送信、新規chat、履歴再開、停止で古い値が消える。usageなし/不正値では取得不可。
-7. 幅320pxと通常幅、light/dark、長い会話、入力12行、ウィンドウ高さを縮めた状態で
-   数値・×・送信/停止が利用でき、本文とパネルのレイアウトが崩れないことを観察する。
+進行役がHEAD/base/ZIP hash/ロード実体/fixture/host leaseを記録してから引き渡す。
+CLI送信は手動で最大2回、Pro/Teams、Askモード、disposable fixtureでのみ。
 
-実画面未観察の項目を単体テストやbuild成功でpassにしない。
-合否・画像・対象buildと最終fixture/プロセス状態をIssueに記録してleaseを解放する。
+1. ボタンがリングではなく明細アイコンで、tooltip/パネルが「トークン数」。使用率・残量・内訳・取得不可・ゲージがない。
+2. 応答前/リセット時は短い案内のみ。応答後は取得できたカウンタだけ表示し、0は残る。
+3. ボタン/×/キーボードで開閉。focus移動で残り、mode/model popupが前面。開閉でカウンタを失わない。
+4. 次送信/停止/新規/履歴切替で古い値が残らない。欠損/不正値と遅延通知は自動テストも参照。
+5. 狭幅・低いウィンドウ・明暗テーマで数値/×/送信が使え、不要な空白が残らない。
+
+結果をhuman observationとして記録。未観察をpassにせず、新しい固定buildの結果受領後に再レビューする。
