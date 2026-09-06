@@ -1,13 +1,18 @@
 package com.cursoragent.ui.session
 
 import com.cursoragent.ui.AgentUiColors
+import com.intellij.ui.JBColor
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.Color
+import java.awt.Container
+import java.awt.FlowLayout
 import javax.swing.JButton
 import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import javax.swing.UIManager
 import javax.swing.WindowConstants
 
 /** Manual GUI fixture only. Never launched by the unit suite or installed in the plugin. */
@@ -26,6 +31,7 @@ object SessionTabStripFixture {
             var nextId = 21
             var selected = tabs.first().id
             val strip = SessionTabStrip()
+            val frame = JFrame("SESSION-TABS-UI — component fixture")
             val status = JLabel()
             fun render() {
                 strip.setTabs(tabs, selected)
@@ -67,8 +73,37 @@ object SessionTabStripFixture {
                 add(JLabel("SESSION-TABS-UI fixture / CLI送信なし / 製品接続の検証対象外"), BorderLayout.CENTER)
                 add(status, BorderLayout.SOUTH)
             }
+            val controls = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
+                fun addControl(label: String, action: () -> Unit) {
+                    add(JButton(label).apply { addActionListener { action() } })
+                }
+                fun theme(dark: Boolean) {
+                    JBColor.setDark(dark)
+                    UIManager.put("Label.foreground", if (dark) Color(0xDDDDDD) else Color(0x222222))
+                    UIManager.put("Panel.background", if (dark) Color(0x222222) else Color(0xEEEEEE))
+                    // Preserve the strip's custom scrollbar UI while changing fixture colors.
+                    fun recolor(container: Container) {
+                        if (container is JPanel) container.background = AgentUiColors.panelBackground
+                        container.components.forEach { child ->
+                            if (child is JLabel) child.foreground = UIManager.getColor("Label.foreground")
+                            if (child is Container) recolor(child)
+                        }
+                    }
+                    recolor(content)
+                    frame.repaint()
+                }
+                addControl("明") { theme(false) }
+                addControl("暗") { theme(true) }
+                addControl("狭幅") { frame.setSize(320, 320) }
+                addControl("広幅") { frame.setSize(900, 320) }
+            }
+            val footer = JPanel(BorderLayout()).apply {
+                add(controls, BorderLayout.NORTH)
+                add(status, BorderLayout.SOUTH)
+            }
+            content.add(footer, BorderLayout.SOUTH)
             render()
-            JFrame("SESSION-TABS-UI — component fixture").apply {
+            frame.apply {
                 defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
                 contentPane = content
                 minimumSize = Dimension(240, 180)

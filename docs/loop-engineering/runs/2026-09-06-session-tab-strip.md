@@ -78,3 +78,5 @@ allprojects {
 sourceSets.test.runtimeClasspathだけではIntelliJ SDKが含まれないため、platform pluginが
 設定するtest taskのclasspathを使用する。fixture初期化はinvokeAndWaitに変更し、
 EDTの初期化失敗をmainへ伝播してJavaExecを失敗させる。未表示をGUI passとはしない。
+
+fixtureの「明/暗」は独立プロセス内のJBColorとSwingの配色のみを切り替え、既存IDEのテーマは変更しない。「狭幅/広幅」は320/900pxの検証プリセット。IDE自体のLook and Feel/拡大率の統合確認は#65に残し、部品の明暗配色・狭幅をここで確認する。
