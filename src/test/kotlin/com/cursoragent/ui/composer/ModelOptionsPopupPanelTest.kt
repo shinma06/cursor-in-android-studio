@@ -92,4 +92,28 @@ class ModelOptionsPopupPanelTest {
         assertTrue(trigger.toolTipText.contains("model-high-1m"))
     }
 
+    @Test
+    fun `returning to initial family preserves the original options before any option change`() = SwingUtilities.invokeAndWait {
+        val panel = ModelOptionsPopupPanel(options, "opus-thinking-max", null, {}, {}, {})
+        panel.showModels()
+        panel.picker!!.searchField.text = "composer"
+        panel.picker!!.chooseHighlighted()
+        panel.showModels()
+        panel.picker!!.searchField.text = "opus"
+        panel.picker!!.chooseHighlighted()
+        assertEquals("opus-thinking-max", panel.currentId)
+    }
+
+    @Test
+    fun `Auto startup keeps its manual family variant after visiting another model`() = SwingUtilities.invokeAndWait {
+        val panel = ModelOptionsPopupPanel(options, "auto", "opus-thinking-max", {}, {}, {})
+        panel.picker!!.autoToggle.doClick()
+        panel.picker!!.searchField.text = "composer"
+        panel.picker!!.chooseHighlighted()
+        panel.showModels()
+        panel.picker!!.searchField.text = "opus"
+        panel.picker!!.chooseHighlighted()
+        assertEquals("opus-thinking-max", panel.currentId)
+    }
+
 }

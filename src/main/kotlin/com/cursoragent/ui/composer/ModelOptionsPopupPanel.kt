@@ -48,6 +48,11 @@ internal class ModelOptionsPopupPanel(
         actionMap.put("close", object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent?) = onClose()
         })
+        // Keep the variant that was active before this popup opened, including Auto's fallback.
+        val initialManual = currentId.takeUnless { it == "auto" } ?: lastManual
+        families.find { family -> family.variants.any { it.option.id == initialManual } }?.let {
+            remembered[it.id] = initialManual!!
+        }
         showOptions()
     }
 
@@ -140,6 +145,7 @@ internal class ModelOptionsPopupPanel(
         )
         picker = page
         showPage(withBack("モデル", page) { showOptionsOrClose() }, page.searchField)
+        page.modelList.ensureIndexIsVisible(page.modelList.selectedIndex)
     }
 
     private fun showOptionsOrClose() {
