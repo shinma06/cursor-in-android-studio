@@ -16,7 +16,6 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
-import javax.swing.DefaultListCellRenderer
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -38,11 +37,11 @@ internal fun ModelOption.displayName(): String = label
 internal class ModelPopupPanel(
     private val options: List<ModelOption>,
     selectedId: String,
-    lastManualId: String?,
     private val onSelect: (ModelOption) -> Unit,
     private val onClose: () -> Unit,
     private val onResize: () -> Unit,
     private val rowLabel: (ModelOption) -> String = { it.displayName() },
+    private val rowDetail: (ModelOption) -> String = { "" },
     private val matchesQuery: (ModelOption, String) -> Boolean = { option, query ->
         option.label.contains(query, true) || option.id.contains(query, true)
     },
@@ -57,16 +56,11 @@ internal class ModelPopupPanel(
             }
         }
     }
-    val autoToggle = AutoToggle()
     private val listModel = DefaultListModel<ModelOption>()
     val modelList = JList(listModel)
-    private val manualOptions = options.filterNot { it.id == "auto" }
-    private val autoOption = options.find { it.id == "auto" }
     private var currentId = selectedId
-    private var lastManual = manualOptions.find { it.id == lastManualId }
-        ?: manualOptions.find { it.id == selectedId } ?: manualOptions.firstOrNull()
-    private val description = JLabel("<html>品質と速度のバランスを考慮して<br>モデルを自動で選択します</html>")
-    private val results = JPanel(BorderLayout())
+    private val resultCards = java.awt.CardLayout()
+    private val results = JPanel(resultCards)
     private val noResults = JLabel("一致するモデルがありません").apply { border = JBUI.Borders.empty(12) }
     private val scrollPane = JScrollPane(modelList)
 
@@ -84,25 +78,6 @@ internal class ModelPopupPanel(
             isOpaque = false
             add(searchField, BorderLayout.NORTH)
         }
-        if (autoOption != null) {
-            val autoRow = JPanel(BorderLayout(JBUI.scale(12), 0)).apply {
-                background = AgentUiColors.userBubbleBackground
-                border = JBUI.Borders.empty(5, 6)
-                val text = JPanel(BorderLayout(0, JBUI.scale(3))).apply {
-                    isOpaque = false
-                    add(JLabel("Auto").apply { font = AgentUiMetrics.textFont() }, BorderLayout.NORTH)
-                    description.font = AgentUiMetrics.textFont()
-                    description.foreground = AgentUiColors.mutedText
-                    add(description, BorderLayout.CENTER)
-                }
-                add(text, BorderLayout.CENTER)
-                add(JPanel(BorderLayout()).apply {
-                    isOpaque = false
-                    add(autoToggle, BorderLayout.NORTH)
-                }, BorderLayout.EAST)
-            }
-            top.add(autoRow, BorderLayout.CENTER)
-        }
         add(top, BorderLayout.NORTH)
         modelList.apply {
             font = AgentUiMetrics.textFont()
@@ -112,20 +87,38 @@ internal class ModelPopupPanel(
             selectionMode = ListSelectionModel.SINGLE_SELECTION
             fixedCellHeight = JBUI.scale(28)
             getAccessibleContext().accessibleName = "Models"
-            cellRenderer = object : DefaultListCellRenderer() {
-                override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int, selected: Boolean, focus: Boolean): java.awt.Component {
-                    val option = value as ModelOption
-                    val label = super.getListCellRendererComponent(list, rowLabel(option), index, selected, focus) as JLabel
-                    label.border = JBUI.Borders.empty(5, 6)
-                    return JPanel(BorderLayout()).apply {
-                        background = label.background
-                        add(label, BorderLayout.CENTER)
-                        add(JLabel(if (option.id == currentId) "✓" else " ").apply {
-                            foreground = label.foreground
-                            border = JBUI.Borders.empty(0, 8)
-                        }, BorderLayout.EAST)
-                        toolTipText = "${option.label} — ${option.id}"
-                    }
+            cellRenderer = object : javax.swing.ListCellRenderer<ModelOption> {
+                private val nameLabel = JLabel()
+                private val detail = JLabel()
+                private val check = JLabel().apply { border = JBUI.Borders.empty(0, 8) }
+                private val row = JPanel(BorderLayout()).apply {
+                    border = JBUI.Borders.empty(4, 6)
+                    add(JPanel(java.awt.FlowLayout(java.awt.FlowLayout.LEFT, JBUI.scale(4), 0)).apply {
+                        isOpaque = false
+                        add(nameLabel)
+                        add(detail)
+                    }, BorderLayout.CENTER)
+                    add(check, BorderLayout.EAST)
+                }
+
+                override fun getListCellRendererComponent(list: JList<out ModelOption>, option: ModelOption, index: Int,
+                    selected: Boolean, focus: Boolean): java.awt.Component {
+                    // Return one renderer tree: CellRendererPane retains components used for measurement.
+                    row.background = if (selected) list.selectionBackground else list.background
+                    nameLabel.text = rowLabel(option)
+                    nameLabel.font = list.font
+                    nameLabel.foreground = list.foreground
+                    detail.text = rowDetail(option)
+                    detail.font = list.font
+                    detail.foreground = AgentUiColors.mutedText
+                    check.text = if (option.id == currentId) "✓" else " "
+                    check.font = list.font
+                    check.foreground = list.foreground
+                    row.toolTipText = "${option.label} — ${option.id}"
+                    row.border = if (option.id == "auto")
+                        BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, AgentUiColors.bubbleBorder), JBUI.Borders.empty(4, 6))
+                    else JBUI.Borders.empty(4, 6)
+                    return row
                 }
             }
             addMouseListener(object : MouseAdapter() {
@@ -148,15 +141,9 @@ internal class ModelPopupPanel(
             viewport.background = background
         }
         results.isOpaque = false
+        results.add(scrollPane, "models")
+        results.add(noResults, "empty")
         add(results, BorderLayout.CENTER)
-        autoToggle.addActionListener {
-            val option = if (autoToggle.isSelected) autoOption else lastManual
-            if (option != null) {
-                currentId = option.id
-                onSelect(option)
-            }
-            refresh()
-        }
         searchField.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent) = refresh()
             override fun removeUpdate(e: DocumentEvent) = refresh()
@@ -171,20 +158,13 @@ internal class ModelPopupPanel(
     }
 
     private fun refresh() {
-        val auto = currentId == "auto" && autoOption != null
-        autoToggle.isSelected = auto
-        autoToggle.isEnabled = !auto || manualOptions.isNotEmpty()
-        description.isVisible = auto
-        results.isVisible = !auto
         val previous = modelList.selectedValue?.id
         val query = searchField.text.trim()
         listModel.clear()
-        manualOptions.filter { matchesQuery(it, query) }
-            .forEach(listModel::addElement)
+        listModel.addAll(options.filter { matchesQuery(it, query) })
         val index = (0 until listModel.size()).firstOrNull { listModel[it].id == (previous ?: currentId) }
         modelList.selectedIndex = index ?: if (listModel.isEmpty) -1 else 0
-        results.removeAll()
-        results.add(if (listModel.isEmpty) noResults else scrollPane, BorderLayout.CENTER)
+        resultCards.show(results, if (listModel.isEmpty) "empty" else "models")
         scrollPane.preferredSize = Dimension(JBUI.scale(300), minOf(listModel.size(), 8) * JBUI.scale(28) + JBUI.scale(2))
         revalidate()
         repaint()
@@ -200,7 +180,6 @@ internal class ModelPopupPanel(
     internal fun chooseHighlighted() {
         if (!results.isVisible) return
         val option = modelList.selectedValue ?: return
-        lastManual = option
         currentId = option.id
         onSelect(option)
         onClose()
@@ -220,8 +199,7 @@ internal class AutoToggle : JToggleButton() {
         isContentAreaFilled = false
         isBorderPainted = false
         preferredSize = JBUI.size(34, 22)
-        getAccessibleContext().accessibleName = "Auto model"
-        toolTipText = "Automatically select a model"
+        getAccessibleContext().accessibleName = "モデルオプション"
     }
 
     override fun paintComponent(g: Graphics) {

@@ -2,6 +2,7 @@ package com.cursoragent.ui.header
 
 import com.cursoragent.PluginBrand
 import com.cursoragent.ui.AgentUiColors
+import com.cursoragent.ui.composer.SelectorButton
 import com.intellij.icons.AllIcons
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
@@ -13,6 +14,16 @@ import javax.swing.JPanel
 class AgentHeaderBar : JPanel(BorderLayout()) {
     var onNewChat: () -> Unit = {}
     var onPastChatsClicked: () -> Unit = {}
+
+    val optionsButton = SelectorButton().apply {
+        text = "⋯"
+        horizontalAlignment = javax.swing.SwingConstants.CENTER
+        toolTipText = "チャット設定"
+        accessibleContext.accessibleName = toolTipText
+        foreground = AgentUiColors.mutedText
+        preferredSize = JBUI.size(26, 26)
+        margin = JBUI.emptyInsets()
+    }
 
     val sessionLabel = JBLabel("Ready").apply {
         foreground = AgentUiColors.mutedText
@@ -48,6 +59,7 @@ class AgentHeaderBar : JPanel(BorderLayout()) {
                 margin = JBUI.emptyInsets()
                 addActionListener { onPastChatsClicked() }
             })
+            add(optionsButton)
         }
         sessionLabel.isVisible = false
         add(title, BorderLayout.CENTER)

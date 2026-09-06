@@ -75,7 +75,7 @@ class ComposerOptionsPanelTest {
         summarize.doClick()
         assertEquals(listOf("close", "summarize"), calls)
         calls.clear()
-        buttons.first { it.text == "プラグイン設定…" }.doClick()
+        buttons.first { it.text == "設定" }.doClick()
         assertEquals(listOf("close", "settings"), calls)
     }
 }

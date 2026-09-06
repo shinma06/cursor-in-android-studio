@@ -62,6 +62,21 @@ class SelectorPopupControllerTest {
         assertEquals(original, manager.getPropertyChangeListeners("focusOwner").toSet())
     }
 
+    @Test
+    fun `cascade prefers left and fits right or a small negative origin screen`() {
+        val screen = Rectangle(-1200, 0, 1200, 900)
+        val parent = Rectangle(-400, 620, 300, 170)
+        val left = popupBoundsBeside(parent, Dimension(300, 400), screen, 4)
+        assertEquals(parent.x - 4, left.x + left.width)
+        assertEquals(parent.y + parent.height, left.y + left.height)
+        assertFalse(parent.intersects(left))
+        val right = popupBoundsBeside(Rectangle(-1200, 100, 300, 100), Dimension(300, 400), screen, 4)
+        assertEquals(-896, right.x)
+        assertTrue(screen.contains(right))
+        val smallScreen = Rectangle(-200, -100, 240, 300)
+        assertTrue(smallScreen.contains(popupBoundsBeside(Rectangle(-150, 100, 200, 80), Dimension(300, 500), smallScreen, 4)))
+    }
+
     private fun fakePopup(): JBPopup {
         var visible = false
         var disposed = false

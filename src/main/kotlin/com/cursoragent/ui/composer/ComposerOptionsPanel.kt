@@ -81,7 +81,7 @@ internal class ComposerOptionsPanel(
             onClose()
             onMcp()
         })
-        add(action("プラグイン設定…", "CLIの実行ファイルや通知を設定します。") {
+        add(action("設定", "CLIの実行ファイルや通知を設定します。") {
             onClose()
             onSettings()
         })
