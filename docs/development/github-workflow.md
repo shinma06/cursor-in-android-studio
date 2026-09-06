@@ -87,7 +87,7 @@ cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/ma
 
 - hooks: Issue branch以外のcommit、main/master/developへのpush/削除、別branch/dirty/非fast-forwardのpushを拒否。
 - PR policy: target/Integration、実在open Issue、branch番号、GUI理由、Case JSONパスを検査。developの自動close文言を拒否。
-- Acceptance gate: trusted baseのコードでPRのJSONをデータとして読み、developはCase追跡、main toolingはパスと理由、promotionは固定候補の全commit/Case/build/観察を検査。
+- Acceptance gate: eventの遅延し得るbase.shaを信用せず、許可された最新base branchからcheckoutし、コードHEADと現在refを照合する。trusted baseのコードでPRのJSONをデータとして読み、developはCase追跡、main toolingはパスと理由、promotionは固定候補の全commit/Case/build/観察を検査。
 - Agent review: coordinatorが独立sessionの最新固定HEAD/baseレビューとtarget別受入を照合。PR内コードから自己承認しない。
 
 設定案の正本は `.github/main-ruleset.json` / `.github/develop-ruleset.json`。実設定の反映はPM担当です。
@@ -99,7 +99,7 @@ GitHubが補う既定値と指定値の差を区別し、GET rulesetとbranches 
 
 このPRだけは旧mainからのGUI不要tooling変更です。製品src/build設定に変更なし、workflow/loop/Gradleテストと固定HEAD/baseの独立レビューをPMへ渡します。
 旧enrollはhost/sourceを公開するため使用しません。writer停止後、PMが独立レビューに基づくAgent reviewを記録し、現行3必須checksを確認して通常main PR mergeします。
-新Acceptance workflowは、**#83専用branchかつ旧base `7eb2b9d446d2f2cac21fff293c076358fc667721`**だけbootstrapを明示して成功します。
+新Acceptance workflowは、**#83専用branch・main向け・実checkout HEADが旧base `7eb2b9d446d2f2cac21fff293c076358fc667721`**と一致するときだけbootstrapを明示して成功します。
 この例外はGUI不要を自動認定するものではなく、新validatorはCLIテストと独立レビューで検証します。merge後のbaseでは例外は使えません。
 PMは導入main SHAからdevelopを作成し、両rulesetへAcceptance gateを追加してGET照合します。その後に通常PRをretargetします。
 既存enrollmentは自動変更しません。PMがwriter/worker停止・cleanを確認した後のみ `rebind-target` でtargetを明示更新し、古いレビューを失効させます。既存heartbeatはPAUSEDのままです。

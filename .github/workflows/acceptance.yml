@@ -17,17 +17,17 @@ jobs:
       # Only trusted base code runs. Fetch/show of PR objects never checks out PR code.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: refs/heads/${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
       - name: Verify candidate and complete acceptance coverage
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           # One-time #83 bootstrap: old trusted base has no acceptance validator yet.
           # PM validates the new tooling locally and uses the existing three required checks.
-          if [ "$HEAD_REF" = codex/83-develop-promotion-policy ] && [ "$BASE_SHA" = 7eb2b9d446d2f2cac21fff293c076358fc667721 ]; then
+          if [ "$HEAD_REF" = codex/83-develop-promotion-policy ] && [ "$BASE_REF" = main ] && [ "$(git rev-parse HEAD)" = 7eb2b9d446d2f2cac21fff293c076358fc667721 ]; then
             echo 'Bootstrap only: acceptance tooling is validated by tests and independent review.'
           else
             python3 scripts/workflow/acceptance_ci.py

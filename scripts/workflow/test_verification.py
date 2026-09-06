@@ -262,7 +262,7 @@ class DevelopLoopTests(unittest.TestCase):
         self.assertNotIn(str(self.checkout), encoded)
         self.assertNotIn(al.HOST, encoded)
         h, _, _, _ = self.loop.load(36)
-        self.assertEqual(h['source'], str(self.checkout))
+        self.assertEqual(h['source'], str(self.checkout.resolve()))
         with self.assertRaises(ValueError): al.enroll(self.loop, args)
 
     def test_rebind_legacy_target_keeps_owner_private_and_invalidates_review(self):
@@ -363,3 +363,36 @@ class RealPromotionHistoryTests(unittest.TestCase):
             data.update(candidate=first, changes=[], results={})
             write('docs/verification/promotion.json', data); older['head']['sha'] = commit('invalid old candidate')
             with self.assertRaises(ValueError): verify_pr(older, api, git)
+
+
+class AcceptanceCITests(unittest.TestCase):
+    def test_stale_event_sha_cannot_run_an_old_validator_successfully(self):
+        import acceptance_ci as ci
+        import io
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / 'event.json'
+            pr = pr_data(); event.write_text(json.dumps({'pull_request': pr}))
+            responses = [pr, {'object': {'sha': NEW}}]
+            with patch.dict(os.environ, GITHUB_EVENT_PATH=str(event), GITHUB_REPOSITORY=al.REPO, GITHUB_TOKEN='test'), \
+                    patch.object(ci, 'urlopen', side_effect=lambda *a, **kw: io.BytesIO(json.dumps(responses.pop(0)).encode())), \
+                    patch.object(ci.subprocess, 'check_output', return_value=BASE), \
+                    patch.object(ci.subprocess, 'run') as execute, patch.object(ci, 'verify_pr') as verify:
+                with self.assertRaisesRegex(ValueError, 'validator checkout is stale'): ci.main()
+                execute.assert_not_called(); verify.assert_not_called()
+
+    def test_current_validator_accepts_stale_event_base_only_after_live_binding(self):
+        import acceptance_ci as ci
+        import io
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / 'event.json'
+            pr = pr_data(); event.write_text(json.dumps({'pull_request': pr}))
+            responses = [pr, {'object': {'sha': NEW}}, pr, {'object': {'sha': NEW}}]
+            with patch.dict(os.environ, GITHUB_EVENT_PATH=str(event), GITHUB_REPOSITORY=al.REPO, GITHUB_TOKEN='test'), \
+                    patch.object(ci, 'urlopen', side_effect=lambda *a, **kw: io.BytesIO(json.dumps(responses.pop(0)).encode())), \
+                    patch.object(ci.subprocess, 'check_output', return_value=NEW), \
+                    patch.object(ci.subprocess, 'run'), patch.object(ci, 'verify_pr', return_value={'mode': 'tooling'}) as verify, \
+                    patch('builtins.print'):
+                ci.main()
+                self.assertEqual(verify.call_args.args[0]['base']['sha'], NEW)
