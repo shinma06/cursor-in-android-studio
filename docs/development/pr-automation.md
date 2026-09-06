@@ -59,7 +59,7 @@ python3 scripts/workflow/agent_loop.py tick --pr 123
 python3 scripts/workflow/agent_loop.py resume --pr 123 --reason '停止原因の解消とworker停止を確認'
 ```
 
-`rebind-target`はowner/source/expected HEADを継承し、scopeの移譲や外部pushの採用には使いません。worker記録が残る/dirty/HEAD不一致なら拒否します。
+`rebind-target`は担当関係/source/expected HEADを継承し、公開owner表記をホストを含まないagent-loopへ正規化します。scopeの移譲や外部pushの採用には使いません。worker記録が残る/dirty/HEAD不一致なら拒否します。
 旧承認/GUIを失効させ、新targetをv2 registryへ保存します。PAUSED状態やheartbeatを勝手に解除しません。
 registry喪失、旧writer再開、予期しないcommitやdirty内容は保持して停止します。reset/stashで捨てず、通信切断後のpublishは記録済みSHAだけを再送します。
 

@@ -13,8 +13,9 @@
 | PROMPT-TAB-1 / #42 / #75 | 入力欄のTab/Shift+Tabをフォーカス移動にする | pending | 不可・固定候補のpass未登録 | — / — |
 | CLI-PATH-1 / #76 / #77 | 自動検出CLIパスを表示し、手動指定から自動検出へ戻せるようにする | pending | 不可・固定候補のpass未登録 | — / — |
 | RESTORE-TARGET-1 / #39 / #81 | checkpoint/Revertが異なるroot・Worktree modeへ復元しないようにする | pending | 不可・固定候補のpass未登録 | — / — |
-| SWING-CUA-BASIC-1 / #80 / #82 | 最小Swing fixtureのComputer Use接続・基本入力・再起動後再識別を確認する | pending | 不可・固定候補のpass未登録 | — / — |
-| SWING-CUA-WINDOW-1 / #80 / #82 | 最小SwingのComputer Use popup/modal取得不具合を切り分ける | pending | 不可・固定候補のpass未登録 | — / — |
+| SWING-PROBE-REPORT-1 / #80 / #82 | 固定候補の最小Swing probeを再現し、実測記録・手順・限界が資材と一致することを確認する | pending | 不可・固定候補のpass未登録 | — / — |
+| SWING-CUA-BASIC-1 / #73 / #82 | 最小Swing fixtureのComputer Use接続・基本入力・再起動後再識別を確認する | pending | 不可・固定候補のpass未登録 | — / — |
+| SWING-CUA-WINDOW-1 / #73 / #82 | 最小SwingのComputer Use popup/modal取得不具合を切り分ける | pending | 不可・固定候補のpass未登録 | — / — |
 
 ## #71 / TOKEN-PANEL-HIERARCHY-1: トークン数パネルの文字階層・数値・グループを読みやすくする
 
@@ -227,11 +228,37 @@ PR: [#81](https://github.com/shinma06/cursor-in-android-studio/pull/81)
 根拠: https://github.com/shinma06/cursor-in-android-studio/issues/39#issuecomment-5562606190, https://github.com/shinma06/cursor-in-android-studio/issues/39#issuecomment-5562663611, https://github.com/shinma06/cursor-in-android-studio/blob/215794eab3927a015e24ec7fa59c82806226c713/docs/loop-engineering/runs/2026-09-07-restore-target-safety.md
 
 
-## #80 / SWING-CUA-BASIC-1: 最小Swing fixtureのComputer Use接続・基本入力・再起動後再識別を確認する
+## #80 / SWING-PROBE-REPORT-1: 固定候補の最小Swing probeを再現し、実測記録・手順・限界が資材と一致することを確認する
 
 PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
-前提・対象build: 確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。固定sourceからplain Javaとjpackage .appを作り同一JAR hashを照合。fixture専用build/run/bootとGUI担当/予約を確認する。人間が直接操作してもComputer Use経路のpassにはならない。人間確認者はGPT/CUA操作と結果の証拠を照合する。
+前提・対象build: 区切りの固定develop候補SHAとPR82の包含を確認し、同候補のscripts/gui-fixtureを使う。JDK/jpackageでplain Javaと.appをビルドしJAR hashを固定する。GUI担当/予約を確認し、専用run/build/bootを記録する。人間によるprobe操作と記録照合で確認可能。CUAのpopup/modal問題を解消することはこのCaseの受入に含めない。
+
+1. 同じ固定候補のscripts/gui-fixture手順に従い、未使用の出力先へJDKコンパイルとjpackageビルドを実行する。plainと.appのJAR SHA256一致を確認する。
+2. fixtureを起動し、画面と実行時記録に表示されるbuild/run/boot・ロードJAR hashが用意した資材と一致することを確認する。
+3. 人間または指定GPTがbuttonクリック、入力+Return、Popup選択、Dialog表示、一覧scrollを操作する。操作前後の表示と対応するCLICK/COMMIT/POPUP/DIALOG/SCROLLイベントを照合する。人間操作とCUA操作を記録上分ける。
+4. 自分のfixtureだけ停止して再起動し、同じbuild/run/JARと新bootを識別できることを確認する。
+5. run文書の再現手順・成功操作・失敗層・回復/打切り・次案が、旧実測source/JARと証拠へ正しく結び付くことを照合する。旧blockedと未試行を新候補のpassへ書き換えていないことを確認する。
+6. 自分のfixtureだけ終了し、検証結果を固定候補SHA/hash・確認者・日時・表示とイベントの証拠とともに記録する。
+
+期待結果: 固定候補から再現可能にprobeをビルドし、実際のロードJAR・run・bootと操作結果/イベントを照合できる。手順と限界が正確で、CUA操作の成功/失敗/未試行、旧実測と新候補、人間操作とCUA操作を区別する。調査結果が再現可能で正確なら本Caseは合格可能だが、それを親73のCUA全面操作成立、modal修正、製品Settings/CLI/IME/D&Dのpassへ言い換えない。
+
+初期登録時のGPT: pending — 固定候補のprobe資材と調査記録の整合確認は未実施。旧調査の完了は根拠であり新候補passへ転記しない。
+初期登録時の人間: pending — 固定候補で未実施。人間によるprobe実操作と記録照合で確認可能。合格は調査成果の受入に限り、CUA操作成立を意味しない。
+
+修正Issue/PR: 未登録 / 未登録
+再確認: probeまたは調査記録の不整合は専用修正Issue/branch/PRに紐付け、修正を含む固定候補で再確認する。CUA環境の未達は親73のSWING-CUA-BASIC-1/WINDOW-1へ記録し、本調査成果の不具合と混同しない。
+次の操作: 固定候補でprobeをビルド・起動してイベントと表示を照合し、手順・旧実測・限界の記載を確認する。調査受入と親73の操作成立を別々に記録する。
+根拠: https://github.com/shinma06/cursor-in-android-studio/issues/80, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046, https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895, https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md
+
+
+## #73 / SWING-CUA-BASIC-1: 最小Swing fixtureのComputer Use接続・基本入力・再起動後再識別を確認する
+
+PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
+
+前提・対象build: 確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、関連PR82のfixtureと、今後のCUA改善scopeの包含を確認する。固定sourceからplain Javaとjpackage .appを作り同一JAR hashを照合。fixture専用build/run/bootとGUI担当/予約を確認する。人間が直接操作してもComputer Use経路のpassにはならない。人間確認者はGPT/CUA操作と結果の証拠を照合する。
+
+このPRは関連証拠です。親Issueの残条件であり、当該PRのmain受入へ追加しません。
 
 1. plain Javaの一覧表示とgetAppを比較する。
 2. .appへComputer Useで接続し、buttonのAXクリックで回数増加を確認する。
@@ -246,8 +273,8 @@ PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
 修正Issue/PR: 未登録 / 未登録
 再確認: 固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。
-次の操作: 区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。
-根拠: https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046, https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md, https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895
+次の操作: 親Issue73でCUA経路の改善・再試行scopeを割り当て、固定候補のComputer Use操作と実イベント/画像/AXを確認する。子Issue80調査記録の完了と混同しない。
+根拠: https://github.com/shinma06/cursor-in-android-studio/issues/73, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046, https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md, https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895
 
 <details><summary>過去の観察（新候補へ転記しない）</summary>
 
@@ -281,11 +308,13 @@ PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 </details>
 
 
-## #80 / SWING-CUA-WINDOW-1: 最小SwingのComputer Use popup/modal取得不具合を切り分ける
+## #73 / SWING-CUA-WINDOW-1: 最小SwingのComputer Use popup/modal取得不具合を切り分ける
 
 PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
-前提・対象build: 確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。固定source/JAR/run/bootを識別したfixtureを使用。人間の直接クリックでpopup/modalが使えてもCUA取得経路のpassではない。人間はGPT/CUA操作の画像/AX/イベントを照合する。製品IDE受入とは別ケース。
+前提・対象build: 確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、関連PR82のfixtureと、今後のCUA改善scopeの包含を確認する。固定source/JAR/run/bootを識別したfixtureを使用。人間の直接クリックでpopup/modalが使えてもCUA取得経路のpassではない。人間はGPT/CUA操作の画像/AX/イベントを照合する。製品IDE受入とは別ケース。
+
+このPRは関連証拠です。親Issueの残条件であり、当該PRのmain受入へ追加しません。
 
 1. Computer UseでPopupボタンをクリックし、AX・画像・OPENイベントを比較する。
 2. Escape後にPopupを開き、DownとReturnで選択結果を確認する。
@@ -300,8 +329,8 @@ PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
 修正Issue/PR: 未登録 / 未登録
 再確認: 固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。
-次の操作: 区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。
-根拠: https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046, https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md, https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895
+次の操作: 親Issue73でCUA経路の改善・再試行scopeを割り当て、固定候補のComputer Use操作と実イベント/画像/AXを確認する。子Issue80調査記録の完了と混同しない。
+根拠: https://github.com/shinma06/cursor-in-android-studio/issues/73, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110, https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046, https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md, https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895
 
 <details><summary>過去の観察（新候補へ転記しない）</summary>
 

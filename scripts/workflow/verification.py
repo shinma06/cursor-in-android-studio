@@ -50,6 +50,10 @@ def validate_change(data, issue, gui):
         if not isinstance(case, dict) or not re.fullmatch(r'[A-Z][A-Z0-9-]+', case.get('id', '')) or case['id'] in ids:
             raise ValueError('Invalid or duplicate Case ID')
         ids.add(case['id'])
+        if case.get('required_execution') not in (None, 'computer_use'):
+            raise ValueError('Unknown required execution method')
+        if not re.fullmatch(r'[a-z][a-z0-9_]*', case.get('artifact', 'plugin')):
+            raise ValueError('Invalid Case artifact name')
         for key in ('change', 'preconditions', 'expected', 'next_action'):
             if not nonempty(case.get(key)):
                 raise ValueError('Missing Case ' + key)
@@ -63,7 +67,7 @@ def validate_change(data, issue, gui):
                 raise ValueError('Explicit GPT and human status/reason required')
             if observation['status'] == 'pass':
                 validate_observation(observation, observation.get('head'))
-            if observation['status'] == 'fail' and not case.get('fix_issue'):
+            if observation['status'] == 'fail' and (type(case.get('fix_issue')) is not int or case['fix_issue'] <= 0 or case['fix_issue'] == issue):
                 raise ValueError('Product fail requires a dedicated fix Issue')
         if 'fix_issue' not in case or 'fix_pr' not in case or not nonempty(case.get('recheck')):
             raise ValueError('Fix/recheck tracking fields are required')
@@ -98,6 +102,11 @@ def verify_pr(pr, api, git=git_read):
     files = git('diff', '--name-only', base, head).splitlines()
     if mode == 'develop':
         # Outcome is deliberately unrestricted, but every required Case has steps and tracking.
+        for case in data['cases']:
+            if any(case[actor]['status'] == 'fail' for actor in ('gpt', 'human')):
+                fix = api(f'issues/{case["fix_issue"]}')
+                if fix.get('state') != 'open' or 'pull_request' in fix:
+                    raise ValueError('Product failure needs an open dedicated fix Issue')
         return {'mode': mode, 'gui_complete': not gui, 'cases': len(data['cases'])}
     if mode == 'tooling':
         if gui or not files or any(not (f.startswith(TOOLING) or f in ('CLAUDE.md', 'AGENTS.md')) for f in files):
@@ -120,6 +129,15 @@ def verify_pr(pr, api, git=git_read):
     allowed = {PROMOTION, path}
     if any(p not in allowed for p in git('diff', '--name-only', candidate, head).splitlines()):
         raise ValueError('Promotion tree differs from tested candidate outside acceptance metadata')
+    # A net-zero revert must not smuggle later/unobserved commits into main ancestry.
+    # Every new promotion commit is metadata-only; the only allowed merge parent is current main.
+    for commit in git('rev-list', head, '--not', candidate, base).splitlines():
+        parents = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
+        if not parents or len(parents) > 2 or (len(parents) == 2 and parents[1] != base):
+            raise ValueError('Unexpected promotion ancestry; only the current main merge is allowed')
+        changed = git('diff', '--name-only', parents[0], commit).splitlines()
+        if any(p not in allowed for p in changed):
+            raise ValueError('Untested commit in promotion history, even if later reverted')
     commits = git('rev-list', f'{base}..{candidate}').splitlines()
     if not commits or len(commits) != len(set(commits)):
         raise ValueError('No candidate changes or duplicate commits')
@@ -146,18 +164,23 @@ def verify_pr(pr, api, git=git_read):
         change = validate_change(json.loads(git('show', f'{item["commit"]}:{source_path}')), source_issue, source_gui)
         for case in change['cases']:
             key = f'{source_issue}:{case["id"]}'
-            if key in required and required[key] != case.get('required_execution'):
+            requirement = (case.get('required_execution'), case.get('artifact', 'plugin'))
+            if key in required and required[key] != requirement:
                 raise ValueError('Case execution requirement changed across candidate commits')
-            required[key] = case.get('required_execution')
+            required[key] = requirement
     results = promotion.get('results', {})
     if not isinstance(results, dict) or set(results) != set(required):
         raise ValueError('Candidate results must match ALL required Cases, with no missing/extra entries')
-    artifact = promotion.get('artifact_sha256')
-    if required and not HASH.fullmatch(artifact or ''):
-        raise ValueError('Fixed build hash is required')
+    artifacts = dict(promotion.get('artifacts', {}))
+    if promotion.get('artifact_sha256'):
+        artifacts['plugin'] = promotion['artifact_sha256']
     for key, result in results.items():
+        execution, artifact_name = required[key]
+        artifact = artifacts.get(artifact_name)
+        if not HASH.fullmatch(artifact or ''):
+            raise ValueError('Fixed candidate artifact hash is required: ' + artifact_name)
         validate_observation(result, candidate, artifact)
-        if required[key] and result.get('execution') != required[key]:
+        if execution and result.get('execution') != execution:
             raise ValueError('Case requires its specified execution method: ' + key)
     return {'mode': mode, 'gui_complete': True, 'cases': len(required), 'candidate': candidate}
 
@@ -182,7 +205,13 @@ def render_queue(paths, promotion=None):
         result = results.get(f'{data["issue"]}:{case["id"]}', {})
         passed = False
         try:
-            validate_observation(result, candidate, promotion.get('artifact_sha256'))
+            artifacts = dict(promotion.get('artifacts', {}))
+            if promotion.get('artifact_sha256'):
+                artifacts['plugin'] = promotion['artifact_sha256']
+            artifact = artifacts.get(case.get('artifact', 'plugin'))
+            if not HASH.fullmatch(artifact or ''):
+                raise ValueError('Candidate artifact not registered')
+            validate_observation(result, candidate, artifact)
             passed = not case.get('required_execution') or result.get('execution') == case['required_execution']
         except ValueError:
             pass
@@ -192,6 +221,8 @@ def render_queue(paths, promotion=None):
     for data, case in rows:
         lines += ['', f'## #{data["issue"]} / {case["id"]}: {case["change"]}', '',
                   f'PR: [#{data["pr"]}](https://github.com/shinma06/cursor-in-android-studio/pull/{data["pr"]})' if data.get('pr') else 'PR: 未登録', '', '前提・対象build: ' + case['preconditions'], '']
+        if data.get('pr_role') == 'related_evidence_only':
+            lines += ['このPRは関連証拠です。親Issueの残条件であり、当該PRのmain受入へ追加しません。', '']
         lines += [f'{n}. {step}' for n, step in enumerate(case['steps'], 1)]
         lines += ['', '期待結果: ' + case['expected'], '']
         result = results.get(f'{data["issue"]}:{case["id"]}')
@@ -201,7 +232,8 @@ def render_queue(paths, promotion=None):
                       '確認日時: ' + result.get('at', '未登録'), '実施経路: ' + result.get('execution', '未登録'),
                       '観察/失敗理由: ' + result.get('reason', '未登録'),
                       '証拠: ' + result.get('evidence', '未登録'),
-                      'ロード実体: ' + result.get('loaded_identity', '未登録'), '']
+                      'ロード実体: ' + result.get('loaded_identity', '未登録'),
+                      '対象artifact SHA-256: ' + result.get('artifact_sha256', '未登録'), '']
         for actor, label in (('gpt', 'GPT'), ('human', '人間')):
             recorded = case[actor]
             lines += [f'初期登録時の{label}: {recorded["status"]} — {recorded["reason"]}']

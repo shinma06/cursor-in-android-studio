@@ -13,7 +13,7 @@ its own Issue-numbered branch and worktree, and a PR. Never commit or push direc
 Read-only advice/review does not need a new Issue. Preserve unrelated local work.
 
 1. Read this file, requirements, Issue #1, target Issue/comments, and open PRs. Inspect status,
-   worktrees, fetch origin, and compare HEAD with origin/main. Search before creating an Issue.
+   worktrees, fetch origin, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
 2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
    and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
    in the workflow; no concurrent writers to the same worktree.
@@ -57,7 +57,7 @@ GUIのpending/環境blocked/製品failでもdevelopへ統合できる。製品fa
 mainは固定develop候補全体をGPT/人間が適切に確認したpromotion PRをmerge commitで統合する。
 過去buildのpass、1 Caseだけのpass、未確認commitの混入はAcceptance gateが拒否する。
 GUI不要docs/toolingだけは理由とCLI検証を記録したmain PRも可能。main/developはcleanup禁止。
-初期8 Caseの入口は [今回の確認一覧](docs/verification/current.md)。JSONを正本に再生成し、二重編集しない。
+初期9 Case（製品/probe 7件と親#73のCUA 2件）の入口は [今回の確認一覧](docs/verification/current.md)。JSONを正本に再生成し、二重編集しない。
 既存enrollmentのowner/sourceやPAUSED heartbeatは自動変更しない。公開引継ぎにはopaque IDを使い、
 host/sourceはlocal registryだけへ保存する。#83 bootstrapとGitHub設定順序は運用文書を参照。
 

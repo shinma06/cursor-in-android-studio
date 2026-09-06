@@ -1,6 +1,6 @@
 # 区切りごとの動作確認
 
-まず [今回の確認一覧](current.md) を開き、上から順に試してください。初期一覧は PR #72/#74/#75/#77/#81/#82 の8ケースです。#39の接続未実装は先に解消します。#80はComputer Use自体の調査で、人間が直接ボタンを押せてもCUAの受入passにはなりません。
+まず [今回の確認一覧](current.md) を開き、上から順に試してください。初期一覧は PR #72/#74/#75/#77/#81/#82 の7ケースと、親#73に残るCUA操作成立の2ケースです。#39の接続未実装は先に解消します。#80はprobe調査記録の整合を確認します。CUA全面操作は親#73の別Caseで、人間が直接ボタンを押せてもCUA受入passにはなりません。
 
 ## 正本と結果の入力
 
@@ -27,7 +27,7 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。G
 ## 固定候補からmainへ
 
 1. PMが区切りを選び、未実装依存を解消してdevelopへ統合します。最新mainをdevelopへ取り込む必要がある場合は、**専用Issue branchをdevelopから作りmainを通常mergeし、develop向けPRをsquash merge**します。同期も自分のCase JSON・CI・独立レビューが必要です。main/developへの直接pushは禁止です。
-2. PMはdevelopの候補40桁SHAを固定し、そのSHAからbuildします。developへの後続統合は継続できます。ZIPのSHA-256と実際にロードしたJARを照合します。candidateが現在のdevelopの祖先であることをgateが検査します。candidateより後の変更は今回のpromotionに含めず次バッチへ回します。無関係なSHAや候補の差し替えは受入に使えません。
+2. PMはdevelopの候補40桁SHAを固定し、そのSHAからbuildします。developへの後続統合は継続できます。ZIPのSHA-256と実際にロードしたJARを照合します。probe等の別成果物は同じcandidateからbuildし、`artifacts.swing_probe`にそのhashを記録します。Caseの`artifact`（省略時plugin）ごとに一致検査します。candidateが現在のdevelopの祖先であることをgateが検査します。candidateより後の変更は今回のpromotionに含めず次バッチへ回します。無関係なSHAや候補の差し替えは受入に使えません。
 3. 専用promotion Issueと `codex/N-promotion` branch/worktreeを候補SHAから作成し、現在のmainを通常mergeします。`candidate`からの製品差分がゼロである必要があります。main先行toolingや前回QA記録が差分に残れば、1に戻してdevelopへ同期し直します。
 4. `docs/verification/changes/issue-N.json` をGUI不要の「確認結果の記録」として作成し、`docs/verification/promotion.json` を下記の形式で用意します。PR本文は `Integration: promotion`、`GUI: not-required`（結果記録自体の区分）、`Verification: docs/verification/changes/issue-N.json`。必須GUIは元develop PRのCaseから自動収集され、ここで不要と宣言しても免除されません。
 5. `changes` に `git rev-list <main SHA>..<candidate SHA>` の**全コミット**を1回ずつ登録します。各コミットは実際にmerge済みの同一repository develop PRのsquash結果でなければなりません。省略、未対応コミット、merge/rebase取り込み、別PRへの付け替えをgateが拒否します。選択的なmain統合は実装していません。通常は固定develop候補全体を確認します。
@@ -67,4 +67,6 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。G
 
 ## 初期移行
 
-初期6ファイルは現在のIssueコメントと固定runから登録しています。過去の部分passは`history`のみで、候補結果は未登録です。PMは各PRのwriter/既存enrollmentを確認した後、導入済みdevelopを同期し、必要な受入JSONとPR metadataを付けてretargetします。#81の未接続をGUI環境blockedとして扱わないでください。
+初期7ファイルは現在のIssueコメントと固定runから登録しています。過去の部分passは`history`のみで、候補結果は未登録です。PMは各PRのwriter/既存enrollmentを確認した後、導入済みdevelopを同期し、必要な受入JSONとPR metadataを付けてretargetします。#81の未接続をGUI環境blockedとして扱わないでください。
+
+候補後のcommitも個別検査します。後続developを取り込んで製品差分だけRevertする操作は、最終treeが一致しても未確認履歴の混入として拒否されます。

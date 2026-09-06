@@ -576,6 +576,8 @@ def rebind_target(loop, args):
         raise ValueError('External HEAD changed; rebind cannot adopt a new writer')
     metadata(pr)
     public = {k: v for k, v in h.items() if k not in ('source', 'host', 'registry_id', 'version')}
+    public = loop.public_state(public)
+    public['owner'] = 'agent-loop'
     public['target'] = pr['base']['ref']
     public = register(loop.storage, public, h['source'], HOST)
     loop.gh.comment(args.pr, pack(HANDOFF_V2, public))

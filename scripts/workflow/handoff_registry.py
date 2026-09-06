@@ -36,7 +36,7 @@ def resolve(storage, public, host):
             local = json.load(stream)
     except (OSError, ValueError) as error:
         raise ValueError('Local enrollment registry unavailable or invalid; explicit owner recovery required') from error
-    if (local.get('digest') != digest(public) or local.get('host') != host or
+    if (not isinstance(local, dict) or local.get('digest') != digest(public) or local.get('host') != host or
             not isinstance(local.get('source'), str) or not Path(local['source']).is_absolute()):
         raise ValueError('Enrollment binding/local ownership mismatch; preserve existing owner')
     return dict(public, source=local['source'], host=local['host'])

@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+from types import SimpleNamespace
 
 import agent_loop as al
 from agent_policy import binding, next_action
@@ -61,7 +62,7 @@ class AcceptanceTests(unittest.TestCase):
         if args[:2] == ('rev-list', '--parents'):
             return args[-1] + ' ' + BASE
         if args[0] == 'rev-list':
-            return '\n'.join(self.range)
+            return '' if '--not' in args else '\n'.join(self.range)
         if args[0] == 'fetch':
             return ''
         if args[0] == 'merge-base':
@@ -69,6 +70,8 @@ class AcceptanceTests(unittest.TestCase):
         raise AssertionError(args)
 
     def api(self, path):
+        if path.startswith('issues/'):
+            return {'state': 'open'}
         return {'object': {'sha': NEW}} if path.startswith('git/ref') else self.source
 
     def verify(self):
@@ -147,6 +150,25 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(next_action(state, bound, 'success', True, {'allowed': True}), 'merge')
         self.assertEqual(next_action(state, bound, 'success', False, {'allowed': False}), 'acceptance-wait')
 
+    def test_probe_artifact_and_cua_execution_are_not_substitutable(self):
+        case = self.documents[f'{NEW}:docs/verification/changes/issue-36.json']['cases'][0]
+        case.update(artifact='swing_probe', required_execution='computer_use')
+        with self.assertRaises(ValueError): self.verify()
+        self.manifest['artifacts'] = {'swing_probe': 'f' * 64}
+        result = self.manifest['results']['36:QA-1']
+        result.update(artifact_sha256='f' * 64, execution='manual')
+        with self.assertRaisesRegex(ValueError, 'execution'): self.verify()
+        result['execution'] = 'computer_use'
+        self.assertEqual(self.verify()['cases'], 1)
+
+    def test_current_candidate_results_render_observer_and_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'case.json'; path.write_text(json.dumps(change(36)))
+            output = render_queue([path], self.manifest)
+            self.assertIn('reviewer-1', output)
+            self.assertIn('https://example.invalid/evidence', output)
+            self.assertIn('Case合格', output)
+
     def test_public_queue_contains_steps_and_never_promotes_historical_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'case.json'; path.write_text(json.dumps(change()))
@@ -212,3 +234,132 @@ class DevelopLoopTests(unittest.TestCase):
         self.assertEqual(self.loop.tick(36)['phase'], 'done')
         self.assertEqual(self.gh.issues[35]['state'], 'open')
         self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
+
+    def test_promotion_completion_uses_candidate_acceptance_not_old_gui_shape(self):
+        self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'promotion')
+        h, _, _, _ = self.loop.load(36)
+        h['gui_required'] = True
+        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.worker.side_effect = lambda *a, **kw: dict(report(), gui_required=True)
+        self.loop.acceptance.return_value = {'allowed': True, 'mode': 'promotion', 'cases': 1,
+                                            'gui_complete': True, 'candidate': NEW}
+        self.loop.tick(36)
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.gh.issues[35]['state'], 'closed')
+        _, state, _, _ = self.loop.load(36)
+        self.assertNotIn('gui', state)
+        self.assertEqual(state['acceptance']['candidate'], NEW)
+
+    def test_new_enrollment_publishes_only_opaque_registry_reference(self):
+        self.gh.messages.clear()
+        original_git = al.git.side_effect
+        al.git.side_effect = lambda *args, **kw: 'codex/35-test' if args == ('branch', '--show-current') else original_git(*args, **kw)
+        args = SimpleNamespace(pr=36, source=self.checkout, owner='gpt-test-session', scope=['src/'],
+                    parent=1, close_issue=False, writer_stopped=True)
+        public = al.enroll(self.loop, args)
+        self.assertEqual(public['version'], 2)
+        encoded = json.dumps(self.gh.messages)
+        self.assertNotIn(str(self.checkout), encoded)
+        self.assertNotIn(al.HOST, encoded)
+        h, _, _, _ = self.loop.load(36)
+        self.assertEqual(h['source'], str(self.checkout))
+        with self.assertRaises(ValueError): al.enroll(self.loop, args)
+
+    def test_rebind_legacy_target_keeps_owner_private_and_invalidates_review(self):
+        self.loop.tick(36)
+        h, _, _, _ = self.loop.load(36)
+        h['owner'] = 'agent-loop@' + al.HOST
+        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.gh.pull['base']['ref'] = 'develop'
+        self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'develop')
+        public = al.rebind_target(self.loop, Mock(pr=36, writer_stopped=True))
+        self.assertNotIn(al.HOST, json.dumps(public))
+        self.assertNotIn('source', public)
+        resolved, state, _, _ = self.loop.load(36)
+        self.assertEqual(resolved['source'], str(self.checkout))
+        self.assertEqual(resolved['target'], 'develop')
+        self.assertNotIn('review', state)
+        self.assertNotIn('binding', state)
+
+    def test_rebind_cannot_adopt_foreign_head_or_running_worker(self):
+        self.gh.pull['head']['sha'] = NEW
+        with self.assertRaises(ValueError): al.rebind_target(self.loop, Mock(pr=36))
+        self.gh.pull['head']['sha'] = HEAD
+        (self.checkout.parent / 'worker.json').write_text('{}')
+        with self.assertRaises(ValueError): al.rebind_target(self.loop, Mock(pr=36))
+
+
+class RealPromotionHistoryTests(unittest.TestCase):
+    def test_two_batches_with_later_develop_and_main_tooling_sync(self):
+        import os
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+            def git(*args):
+                return subprocess.check_output(['git', *args], cwd=root, env=env, text=True, stderr=subprocess.DEVNULL).strip()
+            git('init', '-b', 'main'); git('config', 'user.name', 'Test'); git('config', 'user.email', 'test@example.invalid')
+            git('config', 'core.hooksPath', '/dev/null')
+            # Fetch uses this disposable repo only, never the network.
+            git('remote', 'add', 'origin', str(root))
+            def write(path, data):
+                target = root / path; target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(data) if isinstance(data, dict) else data)
+            def commit(message):
+                git('add', '.'); git('commit', '-m', message); return git('rev-parse', 'HEAD')
+            write('product.txt', 'base'); base = commit('base')
+            git('checkout', '-b', 'develop')
+            sources = {}
+            def source_commit(issue, number, gui=True):
+                write(f'docs/verification/changes/issue-{issue}.json', change(issue, gui))
+                sha = commit(f'change {issue}')
+                source = pr_data(); source.update(number=number, merged=True, merge_commit_sha=sha)
+                source['base']['ref'] = 'develop'; source['head']['ref'] = f'codex/{issue}-feature'
+                source['body'] = (f'Issue: #{issue}\nIntegration: develop\nGUI: {"required" if gui else "not-required"}\n'
+                                  f'Verification: docs/verification/changes/issue-{issue}.json')
+                sources[number] = source
+                return sha
+            write('product.txt', 'batch 1'); first = source_commit(36, 99)
+            # Development continues while the FIRST candidate is under observation.
+            write('product.txt', 'batch 2'); later = source_commit(37, 100)
+            def api(path):
+                return {'object': {'sha': git('rev-parse', 'develop')}} if path.startswith('git/ref') else sources[int(path.split('/')[-1])]
+            def promotion(issue, candidate, main, covered, keys):
+                git('checkout', '-b', f'codex/{issue}-promotion', candidate)
+                git('merge', '--no-edit', main)
+                data = {'schema': 1, 'base': main, 'candidate': candidate, 'artifact_sha256': 'e' * 64,
+                        'changes': covered, 'results': {key: dict(observation(), head=candidate) for key in keys}}
+                write('docs/verification/promotion.json', data)
+                write(f'docs/verification/changes/issue-{issue}.json', change(issue, False))
+                head = commit('record candidate observations')
+                pr = pr_data(); pr['head'].update(sha=head, ref=f'codex/{issue}-promotion'); pr['base']['sha'] = main
+                pr['body'] = (f'Issue: #{issue}\nIntegration: promotion\nGUI: not-required\n'
+                              f'Verification: docs/verification/changes/issue-{issue}.json')
+                return pr
+            one = promotion(35, first, base, [{'commit': first, 'pr': 99}], ['36:QA-1'])
+            self.assertEqual(verify_pr(one, api, git)['candidate'], first)
+            # An unobserved product change after candidate is never accepted as metadata.
+            write('product.txt', 'untested'); untested = commit('hidden product update')
+            bad = copy.deepcopy(one); bad['head']['sha'] = untested
+            with self.assertRaisesRegex(ValueError, 'tree differs'): verify_pr(bad, api, git)
+            # Even net-identical product content cannot hide a later develop commit in ancestry.
+            git('checkout', '-b', 'codex/41-history-smuggling', one['head']['sha'])
+            git('merge', '--no-edit', later)
+            write('product.txt', 'batch 1'); disguised = commit('restore candidate tree')
+            # Also restore the later Case JSON so the final tree contains only permitted metadata.
+            git('rm', 'docs/verification/changes/issue-37.json'); disguised = commit('hide extra case')
+            bad = copy.deepcopy(one); bad['head']['sha'] = disguised
+            with self.assertRaisesRegex(ValueError, 'history|ancestry'): verify_pr(bad, api, git)
+            git('checkout', 'main'); git('merge', '--no-ff', '--no-edit', one['head']['sha'])
+            # main progresses with an unrelated tooling change, then is synchronized via a develop squash PR.
+            write('docs/main-tooling.md', 'new tooling'); main_two = commit('main tooling')
+            git('checkout', 'develop'); git('merge', '--squash', 'main')
+            synced = source_commit(38, 101, gui=False)
+            two = promotion(40, synced, main_two, [{'commit': later, 'pr': 100}, {'commit': synced, 'pr': 101}], ['37:QA-1'])
+            self.assertEqual(verify_pr(two, api, git)['cases'], 1)
+            # Reusing batch one's old candidate after it already reached main is rejected (empty range).
+            older = copy.deepcopy(two)
+            data = json.loads((root / 'docs/verification/promotion.json').read_text())
+            data.update(candidate=first, changes=[], results={})
+            write('docs/verification/promotion.json', data); older['head']['sha'] = commit('invalid old candidate')
+            with self.assertRaises(ValueError): verify_pr(older, api, git)
