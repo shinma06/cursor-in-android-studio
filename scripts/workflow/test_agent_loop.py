@@ -102,6 +102,22 @@ class PolicyTests(unittest.TestCase):
                 self.assertNotIn(key, env)
 
 
+class RootTests(unittest.TestCase):
+    def test_commands_resolve_current_root_after_bootstrap_override(self):
+        overridden = Path('/new/trusted/main')
+        with patch.object(al, 'ROOT', overridden), patch.object(al.subprocess, 'run') as run:
+            run.return_value = Mock(returncode=0, stdout='{}', stderr='')
+            al.command(['gh', 'api', 'example'])
+            self.assertEqual(run.call_args.kwargs['cwd'], overridden)
+            al.git('status')
+            self.assertEqual(run.call_args.kwargs['cwd'], overridden)
+            al.GitHub().api('example', 'PATCH', {'body': 'test'})
+            self.assertEqual(run.call_args.kwargs['cwd'], overridden)
+            explicit = Path('/explicit/worktree')
+            al.git('status', cwd=explicit)
+            self.assertEqual(run.call_args.kwargs['cwd'], explicit)
+
+
 class WorkerTests(unittest.TestCase):
     def test_timeout_stops_child_even_when_parent_exits_on_term(self):
         with tempfile.TemporaryDirectory() as directory:

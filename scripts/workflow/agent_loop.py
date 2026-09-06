@@ -26,7 +26,8 @@ STATE = '<!-- agent-loop-state:v1 -->'
 HOST = socket.gethostname()
 
 
-def command(args, cwd=ROOT, timeout=120, check=True):
+def command(args, cwd=None, timeout=120, check=True):
+    cwd = ROOT if cwd is None else cwd
     result = subprocess.run(args, cwd=cwd, env=worker_environment(), text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
     if check and result.returncode:
@@ -34,7 +35,7 @@ def command(args, cwd=ROOT, timeout=120, check=True):
     return result.stdout.strip()
 
 
-def git(*args, cwd=ROOT):
+def git(*args, cwd=None):
     return command(['git', *args], cwd)
 
 
@@ -44,7 +45,7 @@ class GitHub:
         if data is None:
             out = command(args)
         else:
-            result = subprocess.run(args + ['--input', '-'], input=json.dumps(data), text=True,
+            result = subprocess.run(args + ['--input', '-'], input=json.dumps(data), text=True, cwd=ROOT,
                                     capture_output=True, timeout=120)
             if result.returncode:
                 raise RuntimeError(result.stderr[-1800:])
