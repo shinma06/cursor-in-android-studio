@@ -26,7 +26,7 @@ class AgentTurnListenerFactory(
     private val chatHistoryState: ChatHistoryState,
     private val onRunFinished: () -> Unit,
 ) {
-    fun create(userText: String): AgentProcessListener {
+    fun create(userText: String, usageTicket: Long): AgentProcessListener {
         var assistantStarted = false
         val assistantDeduper = AssistantChunkDeduper()
 
@@ -40,6 +40,10 @@ class AgentTurnListenerFactory(
                     }
                     timeline.setAssistantText(full)
                 }
+            }
+
+            override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
+                runOnEdt { composer.contextUsage.update(usageTicket, usage) }
             }
 
             override fun onResultFallback(text: String) {
