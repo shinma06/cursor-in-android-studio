@@ -36,12 +36,39 @@ GPTというモデル名だけで担当を識別しない。`gpt-31-20260906-a`�
    既存branch/worktreeがある場合はownerとHEADを確認して再開し、重複作成しない。
 6. `bash scripts/workflow/bootstrap.sh`でhooksを設定。branch/worktree/ownerをclaimへ記録し、実装開始。
 
-例（31は自分のIssue番号へ置換）:
+### ローカルの配置
+
+このホストでは、関連する実体を `~/Dev/Soft/Cursor in Android Studio/` 配下に置く。
+mainのディレクトリ名はGitHub repository slugと同じ `cursor-in-android-studio` とする。
+
+```text
+Cursor in Android Studio/
+├── cursor-in-android-studio/                         # main checkout
+├── worktrees/
+│   ├── cursor-in-android-studio-issue-<番号>/         # Issueごとのcheckout
+│   └── cursor-in-android-studio-<用途>/               # 調査・独立レビューなど
+└── GUI-checks/                                       # GUI fixture・build・証跡
+```
+
+新規worktreeやGUI資材を `Soft/` 直下へ増やさない。別ホストでは親の位置を調整しても、
+repository名と用途別の配置は維持する。親名に空白があるためshellではパスと変数を引用する。
+過去の証跡に記録されたパスは書き換えない。
+
+2026-09-06の移行では実行中タスクのため、旧パスに一時的な互換symlinkを残す。
+新規作業は上記の実体パスを使用する。旧リンクの削除は、既存タスク・IDE・Codexの登録先・
+自動処理・引継ぎ状態が新パスへ移り、旧パスを使う処理がないことを確認してから行う。
+互換リンクはファイル参照を維持するが、Codexの既存タスクはsymlinkを含む書込rootを
+拒否する場合がある。その場合は新しい実体パスをプロジェクトとして開き直す。
+既存worktreeの移動は `git worktree move`、main自体の移動後は移動先で
+`git worktree repair` を使い、新旧パスからHEAD・branch・未commit状態を照合する。
+
+例（31は自分のIssue番号へ置換。このホストのmain checkoutから実行）:
 
 ```bash
 git fetch origin
-git worktree add -b codex/31-github-flow ../cursor-agent-issue-31 origin/main
-cd ../cursor-agent-issue-31
+mkdir -p "../worktrees"
+git worktree add -b codex/31-github-flow "../worktrees/cursor-in-android-studio-issue-31" origin/main
+cd "../worktrees/cursor-in-android-studio-issue-31"
 git branch --unset-upstream
 bash scripts/workflow/bootstrap.sh
 ```
