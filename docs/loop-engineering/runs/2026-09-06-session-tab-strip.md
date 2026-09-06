@@ -55,7 +55,8 @@ allprojects {
     afterEvaluate {
         tasks.register('sessionTabFixture', JavaExec) {
             dependsOn tasks.named('testClasses')
-            classpath = sourceSets.test.runtimeClasspath
+            // IntelliJ Platform adds SDK jars to the Test task, not sourceSets.test.runtimeClasspath.
+            classpath = tasks.named('test').get().classpath
             mainClass = 'com.cursoragent.ui.session.SessionTabStripFixture'
             javaLauncher = javaToolchains.launcherFor {
                 languageVersion = JavaLanguageVersion.of(21)
@@ -70,3 +71,10 @@ allprojects {
 で起動する。leaseなしで実行しない。終了時はこのfixtureのwindowだけを閉じ、起動process終了を確認。
 証拠にはpluginをロードしたと記載せず、fixtureの実行class/hash・classpath・source HEADを記録する。
 この部品fixture結果の登録形式は進行役が確認し、#65の実IDE/CLI受入へ流用しない。
+
+## 起動手順の検証修正
+
+2026-09-06、3f1c532の初回fixture起動はJBUI$Fontsがruntime classpathに無く失敗。
+sourceSets.test.runtimeClasspathだけではIntelliJ SDKが含まれないため、platform pluginが
+設定するtest taskのclasspathを使用する。fixture初期化はinvokeAndWaitに変更し、
+EDTの初期化失敗をmainへ伝播してJavaExecを失敗させる。未表示をGUI passとはしない。

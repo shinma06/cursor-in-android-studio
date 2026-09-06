@@ -14,7 +14,7 @@ import javax.swing.WindowConstants
 object SessionTabStripFixture {
     @JvmStatic
     fun main(args: Array<String>) {
-        SwingUtilities.invokeLater {
+        SwingUtilities.invokeAndWait {
             val tabs = (1..20).map { index ->
                 SessionTabPresentation("fixture-$index", when (index) {
                     1 -> "New Agent"
