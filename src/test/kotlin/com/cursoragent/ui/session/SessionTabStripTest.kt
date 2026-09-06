@@ -24,7 +24,9 @@ class SessionTabStripTest {
                 assertEquals("New Agent", SessionTabPresentation("a").fullTitle)
                 assertEquals("New Agent", SessionTabPresentation("a", " ").fullTitle)
                 assertEquals("あ".repeat(9), abbreviateSessionTitle("あ".repeat(9), metrics, limit))
-                assertEquals("New Agent", abbreviateSessionTitle("New Agent", metrics, limit))
+                // Linux CI can use a different Japanese fallback font. Check exact-fit behavior
+                // against the same text's measured width, not a cross-script width assumption.
+                assertEquals("New Agent", abbreviateSessionTitle("New Agent", metrics, metrics.stringWidth("New Agent")))
                 val narrow = abbreviateSessionTitle("i".repeat(100), metrics, limit)
                 val wide = abbreviateSessionTitle("W".repeat(100), metrics, limit)
                 assertTrue(narrow.length > wide.length)
