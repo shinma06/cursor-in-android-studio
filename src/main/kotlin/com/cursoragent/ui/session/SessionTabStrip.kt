@@ -9,6 +9,7 @@ import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.Rectangle
 import java.awt.RenderingHints
+import java.awt.event.HierarchyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.AbstractAction
@@ -86,6 +87,15 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         minimumSize = Dimension(0, tabHeight + JBUI.scale(6))
         preferredSize = Dimension(JBUI.scale(320), minimumSize.height)
         add(scrollPane)
+        addHierarchyListener { event ->
+            if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && !isShowing) {
+                cancelDrag()
+                hoveredId = null
+                pointerInViewport = null
+                areaHovered = false
+                scrollPane.horizontalScrollBar.repaint()
+            }
+        }
         scrollPane.viewport.addChangeListener { refreshHoveredTab() }
         val areaListener = object : MouseAdapter() {
             override fun mouseEntered(e: MouseEvent) = updateAreaHover(e)
@@ -107,9 +117,11 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         require(tabs.map { it.id }.distinct().size == tabs.size) { "Duplicate tab ID" }
         require(tabs.none { it.id.isBlank() }) { "Blank tab ID" }
         require((tabs.isEmpty() && selectedId == null) || tabs.any { it.id == selectedId }) { "Unknown selected tab" }
-        val revealSelection = this.selectedId != selectedId
+        val previousSelectedId = this.selectedId
+        val previousSelectedBounds = boundsFor(previousSelectedId)
         this.tabs = tabs.toList()
         this.selectedId = selectedId
+        val revealSelection = previousSelectedId != selectedId || previousSelectedBounds != boundsFor(selectedId)
         if (pressedId != null && tabs.none { it.id == pressedId }) cancelDrag()
         refreshHoveredTab()
         canvas.getAccessibleContext().accessibleName = tabs.firstOrNull { it.id == selectedId }?.let {
@@ -118,7 +130,7 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         canvas.revalidate()
         canvas.repaint()
         if (revealSelection) SwingUtilities.invokeLater {
-            boundsFor(selectedId)?.let(canvas::scrollRectToVisible)
+            boundsFor(this.selectedId)?.let(canvas::scrollRectToVisible)
         }
     }
 
@@ -127,6 +139,7 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
     internal val eventTarget: JComponent get() = canvas
     internal fun closeVisible(id: String): Boolean = id == selectedId || id == hoveredId
     internal val scrollbarRevealed: Boolean get() = areaHovered
+    internal val dragAutoScrollRunning: Boolean get() = edgeTimer.isRunning
 
     private fun tabBounds(): List<Pair<SessionTabPresentation, Rectangle>> {
         val metrics = canvas.getFontMetrics(canvas.font)

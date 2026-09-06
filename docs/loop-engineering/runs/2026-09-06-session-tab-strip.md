@@ -17,7 +17,13 @@ callback後ownerが状態を更新しsetTabsする。source除去後の最終ind
 閉じる×は選択/hover時に表示、幅は常に確保して名前が揺れない。
 9文字はUnicode grapheme単位。完全名と閉じるの意味はtooltipへ残す。
 左右/Home/Endはタブ選択、Deleteは選択タブを閉じる、Alt+Shift+左右は並べ替え。
-ドラッグ中Escapeで取消、端でauto-scroll。removeNotifyでtimerを停止する。
+ドラッグ中Escapeで取消、端でauto-scroll。自身・祖先の非表示とremoveNotifyでドラッグを取り消しtimerを停止する。
+同じ選択IDのまま並べ替え等で選択タブの位置・幅が変わった場合も可視化する。
+
+レビュー指摘への修正で、自身・祖先の非表示時のtimer停止とcallback抑止、狭幅での
+キーボード左右並べ替え後の選択タブ可視化を検証する回帰テストを追加した。
+実装workerはテスト・buildPluginを実行していない。実行と独立再レビューはcoordinatorが担当する。
+実機GUI受入は引き続きpending。
 
 ## 固定buildによる受入
 

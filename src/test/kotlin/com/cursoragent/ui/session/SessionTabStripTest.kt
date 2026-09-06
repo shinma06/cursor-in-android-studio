@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import java.awt.Point
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
 class SessionTabStripTest {
@@ -106,6 +107,65 @@ class SessionTabStripTest {
     }
 
     @Test
+    fun `hiding strip or ancestor cancels drag and stops edge timer`() = onEdt {
+        for (hideAncestor in listOf(false, true)) {
+            val strip = fixture()
+            val parent = JPanel().apply { add(strip) }
+            // Create an offscreen hierarchy without opening a desktop window.
+            parent.addNotify()
+            try {
+                assertTrue(strip.isShowing)
+                var calls = 0
+                strip.onSelect = { calls++ }
+                strip.onClose = { calls++ }
+                strip.onMove = { _, _ -> calls++ }
+                mouse(strip.eventTarget, MouseEvent.MOUSE_PRESSED, center(strip, "a"))
+                val end = center(strip, "c")
+                mouse(strip.eventTarget, MouseEvent.MOUSE_DRAGGED, end)
+                assertTrue(strip.dragAutoScrollRunning)
+                if (hideAncestor) parent.isVisible = false else strip.isVisible = false
+                assertFalse(strip.isShowing)
+                assertFalse(strip.dragAutoScrollRunning)
+                assertFalse(strip.scrollbarRevealed)
+                if (hideAncestor) parent.isVisible = true else strip.isVisible = true
+                mouse(strip.eventTarget, MouseEvent.MOUSE_RELEASED, end)
+                assertEquals(0, calls)
+            } finally {
+                parent.removeNotify()
+            }
+        }
+    }
+
+    @Test
+    fun `keyboard reorder reveals unchanged selected ID in narrow viewport`() {
+        lateinit var strip: SessionTabStrip
+        var tabs = (0..7).map { SessionTabPresentation("tab-$it") }
+        onEdt {
+            strip = SessionTabStrip()
+            strip.setTabs(tabs, "tab-0")
+            strip.setSize(200, 40)
+            layout(strip)
+            strip.onMove = { id, index ->
+                tabs = tabs.toMutableList().apply {
+                    val source = removeAt(indexOfFirst { it.id == id })
+                    add(index, source)
+                }
+                strip.setTabs(tabs, "tab-0")
+                layout(strip)
+            }
+        }
+        for (direction in listOf("moveRight", "moveLeft")) {
+            repeat(7) {
+                onEdt { strip.eventTarget.actionMap.get(direction).actionPerformed(null) }
+                // A separate EDT turn lets setTabs' deferred reveal run first.
+                onEdt {
+                    assertTrue(strip.scrollPane.viewport.viewRect.contains(strip.boundsFor("tab-0")!!))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `keyboard selection close and reorder use controlled selection`() = onEdt {
         val strip = fixture()
         val actions = mutableListOf<String>()
@@ -190,7 +250,7 @@ class SessionTabStripTest {
     }
 
     private fun event(target: JComponent, type: Int, point: Point) = MouseEvent(
-        target, type, 0, 0, point.x, point.y, 1, false,
+        target, type, 0, 0, point.x, point.y, 0, 0, 1, false,
         if (type == MouseEvent.MOUSE_PRESSED || type == MouseEvent.MOUSE_RELEASED) MouseEvent.BUTTON1 else MouseEvent.NOBUTTON,
     )
 
