@@ -20,6 +20,7 @@ class PastChatsCoordinator(
     private val header: AgentHeaderBar,
     private val agentService: AgentProcessService,
     private val chatHistoryState: ChatHistoryState,
+    private val onChatResumed: () -> Unit = {},
 ) {
     fun showPopup() {
         val records = chatHistoryState.list()
@@ -40,6 +41,7 @@ class PastChatsCoordinator(
     }
 
     private fun resumeChat(record: ChatHistoryRecord) {
+        onChatResumed()
         agentService.resumeChat(record.chatId)
         timeline.clearTimeline()
         header.setSessionStatus("session=${record.chatId.take(8)}… (resumed)")
