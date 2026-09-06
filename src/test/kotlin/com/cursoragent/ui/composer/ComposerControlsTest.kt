@@ -71,6 +71,50 @@ class ComposerControlsTest {
     }
 
     @Test
+    fun `Auto search expands results and keyboard confirmation selects a manual model`() = SwingUtilities.invokeAndWait {
+        val selected = mutableListOf<String>()
+        var closed = false
+        val panel = ModelPopupPanel(options, "auto", null, { selected.add(it.id) }, { closed = true }, {})
+        val collapsedHeight = panel.preferredSize.height
+        panel.searchField.text = " HIGH "
+        assertEquals(2, panel.modelList.model.size)
+        assertTrue(panel.preferredSize.height > collapsedHeight)
+        assertTrue(panel.autoToggle.isSelected)
+        assertTrue(selected.isEmpty())
+        panel.searchField.actionMap.get("next").actionPerformed(null)
+        panel.searchField.actionMap.get("choose").actionPerformed(null)
+        assertEquals(listOf("sol-high-fast"), selected)
+        assertTrue(closed)
+    }
+
+    @Test
+    fun `clearing Auto search hides candidates and unmatched search keeps Auto unchanged`() = SwingUtilities.invokeAndWait {
+        val selected = mutableListOf<String>()
+        var closed = false
+        val panel = ModelPopupPanel(options, "auto", "opus-high", { selected.add(it.id) }, { closed = true }, {})
+        val collapsedHeight = panel.preferredSize.height
+        for (query in listOf("", "   ")) {
+            panel.searchField.text = "sol-medium"
+            assertEquals("sol-medium", panel.modelList.selectedValue.id)
+            assertTrue(panel.preferredSize.height > collapsedHeight)
+            panel.searchField.text = query
+            assertEquals(collapsedHeight, panel.preferredSize.height)
+            panel.chooseHighlighted()
+            assertTrue(selected.isEmpty())
+        }
+        panel.searchField.text = "missing"
+        assertEquals(0, panel.modelList.model.size)
+        assertTrue(panel.preferredSize.height > collapsedHeight)
+        panel.chooseHighlighted()
+        assertTrue(panel.autoToggle.isSelected)
+        assertTrue(selected.isEmpty())
+        assertFalse(closed)
+        panel.actionMap.get("cancel").actionPerformed(null)
+        assertTrue(closed)
+        assertTrue(selected.isEmpty())
+    }
+
+    @Test
     fun `Auto without any manual models cannot toggle into an invalid selection`() = SwingUtilities.invokeAndWait {
         val panel = ModelPopupPanel(options.take(1), "auto", null, { fail("No selection expected") }, {}, {})
         assertTrue(panel.autoToggle.isSelected)

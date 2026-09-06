@@ -52,6 +52,26 @@ class ModelOptionsPopupPanelTest {
     }
 
     @Test
+    fun `Auto search finds variant metadata and confirmation persists its remembered family model`() = SwingUtilities.invokeAndWait {
+        val settings = com.cursoragent.settings.AgentSettingsState().apply { selectedModel = "auto" }
+        val panel = ModelOptionsPopupPanel(options, settings.selectedModel, "opus-thinking-max",
+            { settings.selectedModel = it.id }, {}, {})
+        val picker = panel.picker!!
+        picker.searchField.text = "opus-thinking-high-fast"
+        assertEquals(1, picker.modelList.model.size)
+        assertEquals("auto", settings.selectedModel)
+        picker.searchField.actionMap.get("choose").actionPerformed(null)
+        assertEquals("opus-thinking-max", panel.currentId)
+        assertEquals("opus-thinking-max", settings.selectedModel)
+        assertNull(panel.picker)
+        panel.showModels()
+        assertFalse(panel.picker!!.autoToggle.isSelected)
+        panel.picker!!.autoToggle.doClick()
+        panel.picker!!.autoToggle.doClick()
+        assertEquals("opus-thinking-max", settings.selectedModel)
+    }
+
+    @Test
     fun `Auto retains the exact manual variant and reopening options changes nothing`() = SwingUtilities.invokeAndWait {
         val selected = mutableListOf<String>()
         val panel = ModelOptionsPopupPanel(options, "opus-thinking-max", null, { selected.add(it.id) }, {}, {})

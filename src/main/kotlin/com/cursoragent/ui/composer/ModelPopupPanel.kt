@@ -172,12 +172,12 @@ internal class ModelPopupPanel(
 
     private fun refresh() {
         val auto = currentId == "auto" && autoOption != null
+        val query = searchField.text.trim()
         autoToggle.isSelected = auto
         autoToggle.isEnabled = !auto || manualOptions.isNotEmpty()
         description.isVisible = auto
-        results.isVisible = !auto
+        results.isVisible = !auto || query.isNotEmpty()
         val previous = modelList.selectedValue?.id
-        val query = searchField.text.trim()
         listModel.clear()
         manualOptions.filter { matchesQuery(it, query) }
             .forEach(listModel::addElement)
