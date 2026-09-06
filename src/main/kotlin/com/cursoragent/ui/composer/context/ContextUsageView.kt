@@ -16,6 +16,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import javax.swing.BoxLayout
 import javax.swing.Icon
+import javax.swing.JButton
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingConstants
@@ -32,10 +33,10 @@ class ContextUsageView {
             foreground = AgentUiColors.mutedText
         })
     }
-    val button = SelectorButton().apply {
+    val button: JButton = TokenCountsButton().apply {
         icon = TokenCountsIcon()
         horizontalAlignment = SwingConstants.CENTER
-        preferredSize = JBUI.size(24, 24)
+        preferredSize = JBUI.size(28, 28)
         border = JBUI.Borders.empty()
         toolTipText = "直近の応答のトークン数"
         accessibleContext.accessibleName = "トークン数"
@@ -114,6 +115,39 @@ class ContextUsageView {
         border = JBUI.Borders.empty(4, 0)
         add(left, BorderLayout.CENTER)
         add(right, BorderLayout.EAST)
+    }
+}
+
+/** Keep the keyboard focus outline outside the glyph, without the selector's circular pill. */
+private class TokenCountsButton : JButton() {
+    init {
+        isOpaque = false
+        isContentAreaFilled = false
+        isBorderPainted = false
+        isRolloverEnabled = true
+    }
+
+    override fun paintComponent(g: Graphics) {
+        val copy = g.create() as Graphics2D
+        try {
+            copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            val inset = JBUI.scale(1)
+            val arc = JBUI.scale(6)
+            val outlineWidth = (width - inset * 2 - 1).coerceAtLeast(0)
+            val outlineHeight = (height - inset * 2 - 1).coerceAtLeast(0)
+            if (model.isRollover || model.isPressed || hasFocus()) {
+                copy.color = AgentUiColors.userBubbleBackground
+                copy.fillRoundRect(inset, inset, outlineWidth, outlineHeight, arc, arc)
+            }
+            if (hasFocus() && isFocusPainted) {
+                copy.color = AgentUiColors.mutedText
+                copy.stroke = BasicStroke(JBUI.scale(1).toFloat())
+                copy.drawRoundRect(inset, inset, outlineWidth, outlineHeight, arc, arc)
+            }
+            icon?.let { it.paintIcon(this, copy, (width - it.iconWidth) / 2, (height - it.iconHeight) / 2) }
+        } finally {
+            copy.dispose()
+        }
     }
 }
 
