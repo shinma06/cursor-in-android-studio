@@ -1,31 +1,23 @@
 package com.cursoragent.ui.composer
 
-import com.cursoragent.settings.AgentSettingsConfigurable
-import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.RoundedSurface
 import com.cursoragent.ui.composer.mention.MentionPopupController
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.popup.JBPopup
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.ui.popup.JBPopupListener
-import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.FlowLayout
-import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.KeyStroke
 
 class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
+    var onRunningChanged: (Boolean) -> Unit = {}
     private var isRunning = false
-    private var optionsPanel: ComposerOptionsPanel? = null
 
     val contextUsage = com.cursoragent.ui.composer.context.ContextUsageView()
 
@@ -81,7 +73,6 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             }
             val actions = JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 isOpaque = false
-                add(createOverflowButton())
                 add(contextUsage.button)
                 add(sendButton)
             }
@@ -106,7 +97,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun setRunning(running: Boolean) {
         isRunning = running
-        optionsPanel?.setRunning(running)
+        onRunningChanged(running)
         sendButton.text = if (running) "■" else "↑"
         sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
         sendButton.accessibleContext.accessibleName = sendButton.toolTipText
@@ -123,43 +114,6 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         val text = inputText()
         if (text.isNotEmpty()) {
             onSend(text)
-        }
-    }
-
-    private fun createOverflowButton(): JButton {
-        return SelectorButton().apply {
-            text = "⋯"
-            horizontalAlignment = javax.swing.SwingConstants.CENTER
-            toolTipText = "チャット設定"
-            margin = JBUI.emptyInsets()
-            preferredSize = JBUI.size(24, 24)
-            isBorderPainted = false
-            isContentAreaFilled = false
-            foreground = AgentUiColors.mutedText
-            addActionListener {
-                var popup: JBPopup? = null
-                val content = ComposerOptionsPanel(
-                    settings = AgentSettingsState.getInstance(),
-                    isRunning = isRunning,
-                    onSummarize = { if (!isRunning) onSend("/summarize") },
-                    onMcp = { com.cursoragent.ui.mcp.McpServersDialog(project).show() },
-                    onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
-                    onClose = { popup?.cancel() },
-                )
-                popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.permissionChoice)
-                    .setFocusable(true)
-                    .setRequestFocus(true)
-                    .setCancelOnClickOutside(true)
-                    .setCancelKeyEnabled(true)
-                    .createPopup()
-                optionsPanel = content
-                popup.addListener(object : JBPopupListener {
-                    override fun onClosed(event: LightweightWindowEvent) {
-                        if (optionsPanel === content) optionsPanel = null
-                    }
-                })
-                popup.showUnderneathOf(this)
-            }
         }
     }
 }

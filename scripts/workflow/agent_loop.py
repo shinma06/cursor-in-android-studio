@@ -57,7 +57,17 @@ class GitHub:
         return [item for page in json.loads(out) for item in page]
 
     def pr(self, number):
-        return self.api(f'repos/{REPO}/pulls/{number}')
+        pr = self.api(f'repos/{REPO}/pulls/{number}')
+        if pr['state'] == 'open' and eligible(pr, OWNER, REPO):
+            # pulls.base.sha can lag behind the branch after another PR merges.
+            # Use the actual branch ref for review/GUI bindings and final merge checks.
+            ref = self.api(f'repos/{REPO}/git/ref/heads/{quote(pr["base"]["ref"], safe="")}')
+            if (ref.get('ref') != 'refs/heads/' + pr['base']['ref'] or
+                    ref.get('object', {}).get('type') != 'commit' or
+                    not re.fullmatch(r'[0-9a-f]{40}', ref['object'].get('sha', ''))):
+                raise ValueError('Invalid base branch reference; cannot reconcile acceptance')
+            pr['base']['sha'] = ref['object']['sha']
+        return pr
 
     def issue(self, number):
         return self.api(f'repos/{REPO}/issues/{number}')
@@ -186,7 +196,13 @@ class Loop:
             git('config', 'core.hooksPath', str(ROOT / '.githooks'), cwd=path)
         return path
 
+    @staticmethod
+    def invalidate_acceptance(state):
+        for key in ('review', 'binding', 'gui'):
+            state.pop(key, None)
+
     def test_and_push(self, pr, path, state):
+        self.invalidate_acceptance(state)
         expected = pr['head']['sha']
         actual = git('rev-parse', 'HEAD', cwd=path)
         remote = self.gh.pr(pr['number'])
@@ -198,6 +214,10 @@ class Loop:
         command(['./gradlew', 'test', '--console=plain'], path, 600)
         if git('status', '--porcelain', cwd=path):
             raise ValueError('Tests left dirty files; cannot publish')
+        remote = self.gh.pr(pr['number'])
+        if (not eligible(remote, OWNER, REPO) or remote['state'] != 'open' or
+                remote['head']['sha'] != expected):
+            raise ValueError('Remote PR changed during tests; preserve unpublished work')
         git('push', 'origin', f'HEAD:refs/heads/{pr["head"]["ref"]}', cwd=path)
         state['expected_head'] = actual
         state.pop('review', None)
@@ -250,10 +270,14 @@ class Loop:
                 if (pr['head']['sha'] == tip == state.get('publish_head') and
                         not git('status', '--porcelain', cwd=path)):
                     state['expected_head'] = tip
-                    state.pop('review', None)
+                    self.invalidate_acceptance(state)
                 else:
                     raise ValueError('External push after handoff; explicit re-enrollment required')
             bound, feedback = self.bound(pr, issue, comments)
+            if any(record and any(record.get(k) != bound[k] for k in ('head', 'base'))
+                   for record in (state.get('binding'), state.get('gui'))):
+                self.invalidate_acceptance(state)
+                comment_id = self.save(pr, state, comment_id)
             self.gh.status(pr['head']['sha'], 'pending', 'Review/acceptance reconciliation in progress', pr['html_url'])
             current = git('rev-parse', 'HEAD', cwd=path)
             dirty = git('status', '--porcelain', cwd=path)
@@ -274,14 +298,27 @@ class Loop:
                 return {'pr': number, 'phase': 'published-recovery'}
             # Strict base update is a normal merge, never a rebase/reset/force push.
             git('fetch', 'origin', 'main', h['branch'], cwd=path)
-            if git('rev-parse', 'origin/main', cwd=path) != pr['base']['sha']:
+            latest = self.gh.pr(number)
+            if (not eligible(latest, OWNER, REPO) or latest['state'] != 'open' or
+                    latest['head']['sha'] != pr['head']['sha'] or
+                    git('rev-parse', f'origin/{h["branch"]}', cwd=path) != pr['head']['sha']):
+                self.invalidate_acceptance(state)
+                raise ValueError('Remote PR changed during base fetch; preserve checkout and re-enroll')
+            if (git('rev-parse', 'origin/main', cwd=path) != pr['base']['sha'] or
+                    latest['base']['sha'] != pr['base']['sha']):
+                self.invalidate_acceptance(state)
+                state.update(phase='queued', next='Base moved during fetch; retry with the current branch ref')
+                self.save(pr, state, comment_id)
                 return {'pr': number, 'phase': 'base-race-retry'}
             check = subprocess.run(['git', 'merge-base', '--is-ancestor', pr['base']['sha'], 'HEAD'], cwd=path,
                                    env=worker_environment(), capture_output=True)
+            if check.returncode not in (0, 1):
+                raise ValueError('Cannot determine base ancestry; preserve checkout')
             if check.returncode:
+                self.invalidate_acceptance(state)
                 state['phase'] = 'syncing'
                 comment_id = self.save(pr, state, comment_id)
-                git('merge', '--no-edit', 'origin/main', cwd=path)
+                git('merge', '--no-edit', pr['base']['sha'], cwd=path)
                 state['publish_head'] = git('rev-parse', 'HEAD', cwd=path)
                 state['phase'] = 'publishing'
                 self.save(pr, state, comment_id)
@@ -330,6 +367,9 @@ class Loop:
                 latest = self.gh.pr(number)
                 now, _ = self.bound(latest, self.gh.issue(h['issue']), self.gh.comments(number))
                 if now != bound or self.gh.ci(latest) != 'success':
+                    self.invalidate_acceptance(state)
+                    state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
+                    self.save(latest, state, comment_id)
                     return {'pr': number, 'phase': 'changed-before-merge'}
                 self.gh.status(bound['head'], 'success', 'Independent review and scoped acceptance passed', pr['html_url'])
                 state.update(phase='merging', next='Read back GitHub merge result')
