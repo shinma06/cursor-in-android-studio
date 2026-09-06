@@ -19,7 +19,7 @@ import javax.swing.JSeparator
 import javax.swing.KeyStroke
 import javax.swing.SwingConstants
 
-/** Pages share a single IDE popup, so focus, Escape and outside-click ownership stay together. */
+/** The option card stays in place while a searchable model card opens beside it. */
 internal class ModelOptionsPopupPanel(
     private val models: List<ModelOption>,
     selectedId: String,
@@ -27,6 +27,9 @@ internal class ModelOptionsPopupPanel(
     private val onSelect: (ModelOption) -> Unit,
     private val onClose: () -> Unit,
     private val onResize: () -> Unit,
+    private val onShowModels: (ModelPopupPanel, Boolean) -> Unit = { _, _ -> },
+    private val onHideModels: () -> Unit = {},
+    private val onModelsResize: () -> Unit = onResize,
 ) : JPanel(BorderLayout()) {
     internal val families = modelFamilies(models)
     internal var currentId = selectedId
@@ -37,6 +40,8 @@ internal class ModelOptionsPopupPanel(
     internal var picker: ModelPopupPanel? = null
         private set
     internal var choiceList: JList<ModelVariant>? = null
+        private set
+    internal lateinit var modelRow: SelectorButton
         private set
     internal var focusTarget: JComponent = this
         private set
@@ -62,10 +67,7 @@ internal class ModelOptionsPopupPanel(
     internal fun showOptions() {
         val family = family()
         val current = variant()
-        if (family == null || current == null) {
-            showModels()
-            return
-        }
+        hideModels()
         picker = null
         choiceList = null
         optionControls.clear()
@@ -73,7 +75,15 @@ internal class ModelOptionsPopupPanel(
             isOpaque = false
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
         }
+        if (currentId == "auto") {
+            rows.add(JLabel("<html>品質と速度のバランスを重視し、<br>多くのタスクに適したモデルを選びます</html>").apply {
+                font = AgentUiMetrics.textFont()
+                border = JBUI.Borders.empty(8, 7, 12, 7)
+                alignmentX = Component.LEFT_ALIGNMENT
+            })
+        }
         for (axis in ModelAxis.entries) {
+            if (family == null || current == null) break
             val choices = family.choices(current, axis)
             if (choices.size < 2) continue
             val control = if (axis == ModelAxis.THINKING || axis == ModelAxis.FAST) {
@@ -102,12 +112,24 @@ internal class ModelOptionsPopupPanel(
                 menuRow(axis.caption, optionValueLabel(axis, current.value(axis)), axis.help) { showChoices(axis) }
                     .also(rows::add)
             }
+            control.addMouseListener(object : java.awt.event.MouseAdapter() {
+                override fun mouseEntered(e: java.awt.event.MouseEvent) = hideModels()
+            })
             optionControls[axis] = control
         }
-        if (optionControls.isNotEmpty()) rows.add(JSeparator().apply { alignmentX = Component.LEFT_ALIGNMENT })
-        val model = menuRow("Model", family.name, "モデルを選択します。") { showModels() }
-        rows.add(model)
-        val initial = optionControls.values.firstOrNull() ?: model
+        if (optionControls.isNotEmpty() || currentId == "auto") {
+            rows.add(JSeparator().apply { alignmentX = Component.LEFT_ALIGNMENT })
+        }
+        modelRow = menuRow("Model", family?.name ?: "Auto", "ホバーまたはクリックでモデル一覧を開きます。") { showModels() }
+        modelRow.addMouseListener(object : java.awt.event.MouseAdapter() {
+            override fun mouseEntered(e: java.awt.event.MouseEvent) = showModels(requestFocus = false)
+        })
+        modelRow.getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("LEFT"), "models")
+        modelRow.actionMap.put("models", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent?) = showModels()
+        })
+        rows.add(modelRow)
+        val initial = optionControls.values.firstOrNull() ?: modelRow
         showPage(rows, initial)
     }
 
@@ -128,9 +150,11 @@ internal class ModelOptionsPopupPanel(
         onSelect(option)
     }
 
-    internal fun showModels() {
-        optionControls.clear()
-        choiceList = null
+    internal fun showModels(requestFocus: Boolean = true) {
+        picker?.let {
+            if (requestFocus) it.searchField.requestFocusInWindow()
+            return
+        }
         val representatives = families.map { family ->
             family.variants.firstOrNull { it.option.id == currentId }
                 ?: family.variants.firstOrNull { it.option.id == remembered[family.id] || it.option.id == lastManual }
@@ -139,20 +163,30 @@ internal class ModelOptionsPopupPanel(
         val byId = representatives.mapIndexed { index, option -> option.id to families[index] }.toMap()
         val options = models.filter { it.id == "auto" } + representatives
         val selected = if (currentId == "auto") "auto" else representatives.find { it.id == currentId }?.id.orEmpty()
-        val page = ModelPopupPanel(options, selected, lastManual, { select(it) }, { showOptionsOrClose() }, onResize,
+        val page = ModelPopupPanel(options, selected, { select(it); showOptions() }, { hideModels() },
+            onResize = onModelsResize,
             rowLabel = { byId[it.id]?.name ?: it.displayName() },
+            rowDetail = { option ->
+                val f = byId[option.id]
+                val v = f?.variants?.find { it.option.id == option.id }
+                if (f != null && v != null) f.selectionLabel(v).removePrefix(f.name).trim() else ""
+            },
             matchesQuery = { option, query -> byId[option.id]?.matches(query) ?: option.label.contains(query, true) },
         )
         picker = page
-        showPage(withBack("モデル", page) { showOptionsOrClose() }, page.searchField)
+        onShowModels(page, requestFocus)
         page.modelList.ensureIndexIsVisible(page.modelList.selectedIndex)
     }
 
-    private fun showOptionsOrClose() {
-        if (currentId == "auto") onClose() else showOptions()
+    internal fun hideModels() {
+        val wasOpen = picker != null
+        picker = null
+        onHideModels()
+        if (wasOpen && isShowing) modelRow.requestFocusInWindow()
     }
 
     private fun showChoices(axis: ModelAxis) {
+        hideModels()
         val current = variant() ?: return
         val choices = family()?.choices(current, axis).orEmpty()
         val list = JList(choices.toTypedArray()).apply {

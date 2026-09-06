@@ -8,7 +8,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 class ModelSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
-    private val popupController = SelectorPopupController(this)
+    private val popupController = SelectorPopupController(this, ownsChildPopups = true)
     private var models: List<ModelOption> = emptyList()
     private var families: List<ModelFamily> = emptyList()
     private var lastManualModelId: String? = settings.selectedModel.takeUnless { it == "auto" || it.isEmpty() }
@@ -27,14 +27,16 @@ class ModelSelector(
                     showSelection(option)
                 }, onClose = { popup?.cancel() }, onResize = {
                     popupController.repackAbove()
-                })
+                }, onShowModels = { picker, requestFocus ->
+                    popupController.showChild(picker, picker.searchField, requestFocus) { picker.actionMap.get("cancel").actionPerformed(null) }
+                }, onHideModels = { popupController.closeChild() }, onModelsResize = { popupController.repackChild() })
                 popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.focusTarget)
                     .setFocusable(true)
                     .setRequestFocus(true)
-                    .setCancelOnClickOutside(true)
+                    .setCancelOnClickOutside(false)
                     .setCancelOnWindowDeactivation(true)
-                    .setCancelOnOtherWindowOpen(true)
-                    .setCancelKeyEnabled(true)
+                    .setCancelOnOtherWindowOpen(false)
+                    .setCancelKeyEnabled(false)
                     .createPopup()
                 popup.addListener(object : com.intellij.openapi.ui.popup.JBPopupListener {
                     override fun beforeShown(event: com.intellij.openapi.ui.popup.LightweightWindowEvent) {
