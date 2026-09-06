@@ -56,6 +56,9 @@ reviewer/fixerにはGitHub tokenの環境変数、ユーザー設定のMCP、GUI
 
 `Agent review` commit statusをcoordinatorが発行し、main rulesetの必須チェックにする。
 最新HEAD/base/PR本文/Issue本文/人間のフィードバックが変わると判定を失効させる。
+open PRのbaseはREST PR payloadの `base.sha` だけに依存せず、Git ref APIの現在の `refs/heads/main` を使う（#58）。
+fetch結果とrefを再照合し、移動中なら次tickへ戻る。未取り込みなら固定SHAを通常mergeし、テスト・非force push後に独立再レビューする。
+HEAD/baseの変更、同期開始、merge直前の競合では旧レビューとGUI承認を失効させる。publish中のmain更新も次tickで再同期する。
 レビュー中断時は旧承認を復活させない。CI成功と必要GUI証拠が揃うまでmergeしない。
 既存の人間の未解決review threadはGitHub保護がmergeを拒否する。解決の正当性を進行役が確認してから再開する。
 同じGitHubアカウントはstatusの発行権限も共有するため、悪意ある同一資格情報の偽装を識別する署名基盤ではない。
@@ -136,3 +139,5 @@ python3 scripts/workflow/agent_loop.py cleanup-branches --apply  # remote削除�
 - [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode): CLIの構造化出力と保存済み認証。
 - [Scheduled tasks](https://learn.chatgpt.com/docs/automations?surface=app): ローカル自動処理の起動条件。
 - [GitHub commit statuses](https://docs.github.com/en/rest/commits/statuses): HEAD単位の必須status。
+
+- [GitHub Get a reference](https://docs.github.com/en/rest/git/refs#get-a-reference): 現在のbranch refのSHAを取得。
