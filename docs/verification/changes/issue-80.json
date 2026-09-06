@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "issue": 80,
+  "pr": 82,
+  "imported_pr_head": "70fe9fe0fd318b258bee05717723d50a813ef8a3",
+  "gui_required": true,
+  "reason": "調査成果の完成とComputer Use全面操作成立を区別する。製品コードは変更しない。人間の直接操作はCUA操作の代替passにならず、親73・製品受入をcloseしない。",
+  "cli_checks": [
+    "./gradlew test と git diff --check。製品パッケージ変更なしのためbuildPlugin対象外。",
+    "JDKコンパイルとjpackageを実行しplain/.appのJAR hash一致、既存output拒否、無効run ID拒否を確認する。"
+  ],
+  "cases": [
+    {
+      "id": "SWING-CUA-BASIC-1",
+      "issue": 80,
+      "pr": 82,
+      "change": "最小Swing fixtureのComputer Use接続・基本入力・再起動後再識別を確認する",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。固定sourceからplain Javaとjpackage .appを作り同一JAR hashを照合。fixture専用build/run/bootとGUI担当/予約を確認する。人間が直接操作してもComputer Use経路のpassにはならない。人間確認者はGPT/CUA操作と結果の証拠を照合する。",
+      "steps": [
+        "plain Javaの一覧表示とgetAppを比較する。",
+        ".appへComputer Useで接続し、buttonのAXクリックで回数増加を確認する。",
+        "Computer UseのtypeText+Returnと値の直接設定+Returnを試す。",
+        "一覧末尾へのキーscrollを試す。",
+        "fixtureだけ停止・再起動し、新bootで再識別してComputer Useの座標クリックとscroll APIを試す。"
+      ],
+      "expected": "Computer Useの結果表示と補助イベントが一致する。再起動後に同じbuild/JARと新bootを区別できる。失敗経路と成功経路を分ける。日本語直接設定をIME変換passにしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "旧fixture sourceで.app基本操作と再識別が成功。plain識別と初回座標/scrollはblocked、再起動後は成功。新固定候補で未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "未実施。人間が直接GUI操作してもComputer Use経路の合格にはならない。固定候補でGPT/CUA操作と結果証拠を照合する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895"
+      ],
+      "imported_pr_head": "70fe9fe0fd318b258bee05717723d50a813ef8a3",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [
+        {
+          "status": "pass",
+          "actor": "gpt",
+          "observer": "gpt-80-swing-20260907",
+          "head": "214d6ad8d1ddae914034a4d804da6a64434a24f6",
+          "jar_sha256": "2e00a23dc9019a83c096a67e53b9234dd5fd141c3dd62781845b7cbbb7792376",
+          "run": "swing-cua-r1",
+          "recorded_at": "2026-09-06T22:36:38Z",
+          "reason": ".app接続、AXクリック、typeText+Return、値の直接設定+Return、キーscroll、再識別、再起動後座標/scrollが成功。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110"
+        },
+        {
+          "status": "blocked",
+          "actor": "gpt",
+          "observer": "gpt-80-swing-20260907",
+          "head": "214d6ad8d1ddae914034a4d804da6a64434a24f6",
+          "jar_sha256": "2e00a23dc9019a83c096a67e53b9234dd5fd141c3dd62781845b7cbbb7792376",
+          "run": "swing-cua-r1",
+          "recorded_at": "2026-09-06T22:36:38Z",
+          "reason": "plain Javaは一覧に出てもInvalid app。初回座標/scrollはnoWindowsAvailable。全面操作passではない。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110"
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false,
+      "required_execution": "computer_use",
+      "parent_issue": 73,
+      "untried_outside_case": [
+        "IME変換中/確定",
+        "D&D",
+        "非modal別窓",
+        "clipboard paste"
+      ]
+    },
+    {
+      "id": "SWING-CUA-WINDOW-1",
+      "issue": 80,
+      "pr": 82,
+      "change": "最小SwingのComputer Use popup/modal取得不具合を切り分ける",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。固定source/JAR/run/bootを識別したfixtureを使用。人間の直接クリックでpopup/modalが使えてもCUA取得経路のpassではない。人間はGPT/CUA操作の画像/AX/イベントを照合する。製品IDE受入とは別ケース。",
+      "steps": [
+        "Computer UseでPopupボタンをクリックし、AX・画像・OPENイベントを比較する。",
+        "Escape後にPopupを開き、DownとReturnで選択結果を確認する。",
+        "Computer UseでDialogボタンをクリックし、子Dialogのタイトル・入力欄・確定ボタンと画像を確認する。",
+        "同じアプリを1回再取得して比較する。",
+        "同じ背面窓のままなら打ち切り、自分のfixtureだけ終了する。"
+      ],
+      "expected": "popup展開表示と選択結果を別々に判定する。modalを開いた後は背面親窓ではなく子DialogをCUAで取得する。取得できなければ環境blockedを残し、製品failやpassへ転換しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "旧実測ではpopupキー選択結果のみ成功、展開画像は未達。ModalはDIALOG_OPEN後も背面親窓を返し再取得でも回復しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "未実施。人間が直接GUI操作してもComputer Use経路の合格にはならない。固定候補でGPT/CUA操作と結果証拠を照合する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895"
+      ],
+      "imported_pr_head": "70fe9fe0fd318b258bee05717723d50a813ef8a3",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [
+        {
+          "status": "pass",
+          "actor": "gpt",
+          "observer": "gpt-80-swing-20260907",
+          "head": "214d6ad8d1ddae914034a4d804da6a64434a24f6",
+          "jar_sha256": "2e00a23dc9019a83c096a67e53b9234dd5fd141c3dd62781845b7cbbb7792376",
+          "run": "swing-cua-r1",
+          "recorded_at": "2026-09-06T22:36:38Z",
+          "reason": "PopupのDown/Returnによる選択結果を画面とイベントで確認。展開画像passではない。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110"
+        },
+        {
+          "status": "blocked",
+          "actor": "gpt",
+          "observer": "gpt-80-swing-20260907",
+          "head": "214d6ad8d1ddae914034a4d804da6a64434a24f6",
+          "jar_sha256": "2e00a23dc9019a83c096a67e53b9234dd5fd141c3dd62781845b7cbbb7792376",
+          "run": "swing-cua-r1",
+          "recorded_at": "2026-09-06T22:36:38Z",
+          "reason": "Popup画像は親窓のみまたはScreenshot unavailable。Modalは背面親窓を誤取得し再取得も回復せず。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110"
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false,
+      "required_execution": "computer_use",
+      "parent_issue": 73,
+      "blocker_type": "environment",
+      "untried_outside_case": [
+        "IME変換中/確定",
+        "D&D",
+        "非modal別窓",
+        "clipboard paste"
+      ]
+    }
+  ]
+}

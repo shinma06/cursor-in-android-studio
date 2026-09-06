@@ -13,3 +13,5 @@ GUI待ちの別taskは実装/テスト/レビューを継続できる。未確�
 
 PR作成後は docs/development/pr-automation.md に従い、writer停止後にclean worktreeを自動進行役へenrollする。
 登録後の修正/再レビュー/merge/Issue更新/branch削除は進行役に任せ、同じbranchを並行編集しない。
+
+2026-09-07 / #83: 通常実装はdevelop向け。必要テスト・独立レビュー・Case JSONが必須。GUI未実施/環境blocked/製品failでも追跡を保ってdevelopへ統合可。mainは固定候補全体の必要Case passをAcceptance gateで検査する。docs/verification/README.mdを参照。develop統合でQA Issueをcloseせず、main/developをcleanupしない。公開enrollはv2 opaque ID、host/sourceはlocal registryのみ。既存ownerとPAUSED heartbeatを自動変更しない。

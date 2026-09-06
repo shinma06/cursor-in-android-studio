@@ -1,0 +1,34 @@
+name: Acceptance
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: acceptance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  acceptance:
+    name: Acceptance gate
+    runs-on: ubuntu-latest
+    steps:
+      # Only trusted base code runs. Fetch/show of PR objects never checks out PR code.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+      - name: Verify candidate and complete acceptance coverage
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # One-time #83 bootstrap: old trusted base has no acceptance validator yet.
+          # PM validates the new tooling locally and uses the existing three required checks.
+          if [ "$HEAD_REF" = codex/83-develop-promotion-policy ] && [ "$BASE_SHA" = 7eb2b9d446d2f2cac21fff293c076358fc667721 ]; then
+            echo 'Bootstrap only: acceptance tooling is validated by tests and independent review.'
+          else
+            python3 scripts/workflow/acceptance_ci.py
+          fi

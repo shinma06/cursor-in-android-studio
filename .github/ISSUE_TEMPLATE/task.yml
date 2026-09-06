@@ -19,7 +19,7 @@ body:
     id: acceptance
     attributes:
       label: 受入条件
-      description: チェックリストで記載。GUIケース/MV ID、期待結果、GUI不要なら理由。
+      description: チェックリストで記載。Case JSON、再現手順、期待結果、GUI不要なら理由とCLI検証。developとmainの完了を分ける。
     validations:
       required: true
   - type: textarea
@@ -29,7 +29,9 @@ body:
       value: |
         status: ready
         owner: unassigned
-        branch / worktree / base SHA: unassigned
+        branch / target / base SHA: unassigned (worktreeはlocal registryのみ)
         reviewer: unassigned
         gui: required / not-required (reason)
+        matrix: docs/verification/changes/issue-N.json
+        fix / recheck: none
         next: claim後に着手
