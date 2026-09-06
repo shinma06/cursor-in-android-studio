@@ -25,6 +25,7 @@ interface AgentProcessListener {
     fun onUserMessage(prompt: String) {}
     fun onAssistantDelta(text: String) {}
     fun onResultFallback(text: String) {}
+    fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {}
     fun onThinking(text: String) {}
     fun onToolCall(toolName: String) {}
     fun onToolCallStarted(payload: com.cursoragent.parser.ParsedToolCall) {}
@@ -92,6 +93,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                 is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
 
                 is StreamEvent.Result -> {
+                    listener.onTokenUsage(event.usage)
                     chatId = event.sessionId ?: chatId
                     listener.onSessionUpdated(chatId, event.model)
                     if (event.isError) {
