@@ -106,6 +106,7 @@ python3 scripts/workflow/agent_loop.py resume --pr 36 --reason '停止/競合/CI
 
 上限到達/範囲外編集/外部push/旧担当の再開/不正状態は、そのPRを停止して理由を通知。
 `resume`は実際の障害解消・子process停止確認後に進行役が実行する。回数を毎tick無条件でリセットしない。
+進行役が作成して記録したpublish HEADだけを自動再送する。workerの履歴変更や、commit直後・記録前の中断は通常のresumeだけではpublishしない。進行役が差分と由来を確認して修復する。
 worktreeのdirty内容や新commitをreset/stashで消して復旧しない。旧sourceに変更があれば保持し、担当と調整する。
 
 ## Issue更新・branch削除

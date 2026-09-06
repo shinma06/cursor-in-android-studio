@@ -1,5 +1,10 @@
 import copy
 import json
+import os
+import signal
+import subprocess
+import sys
+import time
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,7 +12,7 @@ from unittest.mock import Mock, patch
 
 import agent_loop as al
 from agent_policy import binding, eligible, gui_pass, in_scope, next_action, update_parent, validate_review
-from agent_worker import worker_environment
+from agent_worker import worker_environment, run_worker
 
 HEAD = 'a' * 40
 BASE = 'b' * 40
@@ -83,11 +88,57 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(new, original.replace('- [ ] #35 task', '- [x] #35 task'))
         self.assertEqual(update_parent(new, 35), new)
 
+    def test_malformed_machine_record_is_rejected(self):
+        for payload in ('[1]', '"text"', 'null', '{}', '42'):
+            row = {'id': 1, 'user': {'login': al.OWNER},
+                   'body': al.STATE + '\n```json\n' + payload + '\n```'}
+            with self.assertRaises(ValueError):
+                al.unpack([row], al.STATE)
+
     def test_no_worker_tokens_or_git_environment(self):
         with patch.dict('os.environ', {'GH_TOKEN': 'secret', 'GITHUB_TOKEN': 'secret', 'GIT_DIR': 'wrong', 'CODEX_API_KEY': 'secret'}):
             env = worker_environment()
             for key in ('GH_TOKEN', 'GITHUB_TOKEN', 'GIT_DIR', 'CODEX_API_KEY'):
                 self.assertNotIn(key, env)
+
+
+class WorkerTests(unittest.TestCase):
+    def test_timeout_stops_child_even_when_parent_exits_on_term(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pid_file = root / 'child.pid'
+            script = root / 'fake_worker.py'
+            script.write_text("""import os, signal, sys, time
+pid = os.fork()
+if pid == 0:
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    open(sys.argv[1], 'w').write(str(os.getpid()))
+    time.sleep(60)
+else:
+    time.sleep(60)
+""")
+            original = subprocess.Popen
+            def fake_worker(*args, **kwargs):
+                return original([sys.executable, str(script), str(pid_file)], **kwargs)
+            try:
+                with patch('agent_worker.subprocess.Popen', side_effect=fake_worker):
+                    with self.assertRaises(subprocess.TimeoutExpired):
+                        run_worker('review', root, {}, root / 'out', timeout=1)
+                self.assertTrue(pid_file.exists())
+                pid = int(pid_file.read_text())
+                for _ in range(20):
+                    result = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)], text=True, capture_output=True)
+                    if not result.stdout.strip() or result.stdout.strip().startswith('Z'):
+                        break
+                    time.sleep(0.05)
+                else:
+                    self.fail('Worker descendant survived timeout')
+            finally:
+                if pid_file.exists():
+                    try:
+                        os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
 
 class FakeGitHub:
@@ -178,6 +229,24 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
         self.worker.assert_not_called()
         self.assertNotIn((NEW, 'success'), self.gh.statuses)
+
+    def test_fixer_history_change_cannot_publish_after_resume(self):
+        self.worker.side_effect = lambda *a, **kw: report('changes_requested')
+        self.loop.tick(36)
+        self.worker.side_effect = lambda *a, **kw: setattr(self, 'local_head', NEW)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        _, state, sid, _ = self.loop.load(36)
+        state.update(paused=False, phase=state['interrupted_phase'], errors=0, retry_at=0)
+        self.loop.save(self.gh.pull, state, sid)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        self.loop.test_and_push.assert_not_called()
+
+    def test_known_controller_commit_can_resume_publication(self):
+        self.local_head = NEW
+        self.loop.save(self.gh.pull, {'phase': 'publishing', 'publish_head': NEW,
+                       'expected_head': HEAD}, None)
+        self.assertEqual(self.loop.tick(36)['phase'], 'published-recovery')
+        self.loop.test_and_push.assert_called_once()
 
     def test_missing_handoff_does_nothing(self):
         self.gh.messages.clear()

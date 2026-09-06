@@ -102,7 +102,10 @@ def unpack(comments, marker):
         return None, None
     latest = max(selected, key=lambda c: c['id'])
     payload = latest['body'].split('```json\n', 1)[1].split('\n```', 1)[0]
-    return json.loads(payload), latest['id']
+    record = json.loads(payload)
+    if not isinstance(record, dict) or not record:
+        raise ValueError('Agent loop record must be a nonempty JSON object')
+    return record, latest['id']
 
 
 def pack(marker, state):
@@ -243,7 +246,8 @@ class Loop:
             if pr['head']['sha'] != state['expected_head']:
                 # A controller push can finish immediately before a crash. Recognize exactly its local tip.
                 tip = git('rev-parse', 'HEAD', cwd=path)
-                if pr['head']['sha'] == tip and not git('status', '--porcelain', cwd=path):
+                if (pr['head']['sha'] == tip == state.get('publish_head') and
+                        not git('status', '--porcelain', cwd=path)):
                     state['expected_head'] = tip
                     state.pop('review', None)
                 else:
@@ -255,8 +259,11 @@ class Loop:
             if current != pr['head']['sha'] or dirty:
                 if state['phase'] not in ('fixing', 'publishing', 'syncing'):
                     raise ValueError('Unexpected local changes; preserve and pause')
+                if current != pr['head']['sha'] and current != state.get('publish_head'):
+                    raise ValueError('Unrecognized local commit; coordinator must inspect history before publication')
                 if dirty:
                     self.commit_fix(path, h, pr)
+                    state['publish_head'] = git('rev-parse', 'HEAD', cwd=path)
                 if git('merge-base', '--is-ancestor', pr['head']['sha'], 'HEAD', cwd=path) != '':
                     raise ValueError('Unexpected local ancestry')
                 state['phase'] = 'publishing'
@@ -274,6 +281,7 @@ class Loop:
                 state['phase'] = 'syncing'
                 comment_id = self.save(pr, state, comment_id)
                 git('merge', '--no-edit', 'origin/main', cwd=path)
+                state['publish_head'] = git('rev-parse', 'HEAD', cwd=path)
                 state['phase'] = 'publishing'
                 self.save(pr, state, comment_id)
                 self.test_and_push(pr, path, state)
@@ -302,6 +310,7 @@ class Loop:
                     raise ValueError('Reviewer changed checkout; approval rejected')
                 state.update(binding=bound, review=report, phase='reviewed', errors=0, next='Reconcile verdict on the next tick')
             elif action == 'fix':
+                state.pop('publish_head', None)
                 state.update(phase='fixing', fixes=state.get('fixes', 0) + 1, next='Apply bounded review findings')
                 comment_id = self.save(pr, state, comment_id)
                 running.write_text(json.dumps({'pid': None}))
@@ -312,6 +321,7 @@ class Loop:
                 if git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha']:
                     raise ValueError('Fixer changed git history; preserve and pause')
                 self.commit_fix(path, h, pr)
+                state['publish_head'] = git('rev-parse', 'HEAD', cwd=path)
                 state['phase'] = 'publishing'
                 comment_id = self.save(pr, state, comment_id)
                 self.test_and_push(pr, path, state)
