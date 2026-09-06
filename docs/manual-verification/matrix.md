@@ -135,4 +135,4 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
-| MV-044 | main | - / #27 | 同一モデルのThinking/Fast/Context/Effort | 旧ID復元→オプション表示/切替→Model検索→Auto往復→取消 | 系列は1行、対応項目だけ表示、実在するIDへ解決。他オプションを勝手に変更しない | pending | GPT: 74 tests/buildPlugin成功、実機確認待ち | 2026-09-06 |
+| MV-044 | main | - / #27 | 同一モデルのThinking/Fast/Context/Effort | 旧ID復元→オプション表示/切替→Model検索→Auto往復→取消 | 系列は1行、対応項目だけ表示、実在するIDへ解決。他オプションを勝手に変更しない | pass | GPT / CUA: 0310729でThinking/Fast/Effort・系列検索・Auto・取消、最終1cca572で旧ID復元・モデル往復保持・元設定復元を確認。Contextは複数容量未提供で非表示、切替は単体試験。[記録](../loop-engineering/runs/2026-09-06-model-options.md) | 2026-09-06 |
