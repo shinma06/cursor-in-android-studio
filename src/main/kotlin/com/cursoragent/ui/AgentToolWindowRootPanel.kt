@@ -2,6 +2,7 @@ package com.cursoragent.ui
 
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.AgentHeaderBar
+import com.cursoragent.ui.header.HeaderOptionsPopup
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.JBUI
@@ -21,6 +22,8 @@ class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
 
         composer.onSend = { text -> controller.sendPrompt(text) }
         composer.onStop = { controller.stopRun() }
+        val options = HeaderOptionsPopup(project, header.optionsButton) { controller.sendPrompt("/summarize") }
+        composer.onRunningChanged = options::setRunning
         header.onNewChat = { controller.startNewChat() }
 
         add(header, BorderLayout.NORTH)
