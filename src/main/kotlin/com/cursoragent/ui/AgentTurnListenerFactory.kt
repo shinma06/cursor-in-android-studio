@@ -26,14 +26,24 @@ class AgentTurnListenerFactory(
     private val chatHistoryState: ChatHistoryState,
     private val onRunFinished: () -> Unit,
 ) {
-    fun create(userText: String, usageTicket: Long): AgentProcessListener {
+    fun create(
+        userText: String,
+        usageTicket: Long,
+        isCurrent: () -> Boolean,
+        isStopped: () -> Boolean,
+    ): AgentProcessListener {
+        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+            runOnEdt {
+                if (!project.isDisposed && isCurrent() && (allowStopped || !isStopped())) block()
+            }
+        }
         var assistantStarted = false
         val assistantDeduper = AssistantChunkDeduper()
 
         return object : AgentProcessListener {
             override fun onAssistantDelta(text: String) {
-                runOnEdt {
-                    val full = assistantDeduper.dedupe(text) ?: return@runOnEdt
+                update {
+                    val full = assistantDeduper.dedupe(text) ?: return@update
                     if (!assistantStarted) {
                         timeline.ensureAssistantBubble()
                         assistantStarted = true
@@ -43,32 +53,32 @@ class AgentTurnListenerFactory(
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
-                runOnEdt { composer.contextUsage.update(usageTicket, usage) }
+                update { composer.contextUsage.update(usageTicket, usage) }
             }
 
             override fun onResultFallback(text: String) {
-                runOnEdt {
-                    if (assistantStarted) return@runOnEdt
+                update {
+                    if (assistantStarted) return@update
                     timeline.setAssistantText(text)
                     assistantStarted = true
                 }
             }
 
             override fun onThinking(text: String) {
-                runOnEdt {
+                update {
                     timeline.showStatus("Thinking: ${text.take(80)}")
                 }
             }
 
             override fun onToolCall(toolName: String) {
-                runOnEdt {
+                update {
                     timeline.showStatus("Running: $toolName")
                     AgentNotificationService.notifyToolCall(project, toolName)
                 }
             }
 
             override fun onToolCallStarted(payload: ParsedToolCall) {
-                runOnEdt {
+                update {
                     timeline.showStatus(payload.summary)
                     timeline.addToolCallStarted(payload)
                     AgentNotificationService.notifyToolCall(project, payload.summary)
@@ -76,7 +86,7 @@ class AgentTurnListenerFactory(
             }
 
             override fun onToolCallCompleted(payload: ParsedToolCall) {
-                runOnEdt {
+                update {
                     timeline.clearStatus()
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
@@ -107,18 +117,18 @@ class AgentTurnListenerFactory(
                                 }
                             },
                         )
-                        return@runOnEdt
+                        return@update
                     }
                     if (payload.shellResult != null) {
                         timeline.addShellResultCard(payload)
-                        return@runOnEdt
+                        return@update
                     }
                     timeline.addToolCallSummary(payload.callId, payload.summary)
                 }
             }
 
             override fun onSessionUpdated(chatId: String?, model: String?) {
-                runOnEdt {
+                update {
                     val parts = listOfNotNull(
                         chatId?.let { "session=${it.take(8)}…" },
                         model?.let { "model=$it" },
@@ -133,8 +143,9 @@ class AgentTurnListenerFactory(
             }
 
             override fun onError(message: String) {
-                runOnEdt {
+                update {
                     timeline.clearStatus()
+                    timeline.finalizeAssistantMessage()
                     timeline.showError(message)
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
@@ -142,8 +153,18 @@ class AgentTurnListenerFactory(
                 }
             }
 
+            override fun onStopped() {
+                update(allowStopped = true) {
+                    timeline.clearStatus()
+                    timeline.finalizeAssistantMessage()
+                    timeline.showStatus("停止しました")
+                    onRunFinished()
+                    header.setSessionStatus("停止しました")
+                }
+            }
+
             override fun onCompleted(exitCode: Int) {
-                runOnEdt {
+                update {
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     if (exitCode != 0) {
