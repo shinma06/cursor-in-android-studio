@@ -2,18 +2,24 @@
 
 目的は、実画面で使う → 違和感を再現する → 小さく直す → 別の視点でレビューする → 同じ操作で改善を確かめる、を繰り返すこと。進捗の正本は [Issue #1](https://github.com/shinma06/cursor-in-android-studio/issues/1) と子Issue、GUI受入条件の正本は [QAマトリクス](../manual-verification/matrix.md)。この基盤は [#29](https://github.com/shinma06/cursor-in-android-studio/issues/29) で整備した。
 
+**先に[GitHub開発規約](../development/github-workflow.md)と[GUI予約手順](../development/gui-coordination.md)を読む。**
+Gitへの言及がない修正もIssue/専用worktree/PRが必須。GUIはqueueとホスト共通lease取得後のみ実行する。
+
 ## 役割と担当範囲
 
 | 担当 | 主な責任 | 受け渡す成果 |
 |---|---|---|
-| GPT（ChatGPTアプリ / Codex） | 進行役、Issue選定とclaim、実装、統合、Computer UseでのGUI操作、証跡評価、再検証、mainへのpush | 対象SHA、受入条件、変更、証跡、次の一手 |
+| GPT（ChatGPTアプリ / Codex） | 進行役、Issue選定とclaim、実装、統合、Computer UseでのGUI操作、証跡評価、再検証、GitHub PRのmerge | 対象SHA、受入条件、変更、証跡、次の一手 |
 | Claude Pro | 独立レビュー、再現条件の穴・回帰・設計の指摘。GPTが切り出した実装だけ個別checkoutで担当可 | 重要度、ファイル/箇所、再現条件、影響、修正案。未実施のGUIをpassにしない |
 | Cursor Pro | GPTがGUIから依頼する小さな作業を実施。Cursor IDEはUXの比較対象、Android Studio内のCursor Agentは製品検証対象 | 実際の応答、編集、ツールカード、停止/復元時の挙動 |
 | 人間 | 目的・優先度の決定、ログイン/OS権限、GUI操作の引継ぎ、主観的な使いやすさの最終評価 | 必要な環境解除、期待UX、採用判断 |
 
 Cursorを単なるCLIテスト要員にしない。GPTが入力・候補選択・送信・Diff・RevertまでGUIで操作し、Cursorが作業する過程のUXを観察する。CLIはバージョン・ログ・ディスク結果の補助確認に使う。
 
-**mainのwriterとGUI操作者は原則GPT一人。** Claudeに実装を委譲する場合はIssueコメントでファイル範囲・別checkout・基点SHA・完了条件を指定し、Claudeはmainへpushせずコミットを返す。GPTが差分を読み統合する。レビュー担当はソースを書き換えず、別エージェントの同時GUI操作も禁止する。これは本プロジェクトの運用上の役割であり、モデルの能力制限ではない。
+**実装はIssue/worktreeごとに並列、GUI操作だけホスト単位で1担当。** GPT/Claude等の実装担当は
+専用branchからPRを作り、GPT進行役がレビュー済みPRをGitHub上で統合する。mainへの直接commit/pushは禁止。
+GUI待ちの間も他担当の実装・テスト・レビューは続ける。レビュー担当はソース/GUIを変更しない。
+
 
 ## 1サイクルの流れ
 
@@ -31,12 +37,12 @@ flowchart LR
 ```
 
 1. `AGENTS.md` → 要件 → Issue #1 → 対象Issueのコメントを読む。`git status`、`git fetch origin`、`git log HEAD..origin/main`で同期を確認する。既存の未コミット変更を勝手に消す/stashする/pullに巻き込むことはしない。今回の変更と無関係なら保持し、重なる箇所だけ必要時に確認する。
-2. 対象Issueに `Starting loop: owner=GPT; scope=…; base=…; GUI=GPT; reviewer=Claude; budget=…` と記録する。完了・引継ぎのない他担当のclaimがあれば同じ範囲を開始しない。時間経過だけでclaimを奪わない。
+2. 専用worktreeとPRを使い、対象Issueに `Starting loop: owner=GPT; scope=…; base=…; GUI=GPT; reviewer=Claude; budget=…` と記録する。完了・引継ぎのない他担当のclaimがあれば同じ範囲を開始しない。時間経過だけでclaimを奪わない。
 3. 1回の対象を1つのUX問題と対応するMV IDに絞る。[シナリオ](scenarios.md)から選び、初期状態・期待結果・許可された編集先を固定する。標準予算は **45分、修正3回、Cursor送信8回**。これは運用上の上限で、スクリプトが自動強制するものではない。ユーザー指定を優先する。
-4. GPTがComputer Useで実行する。操作前の対象アプリ/ウィンドウ/fixtureを確認し、操作後の画面とAX（アクセシビリティ情報）を読む。古い要素番号や推測した座標を使い回さない。クリックが無反応なら最新AX→スクリーンショット→確認した座標の順で一度試し、取得失敗が続くなら停止する。
+4. GUI依頼票をIssueへ登録し、指定GPTセッションがホスト共通leaseを取得してからComputer Useで実行する。操作前の対象アプリ/ウィンドウ/fixtureを確認し、操作後の画面とAX（アクセシビリティ情報）を読む。古い要素番号や推測した座標を使い回さない。クリックが無反応なら最新AX→スクリーンショット→確認した座標の順で一度試し、取得失敗が続くなら停止する。
 5. GPTが最小修正を実装し、必要な単体テストを追加する。Claudeには[レビュー依頼](prompts/claude-review.md)を渡す。Claudeの返答をGPTが評価し、採用/非採用の理由を記録する。レビューだけなら追加の実装claimやpushは不要。
-6. `./gradlew test buildPlugin`を実行し、対象ビルドを新しくインストール・再起動する。[実行記録](evidence.md)にSHA・ZIPハッシュ・ロードした実体の証拠を残す。同じ操作と影響する隣接ケースを再実行する。
-7. GPTが証跡を確認し、合格した範囲だけmatrixを更新する。`finish-work`でテスト、同期、commit/push、Issue更新を行う。機能の実装とGUI検証の完了は分ける。次の優先Issueと未解除ブロッカーを残す。
+6. `./gradlew test buildPlugin`を実行し、GUI予約を取得した担当だけが対象ビルドを新しくインストール・再起動する。[実行記録](evidence.md)にSHA・ZIPハッシュ・ロードした実体の証拠を残す。同じ操作と影響する隣接ケースを再実行する。
+7. GPTが証跡を確認し、合格した範囲だけmatrixを更新する。`finish-work`でテスト、同期、task branchへのcommit/push、PRレビュー/merge、Issue更新を行う。機能の実装とGUI検証の完了は分ける。次の優先Issueと未解除ブロッカーを残す。
 
 ## 止める条件・再開
 
@@ -48,7 +54,7 @@ flowchart LR
 | 許可外のファイルへ変更、予期しない外部操作、復元先不明 | Stopし実際の差分を確認。失敗原因が分かるまで送信を繰り返さない |
 | 予算上限、同じ修正を繰り返して改善なし | 現在の証拠を保存し、対象を分割するか次の一手を人間へ引き継ぐ |
 
-再開時は記録の `next_action`、Issueのclaim、HEAD、起動中ビルド、fixtureの差分を再確認する。以前のGUI要素番号や古いpassは引き継がない。修正後の再検証は新run IDを作り、前runをリンクする。プロセス停止は対象を特定して実施し、全IDEや全agentプロセスの一括killはしない。
+再開時は記録の `next_action`、Issueのclaim、HEAD、起動中ビルド、fixtureの差分を再確認する。以前のGUI要素番号や古いpassは引き継がない。修正後の再検証は新run IDを作り、前runをリンクする。GUI leaseのtoken/期限と最新Issueも確認する。プロセス停止は対象を特定して実施し、全IDEや全agentプロセスの一括killはしない。
 
 ## 契約プランで使う経路
 

@@ -1,5 +1,7 @@
 # Cursor in Android Studio
 
+**開発ルール:** Gitへの言及がなくても [Issue → worktree → PR](docs/development/github-workflow.md) を必須とします。main直接commit/pushは禁止。GUIは[ホスト単位の予約](docs/development/gui-coordination.md)で直列化し、実装は並列化します。
+
 Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI をサブプロセスとして起動し、
 `stream-json` 出力をパースして独自のSwing/JBUI製チャットUIに描画する(CLIをブラックボックスとして
 ラップする方式)。

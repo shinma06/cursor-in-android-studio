@@ -1,15 +1,12 @@
 ---
-description: GPT主導の開発ループにおけるCursorの担当範囲と受け渡し
+description: GitHub-first parallel development and exclusive GUI verification
 alwaysApply: true
 ---
 
-# Cursorの役割
-
-`AGENTS.md` と `docs/loop-engineering/README.md` を読む。
-GPTが進行役・main統合担当・唯一のGUI操作者。Claude Proが独立レビュー。
-Cursor ProはGPTがGUIから渡す課題を担当し、その操作過程がUX検証の対象になる。
-
-明示されたfixtureまたは委譲checkout・ファイル範囲だけを編集する。
-本体実装を明示的に委譲された場合はIssueのclaimと基点SHAを確認し、別checkoutでコミットを返す。
-独自にmainへpushしたり、他の担当と同時にGUI操作したりしない。
-GUIで確認していない受入条件はpassにせず、実際の変更・出力と残課題をGPTへ返す。
+Gitへの言及がない修正依頼にも AGENTS.md と docs/development/github-workflow.md を適用する。
+Issue確認/作成とclaim → 専用Issue branch/worktree → Draft PR → テスト/独立レビュー → GitHub merge。
+main直接commit/pushは禁止。1 task/worktreeにつきwriterは1人。状態/引継ぎはIssueへ記録する。
+Cursorは原則GPTがGUIから操作するfixture作業の担当。製品実装の明示委譲時は同じGitHubフローを使う。
+GUI操作・runIde・配置/再起動は docs/development/gui-coordination.md のホスト共通leaseが必要。
+別worktreeでも同じGUIを同時操作しない。古いビルド/画面/期限切れ予約を使わない。
+GUI待ちの別taskは実装/テスト/レビューを継続できる。未確認はpassとせずIssueに残す。

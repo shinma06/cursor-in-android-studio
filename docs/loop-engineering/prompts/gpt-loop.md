@@ -6,6 +6,8 @@
 Issue #<番号>について docs/loop-engineering/README.md に従い1ループ進めて。
 GPTを主担当・main統合担当・Computer Useの唯一の操作者とする。
 Claude Proに独立レビューを依頼し、Cursor ProにはGUI経由で検証課題を実行させる。
+docs/development/github-workflow.md に従い、Issue claim・専用branch/worktree・PRを使う。main直接commit/pushは禁止。
+docs/development/gui-coordination.md の予約を取得するまでGUI操作/runIde/配置をしない。
 Issueのclaimと既存変更を確認し、対象MV IDと期待結果を先に固定する。
 編集先は今回生成するfixtureのみ。プラグイン実装の変更はGPTが開発リポジトリで行う。
 予算は45分、修正3回、Cursor送信8回。API課金へ切り替えない。

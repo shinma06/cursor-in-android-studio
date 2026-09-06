@@ -3,44 +3,43 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 `AGENTS.md` is a symlink to this file, so any agent reading either name gets identical content.
 
-## Multi-agent collaboration model
+## GitHub-first collaboration (2026-09-06, #31)
 
-**2026-09-06: GPT-led GUI loop.** GPT (ChatGPT desktop / Codex) is the coordinator,
-main implementation/integration owner, and sole Computer Use operator. Claude Pro is the
-independent reviewer and may implement explicitly delegated work in a separate checkout.
-Cursor Pro is primarily the agent under test: GPT operates Cursor IDE and this plugin through
-GUI tasks to compare real UX. The human owns priorities, login/OS permissions, and subjective
-acceptance. This supersedes the earlier “no fixed roles” arrangement.
+**Apply this to every change request, even when the user says nothing about Git/GitHub.**
+The previous no-PR/direct-main policy is superseded. Read
+[the GitHub workflow](docs/development/github-workflow.md) before implementation.
+Every code, docs, or configuration task needs an existing/new Issue, an ownership claim,
+its own Issue-numbered branch and worktree, and a PR. Never commit or push directly to main.
+Read-only advice/review does not need a new Issue. Preserve unrelated local work.
 
-Read [the loop protocol](docs/loop-engineering/README.md) for every loop; the human entrypoint is
-[the runbook](docs/loop-engineering/human-runbook.md). GitHub Issues remain the shared source of
-truth; local run records are evidence, not a second backlog. There is no branch-protection/PR
-requirement: GPT integrates to `main`, with one writer and one GUI operator at a time.
+1. Read this file, requirements, Issue #1, target Issue/comments, and open PRs. Inspect status,
+   worktrees, fetch origin, and compare HEAD with origin/main. Search before creating an Issue.
+2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
+   and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
+   in the workflow; no concurrent writers to the same worktree.
+3. Create `<codex|claude|cursor>/<issue>-<slug>` in a separate worktree from origin/main,
+   remove its initial origin/main upstream, and run `bash scripts/workflow/bootstrap.sh`.
+   Parallel agents implement assigned independent Issues there and push their own branches.
+4. Open a Draft PR early; update the Issue at each handoff/state change. Record independent
+   review by session and SHA. GPT coordinates integration through GitHub PR merge only.
+5. GUI operations, installs, restarts and runIde require a host-wide lease under
+   [GUI coordination](docs/development/gui-coordination.md). Only its designated GPT session
+   (or human handoff) operates the desktop. Other tasks continue implementation/tests/review.
+   Worktree isolation does not isolate IDE state. Use disposable fixtures and identified builds.
+6. Run tests, obtain independent review, complete affected GUI acceptance, reconcile main and
+   verify latest PR checks before merge. Never force push, bypass hooks or invent a GUI pass.
+   Close Issues only when acceptance is complete; otherwise record blockers, next action and ownership.
 
-1. **Before work**: read #1 and the target Issue/comments, inspect `git status`, then fetch and
-   compare with `origin/main`. Preserve existing local edits; don't pull/stash/reset over them.
-2. **Claim the scope** in an Issue comment before implementation, including owner, base SHA,
-   files, reviewer, GUI operator, and loop budget. An unfinished claim is not expired merely
-   because time passed. Read-only reviewers do not claim or push independently.
-3. **Delegate explicitly**: Claude receives bounded review materials or a separate checkout,
-   assigned files, and acceptance criteria. GPT integrates returned commits after reviewing them.
-   Cursor GUI edits use disposable fixtures; never run destructive QA against the plugin source.
-4. **Verify**: run unit tests and observe affected GUI cases via Computer Use (or human fallback).
-   Keep [matrix.md](docs/manual-verification/matrix.md) current. Record build identity, actual
-   observations, and evidence; CLI success is not GUI pass. Capture errors are `blocked`.
-5. **Before pushing**: fetch again and reconcile any new `origin/main` commits. Never force push
-   or bypass failing hooks. GPT updates the Issue checklist, evidence summary, and ground-truth
-   docs after integration. Pending GUI acceptance remains open, even if code has landed.
+The [loop protocol](docs/loop-engineering/README.md) defines GUI cases and evidence;
+[the runbook](docs/loop-engineering/human-runbook.md) is the human entrypoint.
+`.agents/skills/` and `.claude/skills/` route start/finish to the same rules;
+Cursor follows this file and `.cursor/rules/loop-engineering.mdc`.
+GitHub Issues/PRs are the shared source of truth; local notes are supporting evidence.
+Existing user authorization applies. Routine work within scope needs no repeated confirmation.
 
-If you're a fresh agent with zero context on this repo: read this whole file, then
-`docs/cursor-agent-plugin-requirements.md`, then the open GitHub issues, in that order, before
-touching any code — the "Current implementation status" and "Verified CLI behavior" sections below
-exist specifically so you don't have to re-derive them by reading every source file.
-
-`.agents/skills/start-work` and `finish-work` serve GPT; `.claude/skills/` contains the
-matching Claude entrypoints. Cursor follows this file and `.cursor/rules/loop-engineering.mdc`.
-All route to the same loop protocol. Existing user authorization applies; routine reversible
-work within an assigned scope does not require repeated confirmation.
+**Enforcement limitation:** private-repository rulesets and branch protection returned HTTP 403
+on 2026-09-06 (plan restriction). Local hooks and CI are installed safeguards, not server-side
+merge protection. See the workflow for the checked-in ruleset and activation procedure.
 
 ## UIの言語と見た目の方針
 
@@ -115,7 +114,7 @@ runs `./gradlew test` and blocks the push if it fails. This is deliberately git-
 Claude-Code-specific hook, so it applies no matter which agent (or human) is pushing. Don't rely on
 it as your only check, though — run `./gradlew test` yourself before pushing so you find out about a
 failure before the hook does, and never reach for `git push --no-verify` to route around a real
-failure (it exists for genuine edge cases, not for skipping a red test).
+failure. Bypassing hooks is prohibited by the GitHub workflow.
 
 **Second, independent safety net: GitHub Actions CI** (`.github/workflows/ci.yml`) runs the test
 suite on every push/PR against `main`, so a `--no-verify` push (or any push from an environment

@@ -1,27 +1,12 @@
 #!/usr/bin/env bash
-# Runs the JUnit test suite before every push and blocks the push on failure.
-# Installed automatically by build.gradle.kts (git config core.hooksPath .githooks)
-# the first time anyone runs any ./gradlew task in this repo -- see CLAUDE.md's
-# multi-agent rules for why this exists: nothing else enforces "tests pass before
-# push" when multiple agents can push directly to main with no PR/CI gate to fall
-# back on for local pushes.
 set -euo pipefail
-
-repo_root="$(git rev-parse --show-toplevel)"
-cd "$repo_root"
-
-if [ -z "${JAVA_HOME:-}" ] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
-  JAVA_HOME="$(/usr/libexec/java_home -v 17 2>/dev/null || true)"
+cd "$(git rev-parse --show-toplevel)"
+mode="$(python3 scripts/workflow/git_guard.py push)"
+if [ "$mode" = skip ]; then exit 0; fi
+if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then
+  JAVA_HOME="$(/usr/libexec/java_home -v 17)"
   export JAVA_HOME
 fi
-
-echo "[pre-push] Running ./gradlew test before allowing push..."
-if ! ./gradlew test --console=plain; then
-  echo ""
-  echo "[pre-push] BLOCKED: the test suite failed. Fix it before pushing."
-  echo "[pre-push] Bypass with 'git push --no-verify' only if you have a specific,"
-  echo "[pre-push] deliberate reason -- see CLAUDE.md before doing that."
-  exit 1
-fi
-
-echo "[pre-push] Tests passed."
+python3 -m unittest discover -s scripts/workflow -p 'test_*.py'
+python3 -m unittest discover -s scripts/loop -p 'test_*.py'
+./gradlew test --console=plain

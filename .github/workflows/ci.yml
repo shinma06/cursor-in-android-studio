@@ -7,6 +7,13 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   # Must match the version this plugin is actually developed/tested against
   # locally (see gradle.properties' platformPath comments) and plugin.xml's
@@ -57,6 +64,9 @@ jobs:
           mkdir -p /tmp/android-studio
           tar -xzf /tmp/android-studio.tar.gz -C /tmp/android-studio --strip-components=1
           rm /tmp/android-studio.tar.gz
+
+      - name: Test GitHub workflow tooling
+        run: python3 -m unittest discover -s scripts/workflow -p 'test_*.py'
 
       - name: Test GUI loop evidence tooling
         run: python3 -m unittest discover -s scripts/loop -p 'test_*.py'
