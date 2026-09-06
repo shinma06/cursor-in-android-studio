@@ -21,5 +21,8 @@ mentioned. Read-only review/advice does not require a new Issue.
    runIde, installation or restart. Read `docs/loop-engineering/README.md` for cases/evidence.
    GUI busy/blocked does not stop independent implementation, tests or review.
 
+After creating the PR, read `docs/development/pr-automation.md` and hand off the clean worktree
+with `agent_loop.py enroll --writer-stopped`. Do not keep editing after handoff.
+
 Use `finish-work` for tests, review, PR merge and Issue completion. Existing user authorization
 applies; do not ask again for routine work within scope.
