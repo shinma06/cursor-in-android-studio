@@ -63,6 +63,7 @@ class StreamJsonParser(
                     model = json.get("model")?.asString,
                     result = json.get("result")?.asString,
                     isError = json.get("is_error")?.asBoolean == true,
+                    usage = TokenUsage.parse(json.get("usage")),
                 )
             }
 
@@ -120,6 +121,7 @@ sealed interface StreamEvent {
         val model: String?,
         val result: String?,
         val isError: Boolean,
+        val usage: TokenUsage? = null,
     ) : StreamEvent
 
     data class Unknown(val type: String, val trimmed: String) : StreamEvent
