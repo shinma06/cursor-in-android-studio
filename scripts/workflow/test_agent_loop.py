@@ -224,6 +224,38 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(self.worker.call_count, 1)
         self.assertEqual(self.gh.merges, 1)
 
+    def test_resume_blocked_review_rechecks_with_registered_gui_evidence(self):
+        self.worker.side_effect = None
+        self.worker.return_value = dict(report('blocked'), gui_required=True, scope_complete=False,
+                                        findings=['GUI acceptance has not been observed'])
+        self.loop.tick(36)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        _, state, sid, _ = self.loop.load(36)
+        evidence = {'head': HEAD, 'base': BASE, 'artifact_sha256': 'e' * 64,
+                    'run': 'run1', 'observer': 'gpt', 'loaded_identity': 'observed JAR hash',
+                    'evidence_url': 'https://example.invalid/evidence', 'processes_stopped': True,
+                    'cases': [{'id': 'MV-001', 'status': 'pass', 'observation': 'expected output'}]}
+        self.assertTrue(gui_pass(evidence, state['binding']))
+        # State after successful GUI registration; resume must invalidate the old verdict.
+        state.update(gui=evidence, phase='reviewed', reviews=8)
+        self.loop.save(self.gh.pr(36), state, sid)
+        with patch.object(al, 'Loop', return_value=self.loop), \
+                patch.object(al, 'coordinator_lock'), patch.object(al, 'ROOT', self.checkout), \
+                patch.object(sys, 'argv', ['agent_loop.py', 'resume', '--pr', '36',
+                                          '--reason', 'GUI evidence registered']), patch('builtins.print'):
+            self.assertEqual(al.main(), 0)
+        _, resumed, _, _ = self.loop.load(36)
+        self.assertFalse(resumed['paused'])
+        self.assertNotIn('review', resumed)
+        self.assertNotIn('binding', resumed)
+        self.assertEqual(resumed['gui'], evidence)
+        self.worker.return_value = dict(report(), gui_required=True)
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.worker.call_count, 2)
+        self.assertEqual(self.worker.call_args.args[0], 'review')
+        self.assertEqual(self.worker.call_args.args[2]['gui'], evidence)
+        self.assertEqual(self.gh.merges, 0)
+
     def test_external_push_cannot_be_adopted(self):
         self.gh.pull['head']['sha'] = NEW
         self.assertEqual(self.loop.tick(36)['phase'], 'blocked')

@@ -539,6 +539,11 @@ def main():
                                  next=args.reason)
                     # Explicit human/coordinator decision permits another bounded attempt window.
                     state.update(reviews=0, fixes=0)
+                    # A blocked verdict may depend on evidence added since the review.
+                    # Keep that evidence, but require an independent review on resume.
+                    if state.get('review', {}).get('verdict') == 'blocked':
+                        state.pop('review', None)
+                        state.pop('binding', None)
                 loop.save(pr, state, sid); result = state
             else:
                 prs = loop.gh.pages(f'repos/{REPO}/pulls?state=all&per_page=100')
