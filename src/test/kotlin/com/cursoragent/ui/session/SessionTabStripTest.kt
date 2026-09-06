@@ -1,25 +1,84 @@
 package com.cursoragent.ui.session
 
+import com.intellij.util.ui.JBUI
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.awt.Font
 import java.awt.Point
 import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
+import java.awt.image.BufferedImage
+import java.util.regex.Pattern
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
 class SessionTabStripTest {
     @Test
-    fun `title limits count graphemes rather than UTF16 units`() {
-        assertEquals("New Agent", SessionTabPresentation("a").displayTitle)
-        assertEquals("New Agent", SessionTabPresentation("a", " ").fullTitle)
-        assertEquals("あいうえおかきくけ", abbreviateSessionTitle("あいうえおかきくけ"))
-        assertEquals("あいうえおかきくけ…", abbreviateSessionTitle("あいうえおかきくけこ"))
-        val combined = "か\u3099"
-        val family = "👨‍👩‍👧‍👦"
-        assertEquals(combined.repeat(9) + "…", abbreviateSessionTitle(combined.repeat(10)))
-        assertEquals(family.repeat(9) + "…", abbreviateSessionTitle(family.repeat(10)))
-        assertEquals("🇯🇵".repeat(9) + "…", abbreviateSessionTitle("🇯🇵".repeat(10)))
+    fun `title width includes ellipsis and preserves whole graphemes`() {
+        val graphics = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).createGraphics()
+        try {
+            for (size in listOf(12, 18, 24)) {
+                val metrics = graphics.getFontMetrics(Font(Font.DIALOG, Font.PLAIN, size))
+                val limit = sessionTitleWidth(metrics)
+                assertEquals("New Agent", SessionTabPresentation("a").fullTitle)
+                assertEquals("New Agent", SessionTabPresentation("a", " ").fullTitle)
+                assertEquals("あ".repeat(9), abbreviateSessionTitle("あ".repeat(9), metrics, limit))
+                assertEquals("New Agent", abbreviateSessionTitle("New Agent", metrics, limit))
+                val narrow = abbreviateSessionTitle("i".repeat(100), metrics, limit)
+                val wide = abbreviateSessionTitle("W".repeat(100), metrics, limit)
+                assertTrue(narrow.length > wide.length)
+                assertTrue(narrow.removeSuffix("…").length > 9)
+                for (grapheme in listOf("あ", "か\u3099", "👨‍👩‍👧‍👦", "🇯🇵")) {
+                    val title = grapheme.repeat(30)
+                    val result = abbreviateSessionTitle(title, metrics, limit)
+                    assertTrue(result.endsWith("…"))
+                    assertTrue(metrics.stringWidth(result) <= limit, "$size: $result")
+                    val prefix = result.removeSuffix("…")
+                    assertTrue(Pattern.matches("(?:" + Pattern.quote(grapheme) + ")*", prefix))
+                    assertTrue(metrics.stringWidth(prefix + grapheme + "…") > limit)
+                }
+            }
+        } finally {
+            graphics.dispose()
+        }
+    }
+
+    @Test
+    fun `wide grapheme titles do not expand tab beyond the font width budget`() = onEdt {
+        val strip = SessionTabStrip()
+        strip.setTabs(listOf(SessionTabPresentation("a", "か\u3099".repeat(30))), "a")
+        val metrics = strip.eventTarget.getFontMetrics(strip.eventTarget.font)
+        assertTrue(strip.boundsFor("a")!!.width <= sessionTitleWidth(metrics) + JBUI.scale(66))
+    }
+
+    @Test
+    fun `scrollbar overlays viewport bottom and keeps hover and wheel over bar`() = onEdt {
+        val strip = fixture()
+        strip.setSize(320, strip.preferredSize.height)
+        layout(strip)
+        val pane = strip.scrollPane
+        val bar = pane.horizontalScrollBar
+        val viewport = pane.viewport
+        assertEquals(strip.boundsFor("a")!!.height, strip.preferredSize.height)
+        assertTrue(viewport.bounds.contains(bar.bounds))
+        assertEquals(viewport.y + viewport.height, bar.y + bar.height)
+        assertEquals(JBUI.scale(3), bar.height)
+        assertTrue(pane.getComponentZOrder(bar) < pane.getComponentZOrder(viewport))
+        assertFalse(pane.isOptimizedDrawingEnabled)
+        assertSame(bar, pane.getComponentAt(bar.x + bar.width / 2, bar.y + 1))
+        mouse(strip.eventTarget, MouseEvent.MOUSE_MOVED, Point(50, 15))
+        mouse(strip.eventTarget, MouseEvent.MOUSE_EXITED, Point(50, viewport.height - 1))
+        mouse(bar, MouseEvent.MOUSE_ENTERED, Point(50, 1))
+        assertTrue(strip.scrollbarRevealed)
+        val before = bar.value
+        val wheel = MouseWheelEvent(bar, MouseEvent.MOUSE_WHEEL, 0, 0, 50, 1, 0, false,
+            MouseWheelEvent.WHEEL_UNIT_SCROLL, 3, 1)
+        bar.dispatchEvent(wheel)
+        assertTrue(wheel.isConsumed)
+        assertTrue(bar.value > before)
+        mouse(bar, MouseEvent.MOUSE_EXITED, Point(-20, -20))
+        assertFalse(strip.scrollbarRevealed)
     }
 
     @Test

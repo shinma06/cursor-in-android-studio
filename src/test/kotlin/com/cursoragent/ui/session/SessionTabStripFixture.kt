@@ -25,13 +25,18 @@ object SessionTabStripFixture {
                     1 -> "New Agent"
                     2 -> "あいうえおかきくけこ"
                     3 -> "か\u3099".repeat(10)
+                    4 -> "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+                    5 -> "WWWWWWWWWWWWWWWWWWWW"
+                    6 -> "👨‍👩‍👧‍👦".repeat(10)
                     else -> "セッション $index"
                 })
             }.toMutableList()
             var nextId = 21
             var selected = tabs.first().id
             val strip = SessionTabStrip()
-            val frame = JFrame("SESSION-TABS-UI — component fixture")
+            val identity = System.getProperty("session.fixture.identity").orEmpty().trim()
+            val identitySuffix = if (identity.isEmpty()) "" else " / $identity"
+            val frame = JFrame("SESSION-TABS-UI — component fixture$identitySuffix")
             val status = JLabel()
             fun render() {
                 strip.setTabs(tabs, selected)

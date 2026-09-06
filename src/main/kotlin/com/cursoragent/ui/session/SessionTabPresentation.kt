@@ -1,22 +1,28 @@
 package com.cursoragent.ui.session
 
+import java.awt.FontMetrics
 import java.util.regex.Pattern
 
 /** Only presentation data crosses the strip boundary; the owner retains session state. */
 data class SessionTabPresentation(val id: String, val title: String = "New Agent") {
     val fullTitle: String get() = title.ifBlank { "New Agent" }
-    val displayTitle: String get() = abbreviateSessionTitle(fullTitle)
 }
 
 private val grapheme = Pattern.compile("\\X")
 
-/** Nine user-perceived characters, including combining marks and emoji sequences. */
-internal fun abbreviateSessionTitle(title: String): String {
+/** Nine Japanese glyphs are a width reference, not a character-count limit. */
+internal fun sessionTitleWidth(metrics: FontMetrics): Int = metrics.stringWidth("あ".repeat(9))
+
+/** Measure the same font used for painting; never split a combining or emoji sequence. */
+internal fun abbreviateSessionTitle(title: String, metrics: FontMetrics, maxWidth: Int): String {
+    if (metrics.stringWidth(title) <= maxWidth) return title
+    val ellipsis = "…"
+    if (metrics.stringWidth(ellipsis) > maxWidth) return ""
     val matcher = grapheme.matcher(title)
     var end = 0
-    repeat(9) {
-        if (!matcher.find()) return title
+    while (matcher.find()) {
+        if (metrics.stringWidth(title.substring(0, matcher.end()) + ellipsis) > maxWidth) break
         end = matcher.end()
     }
-    return if (matcher.find()) title.substring(0, end) + "…" else title
+    return title.substring(0, end) + ellipsis
 }

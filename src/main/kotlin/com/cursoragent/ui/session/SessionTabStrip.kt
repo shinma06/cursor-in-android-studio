@@ -3,6 +3,8 @@ package com.cursoragent.ui.session
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.AgentUiMetrics
 import com.intellij.util.ui.JBUI
+import java.awt.Color
+import java.awt.Container
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -17,7 +19,9 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JScrollPane
+import javax.swing.JViewport
 import javax.swing.KeyStroke
+import javax.swing.ScrollPaneLayout
 import javax.swing.Scrollable
 import javax.swing.SwingUtilities
 import javax.swing.Timer
@@ -48,26 +52,42 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
     private val tabHeight get() = JBUI.scale(34)
     private val edgeWidth get() = JBUI.scale(24)
     private val canvas = TabCanvas()
-    internal val scrollPane = JScrollPane(canvas).apply {
+    internal val scrollPane = object : JScrollPane(canvas) {
+        // The scrollbar overlaps the viewport, so repaint must include both siblings.
+        override fun isOptimizedDrawingEnabled() = false
+    }.apply {
+        layout = object : ScrollPaneLayout() {
+            override fun layoutContainer(parent: Container) {
+                super.layoutContainer(parent)
+                if (hsb.isVisible) {
+                    val bounds = viewport.bounds
+                    bounds.height += hsb.height
+                    viewport.bounds = bounds
+                    hsb.setLocation(bounds.x, bounds.y + bounds.height - hsb.height)
+                }
+            }
+        }
+        setComponentZOrder(horizontalScrollBar, 0)
         border = JBUI.Borders.empty()
         viewportBorder = JBUI.Borders.empty()
         viewport.background = AgentUiColors.panelBackground
+        // Blitting viewport pixels would also move the overlapping scrollbar's old pixels.
+        viewport.scrollMode = JViewport.SIMPLE_SCROLL_MODE
         verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_NEVER
         horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
         horizontalScrollBar.unitIncrement = JBUI.scale(28)
-        horizontalScrollBar.preferredSize = Dimension(0, JBUI.scale(6))
+        horizontalScrollBar.preferredSize = Dimension(0, JBUI.scale(3))
         horizontalScrollBar.setUI(object : BasicScrollBarUI() {
             override fun createDecreaseButton(orientation: Int) = invisibleArrow()
             override fun createIncreaseButton(orientation: Int) = invisibleArrow()
             override fun paintTrack(g: Graphics, c: JComponent, bounds: Rectangle) {
-                if (!areaHovered) return
-                g.color = AgentUiColors.panelBackground
-                g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+                // Transparent track leaves the selected tab joined to the chat background.
             }
             override fun paintThumb(g: Graphics, c: JComponent, bounds: Rectangle) {
                 if (!areaHovered || !scrollbar.isEnabled) return
-                g.color = AgentUiColors.mutedText
-                g.fillRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, bounds.height, bounds.height)
+                val color = AgentUiColors.mutedText
+                g.color = Color(color.red, color.green, color.blue, 90)
+                g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
             }
             private fun invisibleArrow() = JButton().apply {
                 preferredSize = Dimension(0, 0)
@@ -84,7 +104,7 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
     init {
         isOpaque = true
         background = AgentUiColors.panelBackground
-        minimumSize = Dimension(0, tabHeight + JBUI.scale(6))
+        minimumSize = Dimension(0, tabHeight)
         preferredSize = Dimension(JBUI.scale(320), minimumSize.height)
         add(scrollPane)
         addHierarchyListener { event ->
@@ -104,13 +124,16 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         listOf(this, scrollPane, scrollPane.viewport, scrollPane.horizontalScrollBar).forEach {
             it.addMouseListener(areaListener)
         }
-        canvas.addMouseWheelListener { e ->
+        // Use the same horizontal behavior over the canvas and the overlaid bar.
+        val wheelListener = java.awt.event.MouseWheelListener { e ->
             val bar = scrollPane.horizontalScrollBar
             if (bar.isVisible) {
                 bar.value += (e.preciseWheelRotation * bar.unitIncrement * e.scrollAmount).toInt()
                 e.consume()
             }
         }
+        canvas.addMouseWheelListener(wheelListener)
+        scrollPane.horizontalScrollBar.addMouseWheelListener(wheelListener)
     }
 
     fun setTabs(tabs: List<SessionTabPresentation>, selectedId: String?) {
@@ -145,7 +168,8 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         val metrics = canvas.getFontMetrics(canvas.font)
         var x = 0
         return tabs.map { tab ->
-            val width = (metrics.stringWidth(tab.displayTitle) + JBUI.scale(66)).coerceAtLeast(JBUI.scale(112))
+            val title = abbreviateSessionTitle(tab.fullTitle, metrics, sessionTitleWidth(metrics))
+            val width = (metrics.stringWidth(title) + JBUI.scale(66)).coerceAtLeast(JBUI.scale(112))
             (tab to Rectangle(x, 0, width, tabHeight)).also { x += width }
         }
     }
@@ -324,16 +348,13 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
                     copy.drawLine(iconX, iconY + JBUI.scale(9), iconX, iconY + JBUI.scale(15))
                     copy.drawLine(iconX, iconY + JBUI.scale(15), iconX + JBUI.scale(4), iconY + JBUI.scale(11))
                     val metrics = copy.fontMetrics
-                    copy.drawString(tab.displayTitle, bounds.x + JBUI.scale(35), (tabHeight - metrics.height) / 2 + metrics.ascent)
+                    val title = abbreviateSessionTitle(tab.fullTitle, metrics, sessionTitleWidth(metrics))
+                    copy.drawString(title, bounds.x + JBUI.scale(35), (tabHeight - metrics.height) / 2 + metrics.ascent)
                     if (closeVisible(tab.id)) {
                         val close = closeBounds(bounds)
                         val inset = JBUI.scale(7)
                         copy.drawLine(close.x + inset, close.y + inset, close.x + close.width - inset, close.y + close.height - inset)
                         copy.drawLine(close.x + close.width - inset, close.y + inset, close.x + inset, close.y + close.height - inset)
-                    }
-                    if (active && hasFocus()) {
-                        copy.color = AgentUiColors.mutedText
-                        copy.drawRect(bounds.x + 2, 2, bounds.width - 5, height - 5)
                     }
                 }
                 if (dragging) {
