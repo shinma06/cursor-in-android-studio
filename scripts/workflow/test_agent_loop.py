@@ -1,0 +1,323 @@
+import copy
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+
+import agent_loop as al
+from agent_policy import binding, eligible, gui_pass, in_scope, next_action, update_parent, validate_review
+from agent_worker import worker_environment, run_worker
+
+HEAD = 'a' * 40
+BASE = 'b' * 40
+NEW = 'c' * 40
+
+
+def pr_data():
+    return {'number': 36, 'user': {'login': al.OWNER}, 'state': 'open', 'merged': False, 'draft': True,
+            'body': 'Issue: #35\nGUI: not-required\nGUI reason: documentation only',
+            'head': {'sha': HEAD, 'ref': 'codex/35-test', 'repo': {'full_name': al.REPO}},
+            'base': {'sha': BASE, 'ref': 'main', 'repo': {'full_name': al.REPO}},
+            'html_url': 'https://github.com/' + al.REPO + '/pull/36', 'merge_commit_sha': 'd' * 40}
+
+
+def report(verdict='approved', head=HEAD):
+    return {'verdict': verdict, 'head': head, 'base': BASE, 'scope_complete': True,
+            'issue_complete': True, 'gui_required': False, 'findings': [] if verdict == 'approved' else ['Fix wrong value'],
+            'evidence': 'Checked the acceptance criteria and diff', 'session': 'independent-test-session'}
+
+
+class PolicyTests(unittest.TestCase):
+    def test_only_same_repo_owner_issue_branches(self):
+        good = pr_data()
+        self.assertTrue(eligible(good, al.OWNER, al.REPO))
+        variants = []
+        p = copy.deepcopy(good); p['user']['login'] = 'external'; variants.append(p)
+        p = copy.deepcopy(good); p['head']['repo']['full_name'] = 'external/fork'; variants.append(p)
+        p = copy.deepcopy(good); p['head']['repo'] = None; variants.append(p)
+        p = copy.deepcopy(good); p['body'] = 'Issue: #99'; variants.append(p)
+        for p in variants:
+            self.assertFalse(eligible(p, al.OWNER, al.REPO))
+
+    def test_binding_invalidates_approval(self):
+        p = pr_data(); issue = {'body': '- [ ] value is correct'}
+        bound = binding(p, issue)
+        state = {'binding': bound, 'review': report()}
+        self.assertEqual(next_action(state, bound, 'success', False), 'merge')
+        for change in ('head', 'base', 'body', 'issue'):
+            q = copy.deepcopy(p); other = copy.deepcopy(issue)
+            if change in ('head', 'base'): q[change]['sha'] = NEW
+            elif change == 'body': q['body'] += '\nchanged scope'
+            else: other['body'] += '\nnew acceptance'
+            self.assertEqual(next_action(state, binding(q, other), 'success', False), 'review')
+
+    def test_inconsistent_approval_rejected(self):
+        for change in ({'head': NEW}, {'findings': ['unfixed']}, {'scope_complete': False}, {'evidence': ''}):
+            r = dict(report(), **change)
+            with self.assertRaises(ValueError): validate_review(r, {'head': HEAD, 'base': BASE})
+
+    def test_gui_and_ci_gate(self):
+        bound = {'head': HEAD, 'base': BASE}; state = {'binding': bound, 'review': report()}
+        self.assertEqual(next_action(state, bound, 'success', True), 'gui-queued')
+        state['gui'] = {'head': HEAD, 'base': BASE, 'artifact_sha256': 'e' * 64,
+                        'run': 'run1', 'observer': 'gpt', 'loaded_identity': 'observed JAR hash',
+                        'evidence_url': 'https://example.invalid/evidence', 'processes_stopped': True,
+                        'cases': [{'id': 'MV-001', 'status': 'pass', 'observation': 'observed expected output'}]}
+        self.assertTrue(gui_pass(state['gui'], bound))
+        self.assertEqual(next_action(state, bound, 'pending', True), 'ci-wait')
+        self.assertEqual(next_action(state, bound, 'failure', True), 'ci-failed')
+        self.assertEqual(next_action(state, bound, 'success', True), 'merge')
+        for key, value in [('head', NEW), ('processes_stopped', False), ('artifact_sha256', '')]:
+            self.assertFalse(gui_pass(dict(state['gui'], **{key: value}), bound))
+
+    def test_scopes_and_retry_budget(self):
+        self.assertTrue(in_scope(['src/a.kt', 'docs/a.md'], ['src/', 'docs/a.md']))
+        self.assertFalse(in_scope(['CLAUDE.md'], ['src/']))
+        bound = {'head': HEAD, 'base': BASE}
+        self.assertEqual(next_action({'binding': bound, 'review': report('changes_requested'), 'fixes': 3}, bound, 'success', False), 'blocked')
+
+    def test_parent_update_is_narrow_and_repeatable(self):
+        original = '- [ ] #35 task\n- [ ] #350 other\n- [ ] #35 and #36 combined\n- [ ] other\n'
+        new = update_parent(original, 35)
+        self.assertEqual(new, original.replace('- [ ] #35 task', '- [x] #35 task'))
+        self.assertEqual(update_parent(new, 35), new)
+
+    def test_malformed_machine_record_is_rejected(self):
+        for payload in ('[1]', '"text"', 'null', '{}', '42'):
+            row = {'id': 1, 'user': {'login': al.OWNER},
+                   'body': al.STATE + '\n```json\n' + payload + '\n```'}
+            with self.assertRaises(ValueError):
+                al.unpack([row], al.STATE)
+
+    def test_no_worker_tokens_or_git_environment(self):
+        with patch.dict('os.environ', {'GH_TOKEN': 'secret', 'GITHUB_TOKEN': 'secret', 'GIT_DIR': 'wrong', 'CODEX_API_KEY': 'secret'}):
+            env = worker_environment()
+            for key in ('GH_TOKEN', 'GITHUB_TOKEN', 'GIT_DIR', 'CODEX_API_KEY'):
+                self.assertNotIn(key, env)
+
+
+class WorkerTests(unittest.TestCase):
+    def test_timeout_stops_child_even_when_parent_exits_on_term(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pid_file = root / 'child.pid'
+            script = root / 'fake_worker.py'
+            script.write_text("""import os, signal, sys, time
+pid = os.fork()
+if pid == 0:
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    open(sys.argv[1], 'w').write(str(os.getpid()))
+    time.sleep(60)
+else:
+    time.sleep(60)
+""")
+            original = subprocess.Popen
+            def fake_worker(*args, **kwargs):
+                return original([sys.executable, str(script), str(pid_file)], **kwargs)
+            try:
+                with patch('agent_worker.subprocess.Popen', side_effect=fake_worker):
+                    with self.assertRaises(subprocess.TimeoutExpired):
+                        run_worker('review', root, {}, root / 'out', timeout=1)
+                self.assertTrue(pid_file.exists())
+                pid = int(pid_file.read_text())
+                for _ in range(20):
+                    result = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)], text=True, capture_output=True)
+                    if not result.stdout.strip() or result.stdout.strip().startswith('Z'):
+                        break
+                    time.sleep(0.05)
+                else:
+                    self.fail('Worker descendant survived timeout')
+            finally:
+                if pid_file.exists():
+                    try:
+                        os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+
+class FakeGitHub:
+    def __init__(self):
+        self.pull = pr_data()
+        self.issues = {35: {'state': 'open', 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
+        self.messages = {}
+        self.statuses = []
+        self.merges = 0
+        self.fail_after_merge = False
+
+    def pr(self, n): return copy.deepcopy(self.pull)
+    def issue(self, n): return copy.deepcopy(self.issues[n])
+    def comments(self, n): return copy.deepcopy(self.messages.get(n, []))
+    def pages(self, path): return []
+    def ci(self, pr): return 'success'
+    def status(self, sha, status, description, url): self.statuses.append((sha, status))
+    def comment(self, n, body, comment_id=None):
+        rows = self.messages.setdefault(n, [])
+        row = next((r for r in rows if r['id'] == comment_id), None)
+        if row is None:
+            row = {'id': sum(len(v) for v in self.messages.values()) + 1, 'user': {'login': al.OWNER}, 'html_url': 'https://github.com/comment/1'}
+            rows.append(row)
+        row['body'] = body
+        return copy.deepcopy(row)
+    def api(self, path, method='GET', data=None):
+        if '/issues/' in path:
+            n = int(path.split('/')[-1]); self.issues[n].update(data); return self.issue(n)
+        raise AssertionError(path)
+    def merge(self, pr):
+        assert pr['head']['sha'] == self.pull['head']['sha']
+        self.merges += 1; self.pull.update(merged=True, state='closed')
+        if self.fail_after_merge: raise RuntimeError('connection lost after merge')
+        return {'merged': True}
+
+
+class LoopTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
+        self.gh = FakeGitHub(); self.local_head = HEAD
+        self.checkout = Path(self.tmp.name) / 'pr-36/checkout'; self.checkout.mkdir(parents=True)
+        def git(*args, **kwargs):
+            if args[:2] == ('rev-parse', '--git-common-dir'): return self.tmp.name
+            if args[:2] == ('rev-parse', 'HEAD'): return self.local_head
+            if args[:2] == ('rev-parse', 'origin/main'): return BASE
+            return ''
+        self.git = patch.object(al, 'git', side_effect=git); self.git.start(); self.addCleanup(self.git.stop)
+        self.run = patch.object(al.subprocess, 'run', return_value=Mock(returncode=0)); self.run.start(); self.addCleanup(self.run.stop)
+        self.worker = Mock(side_effect=lambda role, path, packet, out, **kw: report(head=packet['head']))
+        self.loop = al.Loop(self.gh, self.tmp.name, self.worker)
+        self.loop.source_safe = Mock(); self.loop.checkout = Mock(return_value=self.checkout); self.loop.cleanup = Mock()
+        self.loop.commit_fix = Mock(side_effect=lambda *args: setattr(self, 'local_head', NEW))
+        def push(pr, path, state):
+            self.gh.pull['head']['sha'] = self.local_head
+            state.update(expected_head=self.local_head, phase='queued'); state.pop('review', None)
+        self.loop.test_and_push = Mock(side_effect=push)
+        h = {'pr': 36, 'issue': 35, 'parent': 1, 'host': al.HOST, 'head': HEAD, 'base': BASE,
+             'branch': 'codex/35-test', 'source': str(self.checkout), 'scope': ['src/'],
+             'close_issue': True, 'gui_required': False, 'writer_stopped': True}
+        self.gh.comment(36, al.pack(al.HANDOFF, h))
+
+    def test_review_fix_rereview_merge_issue_cleanup(self):
+        reports = [report('changes_requested'), report(), report(head=NEW)]
+        self.worker.side_effect = lambda *args, **kwargs: reports.pop(0)
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.loop.tick(36)['phase'], 'queued')
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual([x.args[0] for x in self.worker.call_args_list], ['review', 'fix', 'review'])
+        self.assertEqual(self.gh.merges, 1)
+        self.assertEqual(self.gh.issues[35]['state'], 'closed')
+        self.assertEqual(self.gh.issues[1]['body'], '- [x] #35 task')
+        self.loop.cleanup.assert_called_once()
+        self.loop.tick(36)
+        self.assertEqual(self.gh.merges, 1)
+        self.loop.cleanup.assert_called_once()
+
+    def test_crash_after_merge_resumes_cleanup_only(self):
+        self.loop.tick(36); self.gh.fail_after_merge = True
+        self.loop.tick(36)
+        self.assertEqual(self.gh.merges, 1)
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.worker.call_count, 1)
+        self.assertEqual(self.gh.merges, 1)
+
+    def test_resume_blocked_review_rechecks_with_registered_gui_evidence(self):
+        self.worker.side_effect = None
+        self.worker.return_value = dict(report('blocked'), gui_required=True, scope_complete=False,
+                                        findings=['GUI acceptance has not been observed'])
+        self.loop.tick(36)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        _, state, sid, _ = self.loop.load(36)
+        evidence = {'head': HEAD, 'base': BASE, 'artifact_sha256': 'e' * 64,
+                    'run': 'run1', 'observer': 'gpt', 'loaded_identity': 'observed JAR hash',
+                    'evidence_url': 'https://example.invalid/evidence', 'processes_stopped': True,
+                    'cases': [{'id': 'MV-001', 'status': 'pass', 'observation': 'expected output'}]}
+        self.assertTrue(gui_pass(evidence, state['binding']))
+        # State after successful GUI registration; resume must invalidate the old verdict.
+        state.update(gui=evidence, phase='reviewed', reviews=8)
+        self.loop.save(self.gh.pr(36), state, sid)
+        with patch.object(al, 'Loop', return_value=self.loop), \
+                patch.object(al, 'coordinator_lock'), patch.object(al, 'ROOT', self.checkout), \
+                patch.object(sys, 'argv', ['agent_loop.py', 'resume', '--pr', '36',
+                                          '--reason', 'GUI evidence registered']), patch('builtins.print'):
+            self.assertEqual(al.main(), 0)
+        _, resumed, _, _ = self.loop.load(36)
+        self.assertFalse(resumed['paused'])
+        self.assertNotIn('review', resumed)
+        self.assertNotIn('binding', resumed)
+        self.assertEqual(resumed['gui'], evidence)
+        self.worker.return_value = dict(report(), gui_required=True)
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.worker.call_count, 2)
+        self.assertEqual(self.worker.call_args.args[0], 'review')
+        self.assertEqual(self.worker.call_args.args[2]['gui'], evidence)
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_external_push_cannot_be_adopted(self):
+        self.gh.pull['head']['sha'] = NEW
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        self.worker.assert_not_called()
+        self.assertNotIn((NEW, 'success'), self.gh.statuses)
+
+    def test_fixer_history_change_cannot_publish_after_resume(self):
+        self.worker.side_effect = lambda *a, **kw: report('changes_requested')
+        self.loop.tick(36)
+        self.worker.side_effect = lambda *a, **kw: setattr(self, 'local_head', NEW)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        _, state, sid, _ = self.loop.load(36)
+        state.update(paused=False, phase=state['interrupted_phase'], errors=0, retry_at=0)
+        self.loop.save(self.gh.pull, state, sid)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        self.loop.test_and_push.assert_not_called()
+
+    def test_known_controller_commit_can_resume_publication(self):
+        self.local_head = NEW
+        self.loop.save(self.gh.pull, {'phase': 'publishing', 'publish_head': NEW,
+                       'expected_head': HEAD}, None)
+        self.assertEqual(self.loop.tick(36)['phase'], 'published-recovery')
+        self.loop.test_and_push.assert_called_once()
+
+    def test_missing_handoff_does_nothing(self):
+        self.gh.messages.clear()
+        self.assertEqual(self.loop.tick(36)['phase'], 'unmanaged')
+        self.worker.assert_not_called(); self.assertEqual(self.gh.statuses, [])
+
+    def test_partial_issue_stays_open(self):
+        self.worker.side_effect = lambda role, path, packet, out, **kw: dict(report(), issue_complete=False)
+        self.loop.tick(36); self.loop.tick(36)
+        self.assertEqual(self.gh.issues[35]['state'], 'open')
+        self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
+
+    def test_cleanup_failure_is_retried_without_merge_or_review(self):
+        self.loop.tick(36)
+        self.loop.cleanup.side_effect = [ValueError('source has new work'), None]
+        self.loop.tick(36)
+        self.assertEqual(self.gh.merges, 1)
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.gh.merges, 1)
+        self.assertEqual(self.worker.call_count, 1)
+
+    def test_interrupted_rereview_does_not_keep_old_approval(self):
+        self.loop.tick(36)
+        self.gh.issues[35]['body'] += '\n- [ ] new requirement'
+        self.worker.side_effect = RuntimeError('review interrupted')
+        self.loop.tick(36)
+        _, state, _, _ = self.loop.load(36)
+        self.assertNotIn('review', state)
+        self.assertNotIn('binding', state)
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_issue_changes_after_merge_prevent_auto_close(self):
+        self.loop.tick(36)
+        self.gh.pull.update(merged=True, state='closed')
+        self.gh.issues[35]['body'] += '\n- [ ] new acceptance'
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.gh.issues[35]['state'], 'open')
+        self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
+
+
+if __name__ == '__main__':
+    unittest.main()

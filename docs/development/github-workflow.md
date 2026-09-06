@@ -83,6 +83,9 @@ GUI不要ならreviewからready-to-mergeへ。`blocked`には原因、解除担
 
 ## PR・レビュー・統合
 
+#35以降は[自動PR進行役](pr-automation.md)を使用する。以下の判断手順は維持し、実装担当はDraft PR作成後に
+writerを停止してenrollする。定期進行役がreview/fix/re-review/merge/Issue更新/cleanupを実行する。
+
 最初の意味あるcommitをpushしたらDraft PRを作り、Issueへリンクする。小修正でも省略しない。
 PR本文はテンプレートを使用。`Issue: #N`は実在する同リポジトリのopen Issue、branchの番号と一致。
 GUI未確認は `GUI: required`、不要は `GUI: not-required` と具体的理由を記載。
@@ -96,7 +99,7 @@ GUI必要PRは原則検証passまでDraft/待機。見た目・機能・権限�
 4. 進行役がfetchし、main更新をtask branchへ通常merge（公開履歴のrebase/force push禁止）。競合は担当と調整。
    main取り込みやコード更新後はテストを再実行し、GUI対象の挙動/依存/資材が変わればGUI再検証。
    docsのみの追記で証拠を再利用する場合もレビュー担当が影響なしの理由と旧/新SHAを記録。
-5. 最新HEADの `test` / `PR policy` がsuccess、未解決レビューなし、独立レビューとGUI判定を確認してReadyにする。
+5. 最新HEADの `test` / `PR policy` / `Agent review` がsuccess、未解決レビューなし、独立レビューとGUI判定を確認してReadyにする。
    CI未実行/権限・予算停止はblocked。ローカル成功だけでCI成功としない。
 6. 進行役1セッションだけが `gh pr merge <N> --squash --match-head-commit <reviewed HEAD>` で統合。
    直前にbase SHAも読み直し、動いていたら4へ戻る。保護未導入時、この確認はサーバーの原子的base固定ではない。
@@ -132,7 +135,7 @@ private時のプラン制限403は解消。今後はサーバー側でもPR/CI�
 設定の正本は `.github/main-ruleset.json`。変更時は既存rulesetを再取得し、IDを指定して更新（重複作成しない）。
 適用後GETでactive/main対象/bypass/required checksを再確認する。GitHubが補う未指定の既定値と指定値の不一致を区別する。
 設定: main削除/force push禁止、PR必須、test/PR policy必須、最新base必須、会話解決必須、bypassなし。
-同一アカウント運用のためrequired approvalsは0、独立セッションレビューは規約で必須。
+同一アカウント運用のためrequired approvalsは0、独立セッションレビューは `Agent review` statusで必須。
 別のwrite権限を持つレビュー用アカウントを確保したら1以上へ変更する。
 CODEOWNERSは実際のwrite権限保持者へのレビュー要求であり、エージェント識別や自動承認ではない。
 個人所有なので架空teamや組織共通.githubは作らない。Dependabot/CodeQL/secret scanningやreusable workflowは専用Issueで検討。

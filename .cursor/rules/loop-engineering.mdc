@@ -10,3 +10,6 @@ Cursorは原則GPTがGUIから操作するfixture作業の担当。製品実装�
 GUI操作・runIde・配置/再起動は docs/development/gui-coordination.md のホスト共通leaseが必要。
 別worktreeでも同じGUIを同時操作しない。古いビルド/画面/期限切れ予約を使わない。
 GUI待ちの別taskは実装/テスト/レビューを継続できる。未確認はpassとせずIssueに残す。
+
+PR作成後は docs/development/pr-automation.md に従い、writer停止後にclean worktreeを自動進行役へenrollする。
+登録後の修正/再レビュー/merge/Issue更新/branch削除は進行役に任せ、同じbranchを並行編集しない。

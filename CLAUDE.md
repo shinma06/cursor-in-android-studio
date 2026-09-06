@@ -20,7 +20,11 @@ Read-only advice/review does not need a new Issue. Preserve unrelated local work
 3. Create `<codex|claude|cursor>/<issue>-<slug>` in a separate worktree from origin/main,
    remove its initial origin/main upstream, and run `bash scripts/workflow/bootstrap.sh`.
    Parallel agents implement assigned independent Issues there and push their own branches.
-4. Open a Draft PR early; update the Issue at each handoff/state change. Record independent
+4. Open a Draft PR early; update the Issue at each handoff/state change.
+   Follow [PR automation](docs/development/pr-automation.md): stop the original writer and enroll
+   the clean Issue worktree with the trusted-main `agent_loop.py enroll` command. The scheduled
+   coordinator then owns fixes, independent re-review, Issue completion and verified branch cleanup.
+   `Agent review` is required along with CI. Do not resume editing an enrolled branch concurrently. Record independent
    review by session and SHA. GPT coordinates integration through GitHub PR merge only.
 5. GUI operations, installs, restarts and runIde require a host-wide lease under
    [GUI coordination](docs/development/gui-coordination.md). Only its designated GPT session
