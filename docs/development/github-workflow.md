@@ -124,12 +124,13 @@ GUI必要PRは原則検証passまでDraft/待機。見た目・機能・権限�
 - PR policy: branch/Issue番号、Issue実在/open、GUI欄と理由をチェック。証拠の真偽やレビューの質までは判定しない。
 - CI: pull_requestのコードを最小read権限で実行。PR本文をshellへ展開しない。`pull_request_target`でPRコードを実行しない。
 
-**実測（2026-09-06）:** private/User所有、adminあり。rulesets/branch protectionともHTTP 403でプラン変更を要求。
-サーバー側の強制保護は未導入。hooksは迂回可能、Actionsは保護なしではmergeを阻止できない。
-他clone/Web/APIまで禁止するにはGitHub側保護が必要。現在は規約＋hooks＋CI＋進行役による確認の運用。
+**実測（2026-09-06 / #33）:** ユーザーがリポジトリをpublicへ変更した後、
+[ruleset `main-pr-required`（ID 22368189）](https://github.com/shinma06/cursor-in-android-studio/rules/22368189)をactiveで作成。
+GET `/rulesets/22368189`で設定ファイルの全指定値を照合し、GET `/rules/branches/main`で適用ルールを確認済み。
+private時のプラン制限403は解消。今後はサーバー側でもPR/CIを強制する。hooksはcommit時の事故防止として併用する。
 
-導入可能になったら管理者が `.github/main-ruleset.json` をレビューしてREST APIで作成する。
-先に既存rulesetを一覧確認し、同名があればIDで更新（重複作成しない）。適用後GETでactive/main対象/required checksを確認。
+設定の正本は `.github/main-ruleset.json`。変更時は既存rulesetを再取得し、IDを指定して更新（重複作成しない）。
+適用後GETでactive/main対象/bypass/required checksを再確認する。GitHubが補う未指定の既定値と指定値の不一致を区別する。
 設定: main削除/force push禁止、PR必須、test/PR policy必須、最新base必須、会話解決必須、bypassなし。
 同一アカウント運用のためrequired approvalsは0、独立セッションレビューは規約で必須。
 別のwrite権限を持つレビュー用アカウントを確保したら1以上へ変更する。
