@@ -12,6 +12,8 @@ import java.awt.Component
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.geom.Line2D
+import java.awt.geom.RoundRectangle2D
 import java.text.NumberFormat
 import java.util.Locale
 import javax.swing.BoxLayout
@@ -119,7 +121,7 @@ class ContextUsageView {
 }
 
 /** Keep the keyboard focus outline outside the glyph, without the selector's circular pill. */
-private class TokenCountsButton : JButton() {
+internal open class TokenCountsButton : JButton() {
     init {
         isOpaque = false
         isContentAreaFilled = false
@@ -131,20 +133,26 @@ private class TokenCountsButton : JButton() {
         val copy = g.create() as Graphics2D
         try {
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            val inset = JBUI.scale(1)
-            val arc = JBUI.scale(6)
-            val outlineWidth = (width - inset * 2 - 1).coerceAtLeast(0)
-            val outlineHeight = (height - inset * 2 - 1).coerceAtLeast(0)
+            val inset = JBUI.scale(1).toDouble()
+            val arc = JBUI.scale(6).toDouble()
+            // Both shapes use width/2, height/2, including odd sizes and fractional device scales.
+            val outline = RoundRectangle2D.Double(
+                inset, inset, (width - inset * 2).coerceAtLeast(0.0),
+                (height - inset * 2).coerceAtLeast(0.0), arc, arc,
+            )
             if (model.isRollover || model.isPressed || hasFocus()) {
                 copy.color = AgentUiColors.userBubbleBackground
-                copy.fillRoundRect(inset, inset, outlineWidth, outlineHeight, arc, arc)
+                copy.fill(outline)
             }
             if (hasFocus() && isFocusPainted) {
                 copy.color = AgentUiColors.mutedText
                 copy.stroke = BasicStroke(JBUI.scale(1).toFloat())
-                copy.drawRoundRect(inset, inset, outlineWidth, outlineHeight, arc, arc)
+                copy.draw(outline)
             }
-            icon?.let { it.paintIcon(this, copy, (width - it.iconWidth) / 2, (height - it.iconHeight) / 2) }
+            icon?.let {
+                copy.translate((width - it.iconWidth) / 2.0, (height - it.iconHeight) / 2.0)
+                it.paintIcon(this, copy, 0, 0)
+            }
         } finally {
             copy.dispose()
         }
@@ -159,11 +167,13 @@ private class TokenCountsIcon : Icon {
         val copy = g.create() as Graphics2D
         try {
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            copy.stroke = BasicStroke(JBUI.scale(2).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+            copy.translate(x.toDouble(), y.toDouble())
+            copy.scale(iconWidth / 18.0, iconHeight / 18.0)
+            copy.stroke = BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             copy.color = AgentUiColors.mutedText
-            copy.drawRoundRect(x + JBUI.scale(3), y + JBUI.scale(1), JBUI.scale(12), JBUI.scale(16), JBUI.scale(2), JBUI.scale(2))
-            for (lineY in listOf(5, 9, 13)) {
-                copy.drawLine(x + JBUI.scale(6), y + JBUI.scale(lineY), x + JBUI.scale(12), y + JBUI.scale(lineY))
+            copy.draw(RoundRectangle2D.Double(3.0, 1.0, 12.0, 16.0, 2.0, 2.0))
+            for (lineY in listOf(5.0, 9.0, 13.0)) {
+                copy.draw(Line2D.Double(6.0, lineY, 12.0, lineY))
             }
         } finally {
             copy.dispose()
