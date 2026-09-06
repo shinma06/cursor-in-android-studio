@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "issue": 46,
+  "pr": 74,
+  "imported_pr_head": "42c08c7d57ee5ff70acec67b06f902aade272ad0",
+  "gui_required": true,
+  "reason": "意図停止と実際の異常終了は別Caseで確認する。経過時間・ツール詳細・一般通知整理などIssue全体の残条件はopenを維持。",
+  "cli_checks": [
+    "./gradlew test buildPlugin。AgentRunTestで意図停止・停止要求なし137・準備中停止・遅い生成・一度だけの終了通知を確認する。"
+  ],
+  "cases": [
+    {
+      "id": "STOP-UX-1-STOP",
+      "issue": 46,
+      "pr": 74,
+      "change": "意図的停止をエラーから分離し、次の応答へ影響させない",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。使い捨てプロジェクト、Pro/Teams、Askを使用。通常応答は2回まで。",
+      "steps": [
+        "「1から100までの数字を1行ずつ出力してください。ファイル操作とコマンド実行は不要です。」を送信する。",
+        "応答途中で停止ボタンを押す。",
+        "停止後の本文・状態表示・入力欄・通知を確認する。",
+        "短い通常応答を送信して完了させる。"
+      ],
+      "expected": "「停止しました」と表示して部分本文を保持する。エラー行・通知・ダイアログが出ず、入力と送信が復帰する。次応答が正常完了し、前の停止による本文消去や停止表示への逆戻りがない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "当該2項目は以前に人間へ引継ぎ、旧固定buildのpassがある。新候補は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しい固定候補で未実施。過去の観察結果を転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/46#issuecomment-5558463227",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/46#issuecomment-5558477249",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/42c08c7d57ee5ff70acec67b06f902aade272ad0/docs/loop-engineering/runs/2026-09-06-intentional-stop.md"
+      ],
+      "imported_pr_head": "42c08c7d57ee5ff70acec67b06f902aade272ad0",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [
+        {
+          "status": "pass",
+          "actor": "human",
+          "head": "42c08c7d57ee5ff70acec67b06f902aade272ad0",
+          "artifact_sha256": "775f78cd0e107c7ec23ba15cb3a397fe1df7f567fbf5cef54dbc4ccf22aa2093",
+          "observer": "ユーザー（Issueコメントに個人名記載なし）",
+          "recorded_at": "2026-09-06T09:58:55Z",
+          "observed_at": null,
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/46#issuecomment-5558477249",
+          "reason": "案内した意図的停止と次応答の2項目について「OK」を受領。異常終了137は含まない。実際の操作日時はコメントから確定不可。"
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false,
+      "legacy_cases": [
+        "STOP-UX-1",
+        "MV-015"
+      ]
+    },
+    {
+      "id": "STOP-UX-1-ERROR",
+      "issue": 46,
+      "pr": 74,
+      "change": "停止要求のない実際の終了コード137を異常として表示する",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。元のCLI設定を控える。使い捨てfixtureに内容が「#!/bin/sh」と「exit 137」の2行で実行権限を持つファイルを用意する。外部通信・編集なし。",
+      "steps": [
+        "SettingsのCLIパスを検証用実行ファイルへ一時変更する。",
+        "使い捨てプロジェクトから送信し、停止ボタンは押さない。",
+        "終了時の表示を確認する。",
+        "CLI設定を元へ戻し、処理・ダイアログが残っていないことを確認する。"
+      ],
+      "expected": "「停止しました」へ誤分類せず、実際の異常として表示する。検証後に元のCLI設定へ復元できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "Computer UseがSettingsダイアログを取得できず、設定変更も検証送信も未実施。製品failではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しい固定候補で未実施。過去の観察結果を転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/46#issuecomment-5558495528",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/46#issuecomment-5559176840",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/42c08c7d57ee5ff70acec67b06f902aade272ad0/docs/loop-engineering/runs/2026-09-06-intentional-stop.md"
+      ],
+      "imported_pr_head": "42c08c7d57ee5ff70acec67b06f902aade272ad0",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [
+        {
+          "status": "blocked",
+          "actor": "gpt",
+          "head": "42c08c7d57ee5ff70acec67b06f902aade272ad0",
+          "reason": "設定ダイアログを取得できず、本当の137は未確認。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/46#issuecomment-5558495528"
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false,
+      "legacy_cases": [
+        "STOP-UX-1",
+        "MV-015"
+      ],
+      "blocker_type": "environment"
+    }
+  ]
+}

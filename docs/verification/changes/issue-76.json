@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "issue": 76,
+  "pr": 77,
+  "imported_pr_head": "34a763ce6e1dcd263446db8e4da11ffc5c87be64",
+  "gui_required": true,
+  "reason": "表示と保存の分離・手動/自動切替・Cancelを実IDEで確認する。MV-016全体やPR74異常終了のpassにはしない。",
+  "cli_checks": [
+    "./gradlew test buildPlugin。AgentExecutablePathSelectionTestで表示と保存の分離・切替・Reset・空欄復帰・候補なしを確認する。"
+  ],
+  "cases": [
+    {
+      "id": "CLI-PATH-1",
+      "issue": 76,
+      "pr": 77,
+      "change": "自動検出CLIパスを表示し、手動指定から自動検出へ戻せるようにする",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。元のCLI上書き設定と通知設定を控える。通信しない実在fixture実行ファイルを用意する。CLI送信は行わない。",
+      "steps": [
+        "CLIパスを空欄でApplyし、自動パスと説明を確認する。再表示してApplyが無効であることを確認する。",
+        "通知設定だけ変更してApplyし、自動状態を保つことを確認して通知設定を戻す。",
+        "fixtureのパスを手動指定してApplyし、再表示で保持されることを確認する。",
+        "「自動検出に戻す」を押してCancelし、再表示で手動パスが残ることを確認する。",
+        "再び「自動検出に戻す」を押してApplyし、再表示で自動に戻ることを確認する。保存XMLの上書き値は空文字または省略を確認する。",
+        "手動指定を保存してから空欄Applyでも自動へ戻ることを確認する。",
+        "元のCLI設定と通知設定へ復元する。"
+      ],
+      "expected": "表示だけで自動検出を手動固定しない。手動/自動切替はApply/OKで保存し、Cancelでは破棄する。表示・検出だけでCLIが起動しない。固定候補なしは単体テストで検証し、実機CLIを削除・移動しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "最新r3は接続と固定JARロード照合に成功したが、Settingsの画像/AXは背面Welcome。別経路の入力確定も失敗。設定入力・Apply・CLI送信ゼロ。製品failではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しい固定候補で未実施。過去の観察結果を転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/76#issuecomment-5558612480",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/76#issuecomment-5562501139",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/34a763ce6e1dcd263446db8e4da11ffc5c87be64/docs/loop-engineering/runs/2026-09-06-cli-path.md"
+      ],
+      "imported_pr_head": "34a763ce6e1dcd263446db8e4da11ffc5c87be64",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [
+        {
+          "status": "blocked",
+          "actor": "gpt",
+          "head": "34a763ce6e1dcd263446db8e4da11ffc5c87be64",
+          "artifact_sha256": "47c7c01a3b29cb7a720a36dc0c3e8a0c10520cc0e6f0aa513b299365ffc1debd",
+          "loaded_jar_sha256": "98c91b7ab891afbb55dce5749d315a7d8f05f16f494f24a37413c7d1a5c633e6",
+          "run": "20260907-cli-path-r3",
+          "reason": "設定入力を開始できず。検証後は元PR74 buildに復元し設定XMLの開始前とのバイト一致を確認。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/76#issuecomment-5562501139"
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false,
+      "legacy_cases": [
+        "MV-016"
+      ],
+      "blocker_type": "environment"
+    }
+  ]
+}
