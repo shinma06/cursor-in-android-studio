@@ -19,6 +19,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onRunningChanged: (Boolean) -> Unit = {}
     private var isRunning = false
 
+    val contextUsage = com.cursoragent.ui.composer.context.ContextUsageView()
+
     val inputArea = GrowingPromptField(project)
 
     private val mentionPopupController = MentionPopupController(project, inputArea)
@@ -71,13 +73,18 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             }
             val actions = JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 isOpaque = false
+                add(contextUsage.button)
                 add(sendButton)
             }
             add(selectors, BorderLayout.CENTER)
             add(actions, BorderLayout.EAST)
         }
         inputWrapper.add(controls, BorderLayout.SOUTH)
-        add(accessoryPanel, BorderLayout.NORTH)
+        add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(accessoryPanel, BorderLayout.NORTH)
+            add(contextUsage.panel, BorderLayout.CENTER)
+        }, BorderLayout.NORTH)
         add(inputWrapper, BorderLayout.CENTER)
     }
 

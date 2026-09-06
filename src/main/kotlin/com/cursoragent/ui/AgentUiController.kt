@@ -37,6 +37,7 @@ class AgentUiController(
         header = header,
         agentService = agentService,
         chatHistoryState = chatHistoryState,
+        onChatResumed = { composer.contextUsage.reset() },
     )
 
     init {
@@ -53,6 +54,7 @@ class AgentUiController(
     }
 
     fun startNewChat() {
+        composer.contextUsage.reset()
         agentService.startNewChat()
         timeline.clearTimeline()
         header.setSessionStatus("Ready")
@@ -61,6 +63,7 @@ class AgentUiController(
     fun sendPrompt(userText: String) {
         if (userText.isBlank()) return
 
+        val usageTicket = composer.contextUsage.beginTurn()
         composer.clearInput()
         composer.setInputEnabled(false)
         composer.setRunning(true)
@@ -86,7 +89,7 @@ class AgentUiController(
                 header.setSessionStatus("Running...")
             }
 
-            agentService.sendPrompt(fullPrompt, turnListenerFactory.create(userText))
+            agentService.sendPrompt(fullPrompt, turnListenerFactory.create(userText, usageTicket))
         }
     }
 
@@ -107,6 +110,7 @@ class AgentUiController(
     }
 
     fun stopRun() {
+        composer.contextUsage.reset()
         agentService.killActiveProcess()
     }
 
