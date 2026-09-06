@@ -37,9 +37,11 @@ Cursor follows this file and `.cursor/rules/loop-engineering.mdc`.
 GitHub Issues/PRs are the shared source of truth; local notes are supporting evidence.
 Existing user authorization applies. Routine work within scope needs no repeated confirmation.
 
-**Enforcement limitation:** private-repository rulesets and branch protection returned HTTP 403
-on 2026-09-06 (plan restriction). Local hooks and CI are installed safeguards, not server-side
-merge protection. See the workflow for the checked-in ruleset and activation procedure.
+**Server protection active (2026-09-06, #33):** the user made the repository public.
+Ruleset `main-pr-required` (ID 22368189) now requires PRs, successful `test` and `PR policy`
+checks against an up-to-date base, and resolved review conversations; main deletion and force
+push are blocked, with no bypass actors. Same-account agents still record independent session
+reviews; required GitHub approval count is 0. See the workflow for settings and verification.
 
 ## UIの言語と見た目の方針
 

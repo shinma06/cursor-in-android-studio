@@ -8,5 +8,6 @@ Issueとclaimを確認し、専用branch/worktreeで変更し、PRでレビュ�
 - GUI担当: [GUI予約・引継ぎ](docs/development/gui-coordination.md) → [loop手順](docs/loop-engineering/README.md)
 - 最低限の検証: `./gradlew test`。運用スクリプト変更は `python3 -m unittest discover -s scripts/workflow -p 'test_*.py'` も実行。
 
-現在のGitHubプランではprivateリポジトリのサーバー保護が403で利用不可。
-hooks/CIがあってもGitHub側の強制保護は未導入である点と、導入手順は開発規約に記載。
+2026-09-06、public化後にmainのサーバー保護を有効化済み（ruleset `main-pr-required`）。
+PRと最新baseに対する `test` / `PR policy` 成功が必須。main削除・force pushは禁止、bypassなし。
+詳細と設定の確認手順は開発規約に記載。
