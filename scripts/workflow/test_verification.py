@@ -398,7 +398,7 @@ class AcceptanceCITests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             event = Path(tmp) / 'event.json'
             pr = pr_data(); event.write_text(json.dumps({'pull_request': pr}))
-            responses = [pr, {'object': {'sha': NEW}}]
+            responses = [pr, {'object': {'sha': NEW}}, pr]
             with patch.dict(os.environ, GITHUB_EVENT_PATH=str(event), GITHUB_REPOSITORY=al.REPO, GITHUB_TOKEN='test'), \
                     patch.object(ci, 'urlopen', side_effect=lambda *a, **kw: io.BytesIO(json.dumps(responses.pop(0)).encode())), \
                     patch.object(ci.subprocess, 'check_output', return_value=BASE), \
