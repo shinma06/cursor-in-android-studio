@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "issue": 80,
+  "pr": 82,
+  "imported_pr_head": "70fe9fe0fd318b258bee05717723d50a813ef8a3",
+  "gui_required": true,
+  "reason": "Issue80/PR82のscopeは最小Swing probeを実測し、成功・失敗・次案を再現可能に記録すること。CUA modal修正自体を受入条件に追加しない。固定候補のprobe/runtimeイベント・手順・記録・限界の整合を人間またはGPTが検証できれば調査成果として合格可能。全面CUA操作成立と元blocked履歴は親Issue73へ引き継ぐ。",
+  "cli_checks": [
+    "./gradlew test と git diff --check。製品パッケージ変更なしのためbuildPlugin対象外。",
+    "JDKコンパイルとjpackageを実行しplain/.appのJAR hash一致、既存output拒否、無効run ID拒否を確認する。"
+  ],
+  "cases": [
+    {
+      "id": "SWING-PROBE-REPORT-1",
+      "issue": 80,
+      "pr": 82,
+      "change": "固定候補の最小Swing probeを再現し、実測記録・手順・限界が資材と一致することを確認する",
+      "preconditions": "区切りの固定develop候補SHAとPR82の包含を確認し、同候補のscripts/gui-fixtureを使う。JDK/jpackageでplain Javaと.appをビルドしJAR hashを固定する。GUI担当/予約を確認し、専用run/build/bootを記録する。人間によるprobe操作と記録照合で確認可能。CUAのpopup/modal問題を解消することはこのCaseの受入に含めない。",
+      "steps": [
+        "同じ固定候補のscripts/gui-fixture手順に従い、未使用の出力先へJDKコンパイルとjpackageビルドを実行する。plainと.appのJAR SHA256一致を確認する。",
+        "fixtureを起動し、画面と実行時記録に表示されるbuild/run/boot・ロードJAR hashが用意した資材と一致することを確認する。",
+        "人間または指定GPTがbuttonクリック、入力+Return、Popup選択、Dialog表示、一覧scrollを操作する。操作前後の表示と対応するCLICK/COMMIT/POPUP/DIALOG/SCROLLイベントを照合する。人間操作とCUA操作を記録上分ける。",
+        "自分のfixtureだけ停止して再起動し、同じbuild/run/JARと新bootを識別できることを確認する。",
+        "run文書の再現手順・成功操作・失敗層・回復/打切り・次案が、旧実測source/JARと証拠へ正しく結び付くことを照合する。旧blockedと未試行を新候補のpassへ書き換えていないことを確認する。",
+        "自分のfixtureだけ終了し、検証結果を固定候補SHA/hash・確認者・日時・表示とイベントの証拠とともに記録する。"
+      ],
+      "expected": "固定候補から再現可能にprobeをビルドし、実際のロードJAR・run・bootと操作結果/イベントを照合できる。手順と限界が正確で、CUA操作の成功/失敗/未試行、旧実測と新候補、人間操作とCUA操作を区別する。調査結果が再現可能で正確なら本Caseは合格可能だが、それを親73のCUA全面操作成立、modal修正、製品Settings/CLI/IME/D&Dのpassへ言い換えない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定候補のprobe資材と調査記録の整合確認は未実施。旧調査の完了は根拠であり新候補passへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定候補で未実施。人間によるprobe実操作と記録照合で確認可能。合格は調査成果の受入に限り、CUA操作成立を意味しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562668110",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/80#issuecomment-5562710046",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/82#issuecomment-5562698895",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/70fe9fe0fd318b258bee05717723d50a813ef8a3/docs/loop-engineering/runs/2026-09-07-swing-cua.md"
+      ],
+      "imported_pr_head": "70fe9fe0fd318b258bee05717723d50a813ef8a3",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "probeまたは調査記録の不整合は専用修正Issue/branch/PRに紐付け、修正を含む固定候補で再確認する。CUA環境の未達は親73のSWING-CUA-BASIC-1/WINDOW-1へ記録し、本調査成果の不具合と混同しない。",
+      "next_action": "固定候補でprobeをビルド・起動してイベントと表示を照合し、手順・旧実測・限界の記載を確認する。調査受入と親73の操作成立を別々に記録する。",
+      "main_eligible": false,
+      "related_issues": [
+        73
+      ],
+      "parent_tracking_cases": [
+        "73:SWING-CUA-BASIC-1",
+        "73:SWING-CUA-WINDOW-1"
+      ],
+      "artifact": "swing_probe"
+    }
+  ],
+  "related_issues": [
+    73
+  ],
+  "scope_note": "PR82のpromotion必要CaseはSWING-PROBE-REPORT-1。親73の2 Caseは関連調査の未達条件としてopenを維持し、PR82によるmodal修正を要求するものではない。"
+}

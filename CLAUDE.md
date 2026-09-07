@@ -6,32 +6,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## GitHub-first collaboration (2026-09-06, #31)
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
-The previous no-PR/direct-main policy is superseded. Read
+The previous no-PR/direct-main and GUI-before-any-merge policies are superseded. Read
 [the GitHub workflow](docs/development/github-workflow.md) before implementation.
 Every code, docs, or configuration task needs an existing/new Issue, an ownership claim,
 its own Issue-numbered branch and worktree, and a PR. Never commit or push directly to main.
 Read-only advice/review does not need a new Issue. Preserve unrelated local work.
 
 1. Read this file, requirements, Issue #1, target Issue/comments, and open PRs. Inspect status,
-   worktrees, fetch origin, and compare HEAD with origin/main. Search before creating an Issue.
+   worktrees, fetch origin, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
 2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
    and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
    in the workflow; no concurrent writers to the same worktree.
-3. Create `<codex|claude|cursor>/<issue>-<slug>` in a separate worktree from origin/main,
-   remove its initial origin/main upstream, and run `bash scripts/workflow/bootstrap.sh`.
+3. Normally create `<codex|claude|cursor>/<issue>-<slug>` in a separate worktree from origin/develop,
+   clear its initial upstream (tooling bootstrap uses origin/main), and run `bash scripts/workflow/bootstrap.sh`.
    Parallel agents implement assigned independent Issues there and push their own branches.
 4. Open a Draft PR early; update the Issue at each handoff/state change.
    Follow [PR automation](docs/development/pr-automation.md): stop the original writer and enroll
    the clean Issue worktree with the trusted-main `agent_loop.py enroll` command. The scheduled
-   coordinator then owns fixes, independent re-review, Issue completion and verified branch cleanup.
+   coordinator then owns fixes, independent re-review, Issue completion and verified Issue-branch cleanup (never main/develop).
    `Agent review` is required along with CI. Do not resume editing an enrolled branch concurrently. Record independent
    review by session and SHA. GPT coordinates integration through GitHub PR merge only.
 5. GUI operations, installs, restarts and runIde require a host-wide lease under
    [GUI coordination](docs/development/gui-coordination.md). Only its designated GPT session
    (or human handoff) operates the desktop. Other tasks continue implementation/tests/review.
    Worktree isolation does not isolate IDE state. Use disposable fixtures and identified builds.
-6. Run tests, obtain independent review, complete affected GUI acceptance, reconcile main and
-   verify latest PR checks before merge. Never force push, bypass hooks or invent a GUI pass.
+6. Run tests and independent review, reconcile the target branch and verify current checks.
+   Develop permits pending/blocked/failed GUI with complete Case/fix tracking. Main requires every
+   required Case of the entire fixed candidate to pass on its identified build. See docs/verification/README.md. Never force push, bypass hooks or invent a GUI pass.
    Close Issues only when acceptance is complete; otherwise record blockers, next action and ownership.
 
 The [loop protocol](docs/loop-engineering/README.md) defines GUI cases and evidence;
@@ -46,6 +47,19 @@ Ruleset `main-pr-required` (ID 22368189) now requires PRs, successful `test` and
 checks against an up-to-date base, and resolved review conversations; main deletion and force
 push are blocked, with no bypass actors. Same-account agents still record independent session
 reviews; required GitHub approval count is 0. See the workflow for settings and verification.
+
+## develop統合とmain昇格（2026-09-07 / #83、ユーザー方針）
+
+通常実装はdevelop向けIssue PRへ。必要テストと独立コードレビューが通り、
+[確認マトリクス](docs/verification/README.md)に必要Case・手順・期待結果・GPT/人間の状態・次の操作があれば、
+GUIのpending/環境blocked/製品failでもdevelopへ統合できる。製品failは専用修正Issue/PRへ追跡する。
+未解決コード指摘やテスト失敗は許可しない。develop統合だけでQA Case/Issueをcloseしない。
+mainは固定develop候補全体をGPT/人間が適切に確認したpromotion PRをmerge commitで統合する。
+過去buildのpass、1 Caseだけのpass、未確認commitの混入はAcceptance gateが拒否する。
+GUI不要docs/toolingだけは理由とCLI検証を記録したmain PRも可能。main/developはcleanup禁止。
+初期9 Case（製品/probe 7件と親#73のCUA 2件）の入口は [今回の確認一覧](docs/verification/current.md)。JSONを正本に再生成し、二重編集しない。
+既存enrollmentのowner/sourceやPAUSED heartbeatは自動変更しない。公開引継ぎにはopaque IDを使い、
+host/sourceはlocal registryだけへ保存する。#83 bootstrapとGitHub設定順序は運用文書を参照。
 
 ## UIの言語と見た目の方針
 

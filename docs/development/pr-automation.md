@@ -1,143 +1,88 @@
 # PRの自動レビュー・修正・統合
 
-#35で導入。GitHubにPRと引継ぎを保存し、ローカルの定期進行役が再開する。
-通常のエージェント依頼は、実装してPRを作った後に以下の引継ぎを行う。
-それ以降は人間が毎回「レビュー」「直して」「merge」と指示する必要はない。
+trusted mainの `agent_loop.py` が、明示登録された同一repository/maintainerのIssue PRだけを処理します。
+#83以降はdevelopとmainの[target別gate](github-workflow.md)を使います。既存heartbeatはPAUSEDのままです。設定変更だけで再開しません。
 
-## 実行するもの
+## 引継ぎ
 
-- 現在のCodex taskに登録するheartbeatが5分ごとに起動し、信頼済みmainの `agent_loop.py tick` を呼ぶ。
-- `codex exec`を別プロセスで起動。reviewerはread-only、fixerはworkspace-write。ユーザーのChatGPTログインと選択modelを使う。
-  Claude CLIが未ログインの現環境では別Codexセッションがreviewer。Claudeがレビューしたとは記録しない。
-- 各PRは1工程ずつ進み、最大3PRを受付時刻による交代制で処理。GUI待ち/停止中PRだけで後続を塞がない。
-- 作業中はホスト共通coordinator lock、GUIは別の既存leaseを使う。同一OSユーザー/ホストの進行役は1人。
-- mainへのmergeはGitHub APIのHEAD指定と保護ルールを通す。成功前に最新HEAD/base/本文/Issue条件/フィードバックを再確認する。
-
-**実行条件:** Macの電源が入り、Codexアプリが動作し、ネットワークとCLIログインが有効であること。
-停止/スリープ中にクラウドからMacを操作する仕組みではない。次の起動で保存済み工程を照合して再開する。
-既存のログインを使い、新規APIキー、追加API課金経路、GitHub上のself-hosted runnerは導入しない。
-エージェント利用枠は消費する。1worker最大10分、fix最大3回、review最大8回、通信等の失敗は3回まで。
-
-## 実装担当から自動進行役への引継ぎ
-
-Issueのclaimと専用worktreeで実装し、テスト・push・Draft PRを作る。
-**元の担当は編集/commit/push/GUIを止めてから**、信頼済みmainのscriptで登録する。
-範囲は実際に委譲するファイル/ディレクトリ。以下の番号・パスは対象へ置換する。
+専用worktreeでテスト・push・Draft PRを作成し、**元writerの編集/commit/push/GUIを停止してから**登録します。
 
 ```bash
-python3 /path/to/main/scripts/workflow/agent_loop.py enroll \
-  --pr 36 --source /path/to/issue-worktree --owner gpt-35-a \
-  --scope scripts/workflow/ docs/development/ CLAUDE.md \
-  --parent 1 --close-issue --writer-stopped
+python3 /path/to/trusted-main/scripts/workflow/agent_loop.py enroll \
+  --pr 123 --source /path/to/issue-worktree --owner gpt-issue-session \
+  --scope scripts/workflow/ docs/verification/ --parent 1 --writer-stopped
 ```
 
-`--close-issue`はIssue全体を完了するタスクにだけ指定。部分実装では付けない。
-PRは同一repo、作者shinma06、main向け、Issue番号branchと `Issue: #N` が一致し、sourceがclean/HEAD一致している必要がある。
-引継ぎmarkerはPR/Issue/HEAD/base/host/旧新owner/source/scope/停止宣言を保存する。
-**登録は元claimの当該範囲を自動進行役へ引き渡す宣言**。元担当は再開前に最新状態を読み、勝手にwriterへ戻らない。
-Issueの更新は進行役の専用コメントを使うため、受入チェックリストや人間の本文を途中で上書きしない。
-GitHubの任意コメント、外部作者のPR、fork、未登録PRはworkerを起動する許可にならない。
+`--close-issue`は全Issue受入完了時だけ指定できますが、develop統合時は指定にかかわらずcloseしません。
+PRのIssue番号、作者/repository、main/develop target、Integration/Verification metadata、clean source/HEAD一致を検査します。
+公開marker `agent-loop-handoff:v2` にはopaque `registry_id`、PR/Issue/HEAD/base/target、scope、owner、停止宣言だけを保存します。
+source絶対パスとhostはprivate `.git/agent-loop/registry/` に0600で保存し、公開record全体のdigestで結び付けます。
+別host、registry欠落/改変/権限不整合はfail-closed。勝手なowner/source取り替えやregistry再生成はしません。原ownerの復旧確認が必要です。
 
-## 工程と機械判定
+旧v1は同一hostの既存登録を読み取る互換性を維持しますが、新規登録では使いません。v2があるのにregistryを解決できない場合、v1へfallbackしません。
+既存marker/owner/sourceは自動移行しません。公開進捗ではhost/sourceを除去し、例外のraw診断はprivate localログへ保存、公開側はopaque診断IDだけを示します。
+
+## 工程
 
 ```text
 queued → reviewing → reviewed
                    ├ changes_requested → fixing → publishing → reviewing
-                   ├ blocked → 停止/通知
-                   └ approved → GUI待ち / CI待ち → merging → cleanup → done
+                   ├ blocked → 停止/具体的原因を確認
+                   └ approved → acceptance待ち / CI待ち → merging → cleanup → done
 ```
 
-reviewerは最新diff、Issue条件、委譲範囲、レビューコメントを読み、固定HEAD/baseの構造化JSONで返す。
-独立session ID、verdict、scope_complete、issue_complete、gui_required、指摘、根拠を保存。
-指摘やscope未完了を含むapprovedは拒否する。fixerの自己申告でレビューOKにしない。
-fix後は範囲/HEAD/競合の検査、テスト、commit/pushを進行役が行い、新しいreviewerを起動する。
-reviewer/fixerにはGitHub tokenの環境変数、ユーザー設定のMCP、GUI担当権を渡さず、commit/pushも委譲しない。
-対象は信頼するmaintainerの登録PRだけ。OS sandboxは機能ごとの制限であり、PR内コードが安全である保証ではない。
+reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。GitHub token/設定MCP/GUI権限を渡しません。
+GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認を拒否しません。コード不具合、必要テスト失敗、Case追跡不足は修正対象です。
+最大3 PRを交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。
 
-`Agent review` commit statusをcoordinatorが発行し、main rulesetの必須チェックにする。
-最新HEAD/base/PR本文/Issue本文/人間のフィードバックが変わると判定を失効させる。
-open PRのbaseはREST PR payloadの `base.sha` だけに依存せず、Git ref APIの現在の `refs/heads/main` を使う（#58）。
-fetch結果とrefを再照合し、移動中なら次tickへ戻る。未取り込みなら固定SHAを通常mergeし、テスト・非force push後に独立再レビューする。
-HEAD/baseの変更、同期開始、merge直前の競合では旧レビューとGUI承認を失効させる。publish中のmain更新も次tickで再同期する。
-レビュー中断時は旧承認を復活させない。CI成功と必要GUI証拠が揃うまでmergeしない。
-既存の人間の未解決review threadはGitHub保護がmergeを拒否する。解決の正当性を進行役が確認してから再開する。
-同じGitHubアカウントはstatusの発行権限も共有するため、悪意ある同一資格情報の偽装を識別する署名基盤ではない。
-未登録の通常PRも、merge前にこの手順で登録して独立レビューを受ける。必須gateを省略する手動経路は作らない。
+coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/本文/Issue条件/feedback変更は承認を失効させます。
+base同期は通常merge → テスト → 非force push → 独立再レビューです。未解決会話とstrict baseはGitHub保護も検査します。
+`test` / `PR policy` / `Acceptance gate`成功と独立レビューを読み戻し、merge直前に受入を再検証して `Agent review` を発行します。
 
-## GUI待ち
+- develop: 必要Case JSONと次の操作、製品failなら修正Issueが必須。GUI passは要求せずsquash merge。
+- main tooling: GUI不要の理由/CLI検証、許可されたtoolingパスだけ。
+- main promotion: `main..candidate` の全commitがmerge済みdevelop squash PRへ対応し、各PRの固定merge SHAに保存された全Caseが同じ候補/buildでpass。候補後の差分は2つの許可JSONだけ。merge commit専用。
 
-CLI workerはGUIを操作しない。`gui-queued`ならheartbeatのGPT進行役がIssue/MV/fixtureを読み、
-[GUI手順](gui-coordination.md)でleaseを取得して実際に観察する。他のGUI担当が占有中なら待ち、別PRを進める。
-実行不能ならそのPRだけblockedを記録し、根拠のないpassやGUI不要判定を作らない。
-観察完了後、起動した処理を停止/安全に引継ぎ、lease保持中に次のJSONを登録する。
+[確認結果の入力と候補固定](../verification/README.md)を参照してください。1 Caseだけのpassは全候補の合格ではありません。
+GUI lease付きの旧 `gui` 証拠登録は旧記録/互換用途に残しますが、promotionは候補の`promotion.results`を使用し、PR HEADの再GUIを要求しません。
+GUI操作自体は現在も指定GPT/人間のlease下で行います。状態のblockedと製品failを区別し、未実施はpassへ変えません。
 
-```json
-{
-  "head": "40桁の対象HEAD",
-  "base": "40桁の対象base",
-  "artifact_sha256": "64桁のZIPハッシュ",
-  "run": "run ID",
-  "observer": "leaseのownerと同じセッションID",
-  "loaded_identity": "実際にロードしたJAR/ビルドを確認した証拠",
-  "evidence_url": "共有可能な証跡URL",
-  "processes_stopped": true,
-  "cases": [{"id": "MV-xxx", "status": "pass", "observation": "実際の観察内容"}]
-}
-```
+## 対象branch変更・再開
+
+GitHubでPRのtarget/metadataを変更しただけでは既存enrollmentを自動で移しません。既存登録はunmanagedとして停止します。
+PMが停止・clean・同一HEAD/branch/Issueを確認した場合だけ、trusted scriptで明示更新できます。
 
 ```bash
-python3 scripts/workflow/agent_loop.py gui --pr 36 --evidence /tmp/gui-result.json --lease-token <token>
-```
-
-scriptはHEAD/base、lease token/owner/期限、Caseのpass、必須証拠欄を検査する。
-観察の真偽はGPT/human担当が責任を持つ。登録後にleaseをreleaseし、次tickがmerge可否を判定する。
-GUIの実行範囲/受入は元Issueに従い、他Issueの未確認ケースまで合格にしない。
-
-## 中断・再開
-
-正本はPRの `agent-loop-state:v1` コメントとIssueの専用進捗コメント。
-ローカル `.git/agent-loop/` はmanaged clone、worker PID、ログ、処理順の実行状態で、独立したbacklogではない。
-再起動時にGitHubのmerged状態、remote/local HEAD、dirty、worker groupを読み戻す。
-push/merge直後の通信切断でも同じ修正やmergeを繰り返さず後工程へ進む。
-子processはtimeout時にgroupごと停止。PID記録前のクラッシュは自動横取りせず、進行役が残存処理を確認する。
-
-```bash
+python3 scripts/workflow/agent_loop.py rebind-target --pr 123 --writer-stopped
 python3 scripts/workflow/agent_loop.py scan
-python3 scripts/workflow/agent_loop.py tick --pr 36
-python3 scripts/workflow/agent_loop.py resume --pr 36 --reason '停止/競合/CI原因を確認し、次の試行を許可'
+python3 scripts/workflow/agent_loop.py tick --pr 123
+python3 scripts/workflow/agent_loop.py resume --pr 123 --reason '停止原因の解消とworker停止を確認'
 ```
 
-上限到達/範囲外編集/外部push/旧担当の再開/不正状態は、そのPRを停止して理由を通知。
-`resume`は実際の障害解消・子process停止確認後に進行役が実行する。回数を毎tick無条件でリセットしない。
-進行役が作成して記録したpublish HEADだけを自動再送する。workerの履歴変更や、commit直後・記録前の中断は通常のresumeだけではpublishしない。進行役が差分と由来を確認して修復する。
-worktreeのdirty内容や新commitをreset/stashで消して復旧しない。旧sourceに変更があれば保持し、担当と調整する。
+`rebind-target`は担当関係/source/expected HEADを継承し、公開owner表記をホストを含まないagent-loopへ正規化します。scopeの移譲や外部pushの採用には使いません。worker記録が残る/dirty/HEAD不一致なら拒否します。
+旧承認/GUIを失効させ、新targetをv2 registryへ保存します。PAUSED状態やheartbeatを勝手に解除しません。
+registry喪失、旧writer再開、予期しないcommitやdirty内容は保持して停止します。reset/stashで捨てず、通信切断後のpublishは記録済みSHAだけを再送します。
 
-## Issue更新・branch削除
+## 完了とcleanup
 
-merge後はIssueへmerge SHA、残条件、claim解放を記録する。
-`--close-issue`かつ独立reviewerがIssue全体の完了を確認し、現在のIssue本文が承認時と一致する場合だけcloseする。
-部分完了・条件追加時はopenを維持。親は対象Issue専用のチェック行だけ更新し、複数Issueの集約行は勝手に完了にしない。
-GitHubのdelete_branch_on_mergeも有効にする。coordinatorは削除漏れを再確認し、remote tipがmerge対象HEADと一致した場合だけ削除。
-remote削除の `--force-with-lease=<ref>:<sha>` は**一致確認付き削除だけ**の限定使用。履歴のforce更新には使わない。
-local branchは登録時HEADと一致し、他worktreeで使われていないものだけcompare-and-deleteする。
-source/managed checkoutのclean、worker停止、GUI lease空きも削除前に確認し、削除中はGUI予約更新との排他を保持。
-後片付けに失敗したらcleanup段階を残し、次回再試行する。merge成功だけで処理を消さない。
+GitHub mergeを読み戻してIssueへmerge SHAと残条件を記録します。developではIssue/親チェックを完了にしません。
+mainで全受入済みのpromotion Issueは新candidate証拠を含む受入判定でclose可能です。元の機能/QA IssuesはPMが残条件を個別照合します。
+remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止・GUI lease空きの場合だけ削除します。
+**main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
+cleanup中断は次tickで再試行し、merge成功だけで状態を消しません。
 
 ```bash
-python3 scripts/workflow/agent_loop.py cleanup-branches          # 既存の完了branchを監査
-python3 scripts/workflow/agent_loop.py cleanup-branches --apply  # remote削除済み・merged PR HEAD一致・未使用local refだけ削除
+python3 scripts/workflow/agent_loop.py cleanup-branches
+python3 scripts/workflow/agent_loop.py cleanup-branches --apply
 ```
 
-古いbranchでも未merge・新commitあり・worktree使用中なら保持する。日時だけで役目を終えたとは判断しない。
+#83導入PRは [bootstrap手順](github-workflow.md#83の一回限りのbootstrap)に従い、旧enrollを使わずPMへ引継ぎます。
+通常運用で必須gateを省略する手動経路は作りません。
 
-## 検証と一次情報
+## 検証
 
-`python3 -m unittest discover -s scripts/workflow -p 'test_*.py'`で、対象選別、古い承認失効、GUI/CI gate、
-指摘→修正→再レビュー→merge、Issue条件追加、merge直後の切断、cleanup再試行を検証する。
-実際のCLI reviewer起動とGitHub statusは導入PRで確認する。
+`python3 -m unittest discover -s scripts/workflow -p 'test_*.py'` はtarget変更、固定候補全範囲、古いbuild拒否、Case漏れ、
+GUI failのdevelop許可/main拒否、privacy registry、旧v1、Issue open保持、main/develop cleanup禁止、review/fix/再レビューと再開を検証します。
 
-- [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode): CLIの構造化出力と保存済み認証。
-- [Scheduled tasks](https://learn.chatgpt.com/docs/automations?surface=app): ローカル自動処理の起動条件。
-- [GitHub commit statuses](https://docs.github.com/en/rest/commits/statuses): HEAD単位の必須status。
-
-- [GitHub Get a reference](https://docs.github.com/en/rest/git/refs#get-a-reference): 現在のbranch refのSHAを取得。
+- [GitHub commit statuses](https://docs.github.com/en/rest/commits/statuses)
+- [GitHub branch refs](https://docs.github.com/en/rest/git/refs#get-a-reference)
