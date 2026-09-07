@@ -16,6 +16,8 @@ Cursor のメニュー存在と headless CLI の対応は別の証拠であり�
 
 **2026-09-06 静的外観改修（#19）**: Cursor実画面に合わせ、会話の自然な高さ/全幅ユーザー枠/枠なし応答、一体型Composer、モード/モデルの小さな選択ボタンを実装。権限やCLI挙動は維持。GUI受入と経過は[MV-038の記録](loop-engineering/runs/2026-09-06-ui-parity.md)を参照。
 
+**2026-09-07 統合/検証方針（#83）**: 通常実装はdevelopへ統合。必要テスト・独立レビュー・[Caseマトリクス](verification/README.md)が必須で、GUIの未実施/環境blocked/製品failは正確に残す。mainは固定候補全体の必要動作確認pass後のみ。人間は区切りでまとめて確認し、失敗は専用修正Issue/branch/PRで扱う。develop統合で既存F/MV受入を完了にしない。
+
 ---
 
 ## 1. 背景・目的

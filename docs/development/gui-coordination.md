@@ -1,5 +1,8 @@
 # 並列タスクと単一デスクトップのGUI検証
 
+> 2026-09-07 / #83: developはテスト・独立レビュー・Case追跡で統合可能（GUI pending/blocked/failを保持）。mainは固定候補全体の必要Case pass後のみ。区切り単位の入口は [確認マトリクス](../verification/README.md)。過去MV/runは履歴であり新候補のpassへ転記しない。
+
+
 [開発規約](github-workflow.md)のGUI部分。コードのwriterはworktreeごと、GUI操作者はホスト/OSログインセッションごとに1人。
 別worktree・別IDEウィンドウでもフォーカス、ダイアログ、plugin設定、クリップボードが共有される。
 Computer Useの画面読み取りも他タスクのフォーカスを動かし得るため予約対象。CLIの読み取り・単体テスト・buildPluginは予約不要。

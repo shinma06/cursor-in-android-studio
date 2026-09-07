@@ -1,18 +1,21 @@
 Issue: #<number>
+Integration: develop
+Verification: docs/verification/changes/issue-<number>.json
 GUI: required
-GUI reason: <MV IDsと対象挙動、またはGUI不要の具体的根拠>
+GUI reason: <Case IDと必要挙動。不要なら具体的理由とCLI検証>
 
 ## 変更
 
-<問題と変更後の動作。部分実装はRefs #N、全受入完了時のみCloses #N>
+<問題と変更後の動作。developはRefs #N。promotionはIntegration: promotionでmainへ、GUI不要toolingはIntegration: toolingでmainへ>
 
 ## 検証
 
-- Tests: <コマンドと結果/CI URL>
-- Independent review: <担当セッション、reviewed SHA、結果コメントURL。未実施ならpending>
-- GUI: <pending/pass/fail/blocked/not-required。HEAD、run、証拠URL>
-- Dependencies: <なし、または先行Issue/PRと状態>
+- Tests: <コマンド/結果とCI URL>
+- Independent review: <担当session・固定HEAD/base・指摘と解決・結果URL>
+- Matrix: <必要Case JSONと今回の確認一覧。GUI pending/blocked/fail/passを正確に保持>
+- Dependencies: <先行Issue/PR、未実装部分。GUI環境の障害と分ける>
+- Main promotion: <全候補commit/Caseの固定build結果。develop統合だけではmain可としない>
 
 ## 引継ぎ
 
-<owner、最新HEAD、残条件、次の操作。GUI予約や起動中のビルドがあれば記載>
+<owner、HEAD、残条件、次の操作。writer停止後にv2 opaque enrollment。ローカル絶対パス/host/tokenを公開しない>

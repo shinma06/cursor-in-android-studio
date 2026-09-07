@@ -27,7 +27,8 @@
         "require_last_push_approval": false,
         "required_review_thread_resolution": true,
         "allowed_merge_methods": [
-          "squash"
+          "squash",
+          "merge"
         ]
       }
     },
@@ -45,6 +46,9 @@
           },
           {
             "context": "Agent review"
+          },
+          {
+            "context": "Acceptance gate"
           }
         ]
       }

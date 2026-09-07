@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 90,
+  "gui_required": false,
+  "reason": "Acceptance CIのlive PR状態判定のみ。マージ済み/未merge closed PRの遅延処理は受入合格ではなくstatus=skippedとして終了し、open/reopenedのmetadata・HEAD・target・base・body・必要Case検証は維持する。製品コードやGUIを変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py': closed/merged遅延、古いeventとlive reopened、openの不正metadata/差分/必要Case・race・API失敗、検証中closeを確認する。",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain と git diff --check"
+  ],
+  "cases": []
+}

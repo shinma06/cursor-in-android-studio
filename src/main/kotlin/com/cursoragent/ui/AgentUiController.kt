@@ -3,6 +3,7 @@ package com.cursoragent.ui
 import com.cursoragent.PluginBrand
 import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.mention.MentionResolver
+import com.cursoragent.service.AgentRun
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.CheckpointService
 import com.cursoragent.ui.composer.ComposerPanel
@@ -19,6 +20,7 @@ class AgentUiController(
     private val composer: ComposerPanel,
     private val header: AgentHeaderBar,
 ) {
+    private var turnGeneration = 0L
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val chatHistoryState = ChatHistoryState.getInstance(project)
@@ -37,7 +39,12 @@ class AgentUiController(
         header = header,
         agentService = agentService,
         chatHistoryState = chatHistoryState,
-        onChatResumed = { composer.contextUsage.reset() },
+        onChatResumed = {
+            turnGeneration++
+            agentService.killActiveProcess()
+            composer.contextUsage.reset()
+            finishRun()
+        },
     )
 
     init {
@@ -54,42 +61,71 @@ class AgentUiController(
     }
 
     fun startNewChat() {
+        turnGeneration++
         composer.contextUsage.reset()
         agentService.startNewChat()
         timeline.clearTimeline()
+        finishRun()
         header.setSessionStatus("Ready")
     }
 
     fun sendPrompt(userText: String) {
         if (userText.isBlank()) return
 
+        val generation = ++turnGeneration
         val usageTicket = composer.contextUsage.beginTurn()
+        lateinit var run: AgentRun
+        run = agentService.prepareTurn(
+            turnListenerFactory.create(
+                userText,
+                usageTicket,
+                isCurrent = { turnGeneration == generation },
+                isStopped = { run.wasStopped },
+            ),
+        )
         composer.clearInput()
         composer.setInputEnabled(false)
         composer.setRunning(true)
 
+        timeline.clearStatus()
+        timeline.finalizeAssistantMessage()
         val userBubble = timeline.addUserMessage(userText)
         header.setSessionStatus("Preparing…")
 
-        val edtContext = promptContextBuilder.buildEdtContext(userText)
+        val edtContext = try {
+            promptContextBuilder.buildEdtContext(userText)
+        } catch (error: Exception) {
+            run.reportError("送信の準備に失敗しました: ${error.message}")
+            run.complete(-1)
+            return
+        }
 
         ApplicationManager.getApplication().executeOnPooledThread {
-            val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
-            val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
-            val fullContext = listOfNotNull(edtContext, backgroundContext)
-                .joinToString("\n\n")
-                .takeIf { it.isNotBlank() }
-            val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
+            if (!run.isActive) return@executeOnPooledThread
+            try {
+                val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
+                if (!run.isActive) return@executeOnPooledThread
+                val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
+                val fullContext = listOfNotNull(edtContext, backgroundContext)
+                    .joinToString("\n\n")
+                    .takeIf { it.isNotBlank() }
+                val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
 
-            runOnEdt {
-                userBubble.setCheckpointAvailable(checkpointId != null)
-                if (checkpointId != null) {
-                    userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                if (!run.isActive) return@executeOnPooledThread
+                runOnEdt {
+                    if (project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
+                    userBubble.setCheckpointAvailable(checkpointId != null)
+                    if (checkpointId != null) {
+                        userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                    }
+                    header.setSessionStatus("Running...")
                 }
-                header.setSessionStatus("Running...")
-            }
 
-            agentService.sendPrompt(fullPrompt, turnListenerFactory.create(userText, usageTicket))
+                agentService.sendPrompt(fullPrompt, run)
+            } catch (error: Exception) {
+                run.reportError("送信の準備に失敗しました: ${error.message}")
+                run.complete(-1)
+            }
         }
     }
 

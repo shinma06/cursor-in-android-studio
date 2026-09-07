@@ -1,153 +1,113 @@
-# GitHubを起点にした並列開発
+# GitHubを起点にした開発と二段階統合
 
-2026-09-06 / #31。**Gitへの言及がない依頼にも適用する。** 旧「PR不要・GPTがmainへpush」は廃止。
-変更を伴うタスクは文書・設定・小修正を含め、Issue → claim → 専用branch/worktree → PR → 検証/レビュー → GitHub merge → Issue更新の順で進める。読み取りだけの相談・レビューは新Issue不要。既存Issueの受入条件内なら再利用し、独立した成果や担当には子Issueを作る。ユーザーは毎回Git操作を指示しなくてよい。
+2026-09-07 / #83。ユーザー方針が従来の「mainのみ・GUI完了まで全merge待ち」を上書きします。
+変更は文書・設定を含め、Issue → claim → 専用branch/worktree → Draft PR → テスト/独立レビュー → target別gate → GitHub merge → 残条件更新で進めます。読み取りだけの相談・レビューは新Issue不要です。
+
+## 統合条件
+
+| 対象 | 必須条件 | GUI未実施/環境blocked/製品fail | merge方式 |
+|---|---|---|---|
+| develop | 必要テスト・独立コードレビュー・Case JSONと修正/再確認追跡 | 状態を残して統合可 | squash |
+| mainへのpromotion | 固定develop候補の全commit・全必要Caseを同じbuildでpass、必要テスト・独立レビュー | 1件でも残れば不可 | merge commit |
+| mainへのGUI不要tooling | docs/scripts/CI/agent入口だけの差分、具体的理由とCLI検証、独立レビュー | 製品変更の逃げ道にしない | squash |
+
+未解決コードレビュー指摘やテスト失敗をdevelopへ通す方針ではありません。製品failには専用修正Issue/branch/PRが必要です。GPTと人間の適切な実観察はどちらも有効ですが、未確認をpassに変更しません。
+
+[今回の確認一覧](../verification/current.md) / [正本JSONと固定候補の手順](../verification/README.md)が人間の入口です。長大な既存MV matrixは履歴・詳細であり、新候補の結果を二重編集しません。
 
 ## 正本と役割
 
-- Issue: 目的、受入条件、担当セッション、依存、状態、次の操作の正本。#1は全体への入口。
-- PR: 差分、対象HEAD、レビュー、CI、統合判断の正本。ローカルメモだけで引き継がない。
-- QA matrix/run: 観察と証拠。Issueと相互リンク。過去のpassは現在のビルドを保証しない。
-- GitHub Projectsは任意の一覧表示。未導入でもIssueの状態欄で運用し、二重管理しない。
+Issueは目的・受入・担当・依存・次の操作、PRは差分・固定HEAD/base・レビュー・CI・統合判断の正本です。
+QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのpassは別buildを保証しません。
 
-| 役割 | 担当・責任 |
-|---|---|
-| 進行役 | タスク群につき1セッションをIssueで指定。Issue分割、claim競合、依存順、PR統合を調整 |
-| 実装担当 | GPT/Claude等、1 Issue・1 branch・1 worktree・1 writer。自分のbranchへpushしPRを更新 |
-| 独立レビュアー | 実装担当と別セッション。固定SHAの差分と受入条件を読み、結果をPRへ記録。GUI操作なし |
-| GUI担当 | 同一macOSログインセッションにつきGPT 1セッション。人間への引継ぎ可。予約取得後のみ操作 |
-| 人間 | 優先度、ログイン/OS権限、主観判断、契約変更、異常時の占有解除を判断 |
+PM/進行役は統合順・claim・GitHub設定を管理します。実装担当は1 Issue・1 branch・1 worktree・1 writerです。
+独立レビュアーは別sessionで固定SHAを読み、GUIは操作しません。GUI担当はhost/OS sessionに1名の指定GPT、または人間引継ぎです。
+モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
 
-GPTというモデル名だけで担当を識別しない。`gpt-31-20260906-a`のようなセッションIDを使う。
-別のGPTタスクも独立担当であり、GUI権限を自動的に共有しない。Cursorは原則fixture上の検証対象。
-製品実装の明示的な委譲時だけ専用worktreeとIssueを割り当てる。
+## 開始
 
-## 開始（実装前の必須手順）
+1. AGENTS.md、本文書、要件、#1、対象Issue本文と全コメント、open PRを読む。
+2. `git status --short --branch`、`git worktree list`、`git fetch origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
+3. 重複Issueを検索し、必要な専用Issueを作る。親へリンクし、独立した実装やGUI検証を分ける。
+4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。
+5. 通常はorigin/developから `<codex|claude|cursor>/<Issue>-<slug>` と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
+6. 最初の意味あるpushでDraft PRを作成する。PR本文はテンプレートに従い、`Issue`、`Integration`、`Verification`、`GUI`、`GUI reason`を記録する。source JSONはGUI不要変更にも必須で、理由・CLI検証を含む。
 
-1. AGENTS.md、本文書、要件、#1、対象Issue本文/全コメント、open PRを読む。
-2. `git status --short --branch`、`git worktree list`、`git fetch origin`、HEADとorigin/mainの差を確認。
-   既存編集をpull/stash/resetに巻き込まない。親checkoutは読み取りの入口にする。
-3. 重複Issueを検索。対象がなければIssueテンプレートで作成し、親へリンクする。
-   GUIのみの検証も追跡する。大きなIssueの別々の実装は子Issueに切り出し、依存先を記載。
-4. Issueに下記claimを投稿して読み戻す。未完了claimは時間経過で失効しない。
-   同一Issueへ競合投稿した場合、**未解放の最小コメントIDのclaimだけが有効**。他は開始せず撤回コメント。
-   複数Issueの同じファイル/API変更は進行役が境界か順序を先に決める。ラベル/assigneeだけをロック扱いしない。
-5. fetch済みorigin/mainから専用worktreeを作る。branchは `<agent>/<Issue番号>-<slug>`、agentはcodex/claude/cursor。
-   既存branch/worktreeがある場合はownerとHEADを確認して再開し、重複作成しない。
-6. `bash scripts/workflow/bootstrap.sh`でhooksを設定。branch/worktree/ownerをclaimへ記録し、実装開始。
-
-例（31は自分のIssue番号へ置換）:
-
-```bash
-git fetch origin
-git worktree add -b codex/31-github-flow ../cursor-agent-issue-31 origin/main
-cd ../cursor-agent-issue-31
-git branch --unset-upstream
-bash scripts/workflow/bootstrap.sh
-```
-
-初回pushは `git push -u origin HEAD`。origin/mainをtask branchのupstreamとして残さない。
-branchを変えるだけで同じディレクトリを複数エージェントに渡すことは禁止。
-GitHubに接続できずIssue/claimを確認できない場合、新規実装は開始しない。
-既にclaim済みの専用worktreeではオフライン実装・テストを継続できるが、公開/統合/完了は復旧後。
-
-claim例:
+claim例（パスとhostはprivate local registryだけ）:
 
 ```text
 status: in-progress
-owner: gpt-31-20260906-a; issue: #31; parent: #1
-base: <full origin/main SHA>
-branch: codex/31-github-flow
-worktree: <absolute path>; host: <host ID>
-scope: <files/modules and acceptance>; excluded: <out of scope>
-dependencies: none / #number and required state
-reviewer: <separate session or pending assignment>
-gui: not-required / required (MV IDs); operator: unassigned until reserved
-next: <concrete next step>; budget: <task/GUI limit>
+owner: gpt-83-policy-a; issue: #83; parent: #1
+base: <full SHA>; target: develop
+branch: codex/83-policy; worktree: isolated (local registry)
+scope: <files and acceptance>; excluded: <out of scope>
+dependencies: <Issue/PR and required state>
+reviewer: <separate session or pending>
+gui: required / not-required (reason); cases: <JSON path>
+next: <concrete action>
 ```
 
-## 並列実装と更新
+ローカルではrepository名のmain checkout、`worktrees/cursor-in-android-studio-issue-N`、`GUI-checks`を製品名の親配下へ置きます。
+既存worktreeを再利用する場合はowner/HEADを確認し、他担当へ同じディレクトリを渡しません。移動は`git worktree move`、main移動後は`git worktree repair`を使い、未commit状態を照合します。
+GitHubへ接続できずclaimを確認できないときは新規実装を開始しません。claim済み専用worktreeでのオフライン実装/テストは継続可能です。
 
-- 共通ファイル（CLAUDE.md、matrix、build.gradle.kts等）は必要な担当だけが編集。別タスクの結果はIssueで渡し、まとめる担当を指定。
-- 依存PRが未mergeなら独立部分を先行するか待つ。原則、依存PRがmainに入ってから取り込む。
-  stacked PRが必要ならbase PR/順序を明記し、親merge後baseをmainへ変更しCI/レビューをやり直す。
-- 共有branchに複数writerを置かない。共同実装は子Issue/別worktree/別PR。
-- テスト/buildPluginは各worktreeで実施可。Gradleの他タスクのdaemon停止や共有キャッシュ削除は禁止。
-- `runIde`、IDE再起動、plugin配置、設定変更はGUI占有が必要。ビルド成功後に起動中IDEへ自動配置しない。
-- 開始、PR作成、範囲変更、review待ち、GUI待ち、blocked、引継ぎ、merge、完了ごとにIssueへ記録。
-  同じ内容を毎ターン投稿せず、最新HEAD/PR/次の一手がGitHubから復元できるようにする。
+## 実装・レビュー・引継ぎ
 
-状態欄は `ready → in-progress → review → gui-queued → gui-running → ready-to-merge → done`。
-GUI不要ならreviewからready-to-mergeへ。`blocked`には原因、解除担当、再開点が必須。
-コードレビュー状態とGUI状態は別欄にし、GUI待ちを開発全体の停止と解釈しない。
+- 共通ファイルは担当者だけが編集。依存PRは通常develop統合後に取り込む。stacked PRは依存baseと順序を明記し、base変更後に再レビューする。
+- テスト/buildPluginは専用worktreeで実施可能。共有cache削除/他タスクdaemon停止は禁止。runIde、install、再起動は[GUI lease](gui-coordination.md)必須。
+- 開始、PR作成、scope変更、review待ち、GUI待ち、blocked、引継ぎ、mergeごとにIssueへ最新HEAD/次の一手を記録する。
+- `./gradlew test`と変更したworkflow/loopテストを実行。パッケージ/GUI buildはbuildPluginも実施する。
+- 別sessionが固定HEAD/baseの差分と受入を確認し、`reviewer session / reviewed SHA / base / findings / disposition`を記録する。同一GitHubアカウントのApproveだけでは代替しない。
+- 重大/中程度のコード指摘を解消し、再レビューする。GUI状態と実装scopeを分け、未実施だけをコード欠陥としない。
+- writerを停止して[自動進行役](pr-automation.md)へopaque IDでenrollする。登録後は同じbranchを編集/commit/pushせず、coordinatorに任せる。既存PAUSED heartbeatを勝手に再開しない。
 
-## PR・レビュー・統合
+## 統合・完了
 
-#35以降は[自動PR進行役](pr-automation.md)を使用する。以下の判断手順は維持し、実装担当はDraft PR作成後に
-writerを停止してenrollする。定期進行役がreview/fix/re-review/merge/Issue更新/cleanupを実行する。
+進行役はtarget更新を通常mergeし、テスト・非force push・独立再レビューを行います。HEAD/base/target/本文/Issue条件/feedback変更は承認を失効させます。
+最新 `test` / `PR policy` / `Agent review` / `Acceptance gate` がsuccess、会話解決済みであることを確認します。CI未実行・失敗をローカル成功で代替しません。
 
-最初の意味あるcommitをpushしたらDraft PRを作り、Issueへリンクする。小修正でも省略しない。
-PR本文はテンプレートを使用。`Issue: #N`は実在する同リポジトリのopen Issue、branchの番号と一致。
-GUI未確認は `GUI: required`、不要は `GUI: not-required` と具体的理由を記載。
-GUI必要PRは原則検証passまでDraft/待機。見た目・機能・権限・復元の変更を安易にGUI不要にしない。
+developではCase不足を拒否しますが、GUI passを要求しません。未実施/blocked/failと次の操作を保ち、`Refs #N`を使います。
+coordinatorはdevelop mergeでIssueをcloseせず、親チェックも完了にしません。検証担当は区切りで一覧をまとめて実施します。
 
-1. `./gradlew test`と変更した運用スクリプトのテストを実行。パッケージ変更やGUIビルドはbuildPlugin。
-2. 別セッションが固定HEADと差分をレビュー。重大/中程度の未解決指摘を修正し、変更後の再レビュー範囲を記録。
-   同じGitHubアカウントを使うエージェントの自己PRへのApproveは独立承認の代替にならない。
-   `reviewer session / reviewed SHA / findings / disposition`をPRコメントへ記録。セルフレビューと区別。
-3. GUI担当が[GUI手順](gui-coordination.md)で予約/実行。証拠と対象HEADをPRへ渡す。
-4. 進行役がfetchし、main更新をtask branchへ通常merge（公開履歴のrebase/force push禁止）。競合は担当と調整。
-   main取り込みやコード更新後はテストを再実行し、GUI対象の挙動/依存/資材が変わればGUI再検証。
-   docsのみの追記で証拠を再利用する場合もレビュー担当が影響なしの理由と旧/新SHAを記録。
-5. 最新HEADの `test` / `PR policy` / `Agent review` がsuccess、未解決レビューなし、独立レビューとGUI判定を確認してReadyにする。
-   CI未実行/権限・予算停止はblocked。ローカル成功だけでCI成功としない。
-6. 進行役1セッションだけが `gh pr merge <N> --squash --match-head-commit <reviewed HEAD>` で統合。
-   直前にbase SHAも読み直し、動いていたら4へ戻る。保護未導入時、この確認はサーバーの原子的base固定ではない。
-   mainへのローカルcommit/push、管理者bypass、hook無効化、`--no-verify`は禁止。
-7. merge SHA/CI/GUI/残条件をIssueへ記録。受入完了時のみclose、親チェック更新、claim解放。
-   `Closes #N`は全受入完了時だけ。部分実装は `Refs #N`。
-   GUI延期の例外は人間の明示判断と追跡Issueが必要で、元の受入は未完了のまま。担当が勝手にGUI不要へ変更しない。
-8. cleanでプロセスのない自分のworktreeだけ削除。共有mainは必要な担当がclean確認後`git pull --ff-only`。
-   他担当のworktree/branchを整理しない。取り消しもrevert PRで行う。
+mainは[固定候補手順](../verification/README.md)で範囲全体を確認します。候補後に許す差分はpromotion JSONとそのpromotion IssueのCase JSONだけです。
+一部Caseだけのpassや未確認製品commitをQA文書変更へ偽装することはgateが拒否します。main先行tooling/前回QA記録は候補固定前に専用develop同期PRへ取り込みます。
+promotionはmerge commitに限定し、GitHub APIのHEAD指定とstrict baseを通します。merge直前にmain/develop refを再取得します。
+main/developへの直接commit/push、admin bypass、hook無効化、force push、`--no-verify`は禁止です。
 
-## 中断・再開・障害
+merge SHA・CI・Case結果・残条件をIssueへ記録し、受入を個別に満たす範囲だけcloseします。promotion Issue完了でも元の機能/QA Issueを一括closeしません。
+cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/master/developはremote/localとも削除しません。他担当の変更/branchを整理しません。
 
-引継ぎコメント: owner、状態、branch、HEAD、PR、未commitファイル、テスト、GUI予約token/状態、次の操作、依存、claim継続/解放。
-新担当は旧ownerの解放または人間/進行役による明示再割当の後にclaimする。
-再割当コメントは旧claimのコメントID、停止確認、新ownerを指定し、`supersedes claim <ID>` と明記する。
-これを旧claimの解放と扱い、最小ID判定から除外する。古いownerは再開前にこの記録を確認して停止する。
-応答がないだけで編集やGUI操作を奪わない。独立した別Issueは進められる。
-誤ってmainにcommitした場合はpushせず、SHAを保全するbranchを作り、専用worktree/PRへ移す。
-他者の変更を含むmainのresetは自動実行しない。漏えい情報は公開Issue/ログへ貼らない。
+## 中断・再開
 
-## 自動チェックの範囲とGitHub設定
+引継ぎはowner、状態、branch/target、HEAD、PR、未commitの有無、テスト、Case状態、次の操作、依存、claim継続/解放を公開可能な範囲で記録します。
+新担当は旧ownerの解放またはPM/人間の明示再割当の後にclaimします。再割当は旧コメントID、停止確認、新ownerを記録し、`supersedes claim <ID>`と明記します。
+応答がないだけで横取りしません。誤ってmain/developへcommitした場合はpushせずSHAをbranchで保全し、専用PRへ移します。自動resetは禁止です。
 
-- pre-commit: main/master/detached HEAD、Issue番号なしbranchのcommitを拒否。
-- pre-push: 宛先refのmain/masterへのpush/削除を拒否。現在のHEAD以外、dirty状態、non-fast-forwardのpushも拒否し、検証資材の不一致を防ぐ。
-- PR policy: branch/Issue番号、Issue実在/open、GUI欄と理由をチェック。証拠の真偽やレビューの質までは判定しない。
-- CI: pull_requestのコードを最小read権限で実行。PR本文をshellへ展開しない。`pull_request_target`でPRコードを実行しない。
+## 自動gateとGitHub設定
 
-**実測（2026-09-06 / #33）:** ユーザーがリポジトリをpublicへ変更した後、
-[ruleset `main-pr-required`（ID 22368189）](https://github.com/shinma06/cursor-in-android-studio/rules/22368189)をactiveで作成。
-GET `/rulesets/22368189`で設定ファイルの全指定値を照合し、GET `/rules/branches/main`で適用ルールを確認済み。
-private時のプラン制限403は解消。今後はサーバー側でもPR/CIを強制する。hooksはcommit時の事故防止として併用する。
+- push前のZIP作成: 更新を伴うpushではPythonテストと `./gradlew test buildPlugin --console=plain` を実行し、対象worktreeの `build/distributions/cursor-in-android-studio-<version>.zip` を生成する。テストまたはビルド失敗時はpushを中断する。Gradleが入力変更なしと判断した場合は既存の最新出力を再利用する。dirty/別HEADのpushは事前に拒否し、ブランチ削除のみ・更新なしはビルドしない。ZIPはローカル成果物で、GitHubへのアップロードやIDEへのインストールは行わない。導入前に分岐した既存ブランチでは、この変更を通常mergeで取り込んでから有効になる。
+- hooks: Issue branch以外のcommit、main/master/developへのpush/削除、別branch/dirty/非fast-forwardのpushを拒否。
+- PR policy: target/Integration、実在open Issue、branch番号、GUI理由、Case JSONパスを検査。developの自動close文言を拒否。
+- Acceptance gate: eventの遅延し得るbase.shaを信用せず、許可された最新base branchからcheckoutし、コードHEADと現在refを照合する。trusted baseのコードでPRのJSONをデータとして読み、developはCase追跡、main toolingはパスと理由、promotionは固定候補の全commit/Case/build/観察を検査。
+- Agent review: coordinatorが独立sessionの最新固定HEAD/baseレビューとtarget別受入を照合。PR内コードから自己承認しない。
 
-設定の正本は `.github/main-ruleset.json`。変更時は既存rulesetを再取得し、IDを指定して更新（重複作成しない）。
-適用後GETでactive/main対象/bypass/required checksを再確認する。GitHubが補う未指定の既定値と指定値の不一致を区別する。
-設定: main削除/force push禁止、PR必須、test/PR policy必須、最新base必須、会話解決必須、bypassなし。
-同一アカウント運用のためrequired approvalsは0、独立セッションレビューは `Agent review` statusで必須。
-別のwrite権限を持つレビュー用アカウントを確保したら1以上へ変更する。
-CODEOWNERSは実際のwrite権限保持者へのレビュー要求であり、エージェント識別や自動承認ではない。
-個人所有なので架空teamや組織共通.githubは作らない。Dependabot/CodeQL/secret scanningやreusable workflowは専用Issueで検討。
+設定案の正本は `.github/main-ruleset.json` / `.github/develop-ruleset.json`。実設定の反映はPM担当です。
+mainの既存ruleset IDは22368189。両branchともPR必須、上記4 checks、strict base、会話解決、削除/force禁止、bypassなし、同一アカウント運用のapproval count 0を維持します。
+mainはsquash/mergeを許可し、promotionだけコードgateがmerge専用を選びます。developはsquashだけ許可します。
+GitHubが補う既定値と指定値の差を区別し、GET rulesetとbranches effective rulesで反映を確認します。
 
-## 選定理由・一次情報
+### #83の一回限りのbootstrap
 
-短命branchとPRを使うGitHub Flowを採用。長期develop/release branchは現状の単一main配布には導入しない。
-worktreeはcheckoutを分けるが、同一デスクトップやIDE設定を隔離しないため、GUIは別の排他が必要。
+このPRだけは旧mainからのGUI不要tooling変更です。製品src/build設定に変更なし、workflow/loop/Gradleテストと固定HEAD/baseの独立レビューをPMへ渡します。
+旧enrollはhost/sourceを公開するため使用しません。writer停止後、PMが独立レビューに基づくAgent reviewを記録し、現行3必須checksを確認して通常main PR mergeします。
+新Acceptance workflowは、**#83専用branch・main向け・実checkout HEADが旧base `7eb2b9d446d2f2cac21fff293c076358fc667721`**と一致するときだけbootstrapを明示して成功します。
+この例外はGUI不要を自動認定するものではなく、新validatorはCLIテストと独立レビューで検証します。merge後のbaseでは例外は使えません。
+PMは導入main SHAからdevelopを作成し、両rulesetへAcceptance gateを追加してGET照合します。その後に通常PRをretargetします。
+既存enrollmentは自動変更しません。PMがwriter/worker停止・cleanを確認した後のみ `rebind-target` でtargetを明示更新し、古いレビューを失効させます。既存heartbeatはPAUSEDのままです。
 
-- [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow): branch、PR、レビュー、統合。
-- [Git worktree](https://git-scm.com/docs/git-worktree): checkout分離と共有メタデータ。
-- [GitHub Issues](https://docs.github.com/en/issues): タスクを追跡する入口。
-- [Rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets): 利用プランと強制ルール。
-- [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners): 所有者の権限とレビュー要求。
-- [Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use): 最小権限と信頼できない入力。
+## 一次情報
+
+- [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow)
+- [Git worktree](https://git-scm.com/docs/git-worktree)
+- [Rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)
+- [Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use)

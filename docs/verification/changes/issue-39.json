@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "issue": 39,
+  "pr": 81,
+  "imported_pr_head": "215794eab3927a015e24ec7fa59c82806226c713",
+  "gui_required": true,
+  "reason": "復元対象基盤の実装と共有接続後のGUI受入を区別する。現PRは共有接続未了のため単独リリース不可。",
+  "cli_checks": [
+    "共有接続後に ./gradlew test buildPlugin を実行する。既存基盤HEADの131 tests成功を新候補へ転記しない。",
+    "git diff --check と独立レビューでroot/mode接続・日本語理由UI・CLI競合抑止を確認する。"
+  ],
+  "cases": [
+    {
+      "id": "RESTORE-TARGET-1",
+      "issue": 39,
+      "pr": 81,
+      "change": "checkpoint/Revertが異なるroot・Worktree modeへ復元しないようにする",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。共有callsite接続・日本語理由UI・実行中CLIとの競合抑止を実装して再テスト/独立レビュー後に実行する。現PR単独は通常modeも接続未了でリリース不可。使い捨てGit fixtureへcommit済み・事前untracked・別rootの同名ファイルを用意。Pro/Teams、permission defaultを維持。",
+      "steps": [
+        "DEFAULTで1ファイルを編集し、Diff表示とRevertを試す。",
+        "同じ対象を再編集し、保存済み・未保存それぞれで古いRevertを試す。",
+        "DEFAULT checkpoint後にtracked編集と新規untracked追加を行い、checkpointを復元する。",
+        "ISOLATEDで編集してcheckpoint/Revertを試し、元rootと分離先の内容を比較する。",
+        "ISOLATEDとDEFAULTを両方向へ切り替え、古いカード/checkpointを操作する。準備中切替でもCLIと保存targetを照合する。",
+        "root/modeのない旧履歴・root移動/不明・新規DEFAULT履歴を比較する。",
+        "応答中の復元を試し、実行中CLIと競合しないことを確認する。"
+      ],
+      "expected": "通常DEFAULTのDiff・Revert・checkpoint復元が動作する。古いRevertは日本語理由で拒否し後の保存済み/未保存内容を保持。checkpointはtrackedを戻し新規untrackedだけ削除して事前untrackedを保持。ISOLATED・対象不明・異なるroot/modeは日本語理由で拒否し両rootを不変に保つ。ISOLATEDのDiffは閲覧可能。DEFAULTへ戻しても古いisolatedカードは拒否。旧履歴は安全拒否し新規DEFAULT履歴は復元可能。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "GUI環境以前に共有callsite未接続。旧APIは対象不明として通常modeも安全拒否する。環境blockedとは区別する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しい固定候補で未実施。過去の観察結果を転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/39#issuecomment-5562606190",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/39#issuecomment-5562663611",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/215794eab3927a015e24ec7fa59c82806226c713/docs/loop-engineering/runs/2026-09-07-restore-target-safety.md"
+      ],
+      "imported_pr_head": "215794eab3927a015e24ec7fa59c82806226c713",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "PMがPR74の所有境界と接続担当を解決し、未実装接続を完了してから固定統合候補で確認する。GUI未確認だけの例外として単独リリースしない。",
+      "main_eligible": false,
+      "legacy_cases": [
+        "MV-023",
+        "MV-027",
+        "MV-030"
+      ],
+      "qa_issue": 40,
+      "implementation_status": "dependency_incomplete",
+      "blocker_type": "implementation_dependency",
+      "dependencies": [
+        "PR74共有所有境界の解決",
+        "同一ターンroot/modeのcontroller/service/listener接続",
+        "日本語拒否理由UIと実行中CLIとの復元競合抑止",
+        "接続後の通常modeを含む再テストと独立レビュー"
+      ]
+    }
+  ]
+}
