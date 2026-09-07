@@ -1,22 +1,19 @@
 ---
 name: finish-work
-description: Finish a repository task through tests, independent review, GUI evidence, GitHub PR merge and Issue handoff.
+description: Validate, independently review and hand off develop/main PRs with complete acceptance coverage.
 ---
 
 # Finish work
 
-Read `docs/development/github-workflow.md`; for GUI, also `docs/development/gui-coordination.md`.
+Read docs/development/github-workflow.md, pr-automation.md and docs/verification/README.md.
 
-1. Run `./gradlew test`; buildPlugin for packaging or GUI builds. Run changed tooling tests
-   (`scripts/workflow` and/or `scripts/loop`). Preserve unrelated edits.
-2. Push only your Issue branch; update the PR/Issue. Read `docs/development/pr-automation.md`.
-   Stop your writer and enroll the clean worktree using the trusted-main `agent_loop.py enroll`
-   with explicit scope/owner/parent and --writer-stopped. Use --close-issue only for full Issue acceptance.
-3. The scheduled coordinator starts independent read-only reviewers and bounded workspace-write
-   fixers, invalidates old approvals on changes, and requires Agent review + test + PR policy.
-   GUI cases remain queued for the lease-holding GPT/human operator. Never invent GUI evidence.
-4. Do not concurrently fix, merge, close Issues or delete the enrolled worktree yourself. Read its
-   GitHub state. The coordinator owns HEAD-guarded merge, scoped Issue/parent updates and verified
-   remote/local branch cleanup, retrying cleanup after interruptions.
-5. If the coordinator reports blocked, inspect the concrete cause and preserve edits. Resume only
-   after resolving it and confirming no worker remains. Do not reset budgets automatically each tick.
+1. Run ./gradlew test and affected tooling tests; buildPlugin for packaging/GUI builds. Push only the owned Issue branch.
+2. Obtain a separate-session review of fixed HEAD/base. Concrete code defects/test failures block both targets.
+3. Develop requires a complete Case matrix, not GUI pass. Keep pending/blocked/fail and dedicated fix Issues visible.
+   Main promotion requires all candidate commits and all required Cases to pass on one fixed build; GPT/human evidence is valid.
+   Result metadata changes do not change the tested candidate. Only permitted promotion JSON files may differ.
+4. Stop writer before trusted-main v2 enroll. Coordinator owns fixes/re-review, current test/PR policy/Agent review/Acceptance gate,
+   guarded merge, Issue updates and cleanup. Never concurrently edit an enrolled branch.
+5. Develop uses squash and keeps acceptance Issues open. Promotion uses merge commit; original QA Issues close only after individual reconciliation.
+   Never delete main/master/develop. GUI lease remains required for desktop operations. Preserve unresolved work and owners.
+6. #83 bootstrap alone uses its documented current-main CLI/independent-review handoff to PM; no old enroll or automatic heartbeat restart.

@@ -21,13 +21,13 @@ class GuardTest(unittest.TestCase):
         self.git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
 
     def test_commit_rejects_main_detached_and_no_issue(self):
-        for branch in ['main', 'master', '', 'codex/topic']:
+        for branch in ['main', 'master', 'develop', '', 'codex/topic']:
             with self.assertRaises(ValueError):
                 check_branch(branch)
         check_branch('codex/31-workflow')
 
     def test_push_checks_destination_not_current_branch(self):
-        for dest in ['main', 'master']:
+        for dest in ['main', 'master', 'develop']:
             for sha in [SHA, ZERO]:
                 with self.assertRaises(ValueError):
                     check_push([f'HEAD {sha} refs/heads/{dest} {SHA}'], 'codex/31-test', SHA, False)
@@ -141,7 +141,7 @@ class LeaseTest(unittest.TestCase):
 class PolicyTest(unittest.TestCase):
     def setUp(self):
         self.pr = {'head': {'ref': 'codex/31-test'}, 'base': {'ref': 'main'},
-                   'body': 'Issue: #31\nGUI: not-required\nGUI reason: 運用規約とhookのみの変更。アプリ操作は不要。'}
+                   'body': 'Integration: tooling\nVerification: docs/verification/changes/issue-31.json\nIssue: #31\nGUI: not-required\nGUI reason: 運用規約とhookのみの変更。アプリ操作は不要。'}
 
     def test_matching_metadata(self):
         self.assertEqual(validate(self.pr), 31)
