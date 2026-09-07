@@ -568,7 +568,13 @@ def rebind_target(loop, args):
         raise ValueError('Rebinding cannot change branch/Issue ownership')
     if (loop.storage / f'pr-{args.pr}' / 'worker.json').exists():
         raise ValueError('Worker record remains; confirm stop before rebinding')
-    loop.source_safe(h)
+    source = Path(h['source'])
+    if args.source is not None:
+        from source_relocation import relocated_source
+        source = relocated_source(ROOT, h, args.source, args.migration_record, git)
+    elif args.migration_record is not None or not source.exists():
+        raise ValueError('Missing source requires explicit --source and migration evidence')
+    loop.source_safe(dict(h, source=str(source)))
     path = loop.storage / f'pr-{args.pr}' / 'checkout'
     if path.exists() and (git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha'] or git('status', '--porcelain', cwd=path)):
         raise ValueError('Managed checkout is not clean/current; preserve it')
@@ -579,7 +585,7 @@ def rebind_target(loop, args):
     public = loop.public_state(public)
     public['owner'] = 'agent-loop'
     public['target'] = pr['base']['ref']
-    public = register(loop.storage, public, h['source'], HOST)
+    public = register(loop.storage, public, source, HOST)
     loop.gh.comment(args.pr, pack(HANDOFF_V2, public))
     loop.invalidate_acceptance(state)
     state.update(phase='queued', next='Target explicitly rebound; independent review and acceptance required')
@@ -630,6 +636,8 @@ def main():
     en.add_argument('--writer-stopped', action='store_true', required=True)
     rebound = sub.add_parser('rebind-target'); rebound.add_argument('--pr', type=int, required=True)
     rebound.add_argument('--writer-stopped', action='store_true', required=True)
+    rebound.add_argument('--source', type=Path, help='Explicit relocated original linked worktree')
+    rebound.add_argument('--migration-record', type=Path, help='Private verified directory migration JSON')
     resume = sub.add_parser('resume'); resume.add_argument('--pr', type=int, required=True)
     resume.add_argument('--reason', required=True)
     gui = sub.add_parser('gui'); gui.add_argument('--pr', type=int, required=True); gui.add_argument('--evidence', type=Path, required=True); gui.add_argument('--lease-token', required=True)
