@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 87,
+  "gui_required": false,
+  "reason": "push前のGit hookと運用文書のみ。製品コードとGUI動作は変更しない。使い捨てGit repositoryでpush成功・ビルド失敗・dirty拒否・削除時スキップを検証する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain"
+  ],
+  "cases": []
+}
