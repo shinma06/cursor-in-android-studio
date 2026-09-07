@@ -49,7 +49,12 @@
       "fix_pr": null,
       "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
       "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
-      "main_eligible": false
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
     },
     {
       "id": "SESSION-TABS-RUNS",
@@ -91,7 +96,12 @@
       "fix_pr": null,
       "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
       "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
-      "main_eligible": false
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
     },
     {
       "id": "SESSION-TABS-HISTORY",
@@ -131,7 +141,12 @@
       "fix_pr": null,
       "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
       "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
-      "main_eligible": false
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
     },
     {
       "id": "SESSION-TABS-RESTORE",
@@ -173,7 +188,13 @@
       "fix_pr": null,
       "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
       "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
-      "main_eligible": false
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
     }
-  ]
+  ],
+  "pr": 95
 }
