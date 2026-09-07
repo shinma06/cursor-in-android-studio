@@ -13,15 +13,19 @@ import socket
 import subprocess
 import sys
 import time
+import uuid
 from urllib.parse import quote
 
 from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_number, next_action, update_parent, validate_review
 from agent_worker import run_worker, worker_environment
+from handoff_registry import register, resolve
+from verification import verify_pr, metadata
 
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
 ROOT = Path(__file__).resolve().parents[2]
 HANDOFF = '<!-- agent-loop-handoff:v1 -->'
+HANDOFF_V2 = '<!-- agent-loop-handoff:v2 -->'
 STATE = '<!-- agent-loop-state:v1 -->'
 HOST = socket.gethostname()
 
@@ -91,7 +95,7 @@ class GitHub:
         checks = json.loads(command(['gh', 'pr', 'checks', str(pr['number']), '--repo', REPO,
                                     '--json', 'name,state'], check=False) or '[]')
         states = {x['name']: x['state'] for x in checks}
-        needed = [states.get(x) for x in ('test', 'PR policy')]
+        needed = [states.get(x) for x in ('test', 'PR policy', 'Acceptance gate')]
         if any(x in ('FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED') for x in needed):
             return 'failure'
         return 'success' if all(x == 'SUCCESS' for x in needed) else 'pending'
@@ -101,7 +105,7 @@ class GitHub:
         if pr['draft']:
             command(['gh', 'pr', 'ready', str(pr['number']), '--repo', REPO])
         result = self.api(f'repos/{REPO}/pulls/{pr["number"]}/merge', 'PUT',
-                          {'sha': pr['head']['sha'], 'merge_method': 'squash'})
+                          {'sha': pr['head']['sha'], 'merge_method': 'merge' if metadata(pr)[2] == 'promotion' else 'squash'})
         if not result.get('merged'):
             raise RuntimeError('Merge was not confirmed: ' + str(result))
         return result
@@ -146,12 +150,16 @@ class Loop:
 
     def load(self, number):
         comments = self.gh.comments(number)
-        handoff, _ = unpack(comments, HANDOFF)
+        legacy, legacy_id = unpack(comments, HANDOFF)
+        public, public_id = unpack(comments, HANDOFF_V2)
+        handoff = resolve(self.storage, public, HOST) if public and (not legacy_id or public_id > legacy_id) else legacy
         state, comment_id = unpack(comments, STATE)
         return handoff, state or {'phase': 'queued', 'fixes': 0, 'reviews': 0, 'errors': 0}, comment_id, comments
 
     def save(self, pr, state, comment_id):
         state['updated_at'] = int(time.time())
+        # Raw private logs stay local. Public state may contain reviewer text, so remove local paths.
+        state = self.public_state(state)
         body = pack(STATE, state)
         result = self.gh.comment(pr['number'], body, comment_id)
         # A dedicated Issue comment is the recoverable dashboard; don't overwrite Issue criteria.
@@ -160,17 +168,46 @@ class Loop:
         comments = self.gh.comments(issue)
         prior = next((c for c in reversed(comments) if c['user']['login'] == OWNER and c['body'].startswith(marker)), None)
         progress = (marker + f'\nPR #{pr["number"]}: **{state["phase"]}**\n'
-                    f'HEAD: {pr["head"]["sha"]}\nOwner: agent-loop@{HOST}\n'
+                    f'HEAD: {pr["head"]["sha"]}\nOwner: agent-loop\n'
                     f'Next: {state.get("next", state["phase"])}\nDetails: {result["html_url"]}')
         if not prior or prior['body'] != progress:
             self.gh.comment(issue, progress, prior['id'] if prior else None)
         return result['id']
 
+    def private_error(self, error):
+        identifier = uuid.uuid4().hex
+        directory = self.storage / 'diagnostics'
+        directory.mkdir(mode=0o700, exist_ok=True)
+        path = directory / (identifier + '.txt')
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'w') as stream:
+            stream.write(str(error))
+        return f'Operation failed ({type(error).__name__}); coordinator private diagnostic {identifier}'
+
+    def public_state(self, value):
+        if isinstance(value, dict):
+            return {k: self.public_state(v) for k, v in value.items() if k not in ('host', 'source')}
+        if isinstance(value, list):
+            return [self.public_state(v) for v in value]
+        if isinstance(value, str):
+            for private in (str(self.storage), str(ROOT), str(Path.home()), HOST):
+                value = value.replace(private, '[local]')
+            return re.sub(r'/(?:Users|home|private|tmp|var)/[^\n`]+', '[local path]', value)
+        return value
+
+    def acceptance(self, pr, path):
+        try:
+            result = verify_pr(pr, lambda p: self.gh.api(f'repos/{REPO}/' + p),
+                               lambda *args: git(*args, cwd=path))
+            return dict(result, allowed=True)
+        except (ValueError, KeyError, OSError, RuntimeError) as error:
+            return {'allowed': False, 'reason': self.private_error(error)}
+
     def bound(self, pr, issue, comments):
         value = binding(pr, issue)
         # Fresh human feedback triggers a new review; machine dashboard edits do not.
         human = [c['body'] for c in comments if c['user']['login'] == OWNER and
-                 not c['body'].startswith((HANDOFF, STATE))]
+                 not c['body'].startswith((HANDOFF, HANDOFF_V2, STATE))]
         inline = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100')
         reviews = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100')
         value['feedback_hash'] = hashlib.sha256(json.dumps([human, inline, reviews], sort_keys=True).encode()).hexdigest()
@@ -190,7 +227,7 @@ class Loop:
             path.parent.mkdir(parents=True, exist_ok=True)
             git('clone', '--no-local', str(ROOT), str(path))
             git('remote', 'set-url', 'origin', f'https://github.com/{REPO}.git', cwd=path)
-            git('fetch', 'origin', h['branch'], 'main', cwd=path)
+            git('fetch', 'origin', h['branch'], pr['base']['ref'], cwd=path)
             git('checkout', '-b', h['branch'], pr['head']['sha'], cwd=path)
             # Do not run hook implementations supplied by the PR; tests are run by coordinator.
             git('config', 'core.hooksPath', str(ROOT / '.githooks'), cwd=path)
@@ -198,7 +235,7 @@ class Loop:
 
     @staticmethod
     def invalidate_acceptance(state):
-        for key in ('review', 'binding', 'gui'):
+        for key in ('review', 'binding', 'gui', 'acceptance'):
             state.pop(key, None)
 
     def test_and_push(self, pr, path, state):
@@ -231,7 +268,7 @@ class Loop:
             return {'pr': number, 'phase': 'unmanaged'}
         h, state, comment_id, comments = self.load(number)
         if (not h or h.get('host') != HOST or h.get('pr') != number or h.get('issue') != issue_number(pr)
-                or h.get('branch') != pr['head']['ref'] or h.get('writer_stopped') is not True):
+                or h.get('branch') != pr['head']['ref'] or h.get('target', 'main') != pr['base']['ref'] or h.get('writer_stopped') is not True):
             return {'pr': number, 'phase': 'unmanaged'}
         if not state.get('expected_head'):
             state['expected_head'] = h['head']
@@ -241,7 +278,7 @@ class Loop:
             try:
                 return self.finish(pr, h, state, comment_id)
             except Exception as error:
-                state.update(phase='cleanup', next=str(error)[:1800])
+                state.update(phase='cleanup', next=self.private_error(error))
                 self.save(pr, state, comment_id)
                 return {'pr': number, 'phase': 'cleanup', 'error': state['next']}
         if pr['state'] != 'open' or state.get('paused'):
@@ -297,14 +334,14 @@ class Loop:
                 self.save(pr, state, comment_id)
                 return {'pr': number, 'phase': 'published-recovery'}
             # Strict base update is a normal merge, never a rebase/reset/force push.
-            git('fetch', 'origin', 'main', h['branch'], cwd=path)
+            git('fetch', 'origin', pr['base']['ref'], h['branch'], cwd=path)
             latest = self.gh.pr(number)
             if (not eligible(latest, OWNER, REPO) or latest['state'] != 'open' or
-                    latest['head']['sha'] != pr['head']['sha'] or
+                    latest['head']['sha'] != pr['head']['sha'] or latest['base']['ref'] != pr['base']['ref'] or
                     git('rev-parse', f'origin/{h["branch"]}', cwd=path) != pr['head']['sha']):
                 self.invalidate_acceptance(state)
                 raise ValueError('Remote PR changed during base fetch; preserve checkout and re-enroll')
-            if (git('rev-parse', 'origin/main', cwd=path) != pr['base']['sha'] or
+            if (git('rev-parse', 'origin/' + pr['base']['ref'], cwd=path) != pr['base']['sha'] or
                     latest['base']['sha'] != pr['base']['sha']):
                 self.invalidate_acceptance(state)
                 state.update(phase='queued', next='Base moved during fetch; retry with the current branch ref')
@@ -328,7 +365,10 @@ class Loop:
             if state.get('binding') == bound and state.get('review'):
                 validate_review(state['review'], bound)
             gui_needed = h['gui_required'] or bool(state.get('review', {}).get('gui_required'))
-            action = next_action(state, bound, self.gh.ci(pr), gui_needed)
+            acceptance = self.acceptance(pr, path)
+            if gui_needed and acceptance.get('mode') in ('develop', 'tooling') and not acceptance.get('cases'):
+                acceptance = {'allowed': False, 'reason': 'Reviewer requires GUI Cases; declare them in the matrix'}
+            action = next_action(state, bound, self.gh.ci(pr), gui_needed, acceptance)
             if action == 'review':
                 if state.get('reviews', 0) >= 8:
                     raise ValueError('Review limit reached; explicit resume required')
@@ -340,7 +380,7 @@ class Loop:
                 running.write_text(json.dumps({'pid': None}))
                 report = self.worker('review', path, {'pr': pr['number'], **bound, 'issue': issue['body'],
                                       'scope': h['scope'], 'close_issue_requested': h['close_issue'],
-                                      'feedback': feedback, 'gui': state.get('gui')}, path.parent / 'workers',
+                                      'feedback': feedback, 'gui': state.get('gui'), 'target': pr['base']['ref'], 'acceptance': acceptance}, path.parent / 'workers',
                                       on_start=lambda pid: running.write_text(json.dumps({'pid': pid})))
                 running.unlink(missing_ok=True)
                 validate_review(report, bound)
@@ -366,29 +406,31 @@ class Loop:
             elif action == 'merge':
                 latest = self.gh.pr(number)
                 now, _ = self.bound(latest, self.gh.issue(h['issue']), self.gh.comments(number))
-                if now != bound or self.gh.ci(latest) != 'success':
+                if now != bound or self.gh.ci(latest) != 'success' or not self.acceptance(latest, path)['allowed']:
                     self.invalidate_acceptance(state)
                     state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
                     self.save(latest, state, comment_id)
                     return {'pr': number, 'phase': 'changed-before-merge'}
-                self.gh.status(bound['head'], 'success', 'Independent review and scoped acceptance passed', pr['html_url'])
+                state['acceptance'] = dict(acceptance, head=bound['head'], base=bound['base'])
+                self.gh.status(bound['head'], 'success', 'Independent review and target branch acceptance gate passed', pr['html_url'])
                 state.update(phase='merging', next='Read back GitHub merge result')
                 comment_id = self.save(pr, state, comment_id)
                 self.gh.merge(latest)
                 return self.finish(self.gh.pr(number), h, state, comment_id)
             else:
                 state.update(phase=action, next={'gui-queued': 'Designated GPT operator: acquire GUI lease, observe and record evidence',
+                             'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
                              'ci-wait': 'Wait for latest required CI checks', 'ci-failed': 'Inspect CI failure; resume after repair',
                              'blocked': 'Inspect review findings or retry budget; resume explicitly'}[action])
                 if action in ('blocked', 'ci-failed'):
                     state['paused'] = True
-                if action == 'ci-wait' and (not gui_needed or gui_pass(state.get('gui'), bound)):
-                    self.gh.status(bound['head'], 'success', 'Independent review and scoped acceptance passed', pr['html_url'])
+                if action == 'ci-wait' and acceptance['allowed']:
+                    self.gh.status(bound['head'], 'success', 'Independent review and target branch acceptance gate passed', pr['html_url'])
             self.save(pr, state, comment_id)
             return {'pr': number, 'phase': state['phase'], 'next': state.get('next')}
         except Exception as error:
             state['errors'] = state.get('errors', 0) + 1
-            state['next'] = str(error)[:1800]
+            state['next'] = self.private_error(error)
             # Preserve fixing/publishing phase so an interrupted worker can be recovered without discarding files.
             state['interrupted_phase'] = state['phase']
             if isinstance(error, ValueError) or state['errors'] >= 3:
@@ -415,10 +457,14 @@ class Loop:
         bound = state.get('binding', {})
         report = state.get('review', {})
         current_issue = self.gh.issue(h['issue'])
-        complete = (h['close_issue'] and report.get('verdict') == 'approved' and report.get('scope_complete') and
+        accepted = state.get('acceptance', {})
+        promotion_pass = (accepted.get('allowed') is True and accepted.get('mode') == 'promotion' and
+                          accepted.get('gui_complete') is True and accepted.get('head') == bound.get('head') and
+                          accepted.get('base') == bound.get('base'))
+        complete = (pr['base']['ref'] == 'main' and h['close_issue'] and report.get('verdict') == 'approved' and report.get('scope_complete') and
                     report.get('issue_complete') and bound.get('head') == pr['head']['sha'] and
                     bound.get('issue_hash') == binding(pr, current_issue)['issue_hash'] and
-                    (not (h['gui_required'] or report.get('gui_required')) or gui_pass(state.get('gui'), bound)))
+                    (not (h['gui_required'] or report.get('gui_required')) or promotion_pass or gui_pass(state.get('gui'), bound)))
         state.update(phase='cleanup', next='Update Issue and remove only verified finished resources')
         comment_id = self.save(pr, state, comment_id)
         issue = self.gh.issue(h['issue'])
@@ -445,6 +491,8 @@ class Loop:
 
     def _cleanup_resources(self, pr, h):
         branch = h['branch']
+        if branch in ('main', 'master', 'develop'):
+            raise ValueError('Persistent branches must never be cleaned up')
         path = self.storage / f'pr-{pr["number"]}' / 'checkout'
         if (path.parent / 'worker.json').exists():
             raise ValueError('Worker state remains; do not remove resources')
@@ -496,15 +544,48 @@ def enroll(loop, args):
     existing, state, state_id, _ = loop.load(args.pr)
     if existing:
         raise ValueError('Already enrolled; use resume for the existing handoff')
-    h = {'pr': args.pr, 'issue': issue_number(pr), 'parent': args.parent, 'host': HOST,
+    h = {'pr': args.pr, 'issue': issue_number(pr), 'parent': args.parent, 'target': pr['base']['ref'],
          'head': pr['head']['sha'], 'base': pr['base']['sha'], 'branch': pr['head']['ref'],
-         'source': str(source), 'scope': args.scope, 'close_issue': args.close_issue,
+         'scope': args.scope, 'close_issue': args.close_issue,
          'gui_required': not bool(re.search(r'^GUI: not-required\s*$', pr.get('body') or '', re.M)),
-         'previous_owner': args.owner, 'owner': 'agent-loop@' + HOST, 'writer_stopped': True}
-    loop.gh.comment(args.pr, pack(HANDOFF, h))
+         'previous_owner': args.owner, 'owner': 'agent-loop', 'writer_stopped': True}
+    metadata(pr)
+    if any(Path(x).is_absolute() or '..' in Path(x).parts for x in args.scope):
+        raise ValueError('Use repository-relative enrollment scope')
+    h = register(loop.storage, h, source, HOST)
+    loop.gh.comment(args.pr, pack(HANDOFF_V2, h))
     loop.gh.status(h['head'], 'pending', 'Enrolled for independent review', pr['html_url'])
     loop.save(pr, {'phase': 'queued', 'expected_head': h['head'], 'fixes': 0, 'reviews': 0, 'errors': 0}, None)
     return h
+
+
+def rebind_target(loop, args):
+    pr = loop.gh.pr(args.pr)
+    h, state, sid, _ = loop.load(args.pr)
+    if not h or h.get('host') != HOST or not eligible(pr, OWNER, REPO) or pr['state'] != 'open':
+        raise ValueError('No local open managed PR to rebind')
+    if h['branch'] != pr['head']['ref'] or h['issue'] != issue_number(pr):
+        raise ValueError('Rebinding cannot change branch/Issue ownership')
+    if (loop.storage / f'pr-{args.pr}' / 'worker.json').exists():
+        raise ValueError('Worker record remains; confirm stop before rebinding')
+    loop.source_safe(h)
+    path = loop.storage / f'pr-{args.pr}' / 'checkout'
+    if path.exists() and (git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha'] or git('status', '--porcelain', cwd=path)):
+        raise ValueError('Managed checkout is not clean/current; preserve it')
+    if state.get('expected_head', h['head']) != pr['head']['sha']:
+        raise ValueError('External HEAD changed; rebind cannot adopt a new writer')
+    metadata(pr)
+    public = {k: v for k, v in h.items() if k not in ('source', 'host', 'registry_id', 'version')}
+    public = loop.public_state(public)
+    public['owner'] = 'agent-loop'
+    public['target'] = pr['base']['ref']
+    public = register(loop.storage, public, h['source'], HOST)
+    loop.gh.comment(args.pr, pack(HANDOFF_V2, public))
+    loop.invalidate_acceptance(state)
+    state.update(phase='queued', next='Target explicitly rebound; independent review and acceptance required')
+    loop.save(pr, state, sid)
+    loop.gh.status(pr['head']['sha'], 'pending', 'Target rebound; prior acceptance invalidated', pr['html_url'])
+    return public
 
 
 def audit_branches(gh, apply=False):
@@ -516,6 +597,8 @@ def audit_branches(gh, apply=False):
     results = []
     for line in git('for-each-ref', '--format=%(refname:short) %(objectname)', 'refs/heads/').splitlines():
         branch, sha = line.split()
+        if branch in ('main', 'master', 'develop'):
+            continue
         pr = merged.get(branch)
         if not pr or sha != pr['head']['sha']:
             continue
@@ -545,6 +628,8 @@ def main():
     en.add_argument('--scope', nargs='+', required=True); en.add_argument('--parent', type=int, default=1)
     en.add_argument('--close-issue', action='store_true')
     en.add_argument('--writer-stopped', action='store_true', required=True)
+    rebound = sub.add_parser('rebind-target'); rebound.add_argument('--pr', type=int, required=True)
+    rebound.add_argument('--writer-stopped', action='store_true', required=True)
     resume = sub.add_parser('resume'); resume.add_argument('--pr', type=int, required=True)
     resume.add_argument('--reason', required=True)
     gui = sub.add_parser('gui'); gui.add_argument('--pr', type=int, required=True); gui.add_argument('--evidence', type=Path, required=True); gui.add_argument('--lease-token', required=True)
@@ -555,6 +640,8 @@ def main():
             loop = Loop()
             if args.action == 'cleanup-branches':
                 result = audit_branches(loop.gh, args.apply)
+            elif args.action == 'rebind-target':
+                result = rebind_target(loop, args)
             elif args.action == 'enroll':
                 result = enroll(loop, args)
             elif args.action in ('resume', 'gui'):

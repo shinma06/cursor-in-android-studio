@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "issue": 42,
+  "pr": 75,
+  "imported_pr_head": "6799bb8189b3383a2844aeaf1ef69028f6b2eb35",
+  "gui_required": true,
+  "reason": "実IDEのTab dispatch・IME・mention・editor再生成は単体テストだけでは確認できない。送信方式設定/保存などIssue全体の残条件はopenを維持。",
+  "cli_checks": [
+    "./gradlew test buildPlugin。PromptFocusTraversalTestのTab/Shift+Tab・本文保持・Enter非消費を確認する。"
+  ],
+  "cases": [
+    {
+      "id": "PROMPT-TAB-1",
+      "issue": 42,
+      "pr": 75,
+      "change": "入力欄のTab/Shift+Tabをフォーカス移動にする",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。使い捨てプロジェクト、Ask、通常送信は1回まで。日本語IMEを使用する。",
+      "steps": [
+        "日本語を含む複数行の未送信入力でTabとShift+Tabを押す。",
+        "空欄と文字選択中でも同じ操作を試す。",
+        "Shift+Enter改行、日本語IME変換確定、@候補の選択と取消を試す。",
+        "短い通常応答を完了させ、入力欄の再有効化後にTabとShift+Tabを再確認する。",
+        "通常のコードエディタでTab字下げを確認する。"
+      ],
+      "expected": "本文や選択を変えず入力外の次・前の操作へfocusが移る。改行・IME確定・mentionで誤送信しない。候補popupにfocusがある間は入力欄のTab処理を強制しない。再生成後も同じ挙動を保ち、通常エディタの字下げは維持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "Swing単体キー処理の確認のみ。実IDEのdispatch・IME・mentionは未観察。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しい固定候補で未実施。過去の観察結果を転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/42#issuecomment-5558419104",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/6799bb8189b3383a2844aeaf1ef69028f6b2eb35/docs/loop-engineering/runs/2026-09-06-prompt-tab.md"
+      ],
+      "imported_pr_head": "6799bb8189b3383a2844aeaf1ef69028f6b2eb35",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false,
+      "legacy_cases": [
+        "MV-010",
+        "MV-011"
+      ]
+    }
+  ]
+}

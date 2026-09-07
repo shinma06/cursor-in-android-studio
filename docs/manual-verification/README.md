@@ -1,5 +1,8 @@
 # GUI動作確認
 
+> 2026-09-07 / #83: developはテスト・独立レビュー・Case追跡で統合可能（GUI pending/blocked/failを保持）。mainは固定候補全体の必要Case pass後のみ。区切り単位の入口は [確認マトリクス](../verification/README.md)。過去MV/runは履歴であり新候補のpassへ転記しない。
+
+
 [matrix.md](matrix.md)を受入条件の正本とする。GPTがComputer Useで実画面を操作して確認し、人間が必要な部分を補完する。単体テストやCLI試験だけではGUIのpassにならない。
 
 運用・準備は[ループ手順](../loop-engineering/README.md)、人間向けには[開始手順](../loop-engineering/human-runbook.md)、記録形式は[evidence.md](../loop-engineering/evidence.md)を参照。
