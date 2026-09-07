@@ -1,7 +1,11 @@
 package com.cursoragent.service
 
 /** One request, including preparation before a process exists. Exit codes alone never imply cancellation. */
-class AgentRun(private val listener: AgentProcessListener) {
+class AgentRun(
+    listener: AgentProcessListener,
+    private val onFinished: (AgentRun) -> Unit = {},
+) {
+    private var listener: AgentProcessListener? = listener
     private val lock = Any()
     private var finished = false
     private var stopAction: (() -> Unit)? = null
@@ -40,8 +44,13 @@ class AgentRun(private val listener: AgentProcessListener) {
 
     fun emit(block: (AgentProcessListener) -> Unit) {
         synchronized(lock) {
-            if (!finished && !wasStopped) block(listener)
+            if (!finished && !wasStopped) listener?.let(block)
         }
+    }
+
+    /** Closing a tab releases its UI immediately, even if physical process exit is delayed. */
+    fun detachListener() {
+        synchronized(lock) { listener = null }
     }
 
     fun reportError(message: String) {
@@ -54,18 +63,25 @@ class AgentRun(private val listener: AgentProcessListener) {
     fun complete(exitCode: Int, errorOutput: String? = null) {
         val stopped: Boolean
         val failure: String?
+        val receiver: AgentProcessListener?
         synchronized(lock) {
             if (finished) return
             finished = true
+            receiver = listener
+            listener = null
             stopped = wasStopped
             failure = error ?: errorOutput?.takeIf { exitCode != 0 && it.isNotBlank() }
             stopAction = null
             hasExited = null
         }
-        when {
-            stopped -> listener.onStopped()
-            failure != null -> listener.onError(failure)
-            else -> listener.onCompleted(exitCode)
+        try {
+            when {
+                stopped -> receiver?.onStopped()
+                failure != null -> receiver?.onError(failure)
+                else -> receiver?.onCompleted(exitCode)
+            }
+        } finally {
+            onFinished(this)
         }
     }
 }

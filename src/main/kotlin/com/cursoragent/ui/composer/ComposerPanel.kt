@@ -39,8 +39,14 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         accessibleContext.accessibleName = "送信（Enter）"
     }
 
-    val modeSelector = ModeSelector()
-    val modelSelector = ModelSelector()
+    // Detached selector state: application settings supply defaults only for a new tab.
+    val selection = com.cursoragent.settings.AgentSettingsState().apply {
+        val defaults = com.cursoragent.settings.AgentSettingsState.getInstance()
+        mode = defaults.mode
+        selectedModel = defaults.selectedModel
+    }
+    val modeSelector = ModeSelector(selection)
+    val modelSelector = ModelSelector(selection)
 
     /** Reserved for diff review bar etc. */
     val accessoryPanel = JPanel(BorderLayout()).apply {
