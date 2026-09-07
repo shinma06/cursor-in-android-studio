@@ -26,12 +26,14 @@ data class RestoreResult(val rejectionReason: String? = null) {
 }
 
 object RestorePolicy {
-    const val UNKNOWN_TARGET = "作成時の復元先を確認できないため復元できません。新しい応答から作成された履歴を使用してください。"
+    const val UNKNOWN_TARGET = "作成時の復元先を確認できないため復元できません。新しい会話を開始してください。"
     const val ISOLATED = "分離した作業コピーの実際の保存先を確認できないため、チェックポイント復元とRevertは使用できません。"
     const val MISSING_ROOT = "プロジェクトの保存先を確認できないため復元できません。"
     const val CHANGED_TARGET = "作成時と現在のプロジェクトまたはWorktree設定が異なるため復元できません。"
     const val OUTSIDE_ROOT = "編集されたファイルが確認済みのプロジェクト内にないためRevertできません。"
     const val STALE_EDIT = "この編集の後にファイルが変更されているためRevertできません。"
+    const val BUSY = "応答の準備・実行・停止処理、または復元が続いているため操作できません。完了後にもう一度お試しください。"
+    const val SNAPSHOT_UNAVAILABLE = "この応答のチェックポイントを作成できませんでした。コミットのあるGitプロジェクトで使用してください。"
     const val RESTORE_FAILED = "ファイルを復元できませんでした。"
 
     fun rejectionReason(created: RestoreTarget, current: RestoreTarget): String? {

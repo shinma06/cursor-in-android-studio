@@ -6,6 +6,8 @@ import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.service.AgentRun
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.CheckpointService
+import com.cursoragent.service.RestorePolicy
+import com.cursoragent.service.RestoreResult
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
@@ -72,17 +74,25 @@ class AgentUiController(
     fun sendPrompt(userText: String) {
         if (userText.isBlank()) return
 
-        val generation = ++turnGeneration
-        val usageTicket = composer.contextUsage.beginTurn()
+        val generation = turnGeneration + 1
+        val workspace = agentService.captureWorkspace()
         lateinit var run: AgentRun
-        run = agentService.prepareTurn(
+        val turn = agentService.prepareTurn(workspace) {
+            val usageTicket = composer.contextUsage.beginTurn()
             turnListenerFactory.create(
                 userText,
                 usageTicket,
                 isCurrent = { turnGeneration == generation },
                 isStopped = { run.wasStopped },
-            ),
-        )
+                restoreTarget = { workspace.restoreTarget },
+            )
+        }
+        if (turn == null) {
+            timeline.showStatus(RestorePolicy.BUSY)
+            return
+        }
+        run = turn.run
+        turnGeneration = generation
         composer.clearInput()
         composer.setInputEnabled(false)
         composer.setRunning(true)
@@ -97,13 +107,18 @@ class AgentUiController(
         } catch (error: Exception) {
             run.reportError("送信の準備に失敗しました: ${error.message}")
             run.complete(-1)
+            turn.preparation.close()
             return
         }
 
         ApplicationManager.getApplication().executeOnPooledThread {
-            if (!run.isActive) return@executeOnPooledThread
             try {
-                val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
+                if (!run.isActive) return@executeOnPooledThread
+                val target = workspace.restoreTarget
+                val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
+                val checkpointReason = if (checkpointId == null) {
+                    checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
+                } else null
                 if (!run.isActive) return@executeOnPooledThread
                 val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
                 val fullContext = listOfNotNull(edtContext, backgroundContext)
@@ -114,17 +129,19 @@ class AgentUiController(
                 if (!run.isActive) return@executeOnPooledThread
                 runOnEdt {
                     if (project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
-                    userBubble.setCheckpointAvailable(checkpointId != null)
+                    userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
                     if (checkpointId != null) {
                         userBubble.onRollbackRequested = { requestRollback(checkpointId) }
                     }
                     header.setSessionStatus("Running...")
                 }
 
-                agentService.sendPrompt(fullPrompt, run)
+                agentService.sendPrompt(fullPrompt, turn)
             } catch (error: Exception) {
                 run.reportError("送信の準備に失敗しました: ${error.message}")
                 run.complete(-1)
+            } finally {
+                turn.preparation.close()
             }
         }
     }
@@ -138,10 +155,28 @@ class AgentUiController(
         ) == Messages.YES
         if (!confirmed) return
 
-        if (checkpointService.restore(checkpointId)) {
-            timeline.showStatus("Rolled back to checkpoint")
-        } else {
-            Messages.showErrorDialog(project, "ロールバックに失敗しました", PluginBrand.NAME)
+        val reservation = agentService.tryRestore()
+        if (reservation == null) {
+            Messages.showInfoMessage(project, RestorePolicy.BUSY, PluginBrand.NAME)
+            return
+        }
+        val generation = turnGeneration
+        composer.setInputEnabled(false)
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val result = try {
+                checkpointService.restoreResult(checkpointId)
+            } catch (_: Exception) {
+                RestoreResult(RestorePolicy.RESTORE_FAILED)
+            } finally {
+                reservation.close()
+            }
+            runOnEdt {
+                if (project.isDisposed) return@runOnEdt
+                if (generation != turnGeneration) return@runOnEdt
+                composer.setInputEnabled(true)
+                if (result.restored) timeline.showStatus("チェックポイントへ復元しました")
+                else Messages.showErrorDialog(project, result.rejectionReason!!, PluginBrand.NAME)
+            }
         }
     }
 
