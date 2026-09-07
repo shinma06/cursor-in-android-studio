@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 93,
+  "gui_required": false,
+  "reason": "mainのPR #88/#91/#92で統合済みのGit hook・Python運用tooling・文書をdevelopへ通常mergeする同期。製品コードの追加変更なし。既存developのGUI Caseとpending/blocked状態は変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "同期元main 200bbc4647edd55e667cc0119d082eef8497f15dの13 tooling filesと同期後の内容一致を確認",
+    "同期元develop 5d8b3ee76eab3ecfb1af776bd044454cf4868364の製品コード・build設定・既存GUI Case内容を保持したことを確認"
+  ],
+  "cases": []
+}
