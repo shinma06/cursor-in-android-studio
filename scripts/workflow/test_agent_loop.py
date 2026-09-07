@@ -21,7 +21,7 @@ NEW = 'c' * 40
 
 def pr_data():
     return {'number': 36, 'user': {'login': al.OWNER}, 'state': 'open', 'merged': False, 'draft': True,
-            'body': 'Issue: #35\nGUI: not-required\nGUI reason: documentation only',
+            'body': 'Integration: tooling\nVerification: docs/verification/changes/issue-35.json\nIssue: #35\nGUI: not-required\nGUI reason: documentation only',
             'head': {'sha': HEAD, 'ref': 'codex/35-test', 'repo': {'full_name': al.REPO}},
             'base': {'sha': BASE, 'ref': 'main', 'repo': {'full_name': al.REPO}},
             'html_url': 'https://github.com/' + al.REPO + '/pull/36', 'merge_commit_sha': 'd' * 40}
@@ -230,6 +230,7 @@ class LoopTests(unittest.TestCase):
         self.run = patch.object(al.subprocess, 'run', return_value=Mock(returncode=0)); self.run.start(); self.addCleanup(self.run.stop)
         self.worker = Mock(side_effect=lambda role, path, packet, out, **kw: dict(report(head=packet['head']), base=packet['base']))
         self.loop = al.Loop(self.gh, self.tmp.name, self.worker)
+        self.loop.acceptance = Mock(return_value={'allowed': True, 'mode': 'tooling', 'cases': 0})
         self.loop.source_safe = Mock(); self.loop.checkout = Mock(return_value=self.checkout); self.loop.cleanup = Mock()
         self.loop.commit_fix = Mock(side_effect=lambda *args: setattr(self, 'local_head', NEW))
         def push(pr, path, state):
@@ -330,7 +331,7 @@ class LoopTests(unittest.TestCase):
             return original_git(*args, **kwargs)
         al.git.side_effect = conflicted
         result = self.loop.tick(36)
-        self.assertEqual(result['error'], 'merge conflict')
+        self.assertIn('private diagnostic', result['error'])
         _, state, _, _ = self.loop.load(36)
         for key in ('binding', 'review', 'gui'): self.assertNotIn(key, state)
         self.loop.test_and_push.assert_not_called()

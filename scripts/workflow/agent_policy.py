@@ -20,7 +20,7 @@ def issue_number(pr):
 def eligible(pr, owner, repo):
     try:
         issue_number(pr)
-        return (pr['user']['login'] == owner and pr['base']['ref'] == 'main' and
+        return (pr['user']['login'] == owner and pr['base']['ref'] in ('main', 'develop') and
                 pr['base']['repo']['full_name'] == repo and pr['head']['repo'] is not None and
                 pr['head']['repo']['full_name'] == repo)
     except (ValueError, KeyError, TypeError):
@@ -28,7 +28,7 @@ def eligible(pr, owner, repo):
 
 
 def binding(pr, issue):
-    return {'head': pr['head']['sha'], 'base': pr['base']['sha'],
+    return {'head': pr['head']['sha'], 'base': pr['base']['sha'], 'target': pr['base']['ref'],
             'body_hash': hashlib.sha256((pr.get('body') or '').encode()).hexdigest(),
             'issue_hash': hashlib.sha256((issue.get('body') or '').encode()).hexdigest()}
 
@@ -65,7 +65,7 @@ def gui_pass(evidence, bound):
                                               for x in evidence['cases']))
 
 
-def next_action(state, bound, ci, gui):
+def next_action(state, bound, ci, gui, acceptance=None):
     if state.get('binding') != bound:
         return 'review'
     report = state.get('review')
@@ -75,7 +75,9 @@ def next_action(state, bound, ci, gui):
         return 'blocked'
     if report['verdict'] == 'changes_requested':
         return 'fix' if state.get('fixes', 0) < 3 else 'blocked'
-    if gui and not gui_pass(state.get('gui'), bound):
+    if acceptance is not None and not acceptance.get('allowed'):
+        return 'acceptance-wait'
+    if acceptance is None and gui and not gui_pass(state.get('gui'), bound):
         return 'gui-queued'
     if ci == 'failure':
         return 'ci-failed'

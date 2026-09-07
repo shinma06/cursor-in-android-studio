@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "issue": 71,
+  "pr": 72,
+  "imported_pr_head": "ece9dc4027077ccc6cbe6448ad530e814eefb9b8",
+  "gui_required": true,
+  "reason": "文字階層・狭幅・明暗テーマ・開閉を実IDEで確認する。合成画像の観察はGUI passへ転用しない。",
+  "cli_checks": [
+    "./gradlew test buildPlugin。ContextUsageTestの欠損/0/reset/開閉/世代とボタン描画を確認する。"
+  ],
+  "cases": [
+    {
+      "id": "TOKEN-PANEL-HIERARCHY-1",
+      "issue": 71,
+      "pr": 72,
+      "change": "トークン数パネルの文字階層・数値・グループを読みやすくする",
+      "preconditions": "確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。使い捨てプロジェクトで既存値または合成CLI fixtureを使用し、合成値なら証拠へ明記する。CLI通信不要。",
+      "steps": [
+        "明細を開き、タイトル・補足・項目名・数値を見比べる。",
+        "通常幅と約280〜320px、明暗テーマを切り替えて右端まで確認する。",
+        "全値28,791/141/5,748/0、一部値、全欠損を表示する。",
+        "同じ明細ボタン・×・Spaceで開閉し、再表示と入力へのfocus移動を試す。",
+        "元のテーマと幅へ戻す。"
+      ],
+      "expected": "タイトルは少し大きい太字、補足は小さく、数値はラベルより識別しやすい。ラベル・右揃え数値・×が重ならず、桁区切りと0を保つ。入力/出力とキャッシュが両方ある場合のみ区切りを表示。欠損行・不要な空行は出さず、全欠損は短い案内。開閉・再表示で数値を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "headless合成画像のみ観察済み。実IDEのGUIは未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しい固定候補で未実施。過去の観察結果を転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/71#issuecomment-5557554048",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/ece9dc4027077ccc6cbe6448ad530e814eefb9b8/docs/loop-engineering/runs/2026-09-06-token-panel-hierarchy.md"
+      ],
+      "imported_pr_head": "ece9dc4027077ccc6cbe6448ad530e814eefb9b8",
+      "candidate_sha": null,
+      "candidate_build_sha256": null,
+      "history": [
+        {
+          "status": "pending",
+          "kind": "non_gui_observation",
+          "head": "364c17f53f0d6cf7a6b13b284f5e287c63e75cb2",
+          "reason": "280/350px・模擬明暗・全値/一部/空の12画像を生成し4条件を目視したが実IDEのGUI passではない。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/71#issuecomment-5557554048"
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "next_action": "区切りの固定候補・検証担当・資材を決め、手順を実施して日時・確認者・証拠を記録する。",
+      "main_eligible": false
+    }
+  ]
+}

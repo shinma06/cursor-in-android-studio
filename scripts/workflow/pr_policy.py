@@ -10,8 +10,8 @@ from git_guard import BRANCH
 
 def validate(pr):
     branch = BRANCH.fullmatch(pr['head']['ref'])
-    if not branch or pr['base']['ref'] != 'main':
-        raise ValueError('Use an Issue branch targeting main')
+    if not branch or pr['base']['ref'] not in ('main', 'develop'):
+        raise ValueError('Use an Issue branch targeting main or develop')
     body = pr.get('body') or ''
     issues = re.findall(r'^Issue: #([1-9][0-9]*)\s*$', body, re.MULTILINE)
     if issues != [branch.group(2)]:
@@ -22,6 +22,14 @@ def validate(pr):
     reason = re.findall(r'^GUI reason: (.+)$', body, re.MULTILINE)
     if len(reason) != 1 or len(reason[0].strip()) < 8 or '<' in reason[0] or 'TODO' in reason[0]:
         raise ValueError('Provide a concrete GUI reason (or linked cases)')
+    integration = re.findall(r'^Integration: (develop|promotion|tooling)\s*$', body, re.M)
+    if len(integration) != 1 or pr['base']['ref'] != ('develop' if integration[0] == 'develop' else 'main'):
+        raise ValueError('Integration must match develop or main (promotion/tooling)')
+    verification = re.findall(r'^Verification: (.+)$', body, re.M)
+    if verification != [f'docs/verification/changes/issue-{issues[0]}.json']:
+        raise ValueError('Verification must reference the Issue acceptance JSON')
+    if pr['base']['ref'] == 'develop' and re.search(r'(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:#|https://github.com/)', body):
+        raise ValueError('Develop PRs use Refs; do not auto-close acceptance Issues')
     return int(issues[0])
 
 

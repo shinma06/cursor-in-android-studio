@@ -47,6 +47,9 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
         'Do not edit files, commit, push, contact GitHub or operate any GUI. '
         'Return changes_requested for concrete defects, approved only if scoped acceptance is met; '
         'do not invent findings. GUI observation cannot be replaced by unit tests. '
+        'For develop, scope_complete concerns implementation/tests and complete acceptance tracking. '
+        'Pending, blocked or failed GUI outcomes alone do not block code approval; preserve them in Cases. '
+        'Concrete code defects and failing tests still require changes. issue_complete remains false until all Issue acceptance passes. '
         if role == 'review' else
         'You are the implementation worker for an already claimed and handed-off PR. '
         'Fix the supplied concrete review findings in the assigned file scope only. '

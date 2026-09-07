@@ -1,5 +1,8 @@
 # 人間向け：ループ開発の始め方
 
+> 2026-09-07 / #83: developはテスト・独立レビュー・Case追跡で統合可能（GUI pending/blocked/failを保持）。mainは固定候補全体の必要Case pass後のみ。区切り単位の入口は [確認マトリクス](../verification/README.md)。過去MV/runは履歴であり新候補のpassへ転記しない。
+
+
 普段は修正内容だけ伝えれば、エージェントがIssueの検索/作成、専用worktree、PRを用意します。Git操作を毎回指示する必要はありません。
 [GitHub開発規約](../development/github-workflow.md)と[GUI予約手順](../development/gui-coordination.md)が全タスクの共通ルールです。
 複数タスクは別worktreeで並列に進め、GUIだけ予約順に操作します。GPTがGUI操作・修正・Claudeへのレビュー依頼・再確認・記録を進めます。
