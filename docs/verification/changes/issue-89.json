@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "issue": 89,
+  "gui_required": false,
+  "reason": "CLI coordinatorのsource再紐付けとprivate registry検証のみ。製品コードとGUIを変更しない。",
+  "cli_checks": ["python3 -m unittest discover -s scripts/workflow -p 'test_*.py'", "python3 -m unittest discover -s scripts/loop -p 'test_*.py'", "./gradlew test", "./gradlew buildPlugin"],
+  "cases": []
+}

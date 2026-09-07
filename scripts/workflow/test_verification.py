@@ -272,7 +272,7 @@ class DevelopLoopTests(unittest.TestCase):
         self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
         self.gh.pull['base']['ref'] = 'develop'
         self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'develop')
-        public = al.rebind_target(self.loop, Mock(pr=36, writer_stopped=True))
+        public = al.rebind_target(self.loop, SimpleNamespace(pr=36, writer_stopped=True, source=None, migration_record=None))
         self.assertNotIn(al.HOST, json.dumps(public))
         self.assertNotIn('source', public)
         resolved, state, _, _ = self.loop.load(36)
@@ -281,12 +281,37 @@ class DevelopLoopTests(unittest.TestCase):
         self.assertNotIn('review', state)
         self.assertNotIn('binding', state)
 
+    def test_explicit_source_rebind_preserves_original_head_and_managed_expected(self):
+        h, state, sid, _ = self.loop.load(36)
+        original_head = 'e' * 40
+        h['head'] = original_head
+        h['previous_owner'] = 'gpt-original-writer'
+        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.loop.save(self.gh.pull, dict(state, expected_head=HEAD), sid)
+        moved = self.checkout.parent / 'relocated'
+        with patch('source_relocation.relocated_source', return_value=moved) as relocation:
+            public = al.rebind_target(self.loop, SimpleNamespace(pr=36, source=moved, migration_record=Path('record')))
+        relocation.assert_called_once()
+        resolved, state, _, _ = self.loop.load(36)
+        self.assertEqual(resolved['source'], str(moved))
+        self.assertEqual(public['head'], original_head)
+        self.assertEqual(state['expected_head'], HEAD)
+        self.assertEqual(public['previous_owner'], h['previous_owner'])
+        self.assertNotIn(str(moved), json.dumps(self.gh.messages))
+
+    def test_rebind_missing_source_does_not_silently_reregister(self):
+        h, _, _, _ = self.loop.load(36)
+        h['source'] = str(self.checkout.parent / 'missing')
+        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        with self.assertRaisesRegex(ValueError, 'Missing source'):
+            al.rebind_target(self.loop, SimpleNamespace(pr=36, source=None, migration_record=None))
+
     def test_rebind_cannot_adopt_foreign_head_or_running_worker(self):
         self.gh.pull['head']['sha'] = NEW
-        with self.assertRaises(ValueError): al.rebind_target(self.loop, Mock(pr=36))
+        with self.assertRaises(ValueError): al.rebind_target(self.loop, SimpleNamespace(pr=36, source=None, migration_record=None))
         self.gh.pull['head']['sha'] = HEAD
         (self.checkout.parent / 'worker.json').write_text('{}')
-        with self.assertRaises(ValueError): al.rebind_target(self.loop, Mock(pr=36))
+        with self.assertRaises(ValueError): al.rebind_target(self.loop, SimpleNamespace(pr=36, source=None, migration_record=None))
 
 
 class RealPromotionHistoryTests(unittest.TestCase):
