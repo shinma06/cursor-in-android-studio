@@ -5,6 +5,10 @@ import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.service.AgentProcessListener
+import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.RestorePolicy
+import com.cursoragent.service.RestoreResult
+import com.cursoragent.service.RestoreTarget
 import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.AgentHeaderBar
@@ -31,6 +35,7 @@ class AgentTurnListenerFactory(
         usageTicket: Long,
         isCurrent: () -> Boolean,
         isStopped: () -> Boolean,
+        restoreTarget: () -> RestoreTarget,
     ): AgentProcessListener {
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
             runOnEdt {
@@ -90,6 +95,7 @@ class AgentTurnListenerFactory(
                     timeline.clearStatus()
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
+                        val target = restoreTarget()
                         timeline.addFileEditCard(
                             callId = payload.callId,
                             details = edit,
@@ -104,17 +110,17 @@ class AgentTurnListenerFactory(
                             onRevert = {
                                 val before = edit.beforeContent
                                 val after = edit.afterContent
-                                if (before != null && after != null &&
-                                    DiffViewerHelper.revertFileContent(project, edit.path, before, after)
-                                ) {
-                                    timeline.showStatus("Reverted ${edit.path}")
+                                val reservation = project.getService(AgentProcessService::class.java).tryRestore()
+                                val result = if (reservation == null) {
+                                    RestoreResult(RestorePolicy.BUSY)
                                 } else {
-                                    Messages.showErrorDialog(
-                                        project,
-                                        "Could not revert ${edit.path} — it may have been changed again since this edit.",
-                                        PluginBrand.NAME,
-                                    )
+                                    reservation.use {
+                                        if (before == null || after == null) RestoreResult(RestorePolicy.RESTORE_FAILED)
+                                        else DiffViewerHelper.revertFileContentResult(project, edit.path, before, after, target)
+                                    }
                                 }
+                                if (result.restored) timeline.showStatus("ファイルを編集前に戻しました")
+                                else Messages.showErrorDialog(project, result.rejectionReason!!, PluginBrand.NAME)
                             },
                         )
                         return@update
@@ -149,7 +155,7 @@ class AgentTurnListenerFactory(
                     timeline.showError(message)
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
-                    onRunFinished()
+                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished()
                 }
             }
 

@@ -11,7 +11,7 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
     var onRollbackRequested: (() -> Unit)? = null
 
     private val rollbackButton = JButton(AllIcons.Actions.Rollback).apply {
-        toolTipText = "Rollback to before this prompt"
+        toolTipText = "この応答の前の状態へ復元"
         isBorderPainted = false
         isContentAreaFilled = false
         isVisible = false
@@ -34,8 +34,10 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
         add(bubble, BorderLayout.CENTER)
     }
 
-    fun setCheckpointAvailable(available: Boolean) {
-        rollbackButton.isVisible = available
+    fun setCheckpointAvailable(available: Boolean, reason: String? = null) {
+        rollbackButton.isVisible = available || reason != null
+        rollbackButton.isEnabled = available
+        rollbackButton.toolTipText = reason ?: "この応答の前の状態へ復元"
     }
 
     private fun escapeHtml(text: String): String {

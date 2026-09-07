@@ -1,5 +1,6 @@
 package com.cursoragent.settings
 
+import com.cursoragent.service.RestoreTarget
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -17,7 +18,15 @@ data class CheckpointRecord(
      *  created after this checkpoint (a plain `git checkout <sha> -- .` only restores
      *  paths that existed in the snapshot; it never deletes new ones). */
     var untrackedFilesAtSnapshot: MutableList<String> = mutableListOf(),
-)
+    // Missing fields in old XML deliberately stay unknown; never infer DEFAULT or the current root.
+    var rootPath: String? = null,
+    var worktreeMode: String? = null,
+) {
+    fun restoreTarget(): RestoreTarget = RestoreTarget(
+        rootPath,
+        WorktreeMode.entries.find { it.name == worktreeMode },
+    )
+}
 
 @Service(Service.Level.PROJECT)
 @State(name = "CursorAgentCheckpoints", storages = [Storage("cursor-agent-checkpoints.xml")])

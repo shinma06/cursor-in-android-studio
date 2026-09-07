@@ -207,7 +207,7 @@ PR: [#77](https://github.com/shinma06/cursor-in-android-studio/pull/77)
 
 PR: [#81](https://github.com/shinma06/cursor-in-android-studio/pull/81)
 
-前提・対象build: 確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。共有callsite接続・日本語理由UI・実行中CLIとの競合抑止を実装して再テスト/独立レビュー後に実行する。現PR単独は通常modeも接続未了でリリース不可。使い捨てGit fixtureへcommit済み・事前untracked・別rootの同名ファイルを用意。Pro/Teams、permission defaultを維持。
+前提・対象build: 確認区切りのdevelop候補SHA・ZIP/JAR hash・ロード実体を固定し、当該PRの包含を確認する。使い捨てGit fixtureへcommit済み・事前untracked・別rootの同名ファイルを用意。Pro/Teams、permission defaultを維持。
 
 1. DEFAULTで1ファイルを編集し、Diff表示とRevertを試す。
 2. 同じ対象を再編集し、保存済み・未保存それぞれで古いRevertを試す。
@@ -215,16 +215,17 @@ PR: [#81](https://github.com/shinma06/cursor-in-android-studio/pull/81)
 4. ISOLATEDで編集してcheckpoint/Revertを試し、元rootと分離先の内容を比較する。
 5. ISOLATEDとDEFAULTを両方向へ切り替え、古いカード/checkpointを操作する。準備中切替でもCLIと保存targetを照合する。
 6. root/modeのない旧履歴・root移動/不明・新規DEFAULT履歴を比較する。
-7. 応答中の復元を試し、実行中CLIと競合しないことを確認する。
+7. 応答の準備中・実行中・停止直後に復元を試し、物理終了まで拒否することを確認する。復元中の新規送信も拒否すること。
+8. service再起動後に過去会話を再開し対象不明の復元拒否を確認。新しいDEFAULT会話では復元が利用可能なこと。
 
-期待結果: 通常DEFAULTのDiff・Revert・checkpoint復元が動作する。古いRevertは日本語理由で拒否し後の保存済み/未保存内容を保持。checkpointはtrackedを戻し新規untrackedだけ削除して事前untrackedを保持。ISOLATED・対象不明・異なるroot/modeは日本語理由で拒否し両rootを不変に保つ。ISOLATEDのDiffは閲覧可能。DEFAULTへ戻しても古いisolatedカードは拒否。旧履歴は安全拒否し新規DEFAULT履歴は復元可能。
+期待結果: 通常DEFAULTのDiff・Revert・checkpoint復元が動作する。古いRevertは日本語理由で拒否し後の保存済み/未保存内容を保持。checkpointはtrackedを戻し新規untrackedだけ削除して事前untrackedを保持。ISOLATED・対象不明・異なるroot/modeは日本語理由で拒否し両rootを不変に保つ。ISOLATEDのDiffは閲覧可能。DEFAULTへ戻しても古いisolatedカードは拒否。旧履歴は安全拒否し新規DEFAULT履歴は復元可能。 実行中・停止処理中・準備中のCLIと復元が競合せず、復元中の新規送信も拒否する。元root不明の再開会話は復元拒否、新規DEFAULT会話では復元可能。
 
-初期登録時のGPT: blocked — GUI環境以前に共有callsite未接続。旧APIは対象不明として通常modeも安全拒否する。環境blockedとは区別する。
+初期登録時のGPT: pending — 共有接続と排他を実装。実VFS/CLI/GUIは新しい固定候補で未観察。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
 再確認: 固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。
-次の操作: PMがPR74の所有境界と接続担当を解決し、未実装接続を完了してから固定統合候補で確認する。GUI未確認だけの例外として単独リリースしない。
+次の操作: コードレビューと必要チェック後develop統合。指定担当が固定候補でRESTORE-TARGET-1を実施し、未確認をpassにしない。
 根拠: https://github.com/shinma06/cursor-in-android-studio/issues/39#issuecomment-5562606190, https://github.com/shinma06/cursor-in-android-studio/issues/39#issuecomment-5562663611, https://github.com/shinma06/cursor-in-android-studio/blob/215794eab3927a015e24ec7fa59c82806226c713/docs/loop-engineering/runs/2026-09-07-restore-target-safety.md
 
 
