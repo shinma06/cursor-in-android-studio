@@ -61,6 +61,21 @@ python3 scripts/workflow/agent_loop.py resume --pr 123 --reason '停止原因の
 
 `rebind-target`は担当関係/source/expected HEADを継承し、公開owner表記をホストを含まないagent-loopへ正規化します。scopeの移譲や外部pushの採用には使いません。worker記録が残る/dirty/HEAD不一致なら拒否します。
 旧承認/GUIを失効させ、新targetをv2 registryへ保存します。PAUSED状態やheartbeatを勝手に解除しません。
+
+承認済みディレクトリ移転で旧sourceが消えた場合、同じwriterの移転先を明示します。旧sourceの不存在を黙認して再登録しません。
+
+```bash
+python3 scripts/workflow/agent_loop.py rebind-target --pr 123 --writer-stopped \
+  --source /path/to/relocated-issue-worktree \
+  --migration-record /path/to/private-directory-migration.json
+```
+
+移転先は同じrepositoryの登録linked worktreeで、元の登録branch/HEAD・clean状態を保つ必要があります。
+旧パスが存在する場合は同じ実体だけ許可します。不存在の場合はverified移転記録のold/new、kind=worktree、moved=trueと、
+before/afterのbranch・HEAD・空status・現在と同じinodeを照合します。移転記録はPMが実体移転時に確認したprivate JSONを使い、
+この操作のために別worktreeを同一と見なす記録を作りません。sourceは元の登録HEAD、managed checkoutはexpected HEADのまま別々に照合します。
+移転先もprivate registryだけに保存し、公開markerへパスを含めません。registry喪失の復旧、別writerの採用、外部pushの取り込みには使えません。
+
 registry喪失、旧writer再開、予期しないcommitやdirty内容は保持して停止します。reset/stashで捨てず、通信切断後のpublishは記録済みSHAだけを再送します。
 
 ## 完了とcleanup

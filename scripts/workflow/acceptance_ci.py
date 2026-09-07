@@ -19,7 +19,45 @@ def main():
             'Accept': 'application/vnd.github+json'})
         with urlopen(request, timeout=30) as response:
             return json.load(response)
-    current = api(f'pulls/{pr["number"]}')
+    print(json.dumps(check_pr(pr, api), ensure_ascii=False))
+
+
+def closed_result(pr):
+    """A live closed PR needs no decision; never label this as acceptance."""
+    state = pr.get('state')
+    if state not in ('open', 'closed') or (state == 'open' and pr.get('merged') is True):
+        raise ValueError('Live PR state is missing or inconsistent')
+    if state == 'closed':
+        return {'status': 'skipped', 'reason': 'live-pr-closed', 'pr': pr['number']}
+    return None
+
+
+def check_pr(pr, api):
+    endpoint = f'pulls/{pr["number"]}'
+    current = api(endpoint)
+    skipped = closed_result(current)
+    if skipped:
+        return skipped
+    try:
+        result, trusted_head = check_open_pr(pr, current, api)
+    except (ValueError, subprocess.CalledProcessError):
+        # The PR may have merged while refs/diffs were being validated. A failure
+        # remains a failure for an open/reopened PR, including API lookup errors.
+        skipped = closed_result(api(endpoint))
+        if skipped:
+            return skipped
+        raise
+    latest = api(endpoint)
+    skipped = closed_result(latest)
+    if skipped:
+        return skipped
+    latest_base = api('git/ref/heads/' + current['base']['ref'])['object']['sha']
+    if (latest['head']['sha'] != current['head']['sha'] or latest['base']['ref'] != current['base']['ref'] or latest_base != trusted_head or latest.get('body') != current.get('body')):
+        raise ValueError('PR/base changed during acceptance validation; rerun')
+    return result
+
+
+def check_open_pr(pr, current, api):
     if current['head']['sha'] != pr['head']['sha'] or current['base']['ref'] != pr['base']['ref']:
         raise ValueError('PR changed after this workflow was queued')
     validate(current)
@@ -33,11 +71,7 @@ def main():
         if 'Integration: promotion' in current['body']:
             subprocess.run(['git', 'fetch', '--no-tags', 'origin', 'develop'], check=True)
     result = verify_pr(current, api)
-    latest = api(f'pulls/{pr["number"]}')
-    latest_base = api('git/ref/heads/' + current['base']['ref'])['object']['sha']
-    if (latest['head']['sha'] != current['head']['sha'] or latest['base']['ref'] != current['base']['ref'] or latest_base != trusted_head or latest.get('body') != current.get('body')):
-        raise ValueError('PR/base changed during acceptance validation; rerun')
-    print(json.dumps(result, ensure_ascii=False))
+    return result, trusted_head
 
 
 if __name__ == '__main__':
