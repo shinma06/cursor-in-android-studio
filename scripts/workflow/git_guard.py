@@ -20,8 +20,8 @@ def check_push(lines, branch, head, dirty):
     changes = False
     for line in lines:
         local_ref, local_sha, remote_ref, remote_sha = line.split()
-        if remote_ref in ('refs/heads/main', 'refs/heads/master'):
-            raise ValueError('Direct push/deletion of main/master is forbidden. Use a GitHub PR.')
+        if remote_ref in ('refs/heads/main', 'refs/heads/master', 'refs/heads/develop'):
+            raise ValueError('Direct push/deletion of main/master/develop is forbidden. Use a GitHub PR.')
         if set(local_sha) == {'0'}:
             # Own task branch cleanup only; tags/other namespaces are not this workflow.
             check_branch(branch)

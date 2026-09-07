@@ -1,12 +1,12 @@
 {
-  "name": "main-pr-required",
+  "name": "develop-pr-required",
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [],
   "conditions": {
     "ref_name": {
       "include": [
-        "refs/heads/main"
+        "refs/heads/develop"
       ],
       "exclude": []
     }
@@ -27,8 +27,7 @@
         "require_last_push_approval": false,
         "required_review_thread_resolution": true,
         "allowed_merge_methods": [
-          "squash",
-          "merge"
+          "squash"
         ]
       }
     },

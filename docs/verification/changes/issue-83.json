@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "issue": 83,
+  "gui_required": false,
+  "reason": "運用文書とPython/CI gateのみ。製品コード・GUIの動作を変更しないbootstrap PR。",
+  "cli_checks": ["python3 -m unittest discover -s scripts/workflow -p 'test_*.py'", "python3 -m unittest discover -s scripts/loop -p 'test_*.py'", "./gradlew test"],
+  "cases": []
+}
