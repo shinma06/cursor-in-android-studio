@@ -9,6 +9,7 @@ import com.intellij.util.ui.JBUI
 import java.awt.BasicStroke
 import java.awt.BorderLayout
 import java.awt.Component
+import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
@@ -16,6 +17,7 @@ import java.awt.geom.Line2D
 import java.awt.geom.RoundRectangle2D
 import java.text.NumberFormat
 import java.util.Locale
+import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.Icon
 import javax.swing.JButton
@@ -27,13 +29,27 @@ import javax.swing.SwingConstants
 class ContextUsageView {
     private val state = ContextUsageState()
     private val counters = List(4) { JLabel() }
-    private val status = label("直近の応答")
-    private val emptyMessage = label("応答後に表示します")
+    private val status = label("直近の応答").apply {
+        font = font.deriveFont(font.size2D * 0.9f)
+        border = JBUI.Borders.empty(2, 0, 10, 0)
+    }
+    private val emptyMessage = label("応答後に表示します").apply {
+        border = JBUI.Borders.empty(8, 0, 2, 0)
+    }
     private val counterRows = listOf("入力", "出力", "キャッシュ読み取り", "キャッシュ書き込み").mapIndexed { index, title ->
         row(label(title), counters[index].apply {
-            font = AgentUiMetrics.textFont()
-            foreground = AgentUiColors.mutedText
+            font = AgentUiMetrics.textFont().deriveFont(Font.BOLD)
+            horizontalAlignment = SwingConstants.RIGHT
         })
+    }
+    private val cacheDivider = JPanel(BorderLayout()).apply {
+        isOpaque = false
+        alignmentX = Component.LEFT_ALIGNMENT
+        border = JBUI.Borders.empty(7, 0)
+        add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            border = BorderFactory.createMatteBorder(JBUI.scale(1), 0, 0, 0, AgentUiColors.bubbleBorder)
+        }, BorderLayout.CENTER)
     }
     val button: JButton = TokenCountsButton().apply {
         icon = TokenCountsIcon()
@@ -62,10 +78,15 @@ class ContextUsageView {
         val content = JPanel().apply {
             isOpaque = false
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            border = JBUI.Borders.empty(10, 12)
-            add(row(label("トークン数"), close))
+            border = JBUI.Borders.empty(10, 12, 12, 12)
+            add(row(JLabel("トークン数").apply {
+                font = AgentUiMetrics.textFont().let { it.deriveFont(Font.BOLD, it.size2D * 1.08f) }
+            }, close).apply { border = JBUI.Borders.empty() })
             add(status.apply { alignmentX = Component.LEFT_ALIGNMENT })
-            counterRows.forEach { add(it) }
+            counterRows.forEachIndexed { index, row ->
+                if (index == 2) add(cacheDivider)
+                add(row)
+            }
             add(emptyMessage.apply { alignmentX = Component.LEFT_ALIGNMENT })
         }
         panel.add(RoundedSurface(AgentUiColors.panelBackground).apply {
@@ -97,6 +118,7 @@ class ContextUsageView {
             counterRows[index].isVisible = value != null
         }
         val hasCounters = values.any { it != null }
+        cacheDivider.isVisible = values.take(2).any { it != null } && values.drop(2).any { it != null }
         status.isVisible = hasCounters
         emptyMessage.isVisible = !hasCounters
         status.toolTipText = "応答完了時に報告された値です。入力とキャッシュの重複関係は未確認のため合計しません。"
