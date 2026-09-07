@@ -2,7 +2,6 @@ package com.cursoragent.service
 
 import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
-import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.AgentSettingsState
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -17,7 +16,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.atomic.AtomicReference
 
 data class ModelOption(val id: String, val label: String)
 
@@ -39,30 +37,30 @@ interface AgentProcessListener {
 @Service(Service.Level.PROJECT)
 class AgentProcessService(private val project: Project) : Disposable {
     private val LOG = logger<AgentProcessService>()
-    private val activeRun = AtomicReference<AgentRun?>(null)
-    @Volatile
-    private var chatId: String? = null
-    private val sessionTargets = java.util.concurrent.ConcurrentHashMap<String, RestoreTarget>()
+    private val runs = java.util.concurrent.ConcurrentHashMap.newKeySet<AgentRun>()
+    @Volatile private var disposed = false
+    private val sessionTargets = SessionWorkspaceHistory()
     private val operations = WorkspaceOperationGate()
 
-    fun captureWorkspace(): TurnWorkspace {
-        val resumeId = chatId
+    fun captureWorkspace(resumeId: String?): TurnWorkspace {
         return TurnWorkspace(
             project.basePath,
             AgentSettingsState.getInstance().worktreeMode,
             resumeId,
-            resumeId?.let(sessionTargets::get),
+            resumeId?.let(sessionTargets::find),
         )
     }
 
     fun tryRestore(): AutoCloseable? = operations.tryRestore()
 
-    fun prepareTurn(workspace: TurnWorkspace, listener: () -> AgentProcessListener): PreparedAgentTurn? {
+    @Synchronized
+    fun prepareTurn(workspace: TurnWorkspace, settings: TurnSettings, listener: () -> AgentProcessListener): PreparedAgentTurn? {
+        if (disposed) return null
         val preparation = operations.tryPrepare() ?: return null
         return try {
-            val run = AgentRun(listener())
-            activeRun.set(run)
-            PreparedAgentTurn(run, workspace, preparation)
+            val run = AgentRun(listener()) { runs.remove(it) }
+            runs.add(run)
+            PreparedAgentTurn(run, workspace, preparation, settings)
         } catch (error: Exception) {
             preparation.close()
             throw error
@@ -77,7 +75,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             return
         }
 
-        val settings = AgentSettingsState.getInstance()
+        val settings = turn.settings
         val workspace = turn.workspace.commandTarget.rootPath
         if (workspace.isNullOrBlank()) {
             run.reportError("プロジェクトルートが取得できません")
@@ -106,12 +104,13 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
 
         try {
+            var chatId = turn.workspace.resumeId
             val parser = StreamJsonParser { event ->
                 run.emit { listener ->
                     when (event) {
                         is StreamEvent.SessionInit -> {
-                            chatId = event.sessionId ?: chatId
-                            chatId?.let { sessionTargets[it] = turn.workspace.restoreTarget }
+                            if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
+                            chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                         }
 
@@ -131,8 +130,8 @@ class AgentProcessService(private val project: Project) : Disposable {
 
                         is StreamEvent.Result -> {
                             listener.onTokenUsage(event.usage)
-                            chatId = event.sessionId ?: chatId
-                            chatId?.let { sessionTargets[it] = turn.workspace.restoreTarget }
+                            if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
+                            chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                             if (event.isError) {
                                 run.reportError(event.result ?: "Agent returned an error")
@@ -164,7 +163,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                 }
 
                 override fun processTerminated(event: ProcessEvent) {
-                    activeRun.compareAndSet(run, null)
+                    runs.remove(run)
                     try {
                         run.complete(event.exitCode, stderr.toString().trim())
                     } finally {
@@ -181,7 +180,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             run.reportError("CLIの出力監視を開始できませんでした")
             LOG.warn("Failed to observe agent process", error)
             handler.process.onExit().thenRun {
-                activeRun.compareAndSet(run, null)
+                runs.remove(run)
                 try {
                     run.complete(-1)
                 } finally {
@@ -192,12 +191,6 @@ class AgentProcessService(private val project: Project) : Disposable {
             runCatching { handler.process.destroy() }
         }
 
-    }
-
-    fun currentChatId(): String? = chatId
-
-    fun resumeChat(id: String) {
-        chatId = id
     }
 
     /**
@@ -239,25 +232,22 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
     }
 
-    fun startNewChat() {
-        killActiveProcess()
-        chatId = null
-    }
-
     fun killActiveProcess() {
-        activeRun.getAndSet(null)?.stop()
+        runs.toList().forEach { it.detachListener(); it.stop() }
     }
 
+    @Synchronized
     override fun dispose() {
+        disposed = true
         killActiveProcess()
     }
 
     private fun buildCommandLine(
         prompt: String,
         workspace: TurnWorkspace,
-        settings: AgentSettingsState,
+        settings: TurnSettings,
     ): GeneralCommandLine {
-        val executable = resolveAgentExecutable(settings.agentExecutablePath)
+        val executable = resolveAgentExecutable(settings.executable)
         // Without --trust the CLI blocks on a "Workspace Trust Required" prompt that
         // has no TTY to answer it, so every run in a project opened for the first
         // time fails outright. Opening the project in the IDE is the trust boundary.
@@ -269,15 +259,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         )
         args += workspace.arguments()
 
-        settings.selectedModel.takeIf { it.isNotBlank() }?.let {
-            args += listOf("--model", it)
-        }
-
-        settings.mode.cliValue?.let { args += listOf("--mode", it) }
-
-        settings.permissionMode.cliArg?.let { args += it }
-
-        settings.sandboxMode.cliValue?.let { args += listOf("--sandbox", it) }
+        args += settings.arguments()
 
         args += prompt
 

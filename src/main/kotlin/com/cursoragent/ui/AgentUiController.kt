@@ -21,8 +21,14 @@ class AgentUiController(
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
     private val header: AgentHeaderBar,
+    private val sessions: com.cursoragent.session.SessionTabs,
+    private val tabId: String,
 ) {
     private var turnGeneration = 0L
+    private var disposed = false
+    private var activeRun: AgentRun? = null
+    private var modelLoad: java.util.concurrent.Future<*>? = null
+    private var activeToken: com.cursoragent.session.SessionRunToken? = null
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val chatHistoryState = ChatHistoryState.getInstance(project)
@@ -35,66 +41,64 @@ class AgentUiController(
         chatHistoryState = chatHistoryState,
         onRunFinished = ::finishRun,
     )
-    private val pastChatsCoordinator = PastChatsCoordinator(
-        project = project,
-        timeline = timeline,
-        header = header,
-        agentService = agentService,
-        chatHistoryState = chatHistoryState,
-        onChatResumed = {
-            turnGeneration++
-            agentService.killActiveProcess()
-            composer.contextUsage.reset()
-            finishRun()
-        },
-    )
-
     init {
         checkpointService.pruneExpired()
         loadModels()
-        header.onPastChatsClicked = { pastChatsCoordinator.showPopup() }
     }
 
     private fun loadModels() {
-        ApplicationManager.getApplication().executeOnPooledThread {
+        modelLoad = ApplicationManager.getApplication().executeOnPooledThread {
             val models = agentService.listModels()
-            runOnEdt { composer.modelSelector.setModels(models) }
+            runOnEdt { if (!disposed && !project.isDisposed) composer.modelSelector.setModels(models) }
         }
     }
 
-    fun startNewChat() {
+    fun dispose() {
+        disposed = true
+        modelLoad?.cancel(true)
+        modelLoad = null
         turnGeneration++
-        composer.contextUsage.reset()
-        agentService.startNewChat()
-        timeline.clearTimeline()
-        finishRun()
-        header.setSessionStatus("Ready")
+        activeToken?.let(sessions::finishTurn)
+        activeRun?.detachListener()
+        activeRun?.stop()
+        activeRun = null
     }
 
     fun sendPrompt(userText: String) {
-        if (userText.isBlank()) return
+        if (disposed || userText.isBlank() || activeRun != null) return
 
         val generation = turnGeneration + 1
-        val workspace = agentService.captureWorkspace()
+        sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, userText, userText.length)
+        val sessionTurn = sessions.beginTurn(tabId) ?: return
+        activeToken = sessionTurn.token
+        val workspace = agentService.captureWorkspace(sessionTurn.chatId)
+        val shared = com.cursoragent.settings.AgentSettingsState.getInstance()
+        val settings = com.cursoragent.service.TurnSettings(
+            shared.agentExecutablePath, sessionTurn.modelId, sessionTurn.mode, shared.permissionMode, shared.sandboxMode,
+        )
         lateinit var run: AgentRun
-        val turn = agentService.prepareTurn(workspace) {
+        val turn = agentService.prepareTurn(workspace, settings) {
             val usageTicket = composer.contextUsage.beginTurn()
             turnListenerFactory.create(
                 userText,
                 usageTicket,
-                isCurrent = { turnGeneration == generation },
+                isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
+                onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
                 isStopped = { run.wasStopped },
                 restoreTarget = { workspace.restoreTarget },
             )
         }
         if (turn == null) {
+            sessions.finishTurn(sessionTurn.token)
+            activeToken = null
             timeline.showStatus(RestorePolicy.BUSY)
             return
         }
         run = turn.run
+        activeRun = run
         turnGeneration = generation
         composer.clearInput()
-        composer.setInputEnabled(false)
+        composer.setInputEnabled(true)
         composer.setRunning(true)
 
         timeline.clearStatus()
@@ -128,7 +132,7 @@ class AgentUiController(
 
                 if (!run.isActive) return@executeOnPooledThread
                 runOnEdt {
-                    if (project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
+                    if (disposed || project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
                     userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
                     if (checkpointId != null) {
                         userBubble.onRollbackRequested = { requestRollback(checkpointId) }
@@ -171,7 +175,7 @@ class AgentUiController(
                 reservation.close()
             }
             runOnEdt {
-                if (project.isDisposed) return@runOnEdt
+                if (disposed || project.isDisposed) return@runOnEdt
                 if (generation != turnGeneration) return@runOnEdt
                 composer.setInputEnabled(true)
                 if (result.restored) timeline.showStatus("チェックポイントへ復元しました")
@@ -182,10 +186,13 @@ class AgentUiController(
 
     fun stopRun() {
         composer.contextUsage.reset()
-        agentService.killActiveProcess()
+        activeRun?.stop()
     }
 
     private fun finishRun() {
+        activeToken?.let(sessions::finishTurn)
+        activeToken = null
+        activeRun = null
         composer.setInputEnabled(true)
         composer.setRunning(false)
         if (header.sessionLabel.text == "Running...") {

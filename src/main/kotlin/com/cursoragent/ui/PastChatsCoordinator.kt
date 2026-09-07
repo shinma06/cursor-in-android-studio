@@ -2,9 +2,7 @@ package com.cursoragent.ui
 
 import com.cursoragent.settings.ChatHistoryRecord
 import com.cursoragent.settings.ChatHistoryState
-import com.cursoragent.service.AgentProcessService
 import com.cursoragent.ui.header.AgentHeaderBar
-import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -16,11 +14,9 @@ import java.util.Date
  */
 class PastChatsCoordinator(
     private val project: Project,
-    private val timeline: ChatTimelinePanel,
     private val header: AgentHeaderBar,
-    private val agentService: AgentProcessService,
     private val chatHistoryState: ChatHistoryState,
-    private val onChatResumed: () -> Unit = {},
+    private val onChatResumed: (String) -> Unit,
 ) {
     fun showPopup() {
         val records = chatHistoryState.list()
@@ -41,10 +37,7 @@ class PastChatsCoordinator(
     }
 
     private fun resumeChat(record: ChatHistoryRecord) {
-        onChatResumed()
-        agentService.resumeChat(record.chatId)
-        timeline.clearTimeline()
-        header.setSessionStatus("session=${record.chatId.take(8)}… (resumed)")
+        onChatResumed(record.chatId)
     }
 
     private fun formatTimestamp(epochMs: Long): String =

@@ -35,4 +35,21 @@ class PreparedAgentTurn(
     val run: AgentRun,
     val workspace: TurnWorkspace,
     val preparation: WorkspaceOperationGate.Preparation,
+    val settings: TurnSettings,
 )
+
+/** Immutable execution settings captured before asynchronous prompt preparation. */
+data class TurnSettings(
+    val executable: String,
+    val model: String,
+    val mode: com.cursoragent.settings.AgentMode,
+    val permission: com.cursoragent.settings.PermissionMode,
+    val sandbox: com.cursoragent.settings.SandboxMode,
+) {
+    fun arguments(): List<String> = buildList {
+        model.takeIf { it.isNotBlank() }?.let { addAll(listOf("--model", it)) }
+        mode.cliValue?.let { addAll(listOf("--mode", it)) }
+        permission.cliArg?.let(::add)
+        sandbox.cliValue?.let { addAll(listOf("--sandbox", it)) }
+    }
+}

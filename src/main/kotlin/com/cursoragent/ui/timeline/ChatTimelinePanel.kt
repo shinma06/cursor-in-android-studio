@@ -34,6 +34,8 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         viewport.background = AgentUiColors.panelBackground
     }
 
+    var isActiveTab: Boolean = true
+
     private var currentAssistantBubble: AssistantMessageBubble? = null
     private var currentStatusRow: StatusMessageRow? = null
 
@@ -183,6 +185,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     private fun scrollToBottom() {
         SwingUtilities.invokeLater {
+            if (!isActiveTab) return@invokeLater
             val bar = scrollPane.verticalScrollBar
             bar.value = bar.maximum
         }

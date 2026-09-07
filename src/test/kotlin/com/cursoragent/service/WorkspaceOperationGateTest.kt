@@ -21,7 +21,7 @@ class WorkspaceOperationGateTest {
         run.stop()
         assertFalse(run.isActive)
         assertNull(gate.tryRestore())
-        assertNull(gate.tryPrepare())
+        gate.tryPrepare()!!.close()
         preparation.close()
         gate.tryRestore()!!.close()
     }
@@ -56,7 +56,7 @@ class WorkspaceOperationGateTest {
             assertTrue(waitingForExit.await(5, TimeUnit.SECONDS))
             assertEquals(1, destroys.get())
             assertNull(gate.tryRestore())
-            assertNull(gate.tryPrepare()) // New chat cannot hide an old process that is still exiting.
+            gate.tryPrepare()!!.close() // Other tabs can run, but cannot release this process reservation.
         } finally {
             resumeConstruction.countDown()
             exit.countDown()

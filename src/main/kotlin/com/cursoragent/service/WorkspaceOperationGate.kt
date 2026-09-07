@@ -3,25 +3,27 @@ package com.cursoragent.service
 /** Project-wide exclusion spanning preparation, process construction and physical exit, not UI completion. */
 class WorkspaceOperationGate {
     private val lock = Any()
-    private var occupied = false
+    private var preparations = 0
+    private var restoring = false
 
     fun tryPrepare(): Preparation? = synchronized(lock) {
-        if (occupied) null else {
-            occupied = true
+        if (restoring) null else {
+            preparations++
             Preparation()
         }
     }
 
     fun tryRestore(): AutoCloseable? = synchronized(lock) {
-        if (occupied) null else {
-            occupied = true
-            once { synchronized(lock) { occupied = false } }
+        if (restoring || preparations != 0) null else {
+            restoring = true
+            once { synchronized(lock) { restoring = false } }
         }
     }
 
     inner class Preparation internal constructor() : AutoCloseable {
         private var preparing = true
         private var processes = 0
+        private var released = false
 
         /** Reserve before OSProcessHandler construction; cancellation must not release this reservation. */
         fun launchingProcess(): AutoCloseable = synchronized(lock) {
@@ -42,7 +44,10 @@ class WorkspaceOperationGate {
         }
 
         private fun releaseIfIdle() {
-            if (!preparing && processes == 0) occupied = false
+            if (!preparing && processes == 0 && !released) {
+                released = true
+                preparations--
+            }
         }
     }
 

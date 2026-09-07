@@ -37,24 +37,35 @@ class CheckpointHistoryState : PersistentStateComponent<CheckpointHistoryState.S
 
     private var state = State()
 
-    override fun getState(): State = state
+    @Synchronized
+    override fun getState(): State = State().also { snapshot ->
+        snapshot.records = state.records.map(::copyRecord).toMutableList()
+    }
 
+    @Synchronized
     override fun loadState(state: State) {
-        this.state = state
+        this.state = State().also { it.records = state.records.map(::copyRecord).toMutableList() }
     }
 
+    @Synchronized
     fun addRecord(record: CheckpointRecord) {
-        state.records.add(record)
+        state.records.add(copyRecord(record))
     }
 
-    fun findRecord(id: String): CheckpointRecord? = state.records.find { it.id == id }
+    @Synchronized
+    fun findRecord(id: String): CheckpointRecord? = state.records.find { it.id == id }?.let(::copyRecord)
 
+    @Synchronized
     fun recordsForChat(chatId: String?): List<CheckpointRecord> =
-        state.records.filter { it.chatId == chatId }
+        state.records.filter { it.chatId == chatId }.map(::copyRecord)
 
+    @Synchronized
     fun pruneOlderThan(cutoffMs: Long) {
         state.records.removeAll { it.timestampMs < cutoffMs }
     }
+
+    private fun copyRecord(record: CheckpointRecord) =
+        record.copy(untrackedFilesAtSnapshot = record.untrackedFilesAtSnapshot.toMutableList())
 
     companion object {
         fun getInstance(project: Project): CheckpointHistoryState =

@@ -35,6 +35,7 @@ class AgentTurnListenerFactory(
         usageTicket: Long,
         isCurrent: () -> Boolean,
         isStopped: () -> Boolean,
+        onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
     ): AgentProcessListener {
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
@@ -135,6 +136,7 @@ class AgentTurnListenerFactory(
 
             override fun onSessionUpdated(chatId: String?, model: String?) {
                 update {
+                    if (chatId != null && !onSession(chatId)) return@update
                     val parts = listOfNotNull(
                         chatId?.let { "session=${it.take(8)}…" },
                         model?.let { "model=$it" },
