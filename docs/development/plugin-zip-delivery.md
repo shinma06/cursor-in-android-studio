@@ -31,11 +31,17 @@ Git操作と別プロセスのファイル編集を同時実行しない。Git�
 
 `Plugin ZIP delivery` はtrusted mainで動作し、main push・CI/Plugin ZIP signalの完了event・定期scan・明示dispatchで到達履歴を走査する。
 develop/作業branchのpushは最小signal workflowの完了からtrusted mainを起動する。
-workflow_runのcode/artifact/入力は一切実行・採用せず、trusted mainでpublic refsを新規走査する。
+workflow_runのcode/artifactは実行・採用しない。trusted mainの計画jobがイベントのrun IDを同一repositoryのActions APIで照合し、
+同一repositoryのpush実行に限りhead SHAを`plugin-source-<full SHA>`の軽量タグへcreate-onlyで保存・readbackする。
+計画jobだけにcontents:write/actions:readを与え、build jobへ書込tokenを渡さない。
+保存は10件の選択やbuildより先に行い、再実行時も既存タグの指すcommitが一致しなければ停止する。
+PR実行・fork由来の実行は保存対象外。後続scanはpublic branchと永続sourceタグの祖先を走査する。
 古いbranchにsignalがなくても既存CI完了から起動し、両方ない場合やGITHUB_TOKEN mergeの取りこぼしは毎時scanで補完する。
 現branch tipを優先し、残りの履歴を最大10件ずつ古い順に処理する。build不能SHAが枠を占める場合はPMが他SHAを明示dispatchし、
 不能理由をIssueへ記録する。GitHub scheduleは遅延し得るので即時保証ではない。
-一括push中間commitもrev-list対象。fresh runnerのremote refsを使い、削除済local stale refsは対象にしない。
+一括push中間commitもrev-list対象。sourceタグはbranchのsquash/delete後も削除しないため、10件を超える未配布commitやbuild失敗commitを次回も列挙できる。
+イベント処理前にSHA自体が取得不能になった場合は保持を保証できず、保存失敗を解消してイベントを再実行する必要がある。
+fresh runnerのremote refsを使い、削除済local stale refsは対象にしない。
 ls-remote snapshotのtipがlocal未取得なら、その固定SHAだけ最大2回fetchして照合する。
 取得不能なら別SHAで代替せずinventoryを停止する。公開後はbranch削除に関係なくReleaseを保持する。初回85commit等の大量backfillはPMが担当する。
 

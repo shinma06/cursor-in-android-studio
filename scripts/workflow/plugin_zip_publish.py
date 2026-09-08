@@ -8,9 +8,42 @@ import tempfile
 
 from plugin_zip import NAME, REPOSITORY, SHA, git, validate
 
+SOURCE_PREFIX = 'plugin-source-'
+
 
 def gh(*args):
     return subprocess.check_output(['gh', *args], text=True).strip()
+
+
+def retain_event(event_path):
+    """Retain push roots before applying a build limit or executing source code."""
+    event = json.loads(event_path.read_text())
+    if event.get('repository', {}).get('full_name') != REPOSITORY:
+        raise ValueError('unexpected event repository')
+    signal = event.get('workflow_run')
+    if not signal:
+        return
+    run_id = signal.get('id')
+    if type(run_id) is not int or run_id <= 0:
+        raise ValueError('invalid workflow run id')
+    run = json.loads(gh('api', f'repos/{REPOSITORY}/actions/runs/{run_id}'))
+    # PR runs (including forks) are not a source of trusted repository roots.
+    if run.get('event') != 'push' or run.get('head_repository', {}).get('full_name') != REPOSITORY:
+        return
+    sha = run.get('head_sha', '')
+    if not SHA.fullmatch(sha) or sha != signal.get('head_sha'):
+        raise ValueError('invalid or mismatched event SHA')
+    ref = f'tags/{SOURCE_PREFIX}{sha}'
+    # Create-only; on retry or a race, readback must prove the exact same root.
+    try:
+        gh('api', '--method', 'POST', f'repos/{REPOSITORY}/git/refs',
+           '-f', f'ref=refs/{ref}', '-f', f'sha={sha}')
+    except subprocess.CalledProcessError:
+        pass
+    saved = json.loads(gh('api', f'repos/{REPOSITORY}/git/ref/{ref}'))
+    obj = saved.get('object', {})
+    if saved.get('ref') != f'refs/{ref}' or obj.get('type') != 'commit' or obj.get('sha') != sha:
+        raise ValueError('source root readback differs')
 
 
 def ensure_tip(sha):
@@ -35,8 +68,15 @@ def inventory(limit):
     published = {r['tag_name'] for page in releases for r in page if not r['draft'] and
                  {'manifest.json', NAME + '-' + r['tag_name'].removeprefix('plugin-build-') + '.zip'}
                  <= {a['name'] for a in r['assets']}}
-    # --remotes includes every reachable intermediate commit, not only push tips.
-    tips = [line.split()[0] for line in git('ls-remote', '--heads', 'origin').splitlines()]
+    # Durable event roots keep unbuilt ancestors reachable after branch deletion.
+    refs = git('ls-remote', 'origin', 'refs/heads/*', f'refs/tags/{SOURCE_PREFIX}*')
+    tips = []
+    for line in refs.splitlines():
+        sha, ref = line.split()
+        if ref.startswith(f'refs/tags/{SOURCE_PREFIX}') and ref != f'refs/tags/{SOURCE_PREFIX}{sha}':
+            raise ValueError('invalid persistent source root')
+        tips.append(sha)
+    tips = list(dict.fromkeys(tips))
     for sha in tips:
         ensure_tip(sha)
     commits = list(dict.fromkeys(tips + (git('rev-list', '--reverse', *tips).splitlines() if tips else [])))
@@ -92,12 +132,15 @@ def publish(folder, sha):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument('command', choices=['inventory', 'publish'])
+    parser.add_argument('command', choices=['inventory', 'publish', 'retain-event'])
+    parser.add_argument('--event-path', type=Path)
     parser.add_argument('--limit', type=int, default=10)
     parser.add_argument('--sha')
     parser.add_argument('--directory', type=Path)
     args = parser.parse_args()
     if args.command == 'inventory':
         print(json.dumps(inventory(args.limit)))
+    elif args.command == 'retain-event':
+        retain_event(args.event_path)
     else:
         publish(args.directory, args.sha)

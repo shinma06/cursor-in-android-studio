@@ -22,6 +22,9 @@ jobs:
   plan:
     if: github.repository == 'shinma06/cursor-in-android-studio' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
     outputs:
       commits: ${{ steps.plan.outputs.commits }}
     steps:
@@ -37,6 +40,8 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, re, subprocess
+          subprocess.run(['python3', 'scripts/workflow/plugin_zip_publish.py', 'retain-event',
+                          '--event-path', os.environ['GITHUB_EVENT_PATH']], check=True)
           sha = os.environ.get('REQUESTED_SHA', '')
           if sha:
               assert re.fullmatch('[0-9a-f]{40}', sha), 'full SHA required'

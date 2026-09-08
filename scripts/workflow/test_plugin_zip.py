@@ -284,6 +284,94 @@ class DeliveryTest(unittest.TestCase):
 
 
 class PublisherTest(unittest.TestCase):
+    def test_retained_root_survives_squash_branch_deletion_limit_and_failed_build(self):
+        from unittest.mock import patch
+        import plugin_zip_publish as publisher
+        with tempfile.TemporaryDirectory() as tmp:
+            env = os.environ.copy()
+            for key in subprocess.check_output(['git', 'rev-parse', '--local-env-vars'], text=True).splitlines():
+                env.pop(key, None)
+            env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
+
+            def git(*args):
+                return subprocess.check_output(['git', *args], cwd=tmp, env=env, text=True).strip()
+
+            git('init', '-b', 'main')
+            git('config', 'user.name', 'Fixture')
+            git('config', 'user.email', 'fixture@example.invalid')
+            git('commit', '--allow-empty', '-m', 'O')
+            old = git('rev-parse', 'HEAD')
+            git('checkout', '-b', 'work')
+            ancestors = []
+            for i in range(12):
+                git('commit', '--allow-empty', '-m', str(i))
+                ancestors.append(git('rev-parse', 'HEAD'))
+            tip = ancestors[-1]
+            event = Path(tmp) / 'event.json'
+            event.write_text(json.dumps({'repository': {'full_name': publisher.REPOSITORY},
+                                         'workflow_run': {'id': 123, 'head_sha': tip}}))
+            published = set()
+
+            def gh(*args):
+                if args[-1].endswith('/actions/runs/123'):
+                    return json.dumps({'event': 'push', 'head_sha': tip,
+                                       'head_repository': {'full_name': publisher.REPOSITORY}})
+                if '--method' in args:
+                    git('update-ref', 'refs/tags/' + publisher.SOURCE_PREFIX + tip, tip)
+                    return '{}'
+                if '/git/ref/' in args[-1]:
+                    return json.dumps({'ref': 'refs/tags/' + publisher.SOURCE_PREFIX + tip,
+                                       'object': {'type': 'commit', 'sha': tip}})
+                return json.dumps([[{'tag_name': 'plugin-build-' + sha, 'draft': False,
+                                      'assets': [{'name': 'manifest.json'},
+                                                 {'name': publisher.NAME + '-' + sha + '.zip'}]}
+                                     for sha in published]])
+
+            git('remote', 'add', 'origin', tmp)
+            with patch.object(publisher, 'gh', side_effect=gh), patch.object(publisher, 'git', side_effect=git), patch.object(
+                    publisher, 'ensure_tip', side_effect=lambda sha: git('cat-file', '-e', sha + '^{commit}')):
+                publisher.retain_event(event)
+                git('checkout', 'main')
+                git('commit', '--allow-empty', '-m', 'squash S')
+                git('branch', '-D', 'work')
+                first = publisher.inventory(10)
+                self.assertEqual(len(first), 10)
+                # No release was produced when builds failed: every SHA remains retryable.
+                self.assertEqual(publisher.inventory(10), first)
+                published.update(first)
+                remaining = publisher.inventory(10)
+                self.assertTrue(remaining)
+                self.assertTrue(set(ancestors + [old]) <= set(first + remaining))
+                published.update(remaining)
+                self.assertEqual(publisher.inventory(10), [])
+
+    def test_event_root_validation_and_create_only_retry(self):
+        from unittest.mock import patch
+        import plugin_zip_publish as publisher
+        sha = 'a' * 40
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / 'event.json'
+            event.write_text(json.dumps({'repository': {'full_name': publisher.REPOSITORY},
+                                         'workflow_run': {'id': 123, 'head_sha': sha}}))
+            run = {'event': 'push', 'head_sha': sha, 'head_repository': {'full_name': publisher.REPOSITORY}}
+            saved = {'ref': 'refs/tags/' + publisher.SOURCE_PREFIX + sha,
+                     'object': {'type': 'commit', 'sha': sha}}
+            for untrusted in (dict(run, event='pull_request'), dict(run, head_repository={'full_name': 'fork/repo'})):
+                with patch.object(publisher, 'gh', return_value=json.dumps(untrusted)) as gh:
+                    publisher.retain_event(event)
+                    self.assertEqual(gh.call_count, 1)
+            with patch.object(publisher, 'gh', side_effect=[json.dumps(dict(run, head_sha='b' * 40))]) as gh:
+                with self.assertRaises(ValueError):
+                    publisher.retain_event(event)
+                self.assertEqual(gh.call_count, 1)
+            conflict = subprocess.CalledProcessError(1, ['gh'])
+            with patch.object(publisher, 'gh', side_effect=[json.dumps(run), conflict, json.dumps(saved)]):
+                publisher.retain_event(event)
+            saved['object']['sha'] = 'b' * 40
+            with patch.object(publisher, 'gh', side_effect=[json.dumps(run), conflict, json.dumps(saved)]):
+                with self.assertRaises(ValueError):
+                    publisher.retain_event(event)
+
     def test_inventory_live_tips_middle_commits_and_missing_zip(self):
         from unittest.mock import patch
         import plugin_zip_publish as publisher
@@ -347,6 +435,8 @@ class PublisherTest(unittest.TestCase):
         self.assertIn('workflows: [CI, Plugin ZIP signal]', workflow)
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
         self.assertNotIn('github.event.workflow_run.', workflow)
+        self.assertIn("'--event-path', os.environ['GITHUB_EVENT_PATH']", workflow)
+        self.assertLess(workflow.index("'retain-event'"), workflow.index("sha = os.environ.get"))
         self.assertIn('permissions: {}', signal)
         self.assertNotIn('checkout', signal)
 
