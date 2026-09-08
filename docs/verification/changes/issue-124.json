@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 124,
+  "gui_required": false,
+  "reason": "Release publisher・新worktreeの保護hook引継ぎ・tests/docsのみ。実APIのdraft非表示/重複ID/部分upload/正本再利用、実Git worktreeでbootstrapとpre-commit/pre-push委譲をfixture検証する。実Release復旧と環境受入は親#120のPM所有でGUI不要。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain"
+  ],
+  "cases": []
+}
