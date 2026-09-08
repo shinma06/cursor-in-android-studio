@@ -148,6 +148,33 @@ class DeliveryTest(unittest.TestCase):
         self.git('merge', 'B', '--ff-only')
         self.assert_ready()
 
+    def test_fresh_setup_order_and_repair_previous_incomplete_setup(self):
+        # Simulate a fresh clone's tracked protection arriving after this fixture's old source.
+        hooks = self.root / '.githooks'
+        hooks.mkdir()
+        for name in ('pre-commit', 'pre-push'):
+            (hooks / name).write_text('#!/bin/sh\nexit 0\n')
+            (hooks / name).chmod(0o755)
+        # Existing old setup has .git/hooks as its broken prior destination.
+        result = self.runtime('setup', check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('bootstrap.sh', result.stderr)
+        self.git('config', '--local', 'core.hooksPath', '.githooks')
+        self.runtime('setup')
+        config = json.loads((self.root / '.git/plugin-zip-hooks.json').read_text())
+        self.assertEqual(Path(config['previous']).resolve(), hooks.resolve())
+        self.git('add', '.githooks')
+        self.git('commit', '-m', 'correct Issue protection delegation')
+        # A new clone has no worktree/local hooks config: setup must stop before installing.
+        fresh = self.root.parent / 'fresh'
+        self.git('clone', str(self.root), str(fresh))
+        result = self.runtime('setup', check=False, cwd=fresh)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((fresh / '.git/plugin-zip/runtime/hooks').exists())
+        self.git('config', '--local', 'core.hooksPath', '.githooks', cwd=fresh)
+        self.runtime('setup', cwd=fresh)
+        self.assertIn('plugin-zip/runtime/hooks', self.git('config', '--get', 'core.hooksPath', cwd=fresh).stdout)
+
     def test_real_merge_and_rebase_invalidate_unbuilt_result(self):
         # Only this disposable fixture allows writes; production protection is untouched.
         allow = self.root / '.git/hooks/pre-commit'
@@ -249,3 +276,45 @@ class PublisherTest(unittest.TestCase):
                 publisher.publish(Path('delivery'), sha)
             self.assertEqual(gh.call_count, 1)
             self.assertEqual(gh.call_args.args[:2], ('release', 'download'))
+
+    def test_draft_retry_preserves_uploaded_asset_and_fills_missing(self):
+        from unittest.mock import patch
+        import plugin_zip_publish as publisher
+        sha = 'a' * 40
+        remote, uploads = {}, []
+        fail = [True]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            for name in ('manifest.json', f'{publisher.NAME}-{sha}.zip'):
+                (folder / name).write_bytes(name.encode())
+            def gh(*args):
+                if args[1] == 'upload':
+                    path = Path(args[3])
+                    uploads.append(path.name)
+                    if path.name == 'manifest.json' and fail[0]:
+                        fail[0] = False
+                        raise RuntimeError('temporary upload failure')
+                    remote[path.name] = path.read_bytes()
+                elif args[1] == 'download':
+                    name = args[args.index('--pattern') + 1]
+                    (Path(args[args.index('--dir') + 1]) / name).write_bytes(remote[name])
+            with patch.object(publisher, 'gh', side_effect=gh), patch.object(publisher, 'validate') as validate:
+                with self.assertRaises(RuntimeError):
+                    publisher.complete_draft(folder, sha, 'tree', 'tag', {'assets': []})
+                publisher.complete_draft(folder, sha, 'tree', 'tag', {'assets': [{'name': n} for n in remote]})
+                self.assertEqual(uploads.count(f'{publisher.NAME}-{sha}.zip'), 1)
+                self.assertEqual(uploads.count('manifest.json'), 2)
+                validate.assert_called_once()
+                remote['manifest.json'] = b'different'
+                with self.assertRaises(ValueError):
+                    publisher.complete_draft(folder, sha, 'tree', 'tag', {'assets': [{'name': n} for n in remote]})
+
+    def test_default_branch_event_signal_does_not_trust_event_code(self):
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / '.github/workflows/plugin-zip.yml').read_text()
+        signal = (root / '.github/workflows/plugin-zip-signal.yml').read_text()
+        self.assertIn('workflows: [CI, Plugin ZIP signal]', workflow)
+        self.assertIn("github.ref == 'refs/heads/main'", workflow)
+        self.assertNotIn('github.event.workflow_run.', workflow)
+        self.assertIn('permissions: {}', signal)
+        self.assertNotIn('checkout', signal)

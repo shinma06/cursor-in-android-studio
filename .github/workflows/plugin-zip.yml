@@ -2,6 +2,9 @@ name: Plugin ZIP delivery
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: [CI, Plugin ZIP signal]
+    types: [completed]
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:

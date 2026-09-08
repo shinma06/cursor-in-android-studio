@@ -25,6 +25,26 @@ def inventory(limit):
     return missing[:limit]
 
 
+def complete_draft(folder, sha, tree, tag, release):
+    required = {'manifest.json', f'{NAME}-{sha}.zip'}
+    existing = {asset['name'] for asset in release['assets']}
+    # A retry can only preserve matching data and add missing expected assets.
+    # Never clobber any existing asset, including partially uploaded drafts.
+    with tempfile.TemporaryDirectory() as tmp:
+        staging = Path(tmp)
+        for name in sorted(required & existing):
+            gh('release', 'download', tag, '--repo', REPOSITORY, '--dir', tmp, '--pattern', name)
+            if (staging / name).read_bytes() != (folder / name).read_bytes():
+                raise ValueError('draft asset differs; investigate without overwriting')
+        for name in sorted(required - existing):
+            gh('release', 'upload', tag, str(folder / name), '--repo', REPOSITORY)
+            gh('release', 'download', tag, '--repo', REPOSITORY, '--dir', tmp, '--pattern', name)
+            if (staging / name).read_bytes() != (folder / name).read_bytes():
+                raise ValueError('uploaded asset readback differs')
+        validate(staging, sha, tree)
+    gh('release', 'edit', tag, '--repo', REPOSITORY, '--draft=false', '--prerelease', '--latest=false')
+
+
 def publish(folder, sha):
     if not SHA.fullmatch(sha):
         raise ValueError('full SHA required')
@@ -34,21 +54,21 @@ def publish(folder, sha):
     found = subprocess.run(['gh', 'api', f'repos/{REPOSITORY}/releases/tags/{tag}'], capture_output=True, text=True)
     if found.returncode == 0:
         release = json.loads(found.stdout)
+        if release['draft']:
+            complete_draft(folder, sha, tree, tag, release)
+            return
         with tempfile.TemporaryDirectory() as tmp:
             gh('release', 'download', tag, '--repo', REPOSITORY, '--dir', tmp)
             existing, _ = validate(Path(tmp), sha, tree)
             if existing != manifest:
                 raise ValueError('immutable SHA publication differs; investigate, never overwrite')
-        if release['draft']:
-            gh('release', 'edit', tag, '--repo', REPOSITORY, '--draft=false', '--prerelease', '--latest=false')
         return
     # Do not treat authentication/server failures as evidence of absence.
     if '404' not in found.stderr:
         raise ValueError('release lookup failed')
     gh('release', 'create', tag, '--repo', REPOSITORY, '--target', sha, '--draft', '--prerelease',
        '--latest=false', '--title', f'Plugin build {sha}', '--notes', f'Source commit: {sha}\nRecipe: {manifest["recipe"]}')
-    gh('release', 'upload', tag, str(archive), str(folder / 'manifest.json'), '--repo', REPOSITORY)
-    gh('release', 'edit', tag, '--repo', REPOSITORY, '--draft=false', '--prerelease', '--latest=false')
+    complete_draft(folder, sha, tree, tag, {'assets': []})
 
 
 if __name__ == '__main__':

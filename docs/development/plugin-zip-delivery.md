@@ -7,10 +7,13 @@
 ## 初回導入（PMが信頼したmainから各worktreeで一度実行）
 
 ```
+bash scripts/workflow/bootstrap.sh
 python3 scripts/workflow/plugin_zip.py setup
 python3 scripts/workflow/plugin_zip.py sync
 ```
 
+fresh cloneはIssue branchでbootstrapを先に実行して既存保護hookを設定する。順序を誤ると
+設定変更前に案内付きで停止する。旧版の半端導入もbootstrap後のsetup再実行で委譲先を修復できる。
 runtimeは共通Git dirの `plugin-zip/runtime` へ保存され、旧checkoutでも残る。
 `extensions.worktreeConfig` と各worktreeの `core.hooksPath` を使い、旧Gradleがlocal設定を
 `.githooks` へ上書きしてもworktree設定が優先する。他repository/global設定は変更しない。
@@ -26,8 +29,10 @@ Git操作と別プロセスのファイル編集を同時実行しない。Git�
 
 ## 配布側
 
-`Plugin ZIP delivery` はtrusted mainで動作し、main push・定期scan・明示dispatchで到達履歴を走査する。
-古いbranchにworkflowがなくても、GITHUB_TOKEN mergeがpush eventを生成しなくても次scanで捕捉する。
+`Plugin ZIP delivery` はtrusted mainで動作し、main push・CI/Plugin ZIP signalの完了event・定期scan・明示dispatchで到達履歴を走査する。
+develop/作業branchのpushは最小signal workflowの完了からtrusted mainを起動する。
+workflow_runのcode/artifact/入力は一切実行・採用せず、trusted mainでpublic refsを新規走査する。
+古いbranchにsignalがなくても既存CI完了から起動し、両方ない場合やGITHUB_TOKEN mergeの取りこぼしは毎時scanで補完する。
 現branch tipを優先し、残りの履歴を最大10件ずつ古い順に処理する。build不能SHAが枠を占める場合はPMが他SHAを明示dispatchし、
 不能理由をIssueへ記録する。GitHub scheduleは遅延し得るので即時保証ではない。
 一括push中間commitもrev-list対象。fresh runnerのremote refsを使い、削除済local stale refsは対象にしない。
@@ -38,7 +43,8 @@ checkoutし、artifactをデータとして検証してReleaseへ公開する。
 write tokenをbuild codeへ渡さない。Actions artifactsは2日間の配送用で、永続正本は
 `plugin-build-<full SHA>` prerelease（latest=false）のZIPとmanifest。
 既存公開資産は上書きしない。異なるdigest/manifestは停止する。draft中に失敗した場合は
-資産を点検して不足分を運用者が補完し、同じpublishを再実行する。資産自動削除はしない。
+同じpublishを再実行する。draft内の既存資産をbyte照合して保持し、不足する2資産のみを補完する。
+全資産のdownload readback・構造検証後に公開する。不一致の資産は上書きせず停止する。資産自動削除はしない。
 
 ```
 # clean exact sourceのcwd。scriptはtrusted mainの絶対パスを指定する

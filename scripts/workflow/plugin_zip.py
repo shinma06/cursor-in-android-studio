@@ -169,12 +169,25 @@ def install():
     runtime = common / 'plugin-zip/runtime'
     hooks = runtime / 'hooks'
     with lock(common / 'plugin-zip/setup.lock'):
-        hooks.mkdir(parents=True, exist_ok=True)
         previous = subprocess.run(['git', 'config', '--get', 'core.hooksPath'], capture_output=True, text=True).stdout.strip()
         previous_path = Path(previous) if previous else common / 'hooks'
         if not previous_path.is_absolute():
             previous_path = root / previous_path
         config = Path(git('rev-parse', '--absolute-git-dir')) / 'plugin-zip-hooks.json'
+        tracked = root / '.githooks'
+        has_tracked_protection = all((tracked / name).is_file() for name in ('pre-commit', 'pre-push'))
+        saved = previous_path
+        if previous_path.resolve() == hooks.resolve() and config.exists():
+            saved = Path(json.loads(config.read_text())['previous'])
+        missing_default_protection = saved.resolve() == (common / 'hooks').resolve() and not any(
+            (saved / name).is_file() for name in ('pre-commit', 'pre-push'))
+        if has_tracked_protection and missing_default_protection:
+            local = subprocess.run(['git', 'config', '--local', '--get', 'core.hooksPath'],
+                                   capture_output=True, text=True).stdout.strip()
+            if local != '.githooks':
+                raise ValueError('Run bash scripts/workflow/bootstrap.sh before ZIP setup, then retry setup')
+            previous_path = tracked
+        hooks.mkdir(parents=True, exist_ok=True)
         if previous_path.resolve() != hooks.resolve():
             atomic(config, json.dumps({'previous': str(previous_path.resolve())}).encode())
         atomic(runtime / 'plugin_zip.py', Path(__file__).read_bytes())
