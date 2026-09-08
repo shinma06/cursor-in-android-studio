@@ -79,7 +79,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 - `cursor-agent`の`--output-format stream-json`のJSONスキーマは変更される可能性がある `[仮説]` ため、パーサーは防御的に実装する
 
 ### 4.2 制約
-- CLIには「チェックポイント」「@Browser視覚検証」「音声入力」等、IDE専用機能が存在しない。これらは本プラグイン側で代替実装するか、スコープ外とする(§7 機能要件で個別判定)
+- 復元・Browser・音声入力は、現方式BでIDEと同じ入力/出力・UI契約を利用できるかを個別検証する。CLI interactiveの`/rewind`やBrowser subagent等の公開能力と、pluginの復元/画像表示/操作UIを分け、CLI全体に機能が存在しないとは断定しない（§6 機能要件・最新比較参照）。
 - 現プラグインの`@Docs`/`@Web`はMCP利用のヒント文字列を注入する実装。CLI自身のWeb能力やBrowser subagentとは分け、MCP追加だけが唯一の経路とは扱わない（[最新比較](research/cursor-agent-capability-matrix-2026-09-08.md)）。
 - 画像は[公式headless資料](https://cursor.com/docs/cli/headless)にprompt内のファイルパスを読む経路がある。installed helpの`--image`不在だけで非対応と断定しない。#10で識別画像・空白/日本語path・resume/Worktreeのlive検証を行ってからUI受入を決める。
 
@@ -192,7 +192,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
 | F-50 | 過去チャット一覧 | P2(部分実装) | pluginがchatId/冒頭prompt/更新時刻を保存し、選択後の次turnを`--resume`する。developでは同IDの既存タブを再選択。本文は未保存でその旨を表示し、再起動後本文復元は #44。CLIの履歴存在と非TTY取得API、plugin本文復元を区別する |
-| F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`をプロジェクトルートに固定 |
+| F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`と起動cwdをプロジェクトルートへ揃える。mainは`AgentProcessService`、developは`TurnWorkspace.arguments()`がworkspace引数を生成する |
 | F-52 | Worktree分離実行 | P3(基本実装済み) | 上部チャット設定から`-w`を選択。`--worktree-base`/`--skip-worktree-setup`のUIは未実装。develop #39は実rootを追跡できないISOLATEDの復元を安全拒否（QA #102）。分離rootで復元可能になったとは扱わない |
 
 ### 6.7 マルチモーダル・拡張入力
