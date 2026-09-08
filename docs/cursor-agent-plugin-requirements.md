@@ -6,7 +6,9 @@
 - **Assumed環境**: Kotlin 2.x / Android Studio (最新安定版) / IntelliJ Platform 2023.1+ 系API / cursor-agent CLI 2026年7月時点仕様
 - **開発方式**: 方式B(ネイティブUI方式) — `agent -p --output-format stream-json` をサブプロセス実行し、独自Swing/JBUI製チャットパネルに描画する
 
-**2026-09-05 UI比較の追補（計画・未実装）**: [閲覧調査46項目](research/cursor-agent-ui-survey-2026-09-05.md)と
+**2026-09-08 最新比較（#114）**: [機能・UI/UX・main/develop・非TTY CLIマトリクス](research/cursor-agent-capability-matrix-2026-09-08.md)を現在の調査入口とする。公式仕様、installed help、過去live実測、未検証の設計案を分ける。画像パス参照・headless Skills/subagentsには公開経路があるが、今回の調査は新機能のlive合格ではない。方式Bの採用は維持し、ACP等の公開transportは別途比較する。実装済みとmain反映/GUI合格を混同しない。
+
+**2026-09-05 UI比較の追補（当時の計画）**: [閲覧調査46項目](research/cursor-agent-ui-survey-2026-09-05.md)と
 [差分取り込み計画](plans/cursor-agent-ui-gap-plan.md)を追加。
 UI-xx は観測ID、UX-xx は取り込み単位であり、既存 F-xx を置換しない。
 優先順・依存関係・受入条件は計画、実際の進捗は [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) と子 Issue を参照する。
@@ -77,9 +79,9 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 - `cursor-agent`の`--output-format stream-json`のJSONスキーマは変更される可能性がある `[仮説]` ため、パーサーは防御的に実装する
 
 ### 4.2 制約
-- CLIには「チェックポイント」「@Browser視覚検証」「音声入力」等、IDE専用機能が存在しない。これらは本プラグイン側で代替実装するか、スコープ外とする(§7 機能要件で個別判定)
-- MCP(Model Context Protocol)はCLIとエディタで共通設定を使うため、`@Docs`/`@Web`相当の機能はMCPサーバー追加が前提となる
-- 画像添付のCLI経由での可否は `[要検証]`(公式リファレンス未確認)。検証方法: `cursor.com/docs/cli/reference` 配下のパラメータ一覧を再度精査、または実機で `agent -p` に画像パスを渡すテストを行う
+- 復元・Browser・音声入力は、現方式BでIDEと同じ入力/出力・UI契約を利用できるかを個別検証する。CLI interactiveの`/rewind`やBrowser subagent等の公開能力と、pluginの復元/画像表示/操作UIを分け、CLI全体に機能が存在しないとは断定しない（§6 機能要件・最新比較参照）。
+- 現プラグインの`@Docs`/`@Web`はMCP利用のヒント文字列を注入する実装。CLI自身のWeb能力やBrowser subagentとは分け、MCP追加だけが唯一の経路とは扱わない（[最新比較](research/cursor-agent-capability-matrix-2026-09-08.md)）。
+- 画像は[公式headless資料](https://cursor.com/docs/cli/headless)にprompt内のファイルパスを読む経路がある。installed helpの`--image`不在だけで非対応と断定しない。#10で識別画像・空白/日本語path・resume/Worktreeのlive検証を行ってからUI受入を決める。
 
 ---
 
@@ -127,7 +129,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 |---|---|---|---|
 | F-01 | テキストプロンプト送信 | MVP | `agent -p --output-format stream-json "<prompt>"` |
 | F-02 | ストリーミング応答表示(トークン単位) | MVP | `--stream-partial-output`イベントを逐次パースしUI更新 |
-| F-03 | 会話履歴の保持・スクロール表示 | MVP | プラグイン内メモリ + セッションID紐付けで永続化 |
+| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。再起動後の本文永続化は #44、検索/exportは #45で未実装 |
 | F-04 | セッション再開(前回の続きから) | MVP | `--resume [chatId]` |
 | F-05 | 新規チャット開始 | MVP | セッションID未指定で新規起動 |
 | F-06 | コンテキスト圧縮 | P2 | `/summarize`をプロンプト経由で送信 |
@@ -140,13 +142,13 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 | F-11 | `@フォルダ`指定 | P2 | 同上、ディレクトリ選択対応 |
 | F-12 | `@Git diff`(未コミット差分) | P2 | プラグイン側で`git diff`を実行し結果をプロンプトに埋め込み(CLI自動対応なし) |
 | F-13 | `@Terminals`(ターミナル出力) | P3(**実装済み 2026-09**) | Reworked Terminal API経由(`TerminalToolWindowTabsManager`/`TerminalView.outputModels.regular`)。開いているTerminalタブの末尾8KBを`@terminal`送信時に埋め込み。タブ未オープン時はプレースホルダー |
-| F-14 | `@Docs` / `@Web` | P3 | MCPサーバー追加設定が前提。本フェーズはスコープ外 |
+| F-14 | `@Docs` / `@Web` | P3(部分実装) | 現プラグインはMCP利用hintの注入のみ。CLIのWeb検索/取得能力・設定と独自Docs管理UIは別途 #25で実証し、MCP必須や独自検索実装済みとは表示しない |
 | F-15 | 現在開いているファイル/選択範囲の自動コンテキスト化 | MVP | エディタの`FileEditorManager`/`SelectionModel`から取得し、送信時に自動付与(ネイティブCursorの「Active file and selection」相当) |
 | F-16 | `@Branch`(現在のブランチ vs mainの差分) | P2 `[2026-09追加]`(**実装済み 2026-09**) | プラグイン側で`git diff <base>...HEAD`相当を実行し埋め込み。baseは`origin/HEAD`→`main`→`master`の順で解決 |
-| F-17 | `@Chats`(別の過去セッションの内容を参照) | P3 `[2026-09追加, スコープ外]` | ネイティブCursorには存在する機能。`agent ls`/`resume`が生TTY必須(F-50と同じ)。`agent --help`(2026-09-04)にもトランスクリプト取得の非対話手段はなく、CLI経由では実現不可と確定 |
-| — | `@codebase` / `@definitions`(Cursor独自のセマンティック検索・シンボルインデックス) | **恒久的にスコープ外** `[2026-09追加]` | Cursor社の独自インデックスバックエンドに依存しており、CLI経由で相当機能を利用する手段がない。「CLIで再現できること」という本プロジェクトの条件を満たさないため実装しない |
+| F-17 | `@Chats`(別会話の内容参照) | P3(未実装) | `ls`/`resume` pickerは過去の非TTY実測で失敗。方式Bの機械可読transcript取得契約は未確認。ACPのproject限定listは空応答を取得したが本文/実title取得ではない（#115/#66）。公開APIが将来も存在しないとは断定しない。#44のplugin本文保存を使う案は別受入 |
+| — | `@codebase` / `@definitions`(Cursor独自のセマンティック検索・シンボルインデックス) | **独自実装は非目的** `[2026-09追加]` | Cursor社の独自インデックスバックエンドに依存しており、本プロジェクトは独自インデックス実装を非目的とする。CLI側の検索能力と同名mention UIの同等性は未検証であり、機能不存在とは断定しない |
 
-> `@codebase`/`@definitions`はネイティブCursor Agentパネルの実在機能だが、CLIに公開されていないため対象外とする(§1.3非目的に準ずる恒久的除外)。将来CLIが同等機能を公開した場合に再検討する。
+> `@codebase`/`@definitions`はネイティブCursor Agentパネルの実在機能だが、独自index再現は§1.3の非目的とする。CLI側検索能力とUI入力契約を #25で確認し、同等機能の採用は明示的なscope判断を経る。
 
 ### 6.3 モード・モデル制御
 
@@ -154,9 +156,9 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 |---|---|---|---|
 | F-20 | Ask / Agent / Plan モード切替 | MVP(実装済み) | `--mode=ask` / 通常 / `--mode=plan` |
 | F-21 | モデル選択UI(ドロップダウン) | MVP(実装済み) | `--model <name>`、選択肢は`agent --list-models`で動的取得 |
-| F-22 | 自動承認(force)トグル | MVP(実装済み、**要再設計** `[2026-09]`) | 現状は`--force`のON/OFF二値切替として実装済みだが、実際のCLIの権限モデルは3値(「Run Everything」=`--force`/`--yolo` / 「Auto-Run in Sandbox」=`--sandbox enabled`との組合せ / 「Ask Every Time」=デフォルト)である。加えて`--auto-review`(サーバー側分類器が安全な呼び出しのみ自動実行し残りは確認を求める)という第4のモードも存在する。二値トグルのままでも動作はするが、ネイティブCursorのUXとは乖離があるため、UIを3〜4択のセレクタに再設計することを推奨(P2、後述F-23参照) |
+| F-22 | 操作確認モード | MVP(実装済み) | `PermissionMode`の3択（追加flagなし / `--auto-review` / `--force`）とsandboxを別設定。日本語の現在値・説明を提供。Cursor IDEのRun Mode分類と同義扱いしない。既存headless即時編集実測を維持し、事前承認を保証しない |
 | F-23 | サンドボックス実行モード | P2 `[2026-09追加]`(**基本実装済み 2026-09**) | `--sandbox enabled\|disabled`をComposerの⋯メニューから選択(`SandboxMode`)。`--allow-paths`等の細粒度フラグは未実装 |
-| F-24 | Auto-review(スマート自動承認) | P2 `[2026-09追加]` | `--auto-review`フラグ。F-22のトグルを「Ask Every Time / Auto-review / Run Everything」の3択にする際の一角 |
+| F-24 | Auto-review | P2(基本実装済み) | 操作確認3択の一つとして`--auto-review`を付与。分類結果/質問への双方向応答UIは現方式Bに未実装。公開ACP経路の比較は #25配下の別調査 |
 
 ### 6.4 実行結果の可視化・適用
 
@@ -165,15 +167,15 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
 | F-30 | 差分プレビュー(IDE純正Diff Viewerで表示) | MVP(**実装済み 2026-09**) | `ToolCallPayloadParser`が完了した`editToolCall`イベントから`FileEditDetails`(before/after/diff)を抽出、`ui/timeline/FileEditCard.kt`の View Diff から`DiffManager`/`DiffContentFactory`で表示 |
-| F-31 | Apply / Reject ボタン | MVP(**実装済み 2026-09、事後Revertモデルに変更**) | Teams プランでの実CLI検証により、ヘッドレスモードではforce有無に関わらずCLIが即座にファイルへ書き込むことが確定(分岐B)。事前のApply/Reject方式は不可能なため、`FileEditCard`のRevertボタン(`DiffViewerHelper.revertFileContent`)による事後取り消しとして実装。現在のファイル内容がそのeditの`afterFullFileContent`と一致する場合のみ復元を実行し、それ以降に変更されていれば拒否する |
+| F-31 | Apply / Reject ボタン | MVP(**実装済み 2026-09、事後Revertモデルに変更**) | Teams プランでの実CLI検証により、ヘッドレスモードではforce有無に関わらずCLIが即座にファイルへ書き込むことが確定(分岐B)。現方式Bでは書込み前の介入契約を確認できないため、`FileEditCard`のRevertボタン(`DiffViewerHelper.revertFileContent`)による事後取り消しとして実装。現在のファイル内容がそのeditの`afterFullFileContent`と一致する場合のみ復元を実行し、それ以降に変更されていれば拒否する |
 | F-32 | Shell実行結果の表示 | MVP(**実装済み 2026-09**) | stream-jsonの`tool_call`(`started`/`completed`)イベントを`ToolCallPayloadParser`で解析、`ui/timeline/ToolCallBubble.kt`でコンソール風に整形表示(stdout/stderr/interleavedOutput) |
-| F-33 | エラー発生時の分かりやすい表示 | MVP(実装済み) | プロセスのstderr / 非ゼロ終了コードをUIにトースト+ログパネルで表示 |
+| F-33 | エラーと停止の表示 | MVP(基本実装済み) | timelineのエラーとIDE通知を提供。develop #46は意図停止を「停止しました」とし異常137を区別（QA #104）。経過時間・詳細折畳み・一般通知抑制は #98 |
 
 > `[2026-09追加]` ネイティブCursor CLIには`/changes`(Ctrl+R)という、そのセッションでの全編集を集約した統合レビューUIが存在する模様(CLI changelogで言及)。非対話モードでの相当コマンドの有無は未確認。F-30/F-31の設計を確定させるM0検証と合わせて調査し、単純なdiffカードの羅列ではなく統合ビューにすべきか再検討する。
 
 ### 6.5 安全策(チェックポイント/ロールバック) ★重要テーマ関連
 
-ネイティブCursorの「チェックポイント」はCLIに存在しないため、**Git連携による代替実装**を必須要件とする。
+現方式Bは**plugin側Gitスナップショット**を利用する。CLIには公開interactive `/rewind` があるが、非TTYで同じ復元を要求する契約は未確認。CLI全体に復元機能が存在しないという断定はしない。
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
@@ -189,17 +191,17 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-50 | 過去チャット一覧(`@Past Chats`相当) | P2(実装済み) | `agent ls`/`agent resume`は生TTY必須で非対話サブプロセスから使用不可と判明済みのため、プラグイン側で`(chatId, 冒頭プロンプト, 更新時刻)`を独自に永続化・一覧表示。選択で次ターンから`--resume`。**既知の制約**: 過去ターンの再描画は非対応(CLIにトランスクリプト取得手段がないため) |
-| F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`をプロジェクトルートに固定 |
-| F-52 | Worktree分離実行 | P3 `[2026-09追加]`(**基本実装済み 2026-09**) | `-w`をComposer ⋯メニューから選択(`WorktreeMode.ISOLATED`)。`--worktree-base`/`--skip-worktree-setup`は未実装。変更は`~/.cursor/worktrees/`側 — MV-027で手動確認 |
+| F-50 | 過去チャット一覧 | P2(部分実装) | pluginがchatId/冒頭prompt/更新時刻を保存し、選択後の次turnを`--resume`する。developでは同IDの既存タブを再選択。本文は未保存でその旨を表示し、再起動後本文復元は #44。CLIの履歴存在と非TTY取得API、plugin本文復元を区別する |
+| F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`と起動cwdをプロジェクトルートへ揃える。mainは`AgentProcessService`、developは`TurnWorkspace.arguments()`がworkspace引数を生成する |
+| F-52 | Worktree分離実行 | P3(基本実装済み) | 上部チャット設定から`-w`を選択。`--worktree-base`/`--skip-worktree-setup`のUIは未実装。develop #39は実rootを追跡できないISOLATEDの復元を安全拒否（QA #102）。分離rootで復元可能になったとは扱わない |
 
 ### 6.7 マルチモーダル・拡張入力
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-60 | 画像添付 | P3(**CLI非対応と判断 2026-09-04**) | `agent --help`(CLI `2026.09.02-c22c1a3`)に画像/`--image`フラグなし。changelogとの矛盾は残るが、プラグイン側実装は保留 |
-| F-61 | 音声入力 | P3 | CLIに相当機能なし。macOSのOSレベル辞書入力(Fn Fn)が`EditorTextField`に対して標準のテキスト入力として機能するなら追加実装不要という仮説あり、要検証 |
-| F-62 | ブラウザ視覚検証(`@Browser`相当) | P3 | ネイティブCursorにも直接のCLIフラグはなし。Playwright系MCPサーバー導入 + 汎用MCPツール結果表示(F-32拡張、画像サムネイル対応)で代替可能と判断し、専用実装はしない方針 |
+| F-60 | 画像添付 | P3(公開経路あり・live未検証) | [headless資料](https://cursor.com/docs/cli/headless)はprompt内の画像path読取を説明。CLI `2026.09.02-c22c1a3`のhelpに`--image`はないが非対応の証明にはならない。#10で非TTY実証後、添付/paste/D&D/preview/remove/失敗UIを設計する |
+| F-61 | 音声入力 | P3(未検証) | 専用録音/送信UIは未実装。#99でOS標準音声入力がEditorTextFieldへ文字入力できるか検証する。音声ファイル解析とdictationを別機能にする |
+| F-62 | ブラウザ視覚検証 | P3(未実装・調査) | [Browser](https://cursor.com/docs/agent/tools/browser)と[Subagents](https://cursor.com/docs/subagents)の公開経路を調査する。MCP利用も候補だが汎用tool summaryだけでは画像描画/視覚検証は成立しない。方式Bでのevent・表示・操作契約は #25で確認 |
 
 ### 6.8 MCP連携
 
@@ -214,8 +216,8 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 | 項目 | 概要 | CLIでの再現性 |
 |---|---|---|
-| Subagents / `/multitask` | Agentが複数のサブタスクを並列的な非同期サブエージェントとして実行する機能(Cursor 3.2+)。CLI changelogに「subagent transcript」「サブエージェント用チェックポイント永続化」の言及あり | `[要検証]` 何らかのCLI側サポートがある可能性はあるが、コマンド体系が未確認 |
-| Custom Modes | `/`コマンドで任意のスキルをカスタムモードとしてピン留めする機能 | `[要検証]` `--mode`まわりの拡張である可能性 |
+| Subagents / Multitask | [Subagents](https://cursor.com/docs/subagents)とCLI changelogにheadless対応の公開記載。IDEの複数モデル実行と子agentを区別する | 公開対応。方式Bの親子event/終了/停止/usageのlive fixtureとネイティブ表示は未実装 |
+| Skills / Custom Modes | [Skills](https://cursor.com/docs/skills)に1turn呼出しとsession持続modeの説明 | headless `/skill-name`は公開対応。発見/補完UIは未実装。持続modeのprint呼出し間の契約は別途検証し、`--mode`値を推測しない |
 | デスクトップ通知 | ターン完了時・承認待ち発生時のOSネイティブ通知 | **実装済み 2026-09** — IntelliJ `Notification` API。ターン完了/ツール呼び出し開始時に通知(設定でOFF可) |
 | `permissions.json` | チーム管理者向けのターミナル/MCP許可リスト宣言ファイル。IDEとCLIで設定共有 | F-22/F-23再設計時の参考として調査対象。個人利用が主眼の本プラグインでは優先度低 |
 | CLI Hooks(session start/end, stop, pre-compaction等) | チーム管理向け自動化フック | Agentパネルの「UX」ではなく設定機能のため本プラグインのスコープ外と判断 |
@@ -323,16 +325,16 @@ agent mcp list
 
 | フェーズ | 内容 | 含む主要機能ID | 状態 |
 |---|---|---|---|
-| **Phase 1(MVP)** | 基本チャット + `@ファイル`コンテキスト + モード/モデル切替 + 差分Apply/Reject + チェックポイント基本機能 | F-01〜05, F-10, F-15, F-20〜22, F-30〜33, F-40〜42, F-44, F-51 | F-30〜32以外は実装済み。F-30〜32はM0のCLI実機検証待ちでブロック中 |
-| **Phase 2** | フォルダメンション、Git diffメンション、コンテキスト圧縮、過去チャット一覧、MCP一覧表示、Branchメンション | F-06, F-11, F-12, F-16, F-50, F-70 | 実装済み |
+| **Phase 1(MVP)** | 基本チャット・context・mode/model・事後Diff/Revert・checkpoint | F-01〜05, F-10, F-15, F-20〜22, F-30〜33, F-40〜42, F-44, F-51 | 基本実装済み。本文永続化/専用checkpoint一覧は未実装、復元安全性の後続はdevelopとQA #102。過去M0待ちは解消 |
+| **Phase 2** | フォルダメンション、Git diffメンション、コンテキスト圧縮、過去チャット一覧、MCP一覧表示、Branchメンション | F-06, F-11, F-12, F-16, F-50, F-70 | 基本実装あり。F-50本文復元は #44、MCP診断拡充は #25 |
 | **Phase 2.5(2026-09追加)** | 権限モデル再設計(sandbox/auto-review)、デスクトップ通知 | F-23, F-24, デスクトップ通知(§6.9) | F-24実装済み。デスクトップ通知実装済み。F-23は`--sandbox`トグル基本実装済み(2026-09) |
-| **Phase 3(将来検討)** | Docs/Web(MCP前提)、音声入力、ブラウザ視覚検証、Subagents、Custom Modes | F-14, F-60〜62 | F-13/F-52(基本)/F-71実装済み。F-17 `@Chats`・F-60画像添付はCLI非対応でスコープ外(2026-09-04) |
+| **Phase 3(将来検討)** | Docs/Web・画像・音声・Browser・Subagents・Skills/Custom Modes | F-14, F-60〜62 | 公開経路とlive未検証を最新マトリクスで分離。F-13/F-52(基本)/F-71は実装済み。画像/会話取得の永久非対応という旧判定は撤回 |
 
 ---
 
 ## 13. 未確定事項(要検証リスト)
 
-- [x] `[スコープ外 2026-09-04]` CLIでの画像添付 — `agent --help`(CLI `2026.09.02-c22c1a3`)に画像フラグなし。changelogと矛盾するが実機では非対応と確定(F-60)
+- [ ] `[公開経路あり・要実測 2026-09-08]` CLI画像path読取 — helpの画像flag不在による旧非対応判定を訂正。#10で識別画像を非TTY送信し、正答/失敗とUI要件を確認する(F-60)
 - [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
 - [x] `[検証済 2026-09-04]` stream-jsonのイベントスキーマ(実機) — `system/init`, `user`, `connection`, `retry`, `assistant`(累積/差分混在), `tool_call`(started/completed、`readToolCall`/`editToolCall`/`shellToolCall`)。`editToolCall` completed に `beforeFullFileContent`/`afterFullFileContent`/`diffString` を確認。fixture: `src/test/resources/stream-json-fixtures/`
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値 — デフォルト15日で実装済みだが、ユーザーが変更できる設定UIは未実装
@@ -343,7 +345,7 @@ agent mcp list
 - [x] `[検証済 2026-09]` `--list-models`と`agent mcp list`/`enable`/`disable`はローカルのメタデータ操作でチャットのクォータを消費しないことが判明。F-21/F-70/F-71はこの発見によりM0のクォータブロッカーを回避して実装済み
 - [x] `[検証済 2026-09-04]` force ON/OFFでのファイル書き込みタイミングとtool_call結果 — Teamsプラン実機: `permissionMode: default`でもヘッドレス subprocess では**即書き込み**。F-30/F-31は事後 diff/revert モデルで実装済み(PR #18)
 - [x] `[検証済 2026-09-04]` `AssistantChunkDeduper`のストリーミング重複排除 — Teams実機で `--stream-partial-output` が増分断片と累積再送を混在させることを確認。heuristic を更新し `AssistantChunkDeduperTest` で固定
-- [ ] `[要検証 2026-09追加]` Subagents/`/multitask`、Custom Modesの非対話CLIでの対応状況(§6.9参照)
+- [ ] `[公開対応と未実測を分離 2026-09-08]` headless Skills/Subagentsは公開対応。子event/UI・sticky Custom Mode・Multitaskとの境界をlive fixtureで確認する(§6.9/最新マトリクス参照)
 - [x] `[検証済 2026-09-04]` `agent mcp list`の出力形式(`id: status`行)を実配置環境で確認。`McpListParser`+整列表示に置き換え済み
 
 ---
@@ -367,7 +369,7 @@ agent mcp list
 ## 次のアクション
 
 `[2026-09-05訂正]` M0の即時書込み検証、F-30〜32、sandbox基本選択、通知は PR #18 までに完了している。
-旧来のブロッカー記述を次の作業選択に使わない。既存の残作業は #5 の手動QAと #10 の画像/音声対応判断。
+旧来のブロッカー記述を次の作業選択に使わない。既存の残作業はGitHubの現行Issue一覧で管理する。#10は画像path、#99はOS音声入力、製品変更後のQAは #102〜#108へ分離済み。
 
 UI差分の新規取り込みは [計画書](plans/cursor-agent-ui-gap-plan.md) の UX-01（権限・sandbox表示とWorktree復元整合性）から進める。
 以降は入力操作、本文履歴、状態/レビュー/キュー、コンテキスト導線の順とする。

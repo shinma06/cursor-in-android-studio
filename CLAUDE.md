@@ -3,6 +3,10 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 `AGENTS.md` is a symlink to this file, so any agent reading either name gets identical content.
 
+## 最新の能力比較（2026-09-08 / #114）
+
+[機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ち、現方式Bは維持する。以下の過去記録の「非対応」は観測時点・経路に限定する。
+
 ## GitHub-first collaboration (2026-09-06, #31)
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
@@ -114,7 +118,7 @@ plugin cannot intercept writes before they happen — F-30/F-31 are implemented 
 view + Revert** (restore `beforeFullFileContent` from the completed `editToolCall` event, or use
 checkpoints), not pre-apply approval gating.
 
-Still out of scope until CLI support appears: F-60 image attachment (`agent --help` has no image flag, verified 2026-09-04).
+F-60 image UI remains unimplemented. The 2026-09-04 absence of an image flag is historical; the current documented headless path-reference route needs a live spike in #10 (see the capability matrix).
 
 ## Commands
 
@@ -271,7 +275,7 @@ persisted side-channel read by both the service and the UI.
   `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
   telemetry, safe to keep ignoring.
 - **CLI flags verified 2026-09-04**: `--sandbox enabled|disabled`, `-w/--worktree` (no `--image` in `--help`).
-- **Scoped out (CLI, 2026-09-04)**: F-17 `@Chats` (no non-TTY transcript API; same TTY constraint as `agent ls`); F-60 image attach (no `--image` flag in `--help`).
+- **Historical scope decision (2026-09-04; updated #114)**: non-TTY transcript retrieval for F-17 remains unverified. F-60 now has a documented path-reference route; lack of `--image` in help is not proof of no image support. Neither feature UI is implemented.
 - **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
   incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
   with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
@@ -450,8 +454,11 @@ Past-chats tracking (F-50) is also implemented: `ChatHistoryState` records `(cha
 firstPromptPreview, lastUpdatedMs)` on every turn (since `agent ls`/`agent resume` need a raw TTY
 and can't be shelled out to — see the "Verified CLI behavior" section), and `AgentHeaderBar`'s
 history button opens a popup to resume one. Resuming only continues the *session* for the next
-turn — the CLI has no way to hand back a past session's transcript, so the timeline is cleared
-rather than replayed; this is a known, permanent limitation rather than a TODO.
+turn. Plugin-side transcript persistence is still pending in #44; the previous statement that
+replay was a permanent CLI limitation is withdrawn. The print transport's transcript contract is
+unverified. The 2026-09-08 ACP probe returned an empty project-filtered session list, not transcript
+or title data; see the latest matrix and #115/#66. Develop #65 preserves live tab views in memory,
+which is distinct from restoring message bodies after restarting the IDE.
 
 **Implemented (2026-09, M4/M5)**: tool-call timeline cards (F-32: read/edit/shell started +
 completed), file-edit cards with IDE Diff Viewer + Revert (F-30/F-31 as post-hoc model — CLI
