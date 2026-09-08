@@ -224,6 +224,37 @@ class DeliveryTest(unittest.TestCase):
         finally:
             os.chdir(old)
 
+    def test_array_manifest_cache_recovers_from_release(self):
+        from unittest.mock import patch
+        import plugin_zip
+        sha = self.git('rev-parse', 'HEAD').stdout.strip()
+        tree = self.git('rev-parse', 'HEAD^{tree}').stdout.strip()
+        stored = self.root / '.git/plugin-zip/cache' / sha
+        assets = {item.name: item.read_bytes() for item in stored.iterdir()}
+        (stored / 'manifest.json').write_text('[]')
+        with self.assertRaises(ValueError):
+            plugin_zip.validate(stored, sha, tree)
+
+        def fetch(url, destination):
+            self.assertEqual(url, f'https://github.com/{plugin_zip.REPOSITORY}/releases/download/plugin-build-{sha}/{destination.name}')
+            destination.write_bytes(assets[destination.name])
+
+        old = Path.cwd()
+        os.chdir(self.root)
+        try:
+            with patch.object(plugin_zip, 'download', side_effect=fetch) as download:
+                self.assertEqual(plugin_zip.sync(), 0)
+                self.assertEqual(download.call_count, 2)
+            self.assert_ready()
+            plugin_zip.validate(stored, sha, tree)
+            self.assertEqual((stored / 'manifest.json').read_bytes(), assets['manifest.json'])
+            with patch.object(plugin_zip, 'download') as download:
+                self.assertEqual(plugin_zip.sync(offline=True), 0)
+                download.assert_not_called()
+            self.assert_ready()
+        finally:
+            os.chdir(old)
+
     def test_historical_build_only_recipe_and_legacy_archive_names(self):
         archive_path = self.root / 'build/distributions/historical.zip'
         archive(archive_path, topdir='cursor-agent-plugin', jar_name='cursor-agent-plugin-0.1.jar')

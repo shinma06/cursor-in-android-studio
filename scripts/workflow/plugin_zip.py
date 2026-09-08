@@ -50,6 +50,8 @@ def lock(path):
 
 def validate(folder, sha, tree):
     manifest = json.loads((folder / 'manifest.json').read_text())
+    if not isinstance(manifest, dict):
+        raise ValueError('manifest must be a JSON object')
     if not SHA.fullmatch(sha) or manifest.get('schema') != 1 or manifest.get('repository') != REPOSITORY:
         raise ValueError('invalid identity')
     if manifest.get('commit') != sha or manifest.get('tree') != tree:
