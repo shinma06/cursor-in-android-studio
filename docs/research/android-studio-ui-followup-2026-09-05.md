@@ -1,5 +1,7 @@
 # Android Studio プラグイン実機UI調査・追補（2026-09-05）
 
+> 履歴資料。現在の機能・UI/UX・main/develop差分とCLI実現性は[2026-09-08比較マトリクス](cursor-agent-capability-matrix-2026-09-08.md)を参照。以下の当時の観測・優先度を最新状態やGUI合格として転用しない。
+
 調査開始: 2026-09-05 / 復帰確認・文書反映: 2026-09-06。
 
 関連: [Cursorの46項目調査](cursor-agent-ui-survey-2026-09-05.md) / [取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [親 #19](https://github.com/shinma06/cursor-agent-plugin/issues/19)

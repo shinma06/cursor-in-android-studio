@@ -1,5 +1,7 @@
 # Cursor Agent UI 差分取り込み計画
 
+> 履歴資料。現在の機能・UI/UX・main/develop差分とCLI実現性は[2026-09-08比較マトリクス](../research/cursor-agent-capability-matrix-2026-09-08.md)を参照。以下の当時の観測・優先度を最新状態やGUI合格として転用しない。
+
 作成: 2026-09-05 / 状態: 計画登録済み、追加機能は未実装。
 
 - 根拠: [UI閲覧調査46項目](../research/cursor-agent-ui-survey-2026-09-05.md) / [Android Studio実機追補7項目](../research/android-studio-ui-followup-2026-09-05.md)
