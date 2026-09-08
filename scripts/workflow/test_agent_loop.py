@@ -223,7 +223,7 @@ class LoopTests(unittest.TestCase):
         def git(*args, **kwargs):
             if args[:2] == ('rev-parse', '--git-common-dir'): return self.tmp.name
             if args[:2] == ('rev-parse', 'HEAD'): return self.local_head
-            if args[:2] == ('rev-parse', 'origin/main'): return self.fetched_base
+            if args[:2] in (('rev-parse', 'origin/main'), ('rev-parse', 'origin/develop')): return self.fetched_base
             if args[:2] == ('rev-parse', 'origin/codex/35-test'): return self.fetched_head
             return ''
         self.git = patch.object(al, 'git', side_effect=git); self.git.start(); self.addCleanup(self.git.stop)
@@ -243,6 +243,83 @@ class LoopTests(unittest.TestCase):
              'branch': 'codex/35-test', 'source': str(self.checkout), 'scope': ['src/'],
              'close_issue': True, 'gui_required': False, 'writer_stopped': True}
         self.gh.comment(36, al.pack(al.HANDOFF, h))
+
+    def prepare_issue_guard_review(self, target):
+        # Keep each race scenario independent, including its saved controller state.
+        handoff, _, _, _ = self.loop.load(36)
+        handoff['target'] = target
+        self.gh.messages.clear()
+        self.gh.comment(36, al.pack(al.HANDOFF, handoff))
+        self.gh.pull = pr_data()
+        self.gh.pull['base']['ref'] = target
+        self.gh.issues[35] = copy.deepcopy(FakeGitHub().issues[35])
+        self.gh.merges = 0
+        self.worker.reset_mock()
+        self.loop.finish = Mock(return_value={'pr': 36, 'phase': 'done'})
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.worker.call_count, 1)
+
+    def issue_guard_changes(self):
+        return {
+            'invalid-title': {'title': 'task'},
+            'missing-label': {'labels': ['type:maintenance', 'priority:P2']},
+            'duplicate-label': {'labels': ['type:maintenance', 'priority:P2',
+                                           'status:review', 'status:ready']},
+            'closed': {'state': 'closed'},
+            'pull-request': {'pull_request': {}},
+            'unknown-state': {'state': 'unknown'},
+        }
+
+    def test_issue_metadata_invalid_after_review_never_merges(self):
+        for target in ('main', 'develop'):
+            for name, change in self.issue_guard_changes().items():
+                with self.subTest(target=target, change=name):
+                    self.prepare_issue_guard_review(target)
+                    self.gh.issues[35].update(change)
+                    self.loop.tick(36)
+                    self.assertEqual(self.gh.merges, 0)
+                    self.assertEqual(self.worker.call_count, 1)
+
+    def test_issue_metadata_invalid_at_final_read_never_merges(self):
+        for target in ('main', 'develop'):
+            for name, change in self.issue_guard_changes().items():
+                with self.subTest(target=target, change=name):
+                    self.prepare_issue_guard_review(target)
+                    original_issue = self.gh.issue
+                    reads = []
+                    def issue(number):
+                        value = original_issue(number)
+                        if number == 35:
+                            reads.append(number)
+                            if len(reads) == 2:
+                                value.update(change)
+                        return value
+                    with patch.object(self.gh, 'issue', side_effect=issue):
+                        self.loop.tick(36)
+                    self.assertEqual(len(reads), 2)
+                    self.assertEqual(self.gh.merges, 0)
+                    self.assertEqual(self.worker.call_count, 1)
+
+    def test_valid_metadata_updates_do_not_require_another_review(self):
+        for target in ('main', 'develop'):
+            for timing in ('after-review', 'final-read'):
+                with self.subTest(target=target, timing=timing):
+                    self.prepare_issue_guard_review(target)
+                    change = {'title': '[運用] clarified task',
+                              'labels': ['type:maintenance', 'priority:P1', 'status:review']}
+                    original_issue = self.gh.issue
+                    reads = []
+                    def issue(number):
+                        value = original_issue(number)
+                        if number == 35:
+                            reads.append(number)
+                            if timing == 'after-review' or len(reads) == 2:
+                                value.update(change)
+                        return value
+                    with patch.object(self.gh, 'issue', side_effect=issue):
+                        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+                    self.assertEqual(self.gh.merges, 1)
+                    self.assertEqual(self.worker.call_count, 1)
 
     def test_stale_pr_base_syncs_tests_pushes_then_rereviews(self):
         self.loop.tick(36)

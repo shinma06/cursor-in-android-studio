@@ -291,6 +291,7 @@ class Loop:
             issue = self.gh.issue(h['issue'])
             if issue['state'] != 'open' or 'pull_request' in issue:
                 raise ValueError('Issue must remain open until scoped acceptance is evaluated')
+            validate_issue(issue)
             self.source_safe(h)
             path = self.checkout(pr, h)
             running = self.storage / f'pr-{number}' / 'worker.json'
@@ -407,7 +408,11 @@ class Loop:
                 self.test_and_push(pr, path, state)
             elif action == 'merge':
                 latest = self.gh.pr(number)
-                now, _ = self.bound(latest, self.gh.issue(h['issue']), self.gh.comments(number))
+                latest_issue = self.gh.issue(h['issue'])
+                if latest_issue.get('state') != 'open' or 'pull_request' in latest_issue:
+                    raise ValueError('Issue must remain open until scoped acceptance is evaluated')
+                validate_issue(latest_issue)
+                now, _ = self.bound(latest, latest_issue, self.gh.comments(number))
                 if now != bound or self.gh.ci(latest) != 'success' or not self.acceptance(latest, path)['allowed']:
                     self.invalidate_acceptance(state)
                     state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
