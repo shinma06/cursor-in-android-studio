@@ -6,7 +6,7 @@ description: Start an Issue-scoped worktree and develop PR with acceptance track
 # Start work
 
 Read AGENTS.md, docs/development/github-workflow.md, requirements, #1, target Issue/comments and open PRs.
-Every change needs Issue search, a unique ownership claim, isolated Issue-numbered branch/worktree and Draft PR.
+Use the title and exclusive type/priority/status labels from github-workflow.md (#96); closed means status:done. Every change needs Issue search, a unique ownership claim, isolated Issue-numbered branch/worktree and Draft PR.
 Read-only advice/review needs no Issue. Preserve unrelated work and unreleased claims.
 
 1. Inspect status/worktrees, fetch origin and compare the intended base. Normal work starts from origin/develop.

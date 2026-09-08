@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 96,
+  "gui_required": false,
+  "reason": "Issue命名・ラベル・QA引継ぎとcloseのtooling規約のみ。製品/固定候補/GUIは変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "git diff --check"
+  ],
+  "cases": []
+}

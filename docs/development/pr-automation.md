@@ -13,7 +13,7 @@ python3 /path/to/trusted-main/scripts/workflow/agent_loop.py enroll \
   --scope scripts/workflow/ docs/verification/ --parent 1 --writer-stopped
 ```
 
-`--close-issue`は全Issue受入完了時だけ指定できますが、develop統合時は指定にかかわらずcloseしません。
+mainの`--close-issue`は全Issue受入完了時だけ指定します。developのfeature/bug/maintenanceは実装受入完了とQA引継ぎ成功後に元Issueをcloseします。reviewのissue_completeはdevelopでは未実装受入が残らないこと（明示的な別Issueへの分離を含む）、mainでは全受入完了を意味します。
 PRのIssue番号、作者/repository、main/develop target、Integration/Verification metadata、clean source/HEAD一致を検査します。
 公開marker `agent-loop-handoff:v2` にはopaque `registry_id`、PR/Issue/HEAD/base/target、scope、owner、停止宣言だけを保存します。
 source絶対パスとhostはprivate `.git/agent-loop/registry/` に0600で保存し、公開record全体のdigestで結び付けます。
@@ -80,7 +80,7 @@ registry喪失、旧writer再開、予期しないcommitやdirty内容は保持�
 
 ## 完了とcleanup
 
-GitHub mergeを読み戻してIssueへmerge SHAと残条件を記録します。developではIssue/親チェックを完了にしません。
+GitHub mergeを読み戻します。developでは元実装Issue単位の `<!-- issue-qa-handoff:v1 origin=N -->` をQA本文から全件取得で照合し、存在すれば再利用します。複数一致は停止します。元Issue/PR/merge SHA/固定mergeのCase JSON全文（GUI不要の場合もmain反映追跡）をQAへ保存してreadbackし、元Issueコメントの `<!-- issue-qa-link:v1 origin=N qa=Q -->` も読み戻してからstatus:doneでcloseします。API失敗やreadback不一致ではcloseせず、再試行で既存QAを再利用します。親チェック/QA受入は完了にしません。既存QA本文は置換せず引継ぎコメントを追加します。
 mainで全受入済みのpromotion Issueは新candidate証拠を含む受入判定でclose可能です。元の機能/QA IssuesはPMが残条件を個別照合します。
 remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止・GUI lease空きの場合だけ削除します。
 **main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
@@ -97,7 +97,7 @@ python3 scripts/workflow/agent_loop.py cleanup-branches --apply
 ## 検証
 
 `python3 -m unittest discover -s scripts/workflow -p 'test_*.py'` はtarget変更、固定候補全範囲、古いbuild拒否、Case漏れ、
-GUI failのdevelop許可/main拒否、privacy registry、旧v1、Issue open保持、main/develop cleanup禁止、review/fix/再レビューと再開を検証します。
+GUI failのdevelop許可/main拒否、privacy registry、旧v1、QA引継ぎ後の元実装Issue close/失敗時open保持、main/develop cleanup禁止、review/fix/再レビューと再開を検証します。
 
 - [GitHub commit statuses](https://docs.github.com/en/rest/commits/statuses)
 - [GitHub branch refs](https://docs.github.com/en/rest/git/refs#get-a-reference)

@@ -106,6 +106,15 @@ class AcceptanceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'tree differs'):
             self.verify()
 
+    def test_closed_origin_does_not_weaken_or_block_fixed_candidate_gate(self):
+        original = self.api
+        def api(path):
+            if path.startswith('issues/'):
+                return {'state': 'closed', 'labels': [{'name': 'status:done'}]}
+            return original(path)
+        self.api = api
+        self.assertEqual(self.verify()['mode'], 'promotion')
+
     def test_wrong_source_merge_base_or_moving_develop_rejected(self):
         self.source['merge_commit_sha'] = HEAD
         with self.assertRaises(ValueError): self.verify()
@@ -221,7 +230,8 @@ class RegistryTests(unittest.TestCase):
 class DevelopLoopTests(unittest.TestCase):
     setUp = tal.LoopTests.setUp
     # Reuse the real transition fixture without duplicating inherited scenario discovery.
-    def test_develop_merge_keeps_issue_open(self):
+    def test_develop_tracking_merge_keeps_issue_open(self):
+        self.gh.issues[35].update(title="[追跡] parent", labels=["type:tracking", "priority:P2", "status:review"])
         self.gh.pull['base']['ref'] = 'develop'
         self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'develop')
         h, _, _, _ = self.loop.load(36)

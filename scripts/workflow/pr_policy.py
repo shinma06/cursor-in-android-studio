@@ -6,6 +6,7 @@ import re
 import sys
 from urllib.request import Request, urlopen
 from git_guard import BRANCH
+from issue_schema import validate_issue
 
 
 def validate(pr):
@@ -46,6 +47,7 @@ def main():
             data = json.load(response)
         if data.get('state') != 'open' or 'pull_request' in data:
             raise ValueError('The linked number must be an open Issue, not a PR')
+        validate_issue(data)
         print(f'PR policy passed for Issue #{issue}. Human/agent review still verifies claims and evidence.')
         return 0
     except (ValueError, KeyError, OSError) as error:

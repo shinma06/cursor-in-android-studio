@@ -67,7 +67,7 @@ GitHubへ接続できずclaimを確認できないときは新規実装を開始
 最新 `test` / `PR policy` / `Agent review` / `Acceptance gate` がsuccess、会話解決済みであることを確認します。CI未実行・失敗をローカル成功で代替しません。
 
 developではCase不足を拒否しますが、GUI passを要求しません。未実施/blocked/failと次の操作を保ち、`Refs #N`を使います。
-coordinatorはdevelop mergeでIssueをcloseせず、親チェックも完了にしません。検証担当は区切りで一覧をまとめて実施します。
+coordinatorは実装受入完了を確認後、QA Issueを先に作成/再利用し、双方向linkと全Caseのreadbackを確認して元実装Issueをstatus:doneでcloseします。GUI不要でもmain未反映分はQAのmain反映マトリクスへ引き継ぎます。失敗時はcloseせず再試行します。親tracking/researchやQA自体は子PRだけでcloseしません。検証担当は区切りで一覧をまとめて実施します。
 
 mainは[固定候補手順](../verification/README.md)で範囲全体を確認します。候補後に許す差分はpromotion JSONとそのpromotion IssueのCase JSONだけです。
 一部Caseだけのpassや未確認製品commitをQA文書変更へ偽装することはgateが拒否します。main先行tooling/前回QA記録は候補固定前に専用develop同期PRへ取り込みます。
@@ -111,3 +111,9 @@ PMは導入main SHAからdevelopを作成し、両rulesetへAcceptance gateを�
 - [Git worktree](https://git-scm.com/docs/git-worktree)
 - [Rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)
 - [Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use)
+
+## Issue命名・分類（2026-09-08 / #96）
+
+題名はtypeに対応する `[機能]` / `[修正]` / `[調査]` / `[試験]` / `[運用]` / `[追跡]` と簡潔な要約。QAは `[試験] #元Issue番号 要約`。優先度は題名に重ねません。
+必須labelは各軸ちょうど1つ: `type:feature|bug|research|qa|maintenance|tracking`、`priority:P0|P1|P2`、`status:ready|in-progress|review|blocked|deferred|done`。closedはdone、openはdone以外。本文に受入・依存・次操作を記載し、PR policyが命名と3軸を検査します。
+元実装に未実装受入が残る場合は別実装Issueに分離・linkしてから実装完了を判定します。単にPR scopeが済んだだけではcloseしません。元IssueのcloseはGUI pass/main反映済みを意味しません。QA Caseと固定候補promotion gateは従来どおり維持します。
