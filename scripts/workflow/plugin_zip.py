@@ -177,7 +177,15 @@ def install():
             previous_path = root / previous_path
         config = Path(git('rev-parse', '--absolute-git-dir')) / 'plugin-zip-hooks.json'
         tracked = root / '.githooks'
-        has_tracked_protection = all((tracked / name).is_file() for name in ('pre-commit', 'pre-push'))
+        has_tracked_protection = all((tracked / name).is_file() and os.access(tracked / name, os.X_OK)
+                                     for name in ('pre-commit', 'pre-push'))
+        if previous_path.resolve() == hooks.resolve() and not config.exists():
+            # git worktree add copies config.worktree but not our worktree-local metadata.
+            local = subprocess.run(['git', 'config', '--local', '--get', 'core.hooksPath'],
+                                   capture_output=True, text=True).stdout.strip()
+            if local != '.githooks' or not has_tracked_protection:
+                raise ValueError('Missing worktree hook delegation; run bootstrap.sh before ZIP setup; preserve custom hooks')
+            previous_path = tracked
         saved = previous_path
         if previous_path.resolve() == hooks.resolve() and config.exists():
             saved = Path(json.loads(config.read_text())['previous'])
@@ -219,7 +227,10 @@ def hook(name, args):
         if name in ('post-checkout', 'post-merge', 'post-rewrite'):
             sync()
             return 0
-        return 1 if name in ('pre-commit', 'pre-push') else 0
+        if name in ('pre-commit', 'pre-push'):
+            print('Missing worktree hook delegation; run bash scripts/workflow/bootstrap.sh.', file=sys.stderr)
+            return 1
+        return 0
     previous = Path(json.loads(config.read_text())['previous']) / name
     result = 0
     if previous.is_file() and os.access(previous, os.X_OK):
