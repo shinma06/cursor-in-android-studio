@@ -36,13 +36,19 @@ class PrePushTest(unittest.TestCase):
                 'import unittest\nclass Fixture(unittest.TestCase):\n'
                 '    def test_fixture(self): self.assertTrue(True)\n')
         shutil.copy2(ROOT / '.githooks/pre-push', self.repo / '.githooks/pre-push')
+        shutil.copy2(ROOT / 'scripts/workflow/plugin_zip.py', self.repo / 'scripts/workflow/plugin_zip.py')
         shutil.copy2(ROOT / 'scripts/workflow/git_guard.py', self.repo / 'scripts/workflow/git_guard.py')
-        (self.repo / '.gitignore').write_text('build/\ngradle-args\n')
+        (self.repo / 'make_zip.py').write_text(
+            'from pathlib import Path\nimport io, zipfile, subprocess\n'
+            'jar = io.BytesIO()\n'
+            'with zipfile.ZipFile(jar, "w") as z: z.writestr("META-INF/plugin.xml", "<idea-plugin><id>com.cursoragent.plugin</id></idea-plugin>")\n'
+            'with zipfile.ZipFile("build/distributions/fixture.zip", "w") as z: z.writestr("plugin/lib/plugin.jar", jar.getvalue())\n')
+        (self.repo / '.gitignore').write_text('build/\ngradle-args\n__pycache__/\n')
         (self.repo / 'gradlew').write_text(
             '#!/usr/bin/env bash\nset -eu\nprintf "%s\\n" "$@" > gradle-args\n'
             'if [ "${FIXTURE_BUILD_FAIL:-0}" = 1 ]; then exit 23; fi\n'
             'mkdir -p build/distributions\n'
-            'git rev-parse HEAD > build/distributions/fixture.zip\n')
+            'python3 make_zip.py\n')
         (self.repo / 'gradlew').chmod(0o755)
         self.git('add', '.')
         self.git('commit', '-m', 'fixture')
@@ -57,7 +63,7 @@ class PrePushTest(unittest.TestCase):
         head = self.git('rev-parse', 'HEAD').stdout.strip()
         self.assertEqual((self.repo / 'gradle-args').read_text().splitlines(),
                          ['test', 'buildPlugin', '--console=plain'])
-        self.assertEqual((self.repo / 'build/distributions/fixture.zip').read_text().strip(), head)
+        self.assertTrue((self.repo / '.git/plugin-zip/cache' / head / 'manifest.json').is_file())
         self.assertIn(head, self.git('ls-remote', 'origin', 'refs/heads/' + BRANCH).stdout)
 
     def test_build_failure_blocks_remote_update(self):
