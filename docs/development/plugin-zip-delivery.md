@@ -18,7 +18,13 @@ runtimeは共通Git dirの `plugin-zip/runtime` へ保存され、旧checkoutで
 `extensions.worktreeConfig` と各worktreeの `core.hooksPath` を使い、旧Gradleがlocal設定を
 `.githooks` へ上書きしてもworktree設定が優先する。他repository/global設定は変更しない。
 core.worktree/bare/sparseCheckout設定に移行が必要なら変更前に停止する。
-clone/new worktreeは設定を継承しないので一度setupする。既存hookはその元パスへ委譲する。
+新cloneは一度setupする。Gitの版・設定によってはnew worktreeへpersistent hooksPathだけが継承され、
+worktree別delegate metadataがないことがある。通常のIssue branch用bootstrapは、設定書換前にlocal/effective両方のcustom hook設定を検査して保持する。
+そのうえで既存installed runtimeのsetupを
+呼び、bootstrapが明示した当該worktreeの.githooksへ委譲を作る。branch側のruntimeを自動trust更新しない。
+installed runtimeが旧版で修復できなければ案内付きで停止するため、PMがレビュー済みmainのsetupを明示実行して更新する。
+metadata欠落時にcustom hook設定から委譲先を推測せず、pre-commit/pre-pushは復旧案内を表示して拒否する。
+.githooks自体がない過去SHAではsetupで保護delegateを作らない。継承済みtrusted post-hook/direct syncによる読取取得は可能だが、writeは拒否する。既存hookはその元パスへ委譲する。
 旧commitで保護hookが存在しなくなる場合、pre-commit/pre-pushは保護を省略せず拒否する。
 取得post-hookは取得runtimeのみで動作する。setupは信頼した版の明示更新操作でもある。
 
@@ -51,9 +57,24 @@ build jobはwrite tokenなしで対象SHAのGradleを実行する。publisherは
 checkoutし、artifactをデータとして検証してReleaseへ公開する。fork PRイベントは使わない。
 write tokenをbuild codeへ渡さない。Actions artifactsは2日間の配送用で、永続正本は
 `plugin-build-<full SHA>` prerelease（latest=false）のZIPとmanifest。
-既存公開資産は上書きしない。異なるdigest/manifestは停止する。draft中に失敗した場合は
-同じpublishを再実行する。draft内の既存資産をbyte照合して保持し、不足する2資産のみを補完する。
-全資産のdownload readback・構造検証後に公開する。不一致の資産は上書きせず停止する。資産自動削除はしない。
+既存公開資産は上書きしない。Releaseは全ページ一覧からtag一致を探し、取得・不足upload・公開操作を
+numeric Release ID / asset IDで固定する。`GET /releases/tags/{tag}` はdraftを返さないため、
+その404を不存在判定に使わない。tag指定の `gh release upload/download/edit` も使わない。
+
+同じtagのdraftが複数ある場合は、IDの小さい順に正常な完全資産を探して再開する。
+壊れた重複draftがあっても別IDの正常な完全資産を妨げず、選択しなかったdraftは変更しない。
+正常な完全資産がなく、不一致・破損・upload途中の `starter` 資産がある場合はIDを示して停止する。
+部分uploadは最も資産の揃ったdraft内で一致する既存資産を保持し、不足分だけ補完する。
+upload成功応答を失った場合もasset IDのbytesを読み戻して一致を確認してから続行する。
+全資産検証後は選択したRelease IDを公開し、draft=falseと資産を同じIDで再取得する。
+重複draftの削除はPMが扱い、この処理は自動削除しない。
+
+同SHAを別OS・SDK・JDK・recipeで再buildするとZIP hashが異なることがある。
+公開済み正本（または公開待ちの正常な完全draft）のcommit/tree/ZIP digest/plugin IDが期待値に一致すれば、
+新candidateのhash・環境・recipeが違っても既存正本を再利用して成功する。正本のmanifest・資産は保持し、
+新candidateのtest結果を正本の実行証拠に書き換えない。SHA/tree不一致、破損、必要資産欠損は引き続き停止する。
+並行publisherが異なる新draftを同時作成する競合まで排除するものではないが、以後の操作先をIDで固定し、
+再試行で既存draftを見失って新draftを作り足す問題を防ぐ。
 
 ```
 # clean exact sourceのcwd。scriptはtrusted mainの絶対パスを指定する
@@ -84,3 +105,7 @@ main統合・develop同期後、公開履歴backfill、実Release取得、利用
 
 根拠: [Git worktreeの設定優先と移行](https://git-scm.com/docs/git-worktree)、
 [GITHUB_TOKENによるeventとdispatch](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。
+
+#124の根拠: [GitHub Releases API](https://docs.github.com/en/rest/releases/releases) はdraftの一覧をpush権限所有者へ返す。
+[GitHub CLIのRelease検索](https://github.com/cli/cli/blob/trunk/pkg/cmd/release/shared/fetch.go) は公開tag検索とdraft検索を分ける。
+[Release assets API](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset) のnumeric ID経路を使用する。

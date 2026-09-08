@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 122,
   "gui_required": false,
-  "reason": "main c08184cb700330147b2c88c3a68ba05113e9ffbb の最新Cursor調査文書とSHA別ZIP配布toolingをdevelop 5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38feへ通常mergeで同期する。対象変更は既にmain導入済みでありmain未反映ではない。製品src/build設定と既存Case/固定候補JSONは保持する。自動生成QAがあればPMが実反映を照合する。既存GUI受入や新候補promotionをpassとしない。",
+  "reason": "main ebabc57904c9bab704ef757898e4ddff91f3d39a（PR #125、#124修正を含む）の最新Cursor調査文書とSHA別ZIP配布toolingをdevelop 5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38feへ同期する。初回同期元はmain c08184cb700330147b2c88c3a68ba05113e9ffbb（PR #121）。追加同期はRelease ID再開・検証済みcanonical再利用・新worktreeの保護hook引継ぎと関連tests/docsで、製品src/build設定と既存Case/固定候補JSONは保持する。対象はローカルorigin/mainの固定commitと照合し、リモート統合状態とCLI検証はcoordinatorが確認する。自動生成QAがあればPMが実反映を照合する。既存GUI受入や新候補promotionをpassとしない。",
   "cli_checks": [
     "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
     "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",

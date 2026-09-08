@@ -115,7 +115,14 @@ class DeliveryTest(unittest.TestCase):
     def test_two_worktrees_parallel_cache(self):
         other = self.root.parent / 'other'
         self.git('worktree', 'add', '--detach', str(other), self.old)
-        self.runtime('setup', cwd=other)
+        # Old source has no project guards: setup must not invent a write delegate.
+        result = self.runtime('setup', cwd=other, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Missing worktree hook delegation', result.stderr)
+        self.assertNotEqual(self.git('commit', '--allow-empty', '-m', 'blocked', cwd=other, check=False).returncode, 0)
+        # Inherited trusted post-hooks and direct sync still serve historical read-only checkouts.
+        self.git('checkout', 'main', cwd=other)
+        self.assert_ready(other)
         jobs = [subprocess.Popen(['python3', str(RUNTIME), 'sync', '--offline'], cwd=p, env=self.env,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE) for p in [self.root, other]]
         for job in jobs:
@@ -383,50 +390,6 @@ class PublisherTest(unittest.TestCase):
         with patch.object(publisher, 'ensure_tip'), patch.object(publisher, 'gh', return_value=json.dumps(releases)), patch.object(
                 publisher, 'git', side_effect=[tip + '\trefs/heads/main', '\n'.join([old, middle, tip])]):
             self.assertEqual(publisher.inventory(10), [tip, middle])
-
-    def test_existing_publication_different_digest_never_overwritten(self):
-        from unittest.mock import patch, Mock
-        import plugin_zip_publish as publisher
-        sha = 'a' * 40
-        with patch.object(publisher, 'git', return_value='tree'), patch.object(
-                publisher, 'validate', side_effect=[({'sha256': 'new'}, Path('archive')), ({'sha256': 'old'}, Path('archive'))]), patch.object(
-                publisher.subprocess, 'run', return_value=Mock(returncode=0, stdout='{"draft": false}')), patch.object(publisher, 'gh') as gh:
-            with self.assertRaises(ValueError):
-                publisher.publish(Path('delivery'), sha)
-            self.assertEqual(gh.call_count, 1)
-            self.assertEqual(gh.call_args.args[:2], ('release', 'download'))
-
-    def test_draft_retry_preserves_uploaded_asset_and_fills_missing(self):
-        from unittest.mock import patch
-        import plugin_zip_publish as publisher
-        sha = 'a' * 40
-        remote, uploads = {}, []
-        fail = [True]
-        with tempfile.TemporaryDirectory() as tmp:
-            folder = Path(tmp)
-            for name in ('manifest.json', f'{publisher.NAME}-{sha}.zip'):
-                (folder / name).write_bytes(name.encode())
-            def gh(*args):
-                if args[1] == 'upload':
-                    path = Path(args[3])
-                    uploads.append(path.name)
-                    if path.name == 'manifest.json' and fail[0]:
-                        fail[0] = False
-                        raise RuntimeError('temporary upload failure')
-                    remote[path.name] = path.read_bytes()
-                elif args[1] == 'download':
-                    name = args[args.index('--pattern') + 1]
-                    (Path(args[args.index('--dir') + 1]) / name).write_bytes(remote[name])
-            with patch.object(publisher, 'gh', side_effect=gh), patch.object(publisher, 'validate') as validate:
-                with self.assertRaises(RuntimeError):
-                    publisher.complete_draft(folder, sha, 'tree', 'tag', {'assets': []})
-                publisher.complete_draft(folder, sha, 'tree', 'tag', {'assets': [{'name': n} for n in remote]})
-                self.assertEqual(uploads.count(f'{publisher.NAME}-{sha}.zip'), 1)
-                self.assertEqual(uploads.count('manifest.json'), 2)
-                validate.assert_called_once()
-                remote['manifest.json'] = b'different'
-                with self.assertRaises(ValueError):
-                    publisher.complete_draft(folder, sha, 'tree', 'tag', {'assets': [{'name': n} for n in remote]})
 
     def test_default_branch_event_signal_does_not_trust_event_code(self):
         root = Path(__file__).resolve().parents[2]
