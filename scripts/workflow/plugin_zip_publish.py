@@ -33,14 +33,28 @@ def retain_event(event_path):
     sha = run.get('head_sha', '')
     if not SHA.fullmatch(sha) or sha != signal.get('head_sha'):
         raise ValueError('invalid or mismatched event SHA')
+    retain_source(sha)
+
+
+def source_api(path, method='GET', data=None):
+    args = ['api', path] if method == 'GET' else ['api', '--method', method, path]
+    for key, value in (data or {}).items():
+        args.extend(['-f', f'{key}={value}'])
+    return json.loads(gh(*args))
+
+
+def retain_source(sha, api=None):
+    """Create-only durable root; a failed create is safe only after exact readback."""
+    if not SHA.fullmatch(sha):
+        raise ValueError('invalid source SHA')
+    api = source_api if api is None else api
     ref = f'tags/{SOURCE_PREFIX}{sha}'
-    # Create-only; on retry or a race, readback must prove the exact same root.
     try:
-        gh('api', '--method', 'POST', f'repos/{REPOSITORY}/git/refs',
-           '-f', f'ref=refs/{ref}', '-f', f'sha={sha}')
-    except subprocess.CalledProcessError:
+        api(f'repos/{REPOSITORY}/git/refs', 'POST', {'ref': f'refs/{ref}', 'sha': sha})
+    except (subprocess.CalledProcessError, RuntimeError):
+        # An existing tag or concurrent creator may make POST fail. Never update it.
         pass
-    saved = json.loads(gh('api', f'repos/{REPOSITORY}/git/ref/{ref}'))
+    saved = api(f'repos/{REPOSITORY}/git/ref/{ref}')
     obj = saved.get('object', {})
     if saved.get('ref') != f'refs/{ref}' or obj.get('type') != 'commit' or obj.get('sha') != sha:
         raise ValueError('source root readback differs')

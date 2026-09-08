@@ -437,6 +437,11 @@ class PublisherTest(unittest.TestCase):
         self.assertNotIn('github.event.workflow_run.', workflow)
         self.assertIn("'--event-path', os.environ['GITHUB_EVENT_PATH']", workflow)
         self.assertLess(workflow.index("'retain-event'"), workflow.index("sha = os.environ.get"))
+        # Event roots must never wait in a replaceable workflow/plan queue.
+        before_publish, publish_job = workflow.split('  publish:\n', 1)
+        self.assertNotIn('concurrency:', before_publish)
+        self.assertIn('group: plugin-zip-publisher-${{ matrix.sha }}', publish_job)
+        self.assertIn('cancel-in-progress: false', publish_job)
         self.assertIn('permissions: {}', signal)
         self.assertNotIn('checkout', signal)
 

@@ -15,10 +15,8 @@ on:
         type: string
 permissions:
   contents: read
-concurrency:
-  group: plugin-zip-publisher
-  cancel-in-progress: false
 jobs:
+  # Retention must run for every event, outside replaceable concurrency queues.
   plan:
     if: github.repository == 'shinma06/cursor-in-android-studio' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -111,6 +109,9 @@ jobs:
           path: delivery/
           retention-days: 2
   publish:
+    concurrency:
+      group: plugin-zip-publisher-${{ matrix.sha }}
+      cancel-in-progress: false
     needs: [plan, build]
     if: always() && needs.plan.result == 'success' && needs.plan.outputs.commits != '[]'
     strategy:
