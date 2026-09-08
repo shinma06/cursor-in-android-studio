@@ -2,7 +2,7 @@
 
 切替先のfull SHAに対応した既成ZIPを取得する。checkout側ではGradleを起動しない。
 初回CI・未公開commit・offline cache missは即時提供できず、`build/distributions/manifest.json` の
-`unavailable` と再試行手順を表示する。別SHAのZIPを残さない。インストール・IDE再起動は行わない。
+`unavailable` と再試行手順を表示する。別SHAのZIPを残さない。旧slug `cursor-agent-plugin-*.zip` も現在slugと同様に無効化する。インストール・IDE再起動は行わない。
 
 ## 初回導入（PMが信頼したmainから各worktreeで一度実行）
 
@@ -42,14 +42,20 @@ write tokenをbuild codeへ渡さない。Actions artifactsは2日間の配送�
 
 ```
 # clean exact sourceのcwd。scriptはtrusted mainの絶対パスを指定する
-python3 /trusted/scripts/workflow/plugin_zip.py record build/distributions/plugin.zip /delivery/SHA
+python3 /trusted/scripts/workflow/plugin_zip.py record build/distributions/plugin.zip /delivery/SHA \
+  --recipe gradle-buildPlugin-v1 --platform "Android Studio ACTUAL_VERSION (ACTUAL_BUILD)" \
+  --jdk "ACTUAL_BUILD_JDK_VERSION"
 # trusted mainのcwd。必要なSHAをfetchしておく
 python3 scripts/workflow/plugin_zip_publish.py publish --sha FULL_SHA --directory /delivery/SHA
 # default branch workflowを明示起動（merge直後/過去branch）
 gh workflow run plugin-zip.yml --ref main -f sha=FULL_SHA
 ```
 
-manifest schema 1: repository、commit、tree、sha256、recipe。ZIPは
+manifest schema 1: repository、commit、tree、sha256、recipe、build_environment（platform/jdk）。
+recordは実buildのrecipe/platform/jdkを必須指定する。buildPluginのみは `gradle-buildPlugin-v1`、
+test buildPluginを実行した場合だけ `gradle-test-buildPlugin-v1`。過去版build-onlyはテスト合格を意味しない。
+platform/JDKは実際のバージョンを指定し、ホストパスやrawログを含めない。Gradle JVMとKotlin toolchainが
+異なる場合は両方を公開可能なラベルで記録する。pre-pushのlocal cacheでは環境未収集をunspecifiedと明示する。ZIPは
 `cursor-in-android-studio-<full SHA>.zip`。ZIP CRC・安全なentry path・plugin.xmlのIDも確認する。
 SHA256は内容整合検証であり署名ではない。信頼境界はこのrepositoryのpublisher/Release権限。
 pre-pushは従来test/build後にexact HEAD cacheを記録する。切替時はcacheを再検証し、

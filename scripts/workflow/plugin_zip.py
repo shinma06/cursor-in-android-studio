@@ -96,8 +96,9 @@ def sync(offline=False):
         tree = git('rev-parse', 'HEAD^{tree}')
         output.mkdir(parents=True, exist_ok=True)
         # All plugin candidates are invalidated before any potentially failing I/O.
-        for old in output.glob(f'{NAME}-*.zip'):
-            old.unlink()
+        for prefix in (NAME, 'cursor-agent-plugin'):
+            for old in output.glob(f'{prefix}-*.zip'):
+                old.unlink()
         status = {'schema': 1, 'commit': sha, 'status': 'pending', 'recovery': 'Run the installed plugin_zip.py sync again after publication; checkout never builds.'}
         atomic(output / 'manifest.json', json.dumps(status).encode())
         try:
@@ -139,7 +140,12 @@ def sync(offline=False):
             return 1
 
 
-def record(archive, destination):
+def record(archive, destination, recipe='gradle-test-buildPlugin-v1', platform='unspecified', jdk='unspecified'):
+    if recipe not in ('gradle-test-buildPlugin-v1', 'gradle-buildPlugin-v1'):
+        raise ValueError('unsupported recipe')
+    for value in (platform, jdk):
+        if not value or len(value) > 200 or any(c in value for c in ('/', '\\', '\n', '\r')):
+            raise ValueError('use public version labels, never paths or raw logs')
     sha, tree = git('rev-parse', 'HEAD'), git('rev-parse', 'HEAD^{tree}')
     if git('status', '--porcelain', '--untracked-files=normal'):
         raise ValueError('record requires a clean source')
@@ -148,7 +154,7 @@ def record(archive, destination):
     atomic(destination / f'{NAME}-{sha}.zip', data)
     atomic(destination / 'manifest.json', json.dumps({'schema': 1, 'repository': REPOSITORY,
         'commit': sha, 'tree': tree, 'sha256': hashlib.sha256(data).hexdigest(),
-        'recipe': 'gradle-test-buildPlugin-v1'}, indent=2).encode())
+        'recipe': recipe, 'build_environment': {'platform': platform, 'jdk': jdk}}, indent=2).encode())
     validate(destination, sha, tree)
 
 
@@ -217,6 +223,9 @@ def main():
     parser.add_argument('command', choices=['sync', 'setup', 'record', 'cache-built', 'hook'])
     parser.add_argument('args', nargs='*')
     parser.add_argument('--offline', action='store_true')
+    parser.add_argument('--recipe', choices=['gradle-test-buildPlugin-v1', 'gradle-buildPlugin-v1'])
+    parser.add_argument('--platform')
+    parser.add_argument('--jdk')
     opts = parser.parse_args()
     if opts.command == 'sync':
         return sync(opts.offline)
@@ -234,7 +243,9 @@ def main():
         with lock(common / 'plugin-zip/locks' / sha):
             record(archives[0], common / 'plugin-zip/cache' / sha)
     elif opts.command == 'record':
-        record(Path(opts.args[0]), Path(opts.args[1]))
+        if not all((opts.recipe, opts.platform, opts.jdk)):
+            parser.error('record requires --recipe, --platform and --jdk from the actual build')
+        record(Path(opts.args[0]), Path(opts.args[1]), opts.recipe, opts.platform, opts.jdk)
     else:
         return hook(opts.args[0], opts.args[1:])
     return 0

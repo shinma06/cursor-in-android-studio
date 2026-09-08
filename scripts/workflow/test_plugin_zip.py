@@ -11,13 +11,13 @@ import zipfile
 RUNTIME = Path(__file__).with_name('plugin_zip.py').resolve()
 
 
-def archive(path, marker='fixture'):
+def archive(path, marker='fixture', topdir='plugin', jar_name='plugin.jar'):
     jar = io.BytesIO()
     with zipfile.ZipFile(jar, 'w') as z:
         z.writestr('META-INF/plugin.xml', '<idea-plugin><id>com.cursoragent.plugin</id><version>1</version></idea-plugin>')
         z.writestr('source.txt', marker)
     with zipfile.ZipFile(path, 'w') as z:
-        z.writestr('plugin/lib/plugin.jar', jar.getvalue())
+        z.writestr(f'{topdir}/lib/{jar_name}', jar.getvalue())
 
 
 class DeliveryTest(unittest.TestCase):
@@ -90,6 +90,26 @@ class DeliveryTest(unittest.TestCase):
         cache = self.root / '.git/plugin-zip/cache' / sha
         (cache / f'cursor-in-android-studio-{sha}.zip').write_bytes(b'corrupt')
         self.assertNotEqual(self.runtime('sync', '--offline', check=False).returncode, 0)
+        self.assertFalse(list(output.glob('*.zip')))
+
+    def test_legacy_stale_candidates_removed_in_every_sync_state(self):
+        output = self.root / 'build/distributions'
+        legacy = output / 'cursor-agent-plugin-0.1.0-SNAPSHOT.zip'
+        archive(legacy, topdir='cursor-agent-plugin')
+        self.runtime('sync', '--offline')
+        self.assert_ready()
+        self.assertFalse(legacy.exists())
+        archive(legacy, topdir='cursor-agent-plugin')
+        (self.root / 'source').write_text('dirty')
+        self.runtime('sync', '--offline', check=False)
+        self.assertEqual(json.loads((output / 'manifest.json').read_text())['status'], 'dirty')
+        self.assertFalse(list(output.glob('*.zip')))
+        self.git('checkout', '--', 'source')
+        sha = self.git('rev-parse', 'HEAD').stdout.strip()
+        (self.root / '.git/plugin-zip/cache' / sha / 'manifest.json').unlink()
+        archive(legacy, topdir='cursor-agent-plugin')
+        self.runtime('sync', '--offline', check=False)
+        self.assertEqual(json.loads((output / 'manifest.json').read_text())['status'], 'unavailable')
         self.assertFalse(list(output.glob('*.zip')))
 
     def test_two_worktrees_parallel_cache(self):
@@ -176,6 +196,20 @@ class DeliveryTest(unittest.TestCase):
             self.assertEqual(json.loads((self.root / 'build/distributions/manifest.json').read_text())['status'], 'unavailable')
         finally:
             os.chdir(old)
+
+    def test_historical_build_only_recipe_and_legacy_archive_names(self):
+        archive_path = self.root / 'build/distributions/historical.zip'
+        archive(archive_path, topdir='cursor-agent-plugin', jar_name='cursor-agent-plugin-0.1.jar')
+        output = self.root.parent / 'historical-delivery'
+        self.runtime('record', str(archive_path), str(output), '--recipe', 'gradle-buildPlugin-v1',
+                     '--platform', 'Android Studio 2026.1.3.8 (AI-261)', '--jdk', 'Gradle JDK 17; Kotlin toolchain 21')
+        manifest = json.loads((output / 'manifest.json').read_text())
+        self.assertEqual(manifest['recipe'], 'gradle-buildPlugin-v1')
+        self.assertEqual(manifest['build_environment']['jdk'], 'Gradle JDK 17; Kotlin toolchain 21')
+        self.assertEqual(manifest['build_environment']['platform'], 'Android Studio 2026.1.3.8 (AI-261)')
+        self.assertNotEqual(self.runtime('record', str(archive_path), str(output), check=False).returncode, 0)
+        self.assertNotEqual(self.runtime('record', str(archive_path), str(output), '--recipe', 'gradle-buildPlugin-v1',
+                                        '--platform', '/private/platform', '--jdk', '17', check=False).returncode, 0)
 
     def test_sha_mismatch_and_corrupt_zip_rejected(self):
         import plugin_zip

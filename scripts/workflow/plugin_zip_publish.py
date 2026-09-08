@@ -46,7 +46,7 @@ def publish(folder, sha):
     if '404' not in found.stderr:
         raise ValueError('release lookup failed')
     gh('release', 'create', tag, '--repo', REPOSITORY, '--target', sha, '--draft', '--prerelease',
-       '--latest=false', '--title', f'Plugin build {sha}', '--notes', f'Source commit: {sha}\nRecipe: gradle-test-buildPlugin-v1')
+       '--latest=false', '--title', f'Plugin build {sha}', '--notes', f'Source commit: {sha}\nRecipe: {manifest["recipe"]}')
     gh('release', 'upload', tag, str(archive), str(folder / 'manifest.json'), '--repo', REPOSITORY)
     gh('release', 'edit', tag, '--repo', REPOSITORY, '--draft=false', '--prerelease', '--latest=false')
 
