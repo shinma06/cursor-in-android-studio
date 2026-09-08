@@ -36,7 +36,8 @@ workflow_runのcode/artifact/入力は一切実行・採用せず、trusted main
 現branch tipを優先し、残りの履歴を最大10件ずつ古い順に処理する。build不能SHAが枠を占める場合はPMが他SHAを明示dispatchし、
 不能理由をIssueへ記録する。GitHub scheduleは遅延し得るので即時保証ではない。
 一括push中間commitもrev-list対象。fresh runnerのremote refsを使い、削除済local stale refsは対象にしない。
-公開後はbranch削除に関係なくReleaseを保持する。初回85commit等の大量backfillはPMが担当する。
+ls-remote snapshotのtipがlocal未取得なら、その固定SHAだけ最大2回fetchして照合する。
+取得不能なら別SHAで代替せずinventoryを停止する。公開後はbranch削除に関係なくReleaseを保持する。初回85commit等の大量backfillはPMが担当する。
 
 build jobはwrite tokenなしで対象SHAのGradleを実行する。publisherは別runner、trusted mainのみを
 checkoutし、artifactをデータとして検証してReleaseへ公開する。fork PRイベントは使わない。

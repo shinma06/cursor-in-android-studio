@@ -261,7 +261,7 @@ class PublisherTest(unittest.TestCase):
                       'assets': [{'name': 'manifest.json'}, {'name': publisher.NAME + '-' + old + '.zip'}]},
                      {'tag_name': 'plugin-build-' + middle, 'draft': False,
                       'assets': [{'name': 'manifest.json'}]}]]
-        with patch.object(publisher, 'gh', return_value=json.dumps(releases)), patch.object(
+        with patch.object(publisher, 'ensure_tip'), patch.object(publisher, 'gh', return_value=json.dumps(releases)), patch.object(
                 publisher, 'git', side_effect=[tip + '\trefs/heads/main', '\n'.join([old, middle, tip])]):
             self.assertEqual(publisher.inventory(10), [tip, middle])
 
@@ -318,3 +318,17 @@ class PublisherTest(unittest.TestCase):
         self.assertNotIn('github.event.workflow_run.', workflow)
         self.assertIn('permissions: {}', signal)
         self.assertNotIn('checkout', signal)
+
+    def test_missing_snapshot_tip_fetch_is_bounded_and_keeps_exact_sha(self):
+        from unittest.mock import Mock, patch
+        import plugin_zip_publish as publisher
+        sha = 'd' * 40
+        with patch.object(publisher.subprocess, 'run', side_effect=[Mock(returncode=1), Mock(returncode=0), Mock(returncode=0)]) as run:
+            publisher.ensure_tip(sha)
+            self.assertEqual(run.call_args_list[1].args[0],
+                             ['git', 'fetch', '--no-tags', '--no-write-fetch-head', 'origin', sha])
+            self.assertEqual(run.call_count, 3)
+        with patch.object(publisher.subprocess, 'run', return_value=Mock(returncode=1)) as run:
+            with self.assertRaises(ValueError):
+                publisher.ensure_tip(sha)
+            self.assertEqual(run.call_count, 5)

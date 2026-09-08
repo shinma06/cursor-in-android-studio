@@ -13,6 +13,23 @@ def gh(*args):
     return subprocess.check_output(['gh', *args], text=True).strip()
 
 
+def ensure_tip(sha):
+    if not SHA.fullmatch(sha):
+        raise ValueError('invalid remote tip')
+    for attempt in range(3):
+        present = subprocess.run(['git', 'cat-file', '-e', sha + '^{commit}'], capture_output=True)
+        if present.returncode == 0:
+            return
+        if attempt == 2:
+            break
+        try:
+            subprocess.run(['git', 'fetch', '--no-tags', '--no-write-fetch-head', 'origin', sha],
+                           capture_output=True, timeout=30, check=False)
+        except subprocess.TimeoutExpired:
+            pass
+    raise ValueError('snapshot tip unavailable after bounded fetch; retry inventory')
+
+
 def inventory(limit):
     releases = json.loads(gh('api', '--paginate', '--slurp', f'repos/{REPOSITORY}/releases?per_page=100'))
     published = {r['tag_name'] for page in releases for r in page if not r['draft'] and
@@ -20,6 +37,8 @@ def inventory(limit):
                  <= {a['name'] for a in r['assets']}}
     # --remotes includes every reachable intermediate commit, not only push tips.
     tips = [line.split()[0] for line in git('ls-remote', '--heads', 'origin').splitlines()]
+    for sha in tips:
+        ensure_tip(sha)
     commits = list(dict.fromkeys(tips + (git('rev-list', '--reverse', *tips).splitlines() if tips else [])))
     missing = [sha for sha in commits if f'plugin-build-{sha}' not in published]
     return missing[:limit]
