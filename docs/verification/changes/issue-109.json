@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 109,
+  "gui_required": false,
+  "reason": "main 9a8c2a9322728b7261b6b491d4174ef7dd463201 のIssue規約/toolingをdevelop e13c6caa1031eee42e1520193afe505b0808c137へ通常mergeで同期する。対象変更は既にmain導入済みでありmain未反映ではない。製品src/build設定と既存Case/固定候補JSONは保持する。自動生成QAがあればPMが実反映を照合する。既存GUI受入や新候補promotionをpassとしない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "固定developとsrc/build設定/既存verification JSONのblob一致、PR101変更ファイルと固定mainのblob一致、git diff --check"
+  ],
+  "cases": []
+}
