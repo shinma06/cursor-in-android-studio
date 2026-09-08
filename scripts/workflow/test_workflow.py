@@ -1,5 +1,9 @@
 import copy
 import json
+import io
+from contextlib import redirect_stdout, redirect_stderr
+from unittest.mock import patch
+import pr_policy
 import os
 from pathlib import Path
 import subprocess
@@ -154,6 +158,68 @@ class PolicyTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate(pr)
 
+    def test_live_policy_entrypoints(self):
+        workflow = (ROOT / '.github/workflows/pr-policy.yml').read_text()
+        source = workflow.split("          python3 - <<'PY'\n", 1)[1].rsplit('          PY', 1)[0]
+        namespace = {'__name__': 'inline_test'}
+        exec(compile('\n'.join(line[10:] for line in source.splitlines()), '<workflow>', 'exec'), namespace)
+        opened = dict(self.pr, number=112, state='open')
+        closed = dict(opened, state='closed')
+        invalid = dict(opened, body='invalid current metadata')
+        issue = {'state': 'open', 'title': '[運用] policy',
+                 'labels': ['type:maintenance', 'priority:P2', 'status:review']}
+        done = dict(issue, state='closed', labels=['type:maintenance', 'priority:P2', 'status:done'])
+        scenarios = [
+            ('delayed merge', opened, [closed], 0, 'skipped'),
+            ('event closed but reopened', closed, [opened, issue, opened], 0, 'passed'),
+            ('reopened invalid metadata', closed, [invalid, invalid], 1, ''),
+            ('reopened invalid issue', closed, [opened, done, opened], 1, ''),
+            ('live metadata replaces event', invalid, [opened, issue, opened], 0, 'passed'),
+            ('normal open', opened, [opened, issue, opened], 0, 'passed'),
+            ('closed during issue fetch', opened, [opened, done, closed], 0, 'skipped'),
+            ('closed after valid issue', opened, [opened, issue, closed], 0, 'skipped'),
+            ('metadata changes mid-check', opened, [opened, issue, invalid], 1, ''),
+            ('malformed initial object', opened, [None], 1, ''),
+            ('malformed issue object', opened, [opened, []], 1, ''),
+            ('malformed final object', opened, [opened, issue, None], 1, ''),
+            ('initial api failure', opened, [OSError('offline')], 1, ''),
+            ('issue api failure', opened, [opened, OSError('offline')], 1, ''),
+            ('final api failure', opened, [opened, issue, OSError('offline')], 1, ''),
+            ('unknown initial state', closed, [dict(opened, state='unknown')], 1, ''),
+            ('unknown final state', opened, [opened, issue, dict(opened, state=None)], 1, ''),
+            ('linked PR', opened, [opened, dict(issue, pull_request={}), opened], 1, ''),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            event_path = Path(tmp) / 'event.json'
+            env = {'GITHUB_EVENT_PATH': str(event_path), 'GITHUB_REPOSITORY': 'test/repo', 'GITHUB_TOKEN': 'test'}
+            for entry in (pr_policy.main, namespace['main']):
+                for name, event, replies, expected, message in scenarios:
+                    with self.subTest(entry=entry.__module__, scenario=name):
+                        event_path.write_text(json.dumps({'pull_request': event}))
+                        pending = iter(replies)
+                        paths = []
+                        def urlopen(request, timeout):
+                            paths.append(request.full_url.split('/repos/test/repo/')[1])
+                            response = next(pending)
+                            if isinstance(response, Exception):
+                                raise response
+                            return io.StringIO(json.dumps(response))
+                        out, err = io.StringIO(), io.StringIO()
+                        with patch.dict(os.environ, env), patch.dict(entry.__globals__, urlopen=urlopen), redirect_stdout(out), redirect_stderr(err):
+                            self.assertEqual(entry(), expected)
+                        self.assertEqual(paths[0], 'pulls/112')
+                        self.assertEqual(len(paths), len(replies))
+                        if len(paths) == 3:
+                            self.assertEqual(paths, ['pulls/112', 'issues/31', 'pulls/112'])
+                        if message:
+                            self.assertIn(message, out.getvalue())
+                        if message == 'skipped':
+                            self.assertIn('acceptance was not evaluated', out.getvalue())
+                            self.assertNotIn('passed', out.getvalue())
+                        if expected:
+                            self.assertNotIn('passed', out.getvalue())
+                            self.assertNotIn('skipped', out.getvalue())
+
     def test_inline_ci_validator_has_same_behavior(self):
         # The no-checkout CI job embeds this small validator; exercise the deployed copy too.
         workflow = (ROOT / '.github/workflows/pr-policy.yml').read_text()
@@ -162,6 +228,11 @@ class PolicyTest(unittest.TestCase):
         namespace = {'__name__': 'inline_test'}
         exec(compile(source, '<workflow>', 'exec'), namespace)
         self.assertEqual(namespace['validate'](self.pr), 31)
+        issue = {'title': '[運用] policy', 'state': 'open',
+                 'labels': ['type:maintenance', 'priority:P2', 'status:review']}
+        namespace['validate_issue'](issue)
+        with self.assertRaises(ValueError):
+            namespace['validate_issue'](dict(issue, labels=[]))
         bad = dict(self.pr, body='Issue: #99')
         with self.assertRaises(ValueError):
             namespace['validate'](bad)

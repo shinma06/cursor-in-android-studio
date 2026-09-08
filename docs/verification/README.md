@@ -22,7 +22,7 @@ python3 scripts/workflow/verification.py \
 
 `pending` は未実施、`blocked` は環境等で操作不能、`fail` は製品の期待結果と不一致、`pass` はそのbuildで確認済みです。GPTがblocked/failでも、必要テスト・独立コードレビューを通り、全Caseと次の操作が記録されていればdevelopへ統合できます。製品failは専用修正Issueを作成し、修正branch/PRと再確認を紐付けます。テスト失敗や未解決コード指摘は、この例外に含みません。
 
-mainは固定候補内の**全変更・全必要Case**のpassが必要です。GPT/humanどちらの適切な観察も有効ですが、過去SHA/buildのpassをコピーしません。Case別passはmain全体の昇格許可ではなく、最後に自動gateがコミット範囲を照合します。developに入っただけでCase/QA Issueをcloseしません。
+mainは固定候補内の**全変更・全必要Case**のpassが必要です。GPT/humanどちらの適切な観察も有効ですが、過去SHA/buildのpassをコピーしません。Case別passはmain全体の昇格許可ではなく、最後に自動gateがコミット範囲を照合します。develop統合後、元実装IssueはQAへの双方向link/readbackを確認してcloseします。Case/QA Issueは実際の確認完了まで残します。GUI不要のmain未反映分もQAに追跡し、固定候補JSONは書き換えません。closed元Issueの固定merge Caseをpromotionが参照し続けます。
 
 ## 固定候補からmainへ
 

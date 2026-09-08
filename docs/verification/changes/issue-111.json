@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 111,
+  "gui_required": false,
+  "reason": "遅延PR policyのlive状態判定とmerge直前のIssue分類検証のみ。製品コードと固定候補は変更せずGUI操作不要。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "git diff --check"
+  ],
+  "cases": []
+}

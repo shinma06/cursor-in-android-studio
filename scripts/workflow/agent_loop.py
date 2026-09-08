@@ -20,6 +20,8 @@ from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_n
 from agent_worker import run_worker, worker_environment
 from handoff_registry import register, resolve
 from verification import verify_pr, metadata
+from issue_schema import validate_issue, done_labels, labels
+from qa_handoff import handoff
 
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
@@ -289,6 +291,7 @@ class Loop:
             issue = self.gh.issue(h['issue'])
             if issue['state'] != 'open' or 'pull_request' in issue:
                 raise ValueError('Issue must remain open until scoped acceptance is evaluated')
+            validate_issue(issue)
             self.source_safe(h)
             path = self.checkout(pr, h)
             running = self.storage / f'pr-{number}' / 'worker.json'
@@ -405,7 +408,11 @@ class Loop:
                 self.test_and_push(pr, path, state)
             elif action == 'merge':
                 latest = self.gh.pr(number)
-                now, _ = self.bound(latest, self.gh.issue(h['issue']), self.gh.comments(number))
+                latest_issue = self.gh.issue(h['issue'])
+                if latest_issue.get('state') != 'open' or 'pull_request' in latest_issue:
+                    raise ValueError('Issue must remain open until scoped acceptance is evaluated')
+                validate_issue(latest_issue)
+                now, _ = self.bound(latest, latest_issue, self.gh.comments(number))
                 if now != bound or self.gh.ci(latest) != 'success' or not self.acceptance(latest, path)['allowed']:
                     self.invalidate_acceptance(state)
                     state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
@@ -465,12 +472,32 @@ class Loop:
                     report.get('issue_complete') and bound.get('head') == pr['head']['sha'] and
                     bound.get('issue_hash') == binding(pr, current_issue)['issue_hash'] and
                     (not (h['gui_required'] or report.get('gui_required')) or promotion_pass or gui_pass(state.get('gui'), bound)))
+        transferred = False
+        if pr['base']['ref'] == 'develop':
+            axes = validate_issue(current_issue)
+            # issue_complete means no implementation remains; GUI is tracked separately.
+            implementation_complete = (axes['type'] in ('feature', 'bug', 'maintenance') and
+                report.get('verdict') == 'approved' and report.get('scope_complete') is True and
+                report.get('issue_complete') is True and bound.get('head') == pr['head']['sha'] and
+                bound.get('issue_hash') == binding(pr, current_issue)['issue_hash'])
+            if implementation_complete:
+                _, case_path, _ = metadata(pr)
+                git('fetch', '--no-tags', 'origin', pr['merge_commit_sha'])
+                change = json.loads(git('show', f'{pr["merge_commit_sha"]}:{case_path}'))
+                qa = handoff(self.gh, REPO, pr, current_issue, change)
+                state['qa_issue'] = qa
+                complete = transferred = True
         state.update(phase='cleanup', next='Update Issue and remove only verified finished resources')
         comment_id = self.save(pr, state, comment_id)
         issue = self.gh.issue(h['issue'])
+        if complete and bound.get('issue_hash') != binding(pr, issue)['issue_hash']:
+            raise ValueError('Issue acceptance changed during handoff; re-review before closure')
         if complete and issue['state'] == 'open':
-            self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed'})
-        if complete:
+            self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed', 'labels': done_labels(issue)})
+            closed = self.gh.issue(h['issue'])
+            if closed['state'] != 'closed' or 'status:done' not in labels(closed):
+                raise ValueError('Issue closure readback failed')
+        if complete and not transferred:
             parent = self.gh.issue(h['parent'])
             body = update_parent(parent['body'], h['issue'])
             if body != parent['body']:
