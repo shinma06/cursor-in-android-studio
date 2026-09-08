@@ -12,4 +12,4 @@ alwaysApply: true
 - `pending / pass / fail / blocked`を使う。取得失敗はblocked。mergeだけで検証を完了/アーカイブしない。
 - 修正後は新runで再確認。CLIやJUnitだけではGUIのpassにしない。
 
-2026-09-07 / #83: 通常実装はdevelop向け。必要テスト・独立レビュー・Case JSONが必須。GUI未実施/環境blocked/製品failでも追跡を保ってdevelopへ統合可。mainは固定候補全体の必要Case passをAcceptance gateで検査する。docs/verification/README.mdを参照。develop統合でQA Issueをcloseせず、main/developをcleanupしない。公開enrollはv2 opaque ID、host/sourceはlocal registryのみ。既存ownerとPAUSED heartbeatを自動変更しない。
+2026-09-07 / #83: 通常実装はdevelop向け。必要テスト・独立レビュー・Case JSONが必須。GUI未実施/環境blocked/製品failでも追跡を保ってdevelopへ統合可。mainは固定候補全体の必要Case passをAcceptance gateで検査する。docs/verification/README.mdを参照。develop統合後は実装完了を確認し、QA作成・双方向link/readback後に元実装Issueをdoneでcloseする。失敗時はopenを維持し、QA Issue自体はcloseせず、main/developをcleanupしない。公開enrollはv2 opaque ID、host/sourceはlocal registryのみ。既存ownerとPAUSED heartbeatを自動変更しない。

@@ -49,7 +49,7 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
         'do not invent findings. GUI observation cannot be replaced by unit tests. '
         'For develop, scope_complete concerns implementation/tests and complete acceptance tracking. '
         'Pending, blocked or failed GUI outcomes alone do not block code approval; preserve them in Cases. '
-        'Concrete code defects and failing tests still require changes. issue_complete remains false until all Issue acceptance passes. '
+        'Concrete code defects and failing tests still require changes. For develop feature/bug/maintenance, issue_complete means all implementation acceptance is met or unfinished implementation has been preserved in explicitly linked separate Issues; GUI/main verification may remain in Cases for QA transfer. Never mark research/tracking complete merely because a child PR merged. For main, issue_complete requires all Issue acceptance. '
         if role == 'review' else
         'You are the implementation worker for an already claimed and handed-off PR. '
         'Fix the supplied concrete review findings in the assigned file scope only. '
