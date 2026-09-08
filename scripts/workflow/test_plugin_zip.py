@@ -110,10 +110,15 @@ class DeliveryTest(unittest.TestCase):
         hooks.mkdir()
         (hooks / 'pre-commit').write_text('#!/bin/sh\nexit 37\n')
         (hooks / 'pre-commit').chmod(0o755)
+        (hooks / 'commit-msg').write_text('#!/bin/sh\nexit 41\n')
+        (hooks / 'commit-msg').chmod(0o755)
         self.git('config', '--worktree', 'core.hooksPath', str(hooks))
         self.runtime('setup')
         self.assertNotEqual(self.git('commit', '--allow-empty', '-m', 'blocked', check=False).returncode, 0)
         self.assertEqual((hooks / 'pre-commit').read_text(), '#!/bin/sh\nexit 37\n')
+        installed = Path(self.git('config', '--get', 'core.hooksPath').stdout.strip())
+        result = subprocess.run([str(installed / 'commit-msg'), 'message'], cwd=self.root, env=self.env)
+        self.assertEqual(result.returncode, 41)
 
     def test_pull_fast_forward_and_merge(self):
         self.git('checkout', 'main')
@@ -122,3 +127,91 @@ class DeliveryTest(unittest.TestCase):
         self.git('checkout', 'A')
         self.git('merge', 'B', '--ff-only')
         self.assert_ready()
+
+    def test_real_merge_and_rebase_invalidate_unbuilt_result(self):
+        # Only this disposable fixture allows writes; production protection is untouched.
+        allow = self.root / '.git/hooks/pre-commit'
+        allow.write_text('#!/bin/sh\nexit 0\n')
+        allow.chmod(0o755)
+        self.git('checkout', '-b', 'topic', 'main')
+        (self.root / 'topic-file').write_text('topic')
+        self.git('add', 'topic-file')
+        self.git('commit', '-m', 'topic')
+        self.cache()
+        self.git('checkout', 'B')
+        self.git('merge', 'topic', '--no-ff', '--no-edit')
+        output = self.root / 'build/distributions'
+        self.assertEqual(json.loads((output / 'manifest.json').read_text())['status'], 'unavailable')
+        self.assertFalse(list(output.glob('*.zip')))
+        self.cache()
+        self.runtime('sync', '--offline')
+        self.assert_ready()
+        self.git('checkout', 'topic')
+        self.git('rebase', 'A')
+        self.assertEqual(json.loads((output / 'manifest.json').read_text())['status'], 'unavailable')
+        self.assertFalse(list(output.glob('*.zip')))
+
+    def test_release_download_and_timeout_clear_candidates(self):
+        import shutil
+        from unittest.mock import patch
+        import plugin_zip
+        sha = self.git('rev-parse', 'HEAD').stdout.strip()
+        stored = self.root / '.git/plugin-zip/cache' / sha
+        delivery = self.root.parent / 'release'
+        shutil.copytree(stored, delivery)
+        shutil.rmtree(stored)
+        def fetch(url, destination):
+            self.assertIn('/plugin-build-' + sha + '/', url)
+            shutil.copyfile(delivery / destination.name, destination)
+        old = Path.cwd()
+        os.chdir(self.root)
+        try:
+            with patch.object(plugin_zip, 'download', side_effect=fetch):
+                self.assertEqual(plugin_zip.sync(), 0)
+            self.assert_ready()
+            shutil.rmtree(stored)
+            with patch.object(plugin_zip, 'download', side_effect=TimeoutError):
+                self.assertEqual(plugin_zip.sync(), 1)
+            self.assertFalse(list((self.root / 'build/distributions').glob('*.zip')))
+            self.assertEqual(json.loads((self.root / 'build/distributions/manifest.json').read_text())['status'], 'unavailable')
+        finally:
+            os.chdir(old)
+
+    def test_sha_mismatch_and_corrupt_zip_rejected(self):
+        import plugin_zip
+        sha = self.git('rev-parse', 'HEAD').stdout.strip()
+        tree = self.git('rev-parse', 'HEAD^{tree}').stdout.strip()
+        folder = self.root / '.git/plugin-zip/cache' / sha
+        with self.assertRaises(ValueError):
+            plugin_zip.validate(folder, self.old, tree)
+        data = json.loads((folder / 'manifest.json').read_text())
+        data['tree'] = '0' * 40
+        (folder / 'manifest.json').write_text(json.dumps(data))
+        with self.assertRaises(ValueError):
+            plugin_zip.validate(folder, sha, tree)
+
+
+class PublisherTest(unittest.TestCase):
+    def test_inventory_live_tips_middle_commits_and_missing_zip(self):
+        from unittest.mock import patch
+        import plugin_zip_publish as publisher
+        tip, middle, old = 'a' * 40, 'b' * 40, 'c' * 40
+        releases = [[{'tag_name': 'plugin-build-' + old, 'draft': False,
+                      'assets': [{'name': 'manifest.json'}, {'name': publisher.NAME + '-' + old + '.zip'}]},
+                     {'tag_name': 'plugin-build-' + middle, 'draft': False,
+                      'assets': [{'name': 'manifest.json'}]}]]
+        with patch.object(publisher, 'gh', return_value=json.dumps(releases)), patch.object(
+                publisher, 'git', side_effect=[tip + '\trefs/heads/main', '\n'.join([old, middle, tip])]):
+            self.assertEqual(publisher.inventory(10), [tip, middle])
+
+    def test_existing_publication_different_digest_never_overwritten(self):
+        from unittest.mock import patch, Mock
+        import plugin_zip_publish as publisher
+        sha = 'a' * 40
+        with patch.object(publisher, 'git', return_value='tree'), patch.object(
+                publisher, 'validate', side_effect=[({'sha256': 'new'}, Path('archive')), ({'sha256': 'old'}, Path('archive'))]), patch.object(
+                publisher.subprocess, 'run', return_value=Mock(returncode=0, stdout='{"draft": false}')), patch.object(publisher, 'gh') as gh:
+            with self.assertRaises(ValueError):
+                publisher.publish(Path('delivery'), sha)
+            self.assertEqual(gh.call_count, 1)
+            self.assertEqual(gh.call_args.args[:2], ('release', 'download'))

@@ -58,6 +58,8 @@ def validate(folder, sha, tree):
     if hashlib.sha256(archive.read_bytes()).hexdigest() != manifest.get('sha256'):
         raise ValueError('digest mismatch')
     with zipfile.ZipFile(archive) as z:
+        if sum(i.file_size for i in z.infolist()) > 300 * 1024 * 1024:
+            raise ValueError('expanded archive too large')
         if z.testzip() or not any(n.endswith('.jar') and '/lib/' in n for n in z.namelist()):
             raise ValueError('invalid plugin archive')
         if any(n.startswith('/') or '..' in Path(n).parts for n in z.namelist()):
@@ -67,6 +69,8 @@ def validate(folder, sha, tree):
             if name.endswith('.jar') and '/lib/' in name:
                 with zipfile.ZipFile(io.BytesIO(z.read(name))) as jar:
                     if 'META-INF/plugin.xml' in jar.namelist():
+                        if jar.getinfo('META-INF/plugin.xml').file_size > 100000:
+                            raise ValueError('descriptor too large')
                         descriptors.append(ET.fromstring(jar.read('META-INF/plugin.xml')))
         if len(descriptors) != 1 or descriptors[0].findtext('id') != 'com.cursoragent.plugin':
             raise ValueError('plugin identity mismatch')
@@ -168,7 +172,16 @@ def install():
         if previous_path.resolve() != hooks.resolve():
             atomic(config, json.dumps({'previous': str(previous_path.resolve())}).encode())
         atomic(runtime / 'plugin_zip.py', Path(__file__).read_bytes())
-        for hook in ('pre-commit', 'pre-push', 'post-checkout', 'post-merge', 'post-rewrite'):
+        names = {'applypatch-msg', 'pre-applypatch', 'post-applypatch', 'pre-commit',
+                 'pre-merge-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit',
+                 'pre-rebase', 'post-checkout', 'post-merge', 'pre-push', 'pre-receive',
+                 'update', 'post-receive', 'post-update', 'push-to-checkout', 'pre-auto-gc',
+                 'post-rewrite', 'sendemail-validate', 'fsmonitor-watchman',
+                 'reference-transaction', 'proc-receive', 'post-index-change'}
+        required = {'pre-commit', 'pre-push', 'post-checkout', 'post-merge', 'post-rewrite'}
+        for hook in sorted(names):
+            if hook not in required and not (previous_path / hook).exists():
+                continue
             # Paths are quoted by shlex, never interpolated as shell code.
             import shlex
             body = '#!/bin/sh\nexec python3 ' + shlex.quote(str(runtime / 'plugin_zip.py')) + ' hook ' + hook + ' "$@"\n'
@@ -182,10 +195,10 @@ def install():
 def hook(name, args):
     config = Path(git('rev-parse', '--absolute-git-dir')) / 'plugin-zip-hooks.json'
     if not config.exists():
-        if name.startswith('post-'):
+        if name in ('post-checkout', 'post-merge', 'post-rewrite'):
             sync()
             return 0
-        return 1
+        return 1 if name in ('pre-commit', 'pre-push') else 0
     previous = Path(json.loads(config.read_text())['previous']) / name
     result = 0
     if previous.is_file() and os.access(previous, os.X_OK):
@@ -194,7 +207,7 @@ def hook(name, args):
         # Historical trees without protection must not silently allow writes.
         print('Protected write hook unavailable; return to a supported source before writing.', file=sys.stderr)
         return 1
-    if name.startswith('post-'):
+    if name in ('post-checkout', 'post-merge', 'post-rewrite'):
         sync()
     return result
 

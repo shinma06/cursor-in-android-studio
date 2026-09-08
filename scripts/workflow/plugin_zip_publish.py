@@ -16,9 +16,11 @@ def gh(*args):
 def inventory(limit):
     releases = json.loads(gh('api', '--paginate', '--slurp', f'repos/{REPOSITORY}/releases?per_page=100'))
     published = {r['tag_name'] for page in releases for r in page if not r['draft'] and
-                 {'manifest.json'} <= {a['name'] for a in r['assets']}}
+                 {'manifest.json', NAME + '-' + r['tag_name'].removeprefix('plugin-build-') + '.zip'}
+                 <= {a['name'] for a in r['assets']}}
     # --remotes includes every reachable intermediate commit, not only push tips.
-    commits = git('rev-list', '--reverse', '--remotes=origin').splitlines()
+    tips = [line.split()[0] for line in git('ls-remote', '--heads', 'origin').splitlines()]
+    commits = list(dict.fromkeys(tips + (git('rev-list', '--reverse', *tips).splitlines() if tips else [])))
     missing = [sha for sha in commits if f'plugin-build-{sha}' not in published]
     return missing[:limit]
 

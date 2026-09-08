@@ -28,7 +28,7 @@ Git操作と別プロセスのファイル編集を同時実行しない。Git�
 
 `Plugin ZIP delivery` はtrusted mainで動作し、main push・定期scan・明示dispatchで到達履歴を走査する。
 古いbranchにworkflowがなくても、GITHUB_TOKEN mergeがpush eventを生成しなくても次scanで捕捉する。
-最大10件ずつ古い順に処理する。build不能SHAが枠を占める場合はPMが他SHAを明示dispatchし、
+現branch tipを優先し、残りの履歴を最大10件ずつ古い順に処理する。build不能SHAが枠を占める場合はPMが他SHAを明示dispatchし、
 不能理由をIssueへ記録する。GitHub scheduleは遅延し得るので即時保証ではない。
 一括push中間commitもrev-list対象。fresh runnerのremote refsを使い、削除済local stale refsは対象にしない。
 公開後はbranch削除に関係なくReleaseを保持する。初回85commit等の大量backfillはPMが担当する。
