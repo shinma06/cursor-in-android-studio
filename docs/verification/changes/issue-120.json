@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "issue": 120,
+  "gui_required": false,
+  "reason": "scripts/hooks/CI/docsのみ。Git fixtureで旧SHA切替、pull、worktree、cacheと失敗状態を照合する。利用環境導入と公開履歴backfillはPMの残受入としてIssueで追跡する。",
+  "cli_checks": ["python3 -m unittest discover -s scripts/workflow -p 'test_*.py'", "python3 -m unittest discover -s scripts/loop -p 'test_*.py'", "./gradlew test buildPlugin --console=plain"],
+  "cases": []
+}
