@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import xml.etree.ElementTree as ET
 import zipfile
 
 from plugin_zip import NAME, REPOSITORY, SHA, git, validate
@@ -243,7 +244,7 @@ def publish(folder, sha):
                 staging = Path(tmp)
                 try:
                     verify_release(current, sha, tree, staging)
-                except (ValueError, zipfile.BadZipFile):
+                except (ValueError, zipfile.BadZipFile, ET.ParseError):
                     invalid.append(current['id'])
                     continue
                 # Once a valid ID is selected, any upload/publication failure must stop this attempt.

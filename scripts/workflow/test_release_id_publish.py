@@ -19,10 +19,11 @@ ZIP = publisher.NAME + '-' + SHA + '.zip'
 BASE = 'repos/' + publisher.REPOSITORY + '/releases'
 
 
-def envelope(folder, marker='local', recipe='gradle-test-buildPlugin-v1'):
+def envelope(folder, marker='local', recipe='gradle-test-buildPlugin-v1',
+             plugin_xml='<idea-plugin><id>com.cursoragent.plugin</id></idea-plugin>'):
     inner = io.BytesIO()
     with zipfile.ZipFile(inner, 'w') as jar:
-        jar.writestr('META-INF/plugin.xml', '<idea-plugin><id>com.cursoragent.plugin</id></idea-plugin>')
+        jar.writestr('META-INF/plugin.xml', plugin_xml)
         jar.writestr('source.txt', marker)
     outer = io.BytesIO()
     with zipfile.ZipFile(outer, 'w') as archive:
@@ -172,6 +173,27 @@ class ReleaseIdPublishTest(unittest.TestCase):
         self.assertTrue(self.api.releases[2]['draft'])
         self.assertFalse(self.api.releases[9]['draft'])
         self.assertEqual(len(self.api.mutations()), 1)
+
+    def test_malformed_plugin_xml_draft_does_not_hide_valid_complete_release(self):
+        remote = self.folder / 'remote'
+        remote.mkdir()
+        malformed = envelope(remote, plugin_xml='<idea-plugin><id>com.cursoragent.plugin</id>')
+        self.assertEqual(hashlib.sha256(malformed[ZIP]).hexdigest(),
+                         json.loads(malformed['manifest.json'])['sha256'])
+        self.api.add(2, malformed)
+        self.api.add(9, self.files)
+        before = copy.deepcopy(self.api.data)
+
+        result = self.publish()
+
+        self.assertEqual(result, json.loads(self.files['manifest.json']))
+        self.assertTrue(self.api.releases[2]['draft'])
+        self.assertFalse(self.api.releases[9]['draft'])
+        self.assertEqual(set(self.api.releases), {2, 9})
+        self.assertEqual(self.api.data, before)
+        mutations = self.api.mutations()
+        self.assertEqual(len(mutations), 1)
+        self.assertEqual(mutations[0][2:5], ['--method', 'PATCH', BASE + '/9'])
 
     def test_only_broken_complete_draft_does_not_publish_empty_duplicate(self):
         self.api.add(2, {ZIP: b'corrupt', 'manifest.json': self.files['manifest.json']})
