@@ -20,6 +20,8 @@ from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_n
 from agent_worker import run_worker, worker_environment
 from handoff_registry import register, resolve
 from verification import verify_pr, metadata
+from issue_schema import validate_issue, done_labels, labels
+from qa_handoff import handoff
 
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
@@ -465,12 +467,29 @@ class Loop:
                     report.get('issue_complete') and bound.get('head') == pr['head']['sha'] and
                     bound.get('issue_hash') == binding(pr, current_issue)['issue_hash'] and
                     (not (h['gui_required'] or report.get('gui_required')) or promotion_pass or gui_pass(state.get('gui'), bound)))
+        transferred = False
+        if pr['base']['ref'] == 'develop':
+            axes = validate_issue(current_issue)
+            # issue_complete means no implementation remains; GUI is tracked separately.
+            implementation_complete = (axes['type'] in ('feature', 'bug', 'maintenance') and
+                report.get('verdict') == 'approved' and report.get('scope_complete') is True and
+                report.get('issue_complete') is True and bound.get('head') == pr['head']['sha'] and
+                bound.get('issue_hash') == binding(pr, current_issue)['issue_hash'])
+            if implementation_complete:
+                _, case_path, _ = metadata(pr)
+                change = json.loads(git('show', f'{pr["merge_commit_sha"]}:{case_path}'))
+                qa = handoff(self.gh, REPO, pr, current_issue, change)
+                state['qa_issue'] = qa
+                complete = transferred = True
         state.update(phase='cleanup', next='Update Issue and remove only verified finished resources')
         comment_id = self.save(pr, state, comment_id)
         issue = self.gh.issue(h['issue'])
         if complete and issue['state'] == 'open':
-            self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed'})
-        if complete:
+            self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed', 'labels': done_labels(issue)})
+            closed = self.gh.issue(h['issue'])
+            if closed['state'] != 'closed' or 'status:done' not in labels(closed):
+                raise ValueError('Issue closure readback failed')
+        if complete and not transferred:
             parent = self.gh.issue(h['parent'])
             body = update_parent(parent['body'], h['issue'])
             if body != parent['body']:

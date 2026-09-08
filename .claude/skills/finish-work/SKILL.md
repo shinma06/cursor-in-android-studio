@@ -14,6 +14,6 @@ Read docs/development/github-workflow.md, pr-automation.md and docs/verification
    Result metadata changes do not change the tested candidate. Only permitted promotion JSON files may differ.
 4. Stop writer before trusted-main v2 enroll. Coordinator owns fixes/re-review, current test/PR policy/Agent review/Acceptance gate,
    guarded merge, Issue updates and cleanup. Never concurrently edit an enrolled branch.
-5. Develop uses squash and keeps acceptance Issues open. Promotion uses merge commit; original QA Issues close only after individual reconciliation.
+5. Develop uses squash, transfers all Cases/main tracking to an idempotent QA Issue with bidirectional readback, then closes completed implementation Issues with status:done. Transfer failure keeps origin open; QA/research/tracking are not closed by child merge. Promotion uses merge commit; original QA Issues close only after individual reconciliation.
    Never delete main/master/develop. GUI lease remains required for desktop operations. Preserve unresolved work and owners.
 6. #83 bootstrap alone uses its documented current-main CLI/independent-review handoff to PM; no old enroll or automatic heartbeat restart.

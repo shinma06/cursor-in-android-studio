@@ -183,7 +183,7 @@ else:
 class FakeGitHub:
     def __init__(self):
         self.pull = pr_data()
-        self.issues = {35: {'state': 'open', 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
+        self.issues = {35: {'state': 'open', 'title': '[運用] task', 'labels': ['type:maintenance', 'priority:P2', 'status:review'], 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
         self.messages = {}
         self.statuses = []
         self.merges = 0

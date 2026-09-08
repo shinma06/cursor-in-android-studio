@@ -53,7 +53,7 @@ reviews; required GitHub approval count is 0. See the workflow for settings and 
 通常実装はdevelop向けIssue PRへ。必要テストと独立コードレビューが通り、
 [確認マトリクス](docs/verification/README.md)に必要Case・手順・期待結果・GPT/人間の状態・次の操作があれば、
 GUIのpending/環境blocked/製品failでもdevelopへ統合できる。製品failは専用修正Issue/PRへ追跡する。
-未解決コード指摘やテスト失敗は許可しない。develop統合だけでQA Case/Issueをcloseしない。
+未解決コード指摘やテスト失敗は許可しない。develop統合後はQAを先に作成・双方向link/readback確認し、実装受入完了の元Issueをcloseする。GUI不要でもmain未反映はQAマトリクスへ引継ぐ。失敗時はcloseせず冪等再試行。QA Case/QA Issueの完了やmain反映とは区別し、親tracking/researchを子PRだけでcloseしない。Issue命名・3軸labelはgithub-workflow.mdの#96規約に従う。
 mainは固定develop候補全体をGPT/人間が適切に確認したpromotion PRをmerge commitで統合する。
 過去buildのpass、1 Caseだけのpass、未確認commitの混入はAcceptance gateが拒否する。
 GUI不要docs/toolingだけは理由とCLI検証を記録したmain PRも可能。main/developはcleanup禁止。
