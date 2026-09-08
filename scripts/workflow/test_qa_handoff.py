@@ -74,7 +74,14 @@ class HandoffTests(unittest.TestCase):
         self.transfer()
         self.assertIn('PM observations', self.gh.issue(100)['body'])
         self.assertEqual(len(self.gh.comments(100)), 1)
-    def test_unconfirmed_merge_and_invalid_cases_block(self):
+    def test_invalid_cases_block_before_creating_qa(self):
+        invalid = dict(CHANGE, gui_required=True, cases=[])
+        self.pr['body'] = self.pr['body'].replace('GUI: not-required', 'GUI: required')
+        with self.assertRaises(ValueError):
+            q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), invalid)
+        self.assertEqual(self.gh.created, 0)
+
+    def test_unconfirmed_merge_blocks(self):
         self.pr['merged'] = False
         with self.assertRaises(ValueError): self.transfer()
         self.assertEqual(self.gh.created, 0)
@@ -82,15 +89,24 @@ class HandoffTests(unittest.TestCase):
 
 class ClosureTests(unittest.TestCase):
     setUp = tal.LoopTests.setUp
-    def finish(self, complete=True):
-        gh = GH(); self.loop.gh = gh
+    def finish(self, complete=True, fail_link=False, change_origin=False):
+        gh = GH(); gh.fail_link = fail_link; self.loop.gh = gh
+        if change_origin:
+            original_comment = gh.comment
+            def comment(n, body, comment_id=None):
+                result = original_comment(n, body, comment_id)
+                if n == 35: gh.issues[35]["body"] += " new acceptance"
+                return result
+            gh.comment = comment
         gh.pull.update(merged=True, merge_commit_sha='d'*40)
         gh.pull['base']['ref'] = 'develop'
         gh.pull['body'] = gh.pull['body'].replace('tooling','develop')
         state = {'binding': al.binding(gh.pull, gh.issue(35)), 'review': dict(report(), issue_complete=complete)}
         h = {'issue':35,'parent':1,'close_issue':False,'gui_required':False}
-        with patch.object(al, 'git', return_value=__import__('json').dumps(CHANGE)):
+        with patch.object(al, 'git', return_value=__import__('json').dumps(CHANGE)) as git:
             result = self.loop.finish(gh.pull, h, state, None)
+            if complete:
+                self.assertEqual([c.args[0] for c in git.call_args_list], ['fetch', 'show'])
         return gh, result
     def test_completed_implementation_closes_after_qa_even_without_flag(self):
         gh, result = self.finish()
@@ -99,6 +115,16 @@ class ClosureTests(unittest.TestCase):
         self.assertIn('status:done', gh.issue(35)['labels'])
         self.assertEqual(gh.issue(1)['body'], '- [ ] #35 task')
         self.assertEqual(gh.created, 1)
+    def test_failed_link_never_closes_or_cleans_up(self):
+        with self.assertRaisesRegex(RuntimeError, 'link failed'): self.finish(fail_link=True)
+        self.assertEqual(self.loop.gh.issue(35)['state'], 'open')
+        self.loop.cleanup.assert_not_called()
+
+    def test_changed_acceptance_during_transfer_never_closes(self):
+        with self.assertRaisesRegex(ValueError, 'acceptance changed'): self.finish(change_origin=True)
+        self.assertEqual(self.loop.gh.issue(35)['state'], 'open')
+        self.loop.cleanup.assert_not_called()
+
     def test_unfinished_implementation_stays_open(self):
         gh, result = self.finish(False)
         self.assertFalse(result['issue_closed'])

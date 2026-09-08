@@ -477,6 +477,7 @@ class Loop:
                 bound.get('issue_hash') == binding(pr, current_issue)['issue_hash'])
             if implementation_complete:
                 _, case_path, _ = metadata(pr)
+                git('fetch', '--no-tags', 'origin', pr['merge_commit_sha'])
                 change = json.loads(git('show', f'{pr["merge_commit_sha"]}:{case_path}'))
                 qa = handoff(self.gh, REPO, pr, current_issue, change)
                 state['qa_issue'] = qa
@@ -484,6 +485,8 @@ class Loop:
         state.update(phase='cleanup', next='Update Issue and remove only verified finished resources')
         comment_id = self.save(pr, state, comment_id)
         issue = self.gh.issue(h['issue'])
+        if complete and bound.get('issue_hash') != binding(pr, issue)['issue_hash']:
+            raise ValueError('Issue acceptance changed during handoff; re-review before closure')
         if complete and issue['state'] == 'open':
             self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed', 'labels': done_labels(issue)})
             closed = self.gh.issue(h['issue'])

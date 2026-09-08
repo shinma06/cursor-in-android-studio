@@ -162,6 +162,11 @@ class PolicyTest(unittest.TestCase):
         namespace = {'__name__': 'inline_test'}
         exec(compile(source, '<workflow>', 'exec'), namespace)
         self.assertEqual(namespace['validate'](self.pr), 31)
+        issue = {'title': '[運用] policy', 'state': 'open',
+                 'labels': ['type:maintenance', 'priority:P2', 'status:review']}
+        namespace['validate_issue'](issue)
+        with self.assertRaises(ValueError):
+            namespace['validate_issue'](dict(issue, labels=[]))
         bad = dict(self.pr, body='Issue: #99')
         with self.assertRaises(ValueError):
             namespace['validate'](bad)
