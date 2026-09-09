@@ -1,6 +1,10 @@
 package com.cursoragent.ui.header
 
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.session.SessionTabs
+import com.cursoragent.settings.AgentMode
+import com.cursoragent.ui.confirmCloseChats
+import com.cursoragent.ui.openedChatEntries
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.PermissionMode
 import com.cursoragent.settings.SandboxMode
@@ -23,7 +27,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について"),
+        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -74,7 +78,9 @@ class ToolWindowChatActionsTest {
         val actions = ToolWindowChatActions(AgentSettingsState(), { available }, { running[selected] },
             { transports[selected] to locked }, { transports[selected] = it },
             { calls.add("summary:$selected") }, { calls.add("new") }, { calls.add("history") },
-            { calls.add("mcp") }, { calls.add("settings") }, { calls.add("notice") })
+            { calls.add("mcp") }, { calls.add("settings") }, { calls.add("notice") },
+            { calls.add("opened") }, { calls.add("closeAll") }, { calls.add(it) },
+            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") })
         val summary = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "このセッションの内容を要約" }
         val event = event(summary)
         summary.update(event)
@@ -108,7 +114,10 @@ class ToolWindowChatActionsTest {
         assertEquals(listOf("summary:1", "new", "history", "mcp", "settings", "notice"), calls)
         available = false
         val before = calls.toList()
-        (actions.titleActions + actions.gearActions.childActionsOrStubs.filterNot { it is ActionGroup || it is Separator }).forEach {
+        fun leaves(group: DefaultActionGroup): List<AnAction> = group.childActionsOrStubs.flatMap {
+            if (it is DefaultActionGroup) leaves(it) else listOf(it)
+        }.filterNot { it is Separator }
+        (actions.titleActions + leaves(actions.gearActions)).forEach {
             val disposedEvent = event(it)
             it.update(disposedEvent)
             assertFalse(disposedEvent.presentation.isEnabled)
@@ -120,10 +129,123 @@ class ToolWindowChatActionsTest {
         assertEquals(before, calls)
     }
 
+    @Test
+    fun `hidden icons remain executable in menu and reset changes only those two settings`() = SwingUtilities.invokeAndWait {
+        val settings = AgentSettingsState().apply { permissionMode = PermissionMode.AUTO_REVIEW }
+        var newChats = 0
+        var histories = 0
+        var notifications = 0
+        val actions = ToolWindowChatActions(settings, { true }, { false }, { AgentTransport.PRINT to false },
+            {}, {}, { newChats++ }, { histories++ }, {}, {}, {}, {}, {}, {}, { false }, {}, {}, { notifications++ })
+        val visibility = actions.group("上部アイコンの表示").childActionsOrStubs
+        visibility.take(2).forEach { (it as ToggleAction).setSelected(event(it), false) }
+        actions.titleActions.forEach { action ->
+            val toolbar = event(action, ActionUiKind.TOOLBAR)
+            val menu = event(action, ActionUiKind.POPUP)
+            action.update(toolbar)
+            action.update(menu)
+            assertFalse(toolbar.presentation.isVisible)
+            assertTrue(menu.presentation.isVisible)
+            action.actionPerformed(menu)
+        }
+        assertEquals(1, newChats)
+        assertEquals(1, histories)
+        visibility.last().actionPerformed(event(visibility.last()))
+        assertTrue(settings.showNewChatIcon)
+        assertTrue(settings.showHistoryIcon)
+        assertEquals(PermissionMode.AUTO_REVIEW, settings.permissionMode)
+        assertEquals(3, notifications)
+        actions.titleActions.forEach {
+            val toolbar = event(it, ActionUiKind.TOOLBAR)
+            it.update(toolbar)
+            assertTrue(toolbar.presentation.isVisible)
+        }
+    }
+
+    @Test
+    fun `feedback sends only fixed destination urls and preview reads current IDE value`() = SwingUtilities.invokeAndWait {
+        val urls = mutableListOf<String>()
+        var preview = true
+        var previewChanges = 0
+        var editorSettings = 0
+        val actions = ToolWindowChatActions(AgentSettingsState(), { true }, { false }, { AgentTransport.PRINT to false },
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, urls::add, { preview }, { preview = it; previewChanges++ }, { editorSettings++ }, {})
+        actions.group("フィードバック…").childActionsOrStubs.forEach { it.actionPerformed(event(it)) }
+        assertEquals(listOf("https://github.com/shinma06/cursor-in-android-studio/issues/new",
+            "https://prod.cursor.com/help/troubleshooting/reporting-bugs"), urls)
+        val editor = actions.group("ファイルエディター").childActionsOrStubs
+        val toggle = editor.first() as ToggleAction
+        val event = event(toggle)
+        assertTrue(toggle.isSelected(event))
+        assertEquals(0, previewChanges)
+        toggle.setSelected(event, false)
+        assertFalse(preview)
+        assertEquals(1, previewChanges)
+        preview = true // An IDE settings change outside this plugin must be visible on reopen.
+        assertTrue(toggle.isSelected(event))
+        editor.last().actionPerformed(event(editor.last()))
+        assertEquals(1, editorSettings)
+    }
+
+    @Test
+    fun `chat picker uses stable ids and cancel leaves drafts selection and runs untouched`() {
+        val tabs = SessionTabs()
+        val first = tabs.snapshot().selected.id
+        tabs.updateComposer(first, AgentMode.AGENT, "", "question", 0)
+        val token = tabs.beginTurn(first)!!.token
+        val second = tabs.open().id
+        tabs.updateComposer(second, AgentMode.ASK, "model", "未送信", 2)
+        val before = tabs.snapshot()
+        val entries = openedChatEntries(before)
+        assertEquals(listOf("1. New Agent（実行中）", "2. New Agent"), entries.map { it.second })
+        confirmCloseChats(before, confirm = { count, running ->
+            assertEquals(2, count)
+            assertEquals(1, running)
+            false
+        }, close = { fail<Unit>("Cancel must not close or dispose any tab") })
+        assertEquals(before, tabs.snapshot())
+        assertTrue(tabs.accepts(token))
+        tabs.move(second, 0)
+        assertTrue(tabs.select(entries[1].first))
+        assertEquals(second, tabs.snapshot().selectedId)
+        assertEquals("未送信", tabs.snapshot().selected.draft)
+        assertTrue(tabs.snapshot().tabs.all { it.title == "New Agent" })
+    }
+
+    @Test
+    fun `confirmed bulk close rejects late callbacks and leaves one fresh tab without touching newer or other projects`() {
+        val tabs = SessionTabs()
+        val first = tabs.snapshot().selected.id
+        tabs.updateComposer(first, AgentMode.AGENT, "", "question", 0)
+        val token = tabs.beginTurn(first)!!.token
+        tabs.open()
+        val otherProject = SessionTabs()
+        val otherBefore = otherProject.snapshot()
+        val victims = tabs.snapshot()
+        confirmCloseChats(victims, { _, _ -> true }) { ids ->
+            assertEquals(victims.tabs.map { it.id }, tabs.closeAll(ids).map { it.id })
+        }
+        assertFalse(tabs.accepts(token))
+        assertFalse(tabs.bindChat(token, "late-id"))
+        val fresh = tabs.snapshot().selected
+        assertEquals(1, tabs.snapshot().tabs.size)
+        assertFalse(victims.tabs.any { it.id == fresh.id })
+        assertNull(fresh.chatId)
+        assertEquals("", fresh.draft)
+        assertEquals(otherBefore, otherProject.snapshot())
+        var addedWhileConfirming = ""
+        confirmCloseChats(tabs.snapshot(), { _, _ ->
+            addedWhileConfirming = tabs.open().id
+            true
+        }) { tabs.closeAll(it) }
+        assertEquals(listOf(addedWhileConfirming), tabs.snapshot().tabs.map { it.id })
+    }
+
     private fun actions(settings: AgentSettingsState): ToolWindowChatActions {
         val unexpected = { fail<Unit>("Opening or updating a menu must not invoke an action") }
         return ToolWindowChatActions(settings, { true }, { false }, { AgentTransport.PRINT to false },
-            { unexpected() }, unexpected, unexpected, { unexpected() }, unexpected, unexpected, unexpected)
+            { unexpected() }, unexpected, unexpected, { unexpected() }, unexpected, unexpected, unexpected,
+            { unexpected() }, unexpected, { unexpected() }, { false }, { unexpected() }, unexpected, {})
     }
 
     private fun ToolWindowChatActions.group(caption: String) =
@@ -134,8 +256,8 @@ class ToolWindowChatActionsTest {
         action.setSelected(event(action), true)
     }
 
-    private fun event(action: AnAction) = AnActionEvent(
-        DataContext.EMPTY_CONTEXT, action.templatePresentation.clone(), "test", ActionUiKind.NONE, null, 0, unusedActionManager,
+    private fun event(action: AnAction, kind: ActionUiKind = ActionUiKind.NONE) = AnActionEvent(
+        DataContext.EMPTY_CONTEXT, action.templatePresentation.clone(), "test", kind, null, 0, unusedActionManager,
     )
 
     // No IDE application or GUI: these actions only read Presentation and their injected callbacks.

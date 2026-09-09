@@ -1,6 +1,10 @@
 package com.cursoragent.settings
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertFalse
+import com.intellij.util.xmlb.XmlSerializer
+import org.jdom.Element
 import org.junit.jupiter.api.Test
 
 /**
@@ -25,4 +29,22 @@ class AgentSettingsStateTest {
         assertEquals(SandboxMode.DEFAULT, settings.sandboxMode)
         assertEquals(WorktreeMode.DEFAULT, settings.worktreeMode)
     }
+    @Test
+    fun `icon visibility round trips and old settings keep both icons visible`() {
+        val oldXml = Element("state").addContent(
+            Element("option").setAttribute("name", "permissionMode").setAttribute("value", "AUTO_REVIEW"),
+        )
+        val old = XmlSerializer.deserialize(oldXml, AgentSettingsState::class.java)
+        assertTrue(old.showNewChatIcon)
+        assertTrue(old.showHistoryIcon)
+        assertEquals(PermissionMode.AUTO_REVIEW, old.permissionMode)
+        old.showNewChatIcon = false
+        old.showHistoryIcon = false
+        val restored = XmlSerializer.deserialize(XmlSerializer.serialize(old), AgentSettingsState::class.java)
+        val live = AgentSettingsState().apply { loadState(restored) }
+        assertFalse(live.showNewChatIcon)
+        assertFalse(live.showHistoryIcon)
+        assertEquals(PermissionMode.AUTO_REVIEW, live.permissionMode)
+    }
+
 }
