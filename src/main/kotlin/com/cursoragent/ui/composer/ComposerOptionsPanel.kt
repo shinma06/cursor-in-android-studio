@@ -1,5 +1,6 @@
 package com.cursoragent.ui.composer
 
+import com.cursoragent.service.AgentTransport
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.PermissionMode
 import com.cursoragent.settings.SandboxMode
@@ -25,6 +26,9 @@ internal class ComposerOptionsPanel(
     onMcp: () -> Unit,
     onSettings: () -> Unit,
     onClose: () -> Unit,
+    transport: AgentTransport = AgentTransport.PRINT,
+    private val transportLocked: Boolean = false,
+    onTransport: (AgentTransport) -> Unit = {},
 ) : JPanel() {
     val permissionChoice = SettingsChoice(
         "操作の確認", settings.permissionMode,
@@ -50,6 +54,14 @@ internal class ComposerOptionsPanel(
         ),
     ) { settings.worktreeMode = it }
 
+    val transportChoice = SettingsChoice(
+        "接続方法", transport,
+        listOf(
+            SettingsOption(AgentTransport.PRINT, "互換CLI", "既存のCLI経路を使用します。"),
+            SettingsOption(AgentTransport.ACP, "ACP", "新しい会話をACPで開始します。初期モデルは接続先の既定値です。\n会話開始後は切り替えません。"),
+        ),
+    ) { onClose(); onTransport(it) }
+
     private val summarizeButton = action("このセッションの内容を要約", "会話の内容を要約する依頼を送信します。") {
         onClose()
         onSummarize()
@@ -64,7 +76,7 @@ internal class ComposerOptionsPanel(
             border = JBUI.Borders.empty(4, 8, 8, 8)
             alignmentX = Component.LEFT_ALIGNMENT
         })
-        for (choice in listOf(permissionChoice, sandboxChoice, worktreeChoice)) {
+        for (choice in listOf(permissionChoice, sandboxChoice, worktreeChoice, transportChoice)) {
             add(JPanel(BorderLayout(JBUI.scale(12), 0)).apply {
                 isOpaque = false
                 border = JBUI.Borders.empty(3, 8)
@@ -113,6 +125,8 @@ internal class ComposerOptionsPanel(
     }
 
     fun setRunning(running: Boolean) {
+        transportChoice.isEnabled = !running && !transportLocked
+        if (transportLocked || running) transportChoice.toolTipText = "接続方法は新しい会話の初回送信前に選べます。"
         summarizeButton.isEnabled = !running
         summarizeButton.toolTipText = if (running) "応答の完了後に会話を要約できます。" else "会話の内容を要約する依頼を送信します。"
     }

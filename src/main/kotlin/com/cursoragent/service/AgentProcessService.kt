@@ -1,5 +1,6 @@
 package com.cursoragent.service
 
+import com.cursoragent.acp.AcpSession
 import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
@@ -21,6 +22,11 @@ import java.nio.charset.StandardCharsets
 data class ModelOption(val id: String, val label: String)
 
 interface AgentProcessListener {
+    fun onStructuredEvent(event: AgentEvent) {}
+    fun onTurnOutcome(outcome: AgentTurnOutcome) {
+        if (outcome == AgentTurnOutcome.COMPLETED) onCompleted(0) else onError(outcome.message)
+    }
+    fun onUncertain(message: String) { onError(message) }
     fun onUserMessage(prompt: String) {}
     fun onAssistantDelta(text: String) {}
     fun onResultFallback(text: String) {}
@@ -35,7 +41,7 @@ interface AgentProcessListener {
     fun onStopped() {}
 }
 
-/** Current print transport: owns multiple per-turn runs; session identity and UI state live separately. */
+/** Owns print runs and per-tab ACP connections; UI/session lifetimes remain separate. */
 @Service(Service.Level.PROJECT)
 class AgentProcessService(private val project: Project) : Disposable {
     private val LOG = logger<AgentProcessService>()
@@ -43,6 +49,13 @@ class AgentProcessService(private val project: Project) : Disposable {
     @Volatile private var disposed = false
     private val sessionTargets = SessionWorkspaceHistory()
     private val operations = WorkspaceOperationGate()
+    private val acpSessions = mutableMapOf<String, AcpSession>()
+
+    fun restoreUnavailableReason(): String = if (operations.isUncertain) AcpSession.UNCERTAIN_MESSAGE else RestorePolicy.BUSY
+
+    @Synchronized
+    fun closeSession(tabId: String) { acpSessions.remove(tabId)?.close() }
+
 
     fun captureWorkspace(resumeId: String?): TurnWorkspace {
         return TurnWorkspace(
@@ -69,7 +82,23 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
     }
 
-    fun sendPrompt(prompt: String, turn: PreparedAgentTurn) {
+    fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT) {
+        if (transport == AgentTransport.ACP) {
+            val session = synchronized(this) {
+                if (disposed || !turn.run.isActive) return
+                acpSessions.getOrPut(requireNotNull(tabId)) {
+                    AcpSession(
+                        launch = { root, executable ->
+                            GeneralCommandLine(executable.ifBlank { resolveAgentExecutable("") }, "acp")
+                                .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
+                        },
+                        onUncertain = operations::markUncertain,
+                    )
+                }
+            }
+            session.send(prompt, turn)
+            return
+        }
         val run = turn.run
         if (!run.isActive) return
         if (prompt.isBlank()) {
@@ -88,7 +117,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         run.emit { it.onUserMessage(prompt) }
 
         val commandLine = buildCommandLine(prompt, turn.workspace, settings)
-        LOG.info("Starting agent: ${commandLine.commandLineString}")
+        LOG.info("Starting print agent")
 
         val processReservation = turn.preparation.launchingProcess()
         val handler = try {
@@ -241,6 +270,8 @@ class AgentProcessService(private val project: Project) : Disposable {
     override fun dispose() {
         disposed = true
         killActiveProcess()
+        acpSessions.values.forEach { it.close() }
+        acpSessions.clear()
     }
 
     private fun buildCommandLine(

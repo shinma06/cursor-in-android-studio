@@ -1,0 +1,358 @@
+{
+  "schema": 1,
+  "issue": 147,
+  "gui_required": true,
+  "reason": "ACPを既存native panelの送信/要求返信/停止/復元排他へ接続する。実wire契約と固定build GUI確認が必要。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "./gradlew test --tests *AcpJsonRpcTest --tests *AcpProtocolTest --tests *AcpSessionTest --tests *AgentRequestCardTest（synthetic、実Cursorではない）",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "git diff --check、固定HEAD/baseの独立Sessionレビュー"
+  ],
+  "cases": [
+    {
+      "id": "ACP-START",
+      "issue": 147,
+      "change": "T01: 起動・受信・失敗",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "ACP用に許可された設定で初回text送信。次にCLIパス欠落・未認証・不正frame・EOFをfakeまたは管理fixtureで試す。"
+      ],
+      "expected": "EDTを止めず、正確に一度だけ終端。UTF-8/ID0/string/nullを保持し、pendingを解放。秘密や全文を診断へ出さない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-STREAM",
+      "issue": 147,
+      "change": "T02: 日本語・重複delta・メッセージ境界",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "同じ短語を繰り返す応答、thought/toolを挟む複数message、長い日本語を送信し幅変更・scrollを試す。停止後に遅いchunkを注入する。"
+      ],
+      "expected": "正当な重複と順序・メッセージ境界を保持。ACPにprint deduper/result補完なし。旧runの遅着は表示しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-TOOLS",
+      "issue": 147,
+      "change": "T03: tool部分更新",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "titleのみ、statusのみ、content置換、update先着、同call ID別session、failedと複数contentを管理fixtureで送る。"
+      ],
+      "expected": "同session/callの一行を更新し省略fieldを保持。content/location指定時は置換。未対応mediaを別意味へ変えず表示を区別する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-REQUESTS",
+      "issue": 147,
+      "change": "T04: permission・質問・Planの返答",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "許可/拒否/取消、複数選択、Plan承認/拒否を試す。入力中到着、tab切替、Stop/close、二重click/遅着click、未知request/notificationを送る。"
+      ],
+      "expected": "日本語の対象・選択説明とkeyboard操作。広告されたIDで要求ごとに一度だけ返信。未回答を取消、通知には返信しない。readerと他tabは進む。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-CANCEL",
+      "issue": 147,
+      "change": "T07: cancelと接続/turn寿命",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "準備中・prompt中・permission待ち・tool終端と同時にStop。cancel応答遅延/無応答/EOFを試し、A停止中もBを操作する。content/projectを閉じる。"
+      ],
+      "expected": "cancel送信だけで復元gateを開かない。P0で確認した静止条件で解除し、不確定は復元/同会話再送を拒否。対象接続/所有処理を回収、別tabを停止しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-RESTORE",
+      "issue": 147,
+      "change": "T10: print/ACP共通復元保護",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "DEFAULT fixtureで既存printの正当/古い/未保存/root外/symlinkのRevertとcheckpointを試す。ACPのactive/idle residentと別tab実行中にも試す。"
+      ],
+      "expected": "正確なbefore/after/rootなしのACP Revertを提供しない。既存拒否条件とGit制約を保持。activeを拒否、静止したidle接続だけで永久busyにしない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-SETTINGS",
+      "issue": 147,
+      "change": "T14: 明示transport・保存互換・設定readback",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "新規会話でACP/互換printを明示選択。旧print履歴を再開し、model/mode・permission3種・sandbox・worktree・path変更・設定/送信失敗を試す。"
+      ],
+      "expected": "既存ID/XML/既定permissionを保持。対応しない設定は送信前に説明して拒否。確定stateはserver readback、CLI catalogを推測送信しない。会話中の勝手な切替/失敗prompt自動再送なし。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    },
+    {
+      "id": "ACP-UI",
+      "issue": 147,
+      "change": "T16: native panel回帰",
+      "preconditions": "#147を含む固定候補SHA/ZIP hash/loaded JAR、対象CLI版、#146で確認した起動・設定・wire・静止条件を照合。使い捨てGit fixture、指定GUI lease担当で実施。syntheticとliveを分ける。",
+      "steps": [
+        "2tabでdraft/caret/scrollを保持し、長い日本語/絵文字、Tab/ShiftTab/Escape/Enter、通知OFF、permission到着中の入力/Stopを試す。"
+      ],
+      "expected": "tab状態とaccessible nameを保持し、取消済みUIは無効化する。意図停止を通常の失敗通知にしない。不確定停止は区別して伝える。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "独立レビューと#146の公開wire証拠を確定後、指定GUI lease担当が固定候補で実施する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "ACP接続とsynthetic回帰テストを実装。実Cursor/固定build GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/147",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/146",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/84f495d9aa26aa483aa0959db4b6603c3897c428/docs/research/acp-feature-migration-2026-09-09.md"
+      ]
+    }
+  ]
+}

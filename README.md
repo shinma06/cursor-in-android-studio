@@ -5,7 +5,7 @@
 Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE Agent Client。
 [最上位ミッション](docs/project-mission.md)と[ACP First](docs/architecture/cursor-integration.md)に従い、主要な構造化通信はACPを優先し、IDE API / MCP / 補助CLIを組み合わせる。
 
-現在の製品は `agent -p --output-format stream-json` とSwing/JBUIによるprint実装（方式B）。ACP製品接続はまだ未実装であり、方針の導入と動作確認済みの範囲を分ける。
+現在は互換CLI（`agent -p --output-format stream-json`）を既定とし、新しい会話の「… → 接続方法」でACPを明示選択できる。ACPのtext・ツール状態・要求返答・停止をnative panelへ接続した。実Cursorの固定build GUI受入は未完了で、[実装範囲と制約](docs/architecture/current-implementation.md#acp接続147)を参照する。
 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。

@@ -4,6 +4,7 @@ import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
+import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.RestorePolicy
@@ -45,8 +46,53 @@ class AgentTurnListenerFactory(
         }
         var assistantStarted = false
         val assistantDeduper = AssistantChunkDeduper()
+        val structuredText = StringBuilder()
 
         return object : AgentProcessListener {
+            override fun onStructuredEvent(event: AgentEvent) {
+                update {
+                    when (event) {
+                        is AgentEvent.Text -> {
+                            if (event.startsMessage) {
+                                structuredText.clear()
+                                timeline.finalizeAssistantMessage()
+                            }
+                            structuredText.append(event.text)
+                            timeline.setAssistantText(structuredText.toString())
+                        }
+                        is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
+                        is AgentEvent.Tool -> timeline.upsertStructuredTool(event.state) { diff ->
+                            DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
+                        }
+                        is AgentEvent.Input -> timeline.addInputRequest(event.request)
+                        is AgentEvent.Plan -> timeline.showPlan(event.entries)
+                        is AgentEvent.Configuration -> composer.showAcpConfiguration(event)
+                    }
+                }
+            }
+
+            override fun onTurnOutcome(outcome: com.cursoragent.service.AgentTurnOutcome) {
+                if (outcome == com.cursoragent.service.AgentTurnOutcome.COMPLETED) {
+                    onCompleted(0)
+                    return
+                }
+                update {
+                    timeline.finalizeAssistantMessage()
+                    timeline.showStatus(outcome.message)
+                    onRunFinished()
+                    header.setSessionStatus(outcome.message)
+                }
+            }
+
+            override fun onUncertain(message: String) {
+                update(allowStopped = true) {
+                    timeline.finalizeAssistantMessage()
+                    timeline.showError(message)
+                    onRunFinished()
+                    header.setSessionStatus("実行終了を確認できません")
+                }
+            }
+
             override fun onAssistantDelta(text: String) {
                 update {
                     val full = assistantDeduper.dedupe(text) ?: return@update

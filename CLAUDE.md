@@ -209,20 +209,22 @@ vs. Caskroom versioned path).
 Manual install (no auto-update channel): Settings → Plugins → ⚙ → Install Plugin from Disk →
 select the built zip → restart IDE.
 
-## Architecture（2026-09-09 / #142、現行develop）
+## Architecture（2026-09-09 / #142・#147）
 
 設計方針は [ACP First](docs/architecture/cursor-integration.md)、現在のソースの責務・送受信・停止・復元は
-[現行実装](docs/architecture/current-implementation.md) を参照する。ACP transportは未実装。
+[現行実装](docs/architecture/current-implementation.md) を参照する。#147でACPの明示選択を追加した。既定は互換printを維持し、ACPの固定build GUI受入は別途追跡する。
 
 - `AgentToolWindowRootPanel` → tab別`AgentUiController` → project共通`AgentProcessService`。
   `SessionTabs`のtab UUID、会話chat ID、ターンrun tokenを分け、複数タブの`AgentRun`を同時に管理する。
   別タブへの送信で既存processをkillしない。選択タブではなくtokenの所有viewへ配送する。
 - `prepareTurn`でrun/準備予約とworkspace/settingsを固定。EDTのeditor/VFS contextと、背景のGit/checkpoint/CLI起動を分ける。
   `AgentRun`は準備を含む要求の寿命であり、会話全体やOS processと同一ではない。
+- ACPはタブごとの`AcpSession`がresident接続/provider sessionを所有。text delta・tool partial・permission/質問/Planをtyped eventで配送し、print parser/deduperへ通さない。
+  新規会話の初回送信前だけtransportを選べる。既存print chat IDの流用や、失敗promptの自動再送はしない。
 - 現行printの`StreamJsonParser`/`ToolCallPayloadParser`は不正/未知JSONを防御的に処理。
   `AgentTurnListenerFactory`はEDT上でtoken/generation/disposeを再照合。`Result`だけでprocess終了と判断しない。
 - 通常Stopはそのrunのみ停止し、`onStopped`表示後にtokenを終了。close/disposeはtoken無効化・detach・停止。
-  `killActiveProcess()`は全runのcleanup用。復元予約は物理process終了まで保持する。
+  `killActiveProcess()`は全runのcleanup用。printの復元予約は物理process終了まで保持する。ACPはprompt終端と観測した子processの終了まで保持し、不確定ならproject寿命中の復元を拒否する。
 - `WorkspaceOperationGate`は複数準備を許可し、準備/実行と復元を排他にする。ISOLATED/未知resume/root不明を復元しない。
   古いafter・未保存変更・root外を拒否する。過去の「ISOLATEDでもproject rootへ戻す」問題には現在この保護がある。
 - `AssistantChunkDeduper`は全文を返し、timelineは置換する。増分/累積混在の実測はあるがheuristic全体の正しさの証明ではない。

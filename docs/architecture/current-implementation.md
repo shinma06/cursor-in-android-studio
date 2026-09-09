@@ -2,7 +2,7 @@
 
 2026-09-09 / #142。ソース基準は develop `71c316c9eba125f505759fb093edf445168bee48`、方針・運用文書は main `2c47f6249299852ddce3d9542ebbc2dc52fb5b92` を通常mergeして同期した。
 
-[Project Mission](../project-mission.md) / [ACP First](cursor-integration.md) が設計方針。本書は現在動くprint経路の説明であり、ACP client実装やGUI合格の宣言ではない。機能別のACP契約・移行設計は [#115](https://github.com/shinma06/cursor-in-android-studio/issues/115)、全体順序は [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)で扱う。
+[Project Mission](../project-mission.md) / [ACP First](cursor-integration.md) が設計方針。本書は現在のprint経路と#147のACP接続を説明する。ACPの固定build GUI合格を意味しない。機能別のACP契約・移行設計は [#115](https://github.com/shinma06/cursor-in-android-studio/issues/115)、全体順序は [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)で扱う。
 
 ## 所有関係
 
@@ -11,13 +11,13 @@
 | `AgentToolWindowRootPanel` | `SessionTabs` とtab ID別のview/controllerを所有。CardLayoutで切替、同じviewの本文・入力・caret・scrollを保持。閉じると該当controllerをdispose |
 | `SessionTabs` | 同期化されたメモリ内状態。plugin tab UUID、nullable chat ID、draft/mode/model/title、run tokenを保持。プロセスやSwing、ディスク保存を持たない |
 | `AgentUiController` | **タブごと**のactive run/token/generation。送信準備、context/checkpoint、listenerとUI、停止・復元を調整。選択中タブへイベントを転送しない |
-| `AgentProcessService` | **projectごと**の複数`AgentRun`集合、sessionの復元元記録、復元排他。printプロセス構築とstream解析・配送。新しい別タブ送信で既存runをkillしない |
+| `AgentProcessService` | **projectごと**の複数`AgentRun`集合、sessionの復元元記録、復元排他。printプロセス構築とstream解析・配送、tab ID別ACP接続。新しい別タブ送信で既存runをkillしない |
 | `AgentRun` | 準備を含む**1回の要求**。停止要求・listener・終了の一度だけの配送と遅いprocess attachを管理。会話全体でもOSプロセスそのものでもない |
-| `AgentTurnListenerFactory` | 現行printイベントからタブUIへのbridge。EDT上でtoken/generation/dispose/停止を再照合。tool card、session metadata、usage、終端表示を調整 |
+| `AgentTurnListenerFactory` | print callbackとtyped ACP eventからタブUIへのbridge。EDT上でtoken/generation/dispose/停止を再照合。tool card、session metadata、usage、終端表示を調整 |
 
 対応ソース: [root](../../src/main/kotlin/com/cursoragent/ui/AgentToolWindowRootPanel.kt)、[状態](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、[controller](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)、[service](../../src/main/kotlin/com/cursoragent/service/AgentProcessService.kt)、[run](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt)、[listener](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt)。
 
-## 送信から終了まで
+## printの送信から終了まで
 
 1. controllerが入力を保存し、`beginTurn`でtokenとprompt/mode/model/chat IDを固定。同じタブでの重複送信を拒否する。Composerのmode/modelは生成時にアプリ設定からコピーしたタブ別選択値であり、切替のたびに全体設定へ書き戻さない。
 2. `captureWorkspace` と `prepareTurn` がroot/worktree/resume、executable・permission・sandbox等を `TurnWorkspace` / `TurnSettings` / `PreparedAgentTurn` に固定。準備予約とrunを作る。後から変更された設定で進行中ターンを組み替えない。
@@ -48,7 +48,24 @@ Stopはそのタブのrunへ停止要求を出す。通常Stopでは先にtoken�
 
 - `StreamEvent` / `ToolCallPayloadParser` は現行printの構造化JSON用。未知/不正入力は防御的に扱う。completed fixtureとstarted payloadの推定を分ける。`AssistantChunkDeduper` は増分/累積混在へのheuristicで、常に全文を返して置換する契約。全出力への正しさやACP chunk処理への流用は未検証。
 - mode/modelとモデルオプションは実CLI IDへ対応。`ModelListParser` / `McpListParser` は補助CLIの表示文字列解析。MCP dialogは既知の`id: status`を整形し、解析不能ならraw表示する。これらはACPモデル設定やMCP tool公開の実装ではない。
-- usageはprintの入力値を `TokenUsage` / context usage状態へ反映する現行表示。ACPのcontext/usage契約、Plan/Todo/質問/permissionの往復UIは実装済みにしない。
+- usageはprintの入力値を `TokenUsage` / context usage状態へ反映する現行表示。ACP usage/contextとCursor Todoは未実装。ACPの標準Plan表示・Cursor質問/Plan要求・permission UIは以下の範囲で実装。
 - `cursor-agent-chat-history.xml` はproject単位のchat ID/preview/更新時刻のみ。開いたタブの本文はメモリ内、再起動後の本文保存は未実装（#44）。`cursor-agent-checkpoints.xml` はsnapshot metadata、`cursor-agent-settings.xml` はアプリ設定。保存ID/enum、`com.cursoragent.plugin`、内部tool-window/notification IDは変更しない。
 
-型・テスト名の維持理由と再評価箇所は [監査記録](../development/project-context-audit.md)。テスト成功は現行契約の回帰確認であり、ACP対応や新しいbuildのGUI合格には数えない。
+型・テスト名の維持理由と再評価箇所は [監査記録](../development/project-context-audit.md)。syntheticテスト成功は実装の回帰確認であり、実Cursorのwire採取や新しいbuildのGUI合格には数えない。
+
+
+## ACP接続（#147）
+
+`AcpSession`をproject serviceがtab ID別に所有する。初回送信時だけ `agent acp` をroot作業ディレクトリで起動し、initialize → session/new → config確認 → promptと進む。既存認証を使い、自動loginはしない。次ターンは同じ接続/provider sessionを使用し、タブのcloseだけなら他接続を終了しない。root/executable変更・不確定切断後の同接続再送は拒否する。旧print履歴と保存XML/enumは変更しない。ACP session IDは旧履歴へ保存しない。
+
+- `AcpJsonRpc`はbackground readerと上限付きwriter queueを分離。改行単位のUTF-8、JSON-RPC request/response/notification、opaque string/numeric ID、null/errorを処理する。1 frameは1 MiB、outbound待ち/inbound requestは各32、1 turnの更新・要求payloadは4 Mi文字、tool/観測childは各512件まで。超過・不正frame・EOFはpendingを解放して接続を終了する。stderrは読み捨て、prompt/key/raw errorを診断へ出さない。
+- textは正当な重複を含むdeltaのままEDTへ渡し、message ID変更・thought/tool/requestを境に本文を分ける。readerで全文コピーを蓄積せず、printのdeduper/result補完を使わない。toolは改行を含むopaque IDでupsertし、省略fieldを保持、明示content/locationsを置換する。`completed`は報告状態であり、shell成功や復元可の証明ではない。
+- permissionのoption ID/kindはserver提示値だけ使用。command/path/location/diff対象がない場合は許可を無効化する。Cursor質問はIDによる選択・複数選択・skip/cancel、Planは表示・accept/reject/cancelを扱う。返答直前にrun/Stop/closeを再確認し、一要求に一度だけ返信する。送信直前の取消変換を含む実際の返答を保持し、許可/拒否/取消等をカードに残す。未対応requestにはerror、notificationには返信しない。質問の自由文・Plan編集をwire契約として発明しない。
+- Client fs read/writeとterminalはfalse、未実装elicitationは広告しない。これはAgent自身のファイル操作を禁止する宣言ではない。標準permission設定でも即時編集が起こり得る。ACP diffは閲覧のみで、正確な復元由来がない変更カードにRevertを提供しない。既存checkpointのroot/後続編集/Git制約は維持する。
+- mode/modelはsessionのselect configOptions（確認済みID `mode` / `model`）を使い、set_config_option応答の全listを置換し、最終的な組み合わせを照合してからpromptを送る。初回modelはserver既定、以降は返された一覧のみ。printのmodel catalog/flagsをACPへ流用しない。permissionは標準、sandboxはCLI既定、worktreeはこのprojectのみを許可し、他の設定を無視せず送信前に説明する。
+
+Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・prompt応答だけで復元を解放しない**。応答完了、拒否、長さ/要求回数上限、Agent側取消はtyped終端値で区別し、日本語で表示する。準備予約をprompt終端まで保持し、実行中に観測した子processの終了も確認する。PIDと起動時刻を保持してreparenting/PID再利用を区別し、識別不能・応答なし・childが残る・切断・終端後のtool更新は不確定とする。不確定は対象processの回収を試み、同接続再送とproject寿命中の復元を拒否する。静止したidle接続のみなら復元できる。
+
+観測は25 ms間隔の条件確認であり、短時間に生成・離脱した未観測子processまで保証するものではない。常駐childや任意のdetachを安全に許可したという契約はなく、該当用途は対象外。10秒の期限は「待てば安全」の判定ではなく、不確定へ移す期限。識別できないprocessを推測でkillしない。
+
+検証は [Case JSON](../verification/changes/issue-147.json) のT01〜04/07/10/14/16。`AcpJsonRpcTest`、`AcpProtocolTest`、`AcpSessionTest`、`AgentRequestCardTest`と既存print/tab/restoreテストを実行する。fake serverはテスト専用Python標準ライブラリで、実Cursor・認証・networkを使わない。#146の実wire公開artifactと固定候補のGUIは未完了として区別する。本文保存/旧履歴load/title、高度config、画像、Skills/task、Android/MCP公開は後続Issueの範囲を維持する。

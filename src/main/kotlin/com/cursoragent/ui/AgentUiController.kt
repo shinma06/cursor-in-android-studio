@@ -1,14 +1,21 @@
 package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
-import com.cursoragent.settings.ChatHistoryState
-import com.cursoragent.ui.composer.mention.MentionResolver
-import com.cursoragent.service.AgentRun
+import com.cursoragent.acp.AcpException
+import com.cursoragent.acp.AcpSession
 import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.AgentRun
+import com.cursoragent.service.AgentTransport
 import com.cursoragent.service.CheckpointService
 import com.cursoragent.service.RestorePolicy
 import com.cursoragent.service.RestoreResult
+import com.cursoragent.service.TurnSettings
+import com.cursoragent.session.SessionRunToken
+import com.cursoragent.session.SessionTabs
+import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
@@ -21,14 +28,14 @@ class AgentUiController(
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
     private val header: AgentHeaderBar,
-    private val sessions: com.cursoragent.session.SessionTabs,
+    private val sessions: SessionTabs,
     private val tabId: String,
 ) {
     private var turnGeneration = 0L
     private var disposed = false
     private var activeRun: AgentRun? = null
     private var modelLoad: java.util.concurrent.Future<*>? = null
-    private var activeToken: com.cursoragent.session.SessionRunToken? = null
+    private var activeToken: SessionRunToken? = null
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val chatHistoryState = ChatHistoryState.getInstance(project)
@@ -49,7 +56,24 @@ class AgentUiController(
     private fun loadModels() {
         modelLoad = ApplicationManager.getApplication().executeOnPooledThread {
             val models = agentService.listModels()
-            runOnEdt { if (!disposed && !project.isDisposed) composer.modelSelector.setModels(models) }
+            runOnEdt { if (!disposed && !project.isDisposed && transportState().first == AgentTransport.PRINT) composer.modelSelector.setModels(models) }
+        }
+    }
+
+    fun transportState(): Pair<AgentTransport, Boolean> {
+        val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId }
+        return (tab?.transport ?: AgentTransport.PRINT) to (tab == null || tab.transportLocked || tab.chatId != null)
+    }
+
+    fun selectTransport(transport: AgentTransport) {
+        if (disposed || !sessions.selectTransport(tabId, transport)) return
+        if (transport == AgentTransport.ACP) {
+            modelLoad?.cancel(false)
+            composer.useAcp()
+            timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
+        } else {
+            composer.usePrint()
+            loadModels()
         }
     }
 
@@ -62,18 +86,31 @@ class AgentUiController(
         activeRun?.detachListener()
         activeRun?.stop()
         activeRun = null
+        agentService.closeSession(tabId)
     }
 
     fun sendPrompt(userText: String) {
         if (disposed || userText.isBlank() || activeRun != null) return
 
+        val shared = AgentSettingsState.getInstance()
+        val selectedTransport = transportState().first
+        if (selectedTransport == AgentTransport.ACP) {
+            try {
+                AcpSession.validateSettings(
+                    TurnSettings(shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode, shared.permissionMode, shared.sandboxMode),
+                    shared.worktreeMode,
+                )
+            } catch (error: AcpException) {
+                timeline.showStatus(error.message!!)
+                return
+            }
+        }
         val generation = turnGeneration + 1
         sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, userText, userText.length)
         val sessionTurn = sessions.beginTurn(tabId) ?: return
         activeToken = sessionTurn.token
         val workspace = agentService.captureWorkspace(sessionTurn.chatId)
-        val shared = com.cursoragent.settings.AgentSettingsState.getInstance()
-        val settings = com.cursoragent.service.TurnSettings(
+        val settings = TurnSettings(
             shared.agentExecutablePath, sessionTurn.modelId, sessionTurn.mode, shared.permissionMode, shared.sandboxMode,
         )
         lateinit var run: AgentRun
@@ -140,7 +177,7 @@ class AgentUiController(
                     header.setSessionStatus("Running...")
                 }
 
-                agentService.sendPrompt(fullPrompt, turn)
+                agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
             } catch (error: Exception) {
                 run.reportError("送信の準備に失敗しました: ${error.message}")
                 run.complete(-1)
@@ -161,7 +198,7 @@ class AgentUiController(
 
         val reservation = agentService.tryRestore()
         if (reservation == null) {
-            Messages.showInfoMessage(project, RestorePolicy.BUSY, PluginBrand.NAME)
+            Messages.showInfoMessage(project, agentService.restoreUnavailableReason(), PluginBrand.NAME)
             return
         }
         val generation = turnGeneration

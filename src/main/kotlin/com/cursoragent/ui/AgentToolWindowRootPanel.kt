@@ -60,7 +60,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
             val controller = AgentUiController(project, timeline, composer, header, sessions, tab.id)
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
-            val options = HeaderOptionsPopup(project, header.optionsButton) { controller.sendPrompt("/summarize") }
+            val options = HeaderOptionsPopup(project, header.optionsButton, controller::transportState, controller::selectTransport) { controller.sendPrompt("/summarize") }
             composer.onRunningChanged = options::setRunning
             header.onNewChat = { open() }
             val history = PastChatsCoordinator(project, header, ChatHistoryState.getInstance(project), ::open)

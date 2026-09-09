@@ -5,6 +5,11 @@ class WorkspaceOperationGate {
     private val lock = Any()
     private var preparations = 0
     private var restoring = false
+    @Volatile var isUncertain = false
+        private set
+
+    /** A lost ACP execution cannot be made safe by merely closing its UI or process. */
+    fun markUncertain() { isUncertain = true }
 
     fun tryPrepare(): Preparation? = synchronized(lock) {
         if (restoring) null else {
@@ -14,7 +19,7 @@ class WorkspaceOperationGate {
     }
 
     fun tryRestore(): AutoCloseable? = synchronized(lock) {
-        if (restoring || preparations != 0) null else {
+        if (isUncertain || restoring || preparations != 0) null else {
             restoring = true
             once { synchronized(lock) { restoring = false } }
         }
