@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 import unittest
 
-from test_plugin_zip import archive
 
 SOURCE = Path(__file__).resolve().parents[2]
 
@@ -26,7 +25,7 @@ class WorktreeBootstrapTest(unittest.TestCase):
         self.command('git', 'config', 'user.name', 'Fixture')
         self.command('git', 'config', 'user.email', 'fixture@example.invalid')
         for name in ('.githooks/pre-commit', '.githooks/pre-push', 'scripts/workflow/git_guard.py',
-                     'scripts/workflow/bootstrap.sh', 'scripts/workflow/plugin_zip.py'):
+                     'scripts/workflow/bootstrap.sh'):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(SOURCE / name, target)
@@ -34,12 +33,10 @@ class WorktreeBootstrapTest(unittest.TestCase):
         self.command('git', 'add', '.')
         self.command('git', 'commit', '-m', 'fixture')
         self.command('bash', 'scripts/workflow/bootstrap.sh')
-        self.command('python3', 'scripts/workflow/plugin_zip.py', 'setup')
-        output = self.root / 'build/distributions'
-        output.mkdir(parents=True)
-        archive(output / 'fixture.zip')
-        self.command('python3', 'scripts/workflow/plugin_zip.py', 'cache-built')
-        (output / 'fixture.zip').unlink()
+        runtime = self.root / '.git/plugin-zip/runtime/hooks'
+        runtime.mkdir(parents=True)
+        self.command('git', 'config', '--local', 'extensions.worktreeConfig', 'true')
+        self.command('git', 'config', '--worktree', 'core.hooksPath', str(runtime))
         self.child = self.root.parent / 'child'
         self.command('git', 'worktree', 'add', '-b', 'codex/124-child', str(self.child))
         self.workgit = Path(self.command('git', 'rev-parse', '--absolute-git-dir', cwd=self.child).stdout.strip())
@@ -50,12 +47,9 @@ class WorktreeBootstrapTest(unittest.TestCase):
         return subprocess.run(args, cwd=cwd or self.root, env=self.env, check=check, capture_output=True, text=True)
 
     def test_bootstrap_repairs_inherited_runtime_and_delegates_real_git_guards(self):
-        rejected = self.command('git', 'commit', '--allow-empty', '-m', 'before bootstrap', cwd=self.child, check=False)
-        self.assertNotEqual(rejected.returncode, 0)
-        self.assertIn('bootstrap.sh', rejected.stderr)
         self.command('bash', 'scripts/workflow/bootstrap.sh', cwd=self.child)
-        metadata = json.loads((self.workgit / 'plugin-zip-hooks.json').read_text())
-        self.assertEqual(Path(metadata['previous']).resolve(), (self.child / '.githooks').resolve())
+        self.assertEqual(self.command('git', 'config', '--get', 'core.hooksPath', cwd=self.child).stdout.strip(), '.githooks')
+        self.assertFalse((self.workgit / 'plugin-zip-hooks.json').exists())
         self.command('git', 'commit', '--allow-empty', '-m', 'after bootstrap', cwd=self.child)
         remote = self.root.parent / 'remote.git'
         self.command('git', 'init', '--bare', str(remote))
@@ -72,11 +66,4 @@ class WorktreeBootstrapTest(unittest.TestCase):
         self.assertNotEqual(rejected.returncode, 0)
         self.assertIn('Custom hook configuration', rejected.stderr)
         self.assertEqual(before, self.command('git', 'config', '--show-origin', '--get-regexp', 'core.hooksPath', cwd=self.child).stdout)
-        self.assertFalse((self.workgit / 'plugin-zip-hooks.json').exists())
-
-    def test_setup_missing_delegate_does_not_guess_custom_local_hooks(self):
-        self.command('git', 'config', '--local', 'core.hooksPath', 'custom-hooks', cwd=self.child)
-        rejected = self.command('python3', 'scripts/workflow/plugin_zip.py', 'setup', cwd=self.child, check=False)
-        self.assertNotEqual(rejected.returncode, 0)
-        self.assertIn('preserve custom hooks', rejected.stderr)
         self.assertFalse((self.workgit / 'plugin-zip-hooks.json').exists())

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 136,
+  "gui_required": false,
+  "reason": "mainで検証済みのブランチHEAD ZIP配布をdevelopへ同期するtooling変更のみ。製品src/Gradle構成を変更しない。製品GUI未確認をpassにはしない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "origin/develop比でsrcとGradle構成に差分がないことを確認",
+    "統合後develop HEADのRelease ZIPのHEAD/hash/IDE reader認識を確認"
+  ],
+  "cases": []
+}
