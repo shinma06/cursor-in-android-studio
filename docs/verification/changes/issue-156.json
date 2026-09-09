@@ -1,0 +1,245 @@
+{
+  "schema": 1,
+  "issue": 156,
+  "gui_required": true,
+  "reason": "会話一覧/全終了・報告先・IDEファイル設定・上部アイコン表示という新しい手動操作を追加するため、固定buildで対象と取消/保存/破棄を確認する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "git diff --check; verification.validate_change(issue-156, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "CHAT-MENU-OPENED",
+      "issue": 156,
+      "change": "開いている会話の検索・選択",
+      "preconditions": "PMがGUI leaseを取得し、#156を含む固定候補SHA・ZIP SHA-256・loaded JARを識別。使い捨てGit fixture、必要な実送信はPro/Teamsの互換CLIで行い、既存設定とIDE配置を控える。未公開#146 fixtureを公開しない。",
+      "steps": [
+        "New Agentを複数開き、各タブに異なる未送信入力・mode/model・caret/scrollを用意する。1件は応答中にする。",
+        "︙→開いているチャット…を開き、番号と実行中表示で同名会話を区別する。文字・番号で検索し、上下/Enterで選択する。Escで取消も試す。",
+        "並べ替え後に一覧を開き直す。一覧を開いた時点の項目が残っている間に対象close/並べ替えが起きた場合、違うタブへ転送されないことを確認する。",
+        "狭い幅/高さ、別プロジェクトで同名の会話を用意した状態でも試す。一覧を開いたまま非表示・別アプリ移動・content破棄して、再表示できる場合は開き直す。"
+      ],
+      "expected": "一覧は本ToolWindowの開いている会話だけ。番号は表示順でタイトルそのものはNew Agentのまま。選択はIDで行い、検索/keyboardで切替後inputへfocusしdraft/caret/scroll/mode/modelを保つ。取消は選択を変えず、消えたIDは無視。popupは非表示/破棄で閉じる。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMの独立レビュー後、指定GUI担当が固定buildで実施。GUI pendingのまま必要テスト/レビュー/Case追跡を通してdevelop統合可。mainは候補全体の必要Case確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/156",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5610008008",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/155"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "CHAT-MENU-CLOSE-ALL",
+      "issue": 156,
+      "change": "全終了の確認・取消・対象限定と実行停止",
+      "preconditions": "PMがGUI leaseを取得し、#156を含む固定候補SHA・ZIP SHA-256・loaded JARを識別。使い捨てGit fixture、必要な実送信はPro/Teamsの互換CLIで行い、既存設定とIDE配置を控える。未公開#146 fixtureを公開しない。",
+      "steps": [
+        "空タブ、本文のあるタブ、未送信下書きのあるタブ、実行中タブを作る。別projectの会話とファイルエディターも開き、履歴一覧を控える。",
+        "︙→すべてのチャットを閉じる…を開く。チャット件数・確認開始時点の実行中件数・本文/下書きが復元できないこと・対象範囲の説明を確認し、キャンセルする。全タブ・選択・入力・実行が維持されることを確認する。",
+        "同じ操作を開いて確定する。対象IDの会話だけが閉じ、各対象runが停止し、遅延callbackが新しい会話へ混ざらないことを確認する。",
+        "最後は空New Agentが1件だけになる。別project・ファイルeditor・履歴一覧の記録が維持されることを照合する。空1件だけでも確認/取消/確定を試す。",
+        "確認中に対象ID以外の新規タブが追加される制御可能な経路がある場合、その新規IDが閉鎖対象に追加されないことを確認する。確定前にproject/contentが破棄された場合は何も再生成しない。"
+      ],
+      "expected": "取消ではclose/disposeを呼ばず、元状態を保持する。確定では確認前snapshotのIDだけを既存close/disposeへ渡す。対象runを止めてtokenを無効化し、新しく生成された空タブまで繰返し閉じない。対象外のデータを消さない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMの独立レビュー後、指定GUI担当が固定buildで実施。GUI pendingのまま必要テスト/レビュー/Case追跡を通してdevelop統合可。mainは候補全体の必要Case確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/156",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5610008008",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/155"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "CHAT-MENU-FEEDBACK",
+      "issue": 156,
+      "change": "宛先の分かる報告入口",
+      "preconditions": "PMがGUI leaseを取得し、#156を含む固定候補SHA・ZIP SHA-256・loaded JARを識別。使い捨てGit fixture、必要な実送信はPro/Teamsの互換CLIで行い、既存設定とIDE配置を控える。未公開#146 fixtureを公開しない。",
+      "steps": [
+        "︙→フィードバック…でPluginのGitHub宛とCursor公式案内が区別されることを確認する。",
+        "Plugin項目は当repositoryのIssue新規作成画面、Cursor項目は公式Reporting a bug案内を開くことを確認する。検証では投稿しない。",
+        "開いたURLに会話・ログ・Request ID・認証情報・環境のqueryや本文が自動挿入されていないことを確認する。元の会話へ戻る。"
+      ],
+      "expected": "固定の公開URLを開くだけ。IDEベンダー宛へすり替わらず、PluginとCursorの宛先が明確。自動添付・投稿なし。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMの独立レビュー後、指定GUI担当が固定buildで実施。GUI pendingのまま必要テスト/レビュー/Case追跡を通してdevelop統合可。mainは候補全体の必要Case確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/156",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5610008008",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/155"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "CHAT-MENU-FILE-EDITOR",
+      "issue": 156,
+      "change": "IDE全体のファイルpreview・設定",
+      "preconditions": "PMがGUI leaseを取得し、#156を含む固定候補SHA・ZIP SHA-256・loaded JARを識別。使い捨てGit fixture、必要な実送信はPro/Teamsの互換CLIで行い、既存設定とIDE配置を控える。未公開#146 fixtureを公開しない。",
+      "steps": [
+        "IDE標準Editor Tabs設定のEnable preview tab現値を控える。︙→ファイルエディターを開き、値が一致し開くだけでは変化しないことを確認する。",
+        "プレビュータブを有効にするを切り替え、IDE標準設定へ反映されることと、次のファイルをpreview可能な導線で開いた際のIDE動作を確認する。会話タブを一時タブ扱いにしない。",
+        "設定…でEditor Tabsページが選択されることを確認する。IDE側から設定を変更してメニューを開き直し、チェックが追従することを確認する。",
+        "別projectでもIDE全体の同じ値を表示することを確認する。終了時は最初の値へ戻す。"
+      ],
+      "expected": "UISettingsの現在値を読み、変更時は標準変更通知を出す。Plugin独自preview値は持たない。説明はIDE全体のファイル用で会話用ではない。既存値を勝手に既定化しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMの独立レビュー後、指定GUI担当が固定buildで実施。GUI pendingのまま必要テスト/レビュー/Case追跡を通してdevelop統合可。mainは候補全体の必要Case確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/156",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5610008008",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/155"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "CHAT-MENU-ICONS",
+      "issue": 156,
+      "change": "新規/履歴の表示切替・保存・reset",
+      "preconditions": "PMがGUI leaseを取得し、#156を含む固定候補SHA・ZIP SHA-256・loaded JARを識別。使い捨てGit fixture、必要な実送信はPro/Teamsの互換CLIで行い、既存設定とIDE配置を控える。未公開#146 fixtureを公開しない。",
+      "steps": [
+        "︙→上部アイコンの表示で新規チャットと履歴を個別にOFF/ONする。最上段の該当アイコンだけが変わり、︙とIDE本来の操作は残ることを確認する。",
+        "両方OFFにして、︙内に残った新規チャット/履歴を実行する。通常のタブ追加・project限定履歴再開ができることを確認する。",
+        "2 projectを開いた状態で表示設定の反映を確認する。OFF状態でIDE再起動し、保存した値を復元する。旧settings XMLに当該2項目がないケースでは両方表示され、既存permission等を保持する。",
+        "既定に戻すで両アイコンが復帰し、他の設定（権限・通知・モデル等）が変わらないことを確認する。狭幅・keyboard・tooltipも試す。",
+        "設定メニューが開いている間のcontent/project破棄で古いactionが保存値や会話を変更せず、別projectの操作は利用可能なことを確認する。"
+      ],
+      "expected": "保存するのは既存settingsの2 boolのみ。OFFは最上段だけで︙から同じ操作へ到達可能。default/resetは両方true、別設定を上書きしない。標準Actionの更新で表示を反映し、二重toolbarを作らない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMの独立レビュー後、指定GUI担当が固定buildで実施。GUI pendingのまま必要テスト/レビュー/Case追跡を通してdevelop統合可。mainは候補全体の必要Case確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/156",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5610008008",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/155"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI leaseなし。実装担当はGUIを操作せず、PMの固定build受入へ引き継ぐ。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

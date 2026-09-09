@@ -46,6 +46,8 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     var permissionMode: PermissionMode = PermissionMode.ASK_EVERY_TIME
     var sandboxMode: SandboxMode = SandboxMode.DEFAULT
     var worktreeMode: WorktreeMode = WorktreeMode.DEFAULT
+    var showNewChatIcon: Boolean = true
+    var showHistoryIcon: Boolean = true
     var notifyOnTurnComplete: Boolean = true
     var notifyOnApprovalPending: Boolean = true
 
