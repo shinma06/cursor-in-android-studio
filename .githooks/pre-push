@@ -14,6 +14,4 @@ if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then
 fi
 python3 -m unittest discover -s scripts/workflow -p 'test_*.py'
 python3 -m unittest discover -s scripts/loop -p 'test_*.py'
-./gradlew test buildPlugin --console=plain
-python3 scripts/workflow/plugin_zip.py cache-built
-printf '%s\n' 'Plugin ZIP ready in build/distributions/ for the pushed HEAD.'
+./gradlew test --console=plain

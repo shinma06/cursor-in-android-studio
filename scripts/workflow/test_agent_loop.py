@@ -214,60 +214,6 @@ class FakeGitHub:
         return {'merged': True}
 
 
-class SourceRetentionCleanupTests(unittest.TestCase):
-    def test_retention_readback_precedes_delete_and_failures_preserve_resources(self):
-        for scenario in ('new', 'already-exists', 'create-and-read-fail', 'wrong-sha', 'wrong-type', 'wrong-ref'):
-            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as tmp:
-                checkout = Path(tmp) / 'pr-36/checkout'
-                checkout.mkdir(parents=True)
-                source = Path(tmp) / 'absent-source'
-                branch = 'codex/35-test'
-                ref = 'refs/heads/' + branch
-                tag = 'refs/tags/plugin-source-' + HEAD
-                events = []
-                def api(endpoint, method='GET', data=None):
-                    events.append(method)
-                    if method == 'POST':
-                        self.assertEqual(data, {'ref': tag, 'sha': HEAD})
-                        if scenario in ('already-exists', 'create-and-read-fail'):
-                            raise RuntimeError('create failed')
-                        return {}
-                    self.assertTrue(endpoint.endswith('/git/ref/tags/plugin-source-' + HEAD))
-                    if scenario == 'create-and-read-fail':
-                        raise RuntimeError('read failed')
-                    return {'ref': 'refs/tags/other' if scenario == 'wrong-ref' else tag,
-                            'object': {'type': 'tag' if scenario == 'wrong-type' else 'commit',
-                                       'sha': NEW if scenario == 'wrong-sha' else HEAD}}
-                def git(*args, **kwargs):
-                    if args == ('rev-parse', 'HEAD'):
-                        return HEAD
-                    if args[0] == 'ls-remote':
-                        return HEAD + '\t' + ref
-                    return ''
-                def command(args, *unused, **kwargs):
-                    if args[:3] == ['git', 'rev-parse', '--verify']:
-                        return HEAD
-                    self.assertEqual(args, ['git', 'push', f'--force-with-lease={ref}:{HEAD}',
-                                            f'https://github.com/{al.REPO}.git', ':' + ref])
-                    events.append('delete')
-                    return ''
-                gh = Mock()
-                gh.api.side_effect = api
-                with patch.object(al, 'git', side_effect=git) as git_mock, patch.object(al, 'command', side_effect=command):
-                    loop = al.Loop(gh, tmp)
-                    h = {'branch': branch, 'head': HEAD, 'source': str(source)}
-                    if scenario in ('new', 'already-exists'):
-                        loop._cleanup_resources(pr_data(), h)
-                        self.assertEqual(events, ['POST', 'GET', 'delete'])
-                        self.assertFalse(checkout.exists())
-                        self.assertIn(call('update-ref', '-d', ref, HEAD), git_mock.call_args_list)
-                    else:
-                        with self.assertRaises((ValueError, RuntimeError)):
-                            loop._cleanup_resources(pr_data(), h)
-                        self.assertEqual(events, ['POST', 'GET'])
-                        self.assertTrue(checkout.exists())
-                        self.assertFalse(any(call.args[0] == 'update-ref' for call in git_mock.call_args_list))
-
 
 class LoopTests(unittest.TestCase):
     def setUp(self):

@@ -36,19 +36,12 @@ class PrePushTest(unittest.TestCase):
                 'import unittest\nclass Fixture(unittest.TestCase):\n'
                 '    def test_fixture(self): self.assertTrue(True)\n')
         shutil.copy2(ROOT / '.githooks/pre-push', self.repo / '.githooks/pre-push')
-        shutil.copy2(ROOT / 'scripts/workflow/plugin_zip.py', self.repo / 'scripts/workflow/plugin_zip.py')
         shutil.copy2(ROOT / 'scripts/workflow/git_guard.py', self.repo / 'scripts/workflow/git_guard.py')
-        (self.repo / 'make_zip.py').write_text(
-            'from pathlib import Path\nimport io, zipfile, subprocess\n'
-            'jar = io.BytesIO()\n'
-            'with zipfile.ZipFile(jar, "w") as z: z.writestr("META-INF/plugin.xml", "<idea-plugin><id>com.cursoragent.plugin</id></idea-plugin>")\n'
-            'with zipfile.ZipFile("build/distributions/fixture.zip", "w") as z: z.writestr("plugin/lib/plugin.jar", jar.getvalue())\n')
         (self.repo / '.gitignore').write_text('build/\ngradle-args\n__pycache__/\n')
         (self.repo / 'gradlew').write_text(
             '#!/usr/bin/env bash\nset -eu\nprintf "%s\\n" "$@" > gradle-args\n'
             'if [ "${FIXTURE_BUILD_FAIL:-0}" = 1 ]; then exit 23; fi\n'
-            'mkdir -p build/distributions\n'
-            'python3 make_zip.py\n')
+            'exit 0\n')
         (self.repo / 'gradlew').chmod(0o755)
         self.git('add', '.')
         self.git('commit', '-m', 'fixture')
@@ -58,27 +51,27 @@ class PrePushTest(unittest.TestCase):
         return subprocess.run(['git', *args], cwd=self.repo, env=self.env,
                               text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
 
-    def test_push_builds_zip_for_pushed_head(self):
+    def test_push_runs_tests_without_zip_cache(self):
         self.git('push', 'origin', BRANCH)
         head = self.git('rev-parse', 'HEAD').stdout.strip()
         self.assertEqual((self.repo / 'gradle-args').read_text().splitlines(),
-                         ['test', 'buildPlugin', '--console=plain'])
-        self.assertTrue((self.repo / '.git/plugin-zip/cache' / head / 'manifest.json').is_file())
+                         ['test', '--console=plain'])
+        self.assertFalse((self.repo / '.git/plugin-zip').exists())
         self.assertIn(head, self.git('ls-remote', 'origin', 'refs/heads/' + BRANCH).stdout)
 
-    def test_build_failure_blocks_remote_update(self):
+    def test_test_failure_blocks_remote_update(self):
         self.env['FIXTURE_BUILD_FAIL'] = '1'
         result = self.git('push', 'origin', BRANCH, check=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertTrue((self.repo / 'gradle-args').exists())
         self.assertEqual(self.git('ls-remote', 'origin', 'refs/heads/' + BRANCH).stdout, '')
 
-    def test_dirty_push_is_rejected_before_build(self):
+    def test_dirty_push_is_rejected_before_tests(self):
         (self.repo / 'uncommitted').write_text('dirty')
         self.assertNotEqual(self.git('push', 'origin', BRANCH, check=False).returncode, 0)
         self.assertFalse((self.repo / 'gradle-args').exists())
 
-    def test_no_update_and_deletion_skip_build(self):
+    def test_no_update_and_deletion_skip_tests(self):
         self.git('push', 'origin', BRANCH)
         (self.repo / 'gradle-args').unlink()
         self.env['FIXTURE_BUILD_FAIL'] = '1'
