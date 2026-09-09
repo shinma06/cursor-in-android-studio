@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## GitHub-first collaboration (2026-09-06, #31)
 
+開発Agentの追加・委譲前に[Codex実行規約（#135の固定版）](https://github.com/shinma06/cursor-in-android-studio/blob/ffb63ab944f920a1d3a78a78e4eb46cd7bf0f9a0/docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
+
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
 The previous no-PR/direct-main and GUI-before-any-merge policies are superseded. Read
 [the GitHub workflow](docs/development/github-workflow.md) before implementation.
