@@ -3,6 +3,8 @@
 2026-09-07 / #83。ユーザー方針が従来の「mainのみ・GUI完了まで全merge待ち」を上書きします。
 変更は文書・設定を含め、Issue → claim → 専用branch/worktree → Draft PR → テスト/独立レビュー → target別gate → GitHub merge → 残条件更新で進めます。読み取りだけの相談・レビューは新Issue不要です。
 
+開発Agentの追加・委譲前に[Codex実行規約](codex-execution-policy.md)を確認します。メインモデルがGPT-6 AstraならSubagentの生成・委譲は禁止し、合理的理由のある独立top-level Session / Thread間連携と通常のToolを使います。Astra以外には本規約による禁止を適用しません。
+
 ## 統合条件
 
 | 対象 | 必須条件 | GUI未実施/環境blocked/製品fail | merge方式 |

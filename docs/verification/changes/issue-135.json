@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 135,
+  "gui_required": false,
+  "reason": "開発エージェントの実行規約と文書入口のみ。製品コード・GUI・実行モデル設定を変更しない。Astra/非Astra、子Agent/独立Session、通常Tool/子Agent起動の境界を机上評価し、相対リンクと受入JSONを検証する。CLAUDE.md/AGENTS.mdの直接入口は共有ファイル所有者#134が追加し、既存workflowリンクからも本正本へ辿れる。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain"
+  ],
+  "cases": []
+}
