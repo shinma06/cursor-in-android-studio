@@ -16,7 +16,6 @@ import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.composer.mention.MentionResolver
-import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
@@ -27,7 +26,6 @@ class AgentUiController(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
-    private val header: AgentHeaderBar,
     private val sessions: SessionTabs,
     private val tabId: String,
 ) {
@@ -44,7 +42,6 @@ class AgentUiController(
         project = project,
         timeline = timeline,
         composer = composer,
-        header = header,
         chatHistoryState = chatHistoryState,
         onRunFinished = ::finishRun,
     )
@@ -141,7 +138,7 @@ class AgentUiController(
         timeline.clearStatus()
         timeline.finalizeAssistantMessage()
         val userBubble = timeline.addUserMessage(userText)
-        header.setSessionStatus("Preparing…")
+        timeline.showStatus("送信を準備中…")
 
         val edtContext = try {
             promptContextBuilder.buildEdtContext(userText)
@@ -174,7 +171,7 @@ class AgentUiController(
                     if (checkpointId != null) {
                         userBubble.onRollbackRequested = { requestRollback(checkpointId) }
                     }
-                    header.setSessionStatus("Running...")
+                    timeline.showStatus("実行中…")
                 }
 
                 agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
@@ -232,9 +229,6 @@ class AgentUiController(
         activeRun = null
         composer.setInputEnabled(true)
         composer.setRunning(false)
-        if (header.sessionLabel.text == "Running...") {
-            header.setSessionStatus("Ready")
-        }
     }
 
     private fun runOnEdt(block: () -> Unit) {

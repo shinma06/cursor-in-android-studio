@@ -1,15 +1,20 @@
 package com.cursoragent.ui
 
+import com.cursoragent.service.AgentTransport
 import com.cursoragent.session.SessionTabs
+import com.cursoragent.settings.AgentSettingsConfigurable
+import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
-import com.cursoragent.ui.header.AgentHeaderBar
-import com.cursoragent.ui.header.HeaderOptionsPopup
+import com.cursoragent.ui.header.ToolWindowChatActions
+import com.cursoragent.ui.mcp.McpServersDialog
 import com.cursoragent.ui.session.SessionTabPresentation
 import com.cursoragent.ui.session.SessionTabStrip
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -23,6 +28,24 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     private data class TabView(val panel: JPanel, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
+
+    private val selectedView: TabView?
+        get() = if (disposed || project.isDisposed) null else views[sessions.snapshot().selectedId]
+
+    internal val actions = ToolWindowChatActions(
+        settings = AgentSettingsState.getInstance(),
+        available = { selectedView != null },
+        running = { selectedView?.composer?.isRunning ?: false },
+        transportState = { selectedView?.controller?.transportState() ?: (AgentTransport.PRINT to true) },
+        onTransport = { selectedView?.controller?.selectTransport(it) },
+        onSummarize = { selectedView?.controller?.sendPrompt("/summarize") },
+        onNewChat = { open() },
+        onHistory = { event -> history.showPopup(event) },
+        onMcp = { McpServersDialog(project).show() },
+        onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
+        onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
+    )
+    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this, ::open)
 
     init {
         border = JBUI.Borders.empty()
@@ -56,20 +79,13 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
             val composer = ComposerPanel(project)
-            val header = AgentHeaderBar()
-            val controller = AgentUiController(project, timeline, composer, header, sessions, tab.id)
+            val controller = AgentUiController(project, timeline, composer, sessions, tab.id)
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
-            val options = HeaderOptionsPopup(project, header.optionsButton, controller::transportState, controller::selectTransport) { controller.sendPrompt("/summarize") }
-            composer.onRunningChanged = options::setRunning
-            header.onNewChat = { open() }
-            val history = PastChatsCoordinator(project, header, ChatHistoryState.getInstance(project), ::open)
-            header.onPastChatsClicked = history::showPopup
             if (tab.chatId != null) {
                 timeline.showStatus("過去の会話本文は保存されていません。次の送信からこのセッションを再開します。")
             }
             val panel = JPanel(BorderLayout()).apply {
-                add(header, BorderLayout.NORTH)
                 add(timeline, BorderLayout.CENTER)
                 add(composer, BorderLayout.SOUTH)
             }
@@ -90,6 +106,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     override fun dispose() {
         if (disposed) return
         disposed = true
+        history.dispose()
         sessions.stopAll()
         views.values.forEach { it.controller.dispose() }
         views.clear()

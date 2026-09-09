@@ -19,8 +19,8 @@ import javax.swing.KeyStroke
 class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
-    var onRunningChanged: (Boolean) -> Unit = {}
-    private var isRunning = false
+    var isRunning = false
+        private set
     private var acp = false
 
     val contextUsage = com.cursoragent.ui.composer.context.ContextUsageView()
@@ -129,7 +129,6 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             modeSelector.isEnabled = !running
             modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
         }
-        onRunningChanged(running)
         sendButton.text = if (running) "" else "↑"
         sendButton.icon = if (running) StopIcon else null
         sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
