@@ -40,7 +40,7 @@ internal class AcpJsonRpc(
     val isClosed: Boolean get() = stopped.get()
     internal val pendingCount: Int get() = pending.size
 
-    fun request(method: String, params: JsonObject): CompletableFuture<JsonElement> {
+    fun request(method: String, params: JsonObject, onResult: (JsonElement) -> Unit = {}): CompletableFuture<JsonElement> {
         val id = "client-${sequence.incrementAndGet()}"
         val result = CompletableFuture<JsonElement>()
         synchronized(pending) {
@@ -50,8 +50,9 @@ internal class AcpJsonRpc(
             }
             pending[id] = result
         }
+        val response = result.thenApply { onResult(it); it }
         send(envelope(method, params).apply { addProperty("id", id) })
-        return result
+        return response
     }
 
     fun notify(method: String, params: JsonObject) = send(envelope(method, params))
@@ -190,7 +191,7 @@ internal class AcpJsonRpc(
         (id.asJsonPrimitive.isString || id.asJsonPrimitive.isNumber)
 
     private fun idKey(id: JsonElement): String = if (id.asJsonPrimitive.isString) "s:${id.asString}"
-        else "n:${id.asBigDecimal.stripTrailingZeros().toPlainString()}"
+        else "n:${id.asBigDecimal.stripTrailingZeros().toString()}"
 
     companion object {
         // ponytail: text-only first connection; revisit with the image limit before enabling image input.

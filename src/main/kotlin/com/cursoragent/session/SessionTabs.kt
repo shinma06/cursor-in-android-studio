@@ -1,5 +1,6 @@
 package com.cursoragent.session
 
+import com.cursoragent.service.AgentTransport
 import com.cursoragent.settings.AgentMode
 import java.util.UUID
 
@@ -14,6 +15,8 @@ data class SessionTab(
     val draft: String = "",
     val caret: Int = 0,
     val run: SessionRunToken? = null,
+    val transport: AgentTransport = AgentTransport.PRINT,
+    val transportLocked: Boolean = false,
 ) {
     companion object {
         const val NEW_AGENT_TITLE = "New Agent"
@@ -29,6 +32,7 @@ data class SessionTurn(
     val mode: AgentMode,
     val modelId: String,
     val prompt: String,
+    val transport: AgentTransport = AgentTransport.PRINT,
 )
 
 data class SessionTabsSnapshot(val tabs: List<SessionTab>, val selectedId: String) {
@@ -102,6 +106,13 @@ class SessionTabs(
         update(id) { it.copy(mode = mode, modelId = modelId, draft = draft, caret = caret.coerceIn(0, draft.length)) }
 
     @Synchronized
+    fun selectTransport(id: String, transport: AgentTransport): Boolean {
+        val tab = tabs.firstOrNull { it.id == id } ?: return false
+        if (tab.transportLocked || tab.chatId != null || tab.run != null) return false
+        return update(id) { it.copy(transport = transport) }
+    }
+
+    @Synchronized
     fun rename(id: String, title: String): Boolean {
         val name = cleanTitle(title) ?: return false
         return update(id) { it.copy(title = name, renamedByUser = true) }
@@ -117,8 +128,8 @@ class SessionTabs(
         val tab = tabs.firstOrNull { it.id == id } ?: return null
         if (tab.run != null || tab.draft.isBlank()) return null
         val token = SessionRunToken(id)
-        update(id) { it.copy(run = token, draft = "", caret = 0) }
-        return SessionTurn(token, tab.chatId, tab.mode, tab.modelId, tab.draft)
+        update(id) { it.copy(run = token, draft = "", caret = 0, transportLocked = true) }
+        return SessionTurn(token, tab.chatId, tab.mode, tab.modelId, tab.draft, tab.transport)
     }
 
     @Synchronized

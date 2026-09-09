@@ -92,7 +92,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 目標の基本経路は `User → Android Studio → Agent Panel Plugin → Plugin Orchestration Layer → Cursor ACP Agent`。IDE APIs / Android tooling / MCP / CLIを必要に応じて併用し、調整責務と各integration・UIを分離する。具体的な優先順位、構造化イベントの対応対象、CLI併用条件は[ACP First](architecture/cursor-integration.md)を参照する。
 
-現在の製品はprint経路で、ACP transportは未実装。[現行実装の責務・寿命・安全境界](architecture/current-implementation.md)を参照する。
+既定のprint経路に加え、#147で新規会話に明示選択できるACP text接続を追加。要求返答・設定確定・停止の実装範囲と未確認の固定build GUI受入は[現行実装の責務・寿命・安全境界](architecture/current-implementation.md)を参照する。下記のprint経路説明をACPのwire契約へ流用しない。
 
 ```text
 AgentToolWindowRootPanel / SessionTabs

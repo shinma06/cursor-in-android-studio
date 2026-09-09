@@ -1,11 +1,11 @@
 package com.cursoragent.ui.header
 
+import com.cursoragent.service.AgentTransport
 import com.cursoragent.settings.AgentSettingsConfigurable
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.composer.ComposerOptionsPanel
 import com.cursoragent.ui.mcp.McpServersDialog
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.JBPopupListener
 import com.intellij.openapi.ui.popup.LightweightWindowEvent
 import com.intellij.openapi.ui.popup.util.PopupUtil
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ScreenUtil
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBScrollPane
@@ -26,6 +27,8 @@ import javax.swing.ScrollPaneConstants
 internal class HeaderOptionsPopup(
     private val project: Project,
     private val button: JButton,
+    private val transportState: () -> Pair<AgentTransport, Boolean> = { AgentTransport.PRINT to true },
+    private val onTransport: (AgentTransport) -> Unit = {},
     private val onSummarize: () -> Unit,
 ) {
     private var running = false
@@ -55,6 +58,9 @@ internal class HeaderOptionsPopup(
             onMcp = { McpServersDialog(project).show() },
             onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
             onClose = { popup?.cancel() },
+            transport = transportState().first,
+            transportLocked = transportState().second,
+            onTransport = onTransport,
         )
         // A short display still exposes every action through scrolling without covering the trigger.
         val scroll = JBScrollPane(content).apply {

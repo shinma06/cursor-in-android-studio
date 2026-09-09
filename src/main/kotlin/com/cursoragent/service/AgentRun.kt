@@ -31,6 +31,9 @@ class AgentRun(
         if (reject) stop()
     }
 
+    /** ACP cancels a turn while its resident connection may remain alive. */
+    fun attachCancellation(cancel: () -> Unit) = attachProcess(cancel) { false }
+
     fun stop() {
         val action: (() -> Unit)?
         synchronized(lock) {
@@ -59,8 +62,10 @@ class AgentRun(
         }
     }
 
+    fun completeUncertain(message: String) = complete(-1, uncertain = message)
+
     /** Exactly one terminal callback; intentional stop suppresses shutdown stderr/result errors. */
-    fun complete(exitCode: Int, errorOutput: String? = null) {
+    fun complete(exitCode: Int, errorOutput: String? = null, uncertain: String? = null, outcome: AgentTurnOutcome? = null) {
         val stopped: Boolean
         val failure: String?
         val receiver: AgentProcessListener?
@@ -76,8 +81,10 @@ class AgentRun(
         }
         try {
             when {
+                uncertain != null -> receiver?.onUncertain(uncertain)
                 stopped -> receiver?.onStopped()
                 failure != null -> receiver?.onError(failure)
+                outcome != null -> receiver?.onTurnOutcome(outcome)
                 else -> receiver?.onCompleted(exitCode)
             }
         } finally {

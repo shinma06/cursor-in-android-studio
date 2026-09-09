@@ -2,6 +2,9 @@ package com.cursoragent.ui.timeline
 
 import com.cursoragent.parser.FileEditDetails
 import com.cursoragent.parser.ParsedToolCall
+import com.cursoragent.service.AgentInputRequest
+import com.cursoragent.service.AgentTool
+import com.cursoragent.service.AgentToolContent
 import com.cursoragent.ui.AgentUiColors
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
@@ -42,6 +45,8 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     /** Tracks the still-in-progress row for a `started` tool call, keyed by call id, so the
      * matching `completed` event can replace it in place instead of leaving a stale duplicate. */
     private val activeToolCallRows = mutableMapOf<String, Component>()
+    private val structuredTools = mutableMapOf<String, Component>()
+    private var planRow: Component? = null
 
     init {
         isOpaque = false
@@ -49,6 +54,8 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     fun addUserMessage(text: String): UserMessageBubble {
+        structuredTools.clear()
+        planRow = null
         hideEmptyState()
         val bubble = UserMessageBubble(text)
         addRow(bubble)
@@ -135,6 +142,35 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         callId?.let { removeActiveRow(it) }
         addRow(ToolCallBubble(summary))
         scrollToBottom()
+    }
+
+    fun upsertStructuredTool(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit) {
+        clearStatus()
+        hideEmptyState()
+        val card = StructuredToolCard(tool, viewDiff)
+        replaceRow(structuredTools.put(tool.id, card), card)
+    }
+
+    fun addInputRequest(request: AgentInputRequest) {
+        hideEmptyState()
+        addRow(AgentRequestCard(request))
+    }
+
+    fun showPlan(entries: List<String>) {
+        hideEmptyState()
+        val row = ToolCallBubble("作業計画", entries.joinToString("\n"))
+        replaceRow(planRow, row)
+        planRow = row
+    }
+
+    private fun replaceRow(old: Component?, replacement: Component) {
+        val index = messagesPanel.components.indexOf(old)
+        if (index < 0) addRow(replacement) else {
+            messagesPanel.remove(index)
+            messagesPanel.add(replacement, index)
+            revalidate()
+            repaint()
+        }
     }
 
     /** Removes the still-in-progress row for [callId] (if any) — a `completed` event replaces it. */

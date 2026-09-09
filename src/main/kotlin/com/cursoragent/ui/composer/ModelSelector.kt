@@ -10,6 +10,7 @@ class ModelSelector(
 ) : SelectorButton() {
     private val popupController = SelectorPopupController(this, ownsChildPopups = true)
     private var models: List<ModelOption> = emptyList()
+    private var acp = false
     private var families: List<ModelFamily> = emptyList()
     private var lastManualModelId: String? = settings.selectedModel.takeUnless { it == "auto" || it.isEmpty() }
 
@@ -19,6 +20,26 @@ class ModelSelector(
         text = "Loading models…"
         toolTipText = text
         addActionListener {
+            if (acp) {
+                popupController.toggle {
+                    JBPopupFactory.getInstance().createPopupChooserBuilder(models)
+                        .setRenderer { _, option, _, selected, _ ->
+                            javax.swing.JLabel(option.label).apply {
+                                putClientProperty("html.disable", true)
+                                border = com.intellij.util.ui.JBUI.Borders.empty(6, 8)
+                                isOpaque = true
+                                background = if (selected) com.cursoragent.ui.AgentUiColors.userBubbleBackground else com.cursoragent.ui.AgentUiColors.panelBackground
+                                toolTipText = option.id
+                            }
+                        }
+                        .setItemChosenCallback { option ->
+                            settings.selectedModel = option.id
+                            showSelection(option)
+                            toolTipText = "次の送信で適用: ${option.label} — ${option.id}"
+                        }.createPopup()
+                }
+                return@addActionListener
+            }
             popupController.toggle {
                 var popup: JBPopup? = null
                 val content = ModelOptionsPopupPanel(models, settings.selectedModel, lastManualModelId, onSelect = { option ->
@@ -48,7 +69,27 @@ class ModelSelector(
         }
     }
 
+    fun waitForAcp() {
+        acp = true
+        models = emptyList()
+        families = emptyList()
+        text = "ACPの既定モデル"
+        toolTipText = "初回送信時に接続先の設定を確認します。現在のCLIモデル選択は引き継ぎません。"
+        accessibleContext.accessibleName = toolTipText
+        isEnabled = false
+    }
+
+    fun setAcpModels(models: List<ModelOption>, selected: String) {
+        acp = true
+        this.models = models
+        families = emptyList()
+        settings.selectedModel = selected
+        showSelection(models.firstOrNull { it.id == selected } ?: ModelOption(selected, selected))
+        isEnabled = models.isNotEmpty()
+    }
+
     fun setModels(models: List<ModelOption>) {
+        acp = false
         this.models = models
         families = modelFamilies(models)
         if (models.isEmpty()) {

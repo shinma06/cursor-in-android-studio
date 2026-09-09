@@ -1,5 +1,8 @@
 package com.cursoragent.ui.composer
 
+import com.cursoragent.service.AgentEvent
+import com.cursoragent.settings.AgentMode
+import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.RoundedSurface
 import com.cursoragent.ui.composer.mention.MentionPopupController
@@ -18,6 +21,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onStop: () -> Unit = {}
     var onRunningChanged: (Boolean) -> Unit = {}
     private var isRunning = false
+    private var acp = false
 
     val contextUsage = com.cursoragent.ui.composer.context.ContextUsageView()
 
@@ -40,8 +44,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     // Detached selector state: application settings supply defaults only for a new tab.
-    val selection = com.cursoragent.settings.AgentSettingsState().apply {
-        val defaults = com.cursoragent.settings.AgentSettingsState.getInstance()
+    val selection = AgentSettingsState().apply {
+        val defaults = AgentSettingsState.getInstance()
         mode = defaults.mode
         selectedModel = defaults.selectedModel
     }
@@ -96,6 +100,22 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         add(inputWrapper, BorderLayout.CENTER)
     }
 
+    fun useAcp() {
+        acp = true
+        selection.selectedModel = ""
+        modelSelector.waitForAcp()
+    }
+
+    fun usePrint() { acp = false }
+
+    fun showAcpConfiguration(state: AgentEvent.Configuration) {
+        val mode = AgentMode.entries.firstOrNull { it.name.lowercase() == state.mode } ?: return
+        modeSelector.selectMode(mode)
+        modelSelector.setAcpModels(state.models, state.model)
+        modeSelector.isEnabled = !isRunning
+        modelSelector.isEnabled = !isRunning && state.models.isNotEmpty()
+    }
+
     fun setInputEnabled(enabled: Boolean) {
         // sendButton is intentionally left enabled here -- setRunning() repurposes
         // it as a Stop button while a turn is in flight, so it must stay clickable.
@@ -105,6 +125,10 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun setRunning(running: Boolean) {
         isRunning = running
+        if (acp) {
+            modeSelector.isEnabled = !running
+            modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
+        }
         onRunningChanged(running)
         sendButton.text = if (running) "" else "↑"
         sendButton.icon = if (running) StopIcon else null

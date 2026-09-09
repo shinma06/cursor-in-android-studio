@@ -75,9 +75,39 @@ class AcpJsonRpcTest {
     }
 
     @Test
+    fun `huge exponent request ID remains bounded and replies with the original ID`() {
+        val input = PipedInputStream()
+        val server = PipedOutputStream(input)
+        val output = ByteArrayOutputStream()
+        val received = CountDownLatch(1)
+        val rpc = AcpJsonRpc(input, output, { _, _ -> }, { request, _, _ ->
+            request.reject()
+            received.countDown()
+        }, {})
+        val reader = thread { rpc.read() }
+        try {
+            server.write("{\"jsonrpc\":\"2.0\",\"id\":1e9999,\"method\":\"unknown\"}\n".toByteArray())
+            server.flush()
+            assertTrue(received.await(5, TimeUnit.SECONDS))
+            rpc.request("barrier", JsonObject())
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (!output.toString().contains("barrier") && System.nanoTime() < deadline) Thread.yield()
+            val first = JsonParser.parseString(output.toString().lineSequence().first()).asJsonObject
+            assertEquals("1e9999", first["id"].toString())
+            assertTrue(output.size() < 500)
+        } finally {
+            server.close()
+            reader.join(5000)
+            rpc.close()
+            input.close()
+        }
+    }
+
+    @Test
     fun `malformed oversized truncated and invalid UTF8 frames fail and release pending exactly once`() {
         val invalid = listOf(
             "not json\n".toByteArray(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1e100000000,\"method\":\"unknown\"}\n".toByteArray(),
             "{\"jsonrpc\":\"2.0\",\"id\":true,\"result\":null}\n".toByteArray(),
             "{\"jsonrpc\":\"2.0\",\"id\":\"client-1\",\"result\":null,\"error\":{}}\n".toByteArray(),
             "x".repeat(200).toByteArray(),
