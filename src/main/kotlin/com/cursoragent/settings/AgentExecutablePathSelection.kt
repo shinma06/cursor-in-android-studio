@@ -42,12 +42,8 @@ internal class AgentExecutablePathSelection(
     }
 }
 
-/**
- * Matches AgentProcessService.resolveAgentExecutable's automatic candidates and order.
- * The service remains owned by the independent stop-lifecycle change (#74); this
- * settings-only lookup neither starts the CLI nor claims the final PATH fallback exists.
- */
-private fun detectAgentExecutable(): String? = listOf(
+/** Shared fixed-candidate lookup; null leaves PATH resolution to process launch. */
+internal fun detectAgentExecutable(): String? = listOf(
     "/usr/local/bin/agent",
     "/opt/homebrew/bin/agent",
     "${System.getProperty("user.home")}/.local/bin/agent",

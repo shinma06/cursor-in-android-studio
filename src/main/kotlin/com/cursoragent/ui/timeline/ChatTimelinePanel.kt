@@ -48,16 +48,6 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         add(emptyState, BorderLayout.CENTER)
     }
 
-    fun clearTimeline() {
-        messagesPanel.removeAll()
-        currentAssistantBubble = null
-        currentStatusRow = null
-        activeToolCallRows.clear()
-        showEmptyState()
-        revalidate()
-        repaint()
-    }
-
     fun addUserMessage(text: String): UserMessageBubble {
         hideEmptyState()
         val bubble = UserMessageBubble(text)
@@ -173,13 +163,6 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
             add(scrollPane, BorderLayout.CENTER)
             revalidate()
             repaint()
-        }
-    }
-
-    private fun showEmptyState() {
-        if (scrollPane.parent == this) {
-            remove(scrollPane)
-            add(emptyState, BorderLayout.CENTER)
         }
     }
 

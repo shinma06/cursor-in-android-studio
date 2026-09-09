@@ -19,11 +19,6 @@ class CheckpointService(private val project: Project) {
 
     fun unavailableReason(target: RestoreTarget): String? = RestorePolicy.rejectionReason(target, currentTarget())
 
-    fun isAvailable(): Boolean {
-        val target = currentTarget()
-        return unavailableReason(target) == null && GitSnapshotStore(File(target.rootPath!!)).isGitRepo()
-    }
-
     /** Call off EDT with the same immutable target used to build the CLI command. */
     fun createSnapshot(
         prompt: String,
@@ -53,8 +48,6 @@ class CheckpointService(private val project: Project) {
         )
         return id
     }
-
-    fun restore(id: String): Boolean = restoreResult(id).restored
 
     /** Call off EDT. Old records remain visible but are never assigned an inferred restore root. */
     fun restoreResult(id: String): RestoreResult {

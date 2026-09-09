@@ -33,9 +33,6 @@ object DiffViewerHelper {
      * the file was changed again since — by a later agent edit or the user — and reverting
      * would silently discard that newer content, so this refuses instead.
      */
-    fun revertFileContent(project: Project, path: String, beforeContent: String, expectedCurrentContent: String): Boolean =
-        revertFileContentResult(project, path, beforeContent, expectedCurrentContent, RestoreTarget.UNKNOWN).restored
-
     fun revertFileContentResult(
         project: Project,
         path: String,

@@ -3,6 +3,19 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 `AGENTS.md` is a symlink to this file, so any agent reading either name gets identical content.
 
+## Ponytail（full / #128）
+
+通常の実装・監査・レビューは [Ponytail](https://github.com/DietrichGebert/ponytail) の `full` 相当で進める。
+呼出元・呼出先と既存要件を理解してから、必要性 → 既存コードの再利用 → 標準ライブラリ →
+ネイティブ機能 → 導入済み依存 → 直接的な実装 → 最小の新規実装、の順で判断する。
+短さだけを理由に抽象化を削除せず、実際の参照・登録・保存互換性・テストで根拠を確認する。
+trust boundary のvalidation、認証/認可、型安全性、データ整合性/損失防止、エラー処理、
+アクセシビリティ、並行処理、必要なログと明示要件を優先し、既存テストを弱めない。
+安全な変更候補がなければ維持する。大規模rewrite・一括整形・新規依存・ultraへの自動切替はしない。
+この方針はplugin/hook未読込時も本ファイルから適用し、委譲時はsubagentにも渡す。
+既存のGitHub/GUI/承認規約は維持する。導入方法・有効状態・監査結果は
+[導入と監査記録](docs/development/ponytail.md)を参照。
+
 ## 最新の能力比較（2026-09-08 / #114）
 
 [機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ち、現方式Bは維持する。以下の過去記録の「非対応」は観測時点・経路に限定する。
