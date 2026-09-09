@@ -12,7 +12,6 @@ import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
-import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -20,14 +19,13 @@ import javax.swing.SwingUtilities
 
 /**
  * Builds the per-turn [AgentProcessListener] that maps stream-json callbacks onto
- * timeline/header/composer UI updates. Extracted from [AgentUiController] so the
+ * timeline/composer UI updates. Extracted from [AgentUiController] so the
  * controller stays focused on prompt assembly and high-level orchestration (#11).
  */
 class AgentTurnListenerFactory(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
-    private val header: AgentHeaderBar,
     private val chatHistoryState: ChatHistoryState,
     private val onRunFinished: () -> Unit,
 ) {
@@ -80,7 +78,6 @@ class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     timeline.showStatus(outcome.message)
                     onRunFinished()
-                    header.setSessionStatus(outcome.message)
                 }
             }
 
@@ -89,7 +86,6 @@ class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     timeline.showError(message)
                     onRunFinished()
-                    header.setSessionStatus("実行終了を確認できません")
                 }
             }
 
@@ -188,7 +184,7 @@ class AgentTurnListenerFactory(
                         model?.let { "model=$it" },
                     )
                     if (parts.isNotEmpty()) {
-                        header.setSessionStatus(parts.joinToString(" | "))
+                        timeline.toolTipText = parts.joinToString(" | ")
                     }
                     if (chatId != null) {
                         chatHistoryState.recordTurn(chatId, userText)
@@ -213,7 +209,6 @@ class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     timeline.showStatus("停止しました")
                     onRunFinished()
-                    header.setSessionStatus("停止しました")
                 }
             }
 

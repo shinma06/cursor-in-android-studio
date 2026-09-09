@@ -92,6 +92,10 @@ class SessionTabs(
         return removed
     }
 
+    /** Close only the captured IDs; never include the fresh tab created by the last close. */
+    @Synchronized
+    fun closeAll(ids: List<String>): List<SessionTab> = ids.mapNotNull(::close)
+
     /** Final zero-based index after removing the source tab. Invalid requests are no-ops. */
     @Synchronized
     fun move(id: String, targetIndex: Int): Boolean {
