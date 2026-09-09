@@ -26,6 +26,13 @@
                 anchor="right"
                 icon="/icons/cursor-agent.svg"
                 factoryClass="com.cursoragent.toolwindow.CursorAgentToolWindowFactory"/>
+        <toolWindow
+                id="Cursor Manual Browser"
+                anchor="bottom"
+                icon="/icons/cursor-agent.svg"
+                canCloseContents="true"
+                doNotActivateOnStart="true"
+                factoryClass="com.cursoragent.ui.browser.ManualBrowser"/>
         <projectService serviceImplementation="com.cursoragent.service.AgentProcessService"/>
         <projectService serviceImplementation="com.cursoragent.service.CheckpointService"/>
         <projectService serviceImplementation="com.cursoragent.settings.CheckpointHistoryState"/>
