@@ -97,7 +97,7 @@ flowchart TD
 | F-03 履歴/scroll | 部分、A | load replayとClient本文保存を接続。scroll/draftはnative。再起動後本文は未実装 | K06、T06/07、#44→#45 |
 | F-04 再開 | 実装、A | --resumeからloadへ。listからのID/保存ID互換をfixtureで検証、失敗は履歴保持 | K06/07、T06、#44/#66 |
 | F-05 新規 | 実装、A | 新tabの最初の送信時にnew。process起動の副作用としてID生成しない | K01/06、T01/07、#65 |
-| F-06 圧縮 | slash送信のみ、A | 広告commandsから有効な圧縮操作をpromptへ。固定文字列の成功推定を除去 | K10/14、T09/11、#42/#117 |
+| F-06 圧縮 | slash送信のみ、A | 広告commandsから有効な圧縮操作をpromptへ。固定文字列の成功推定を除去 | K10/14、T09/11、#117 |
 | F-10 file mention | 実装、D | IDE候補・Document snapshot→ACP content。補完と読取をCursor CLIへ外注しない | K11/12、T08、#24 |
 | F-11 folder mention | 実装、D | IDEの対象scope/候補を維持。現行は直下一覧、再帰全文を無断追加しない | K11、T08、#24 |
 | F-12 Git diff | 実装、C（git） | staged/unstaged diffの取得を維持してACP textへ。ACPはGit diff生成APIではない | K11/16、T08/10、#24 |
@@ -140,7 +140,7 @@ F要件に独立IDがない既存機能を以下で補う。後半のUX対応表
 | X03 draft/caret/scroll | メモリ内実装、D | retained viewを維持。再起動後復元は#44。load replayで未送信draftを消さない | K06、T06/07、#44 |
 | X04 model family/options/Auto | 実装、B→A | CLI fallback限定でsuffix解析保持、ACPではconfig全状態と正式ID優先。Auto routerのCost等を発明しない | K05、T05、#27/#43 |
 | X05 mode/model per-tab、policy app全体 | 実装、D | 既存保存値を保持しtransport対応状況を表示。server確定値とUI希望値を混同しない | K05/16、T05/14、#65/#25 |
-| X06 直近tokens開閉 | 実装、A | ACP context/costは別stateに追加。print countersと合算せずunknown保持 | K10、T09、#42 |
+| X06 直近tokens開閉 | 実装、A | ACP context/costは別stateに追加。print countersと合算せずunknown保持 | K10、T09。既存表示実装#71（CLOSED）/QA #106。ACP usageは新しい後続scope予定 |
 | X07 Markdown・code・幅/高さ | 実装、D | commonmark、MessageTextPane/TranscriptLayout再利用。複数message/tool/media境界を拡張 | K02/03/11、T02/03/15、#41/#98 |
 | X08 popup/focus/IME/Enter/Tab | 基本実装、D | ACP request回答のkeyboard/取消/フォーカス復帰に既存patternを再利用。Enter設定は別受入 | K04/08/09、T04/16、#97/#103 |
 | X09 status/thinking/tool進捗 | 簡易実装、A | 構造化状態→折畳み/経過表示。thinking時刻/全文が来ないなら推定しない | K02/03/07、T03/09、#98 |
@@ -164,7 +164,7 @@ F要件に独立IDがない既存機能を以下で補う。後半のUX対応表
 | UX26-07 | F-60、A | 添付未実装、#10 |
 | UX26-08 | F-61、D | dictationとaudioを分離、#99 |
 | UX26-09 | F-21、B→A | server model状態、#43 |
-| UX26-10 | F-06/X06、A | context used/sizeは候補、内訳未確認、#42 |
+| UX26-10 | F-06/X06、A | 圧縮は#117。context used/sizeは候補、内訳未確認。ACP usageは新しい後続scope予定 |
 | UX26-11 | F-30/32/K03、A | structured tool表示、#98 |
 | UX26-12 | K09、A | Cursor blocking質問。別作業継続は保証しない、#115 |
 | UX26-13 | K15、A | 生成画像通知/preview候補、生成RPCではない、#10/#25 |
@@ -192,7 +192,7 @@ F要件に独立IDがない既存機能を以下で補う。後半のUX対応表
 | UX26-35 | K14、A候補 | review command広告/実行契約を確認、#25/#26 |
 | UX26-36 | K14、A候補 | Bugbot/Security等のscope別、未検証、#25 |
 | UX26-37 | X04、A候補 | Auto Router設定の広告待ち、#43/#25 |
-| UX26-38 | X06、B | account利用枠はusage_updateとは別、#42/#25 |
+| UX26-38 | X06、B | account利用枠はusage_updateとは別、#25。既存tokens表示#71/QA #106を根拠に利用枠対応を推定しない |
 | UX26-39 | K06、A候補 | 共有URL生成は固定Sなし、#44/#25 |
 | UX26-40 | X01〜03、D | tab UI実装、Editor置換は採否#26 |
 | UX26-41 | X07/08、D | native入力外観/tooltip維持、#27/#103 |
@@ -267,7 +267,7 @@ cancel deadline超過、切断、EOFで実行状態が不明なら`uncertain`の
 
 ### 6.4 PMが最初の実装Issueへ転記する境界
 
-直ちに着手できるscopeは、fake stdioを使うRPC/decoder/request brokerと、既存tab/run/gateへつなぐP1 adapterである。ユーザー入力を送る実Cursor試験と製品有効化は、次の契約を固定fixtureで確認してから行う。P2以降の画像・全履歴・Android tools・全SDK採用を、この着手の前提にはしない。
+直ちに着手できるscopeは、fake stdioを使うRPC/decoder/request brokerと、既存tab/run/gateへつなぐP1 adapterである。次の契約を確定するため、実測Issueで指定する使い捨てworkspace・制御したprompt・設定の範囲で実Cursor試験を行い、観測frameを固定fixtureとして採取する。この採取は契約確定前に行える。通常のユーザー入力を扱う製品機能の有効化は、採取したfixtureと固定buildのCaseで該当契約を確認してから行う。P2以降の画像・全履歴・Android tools・全SDK採用を、この着手の前提にはしない。
 
 | blocking contract | 不明なままではできないこと | 最初のIssueでの解消・隔離方法 |
 |---|---|---|
@@ -290,7 +290,7 @@ P1の完了条件は、上記範囲の既存print回帰・fake protocol検査・
 | fork/close/delete/archive | close/delete/resumeは現在stableの任意能力、forkはU。archive/rename/共有は固定Sの汎用RPCなし | 実広告とユーザー操作のscope確認。tab closeをprovider deleteにしない。#44/#45/#25 |
 | 画像・生成結果 | prompt image広告と標準content、Cursor生成通知により入力/表示契約候補あり | image広告≠理解成功。MIME/上限/取消/安全path/preview。K11/T08/15、#10 |
 | 動的model/options | stable configOptionsの正式ID/依存設定でsuffix推測を減らせる | Cursorが送るconfigとdefault/persist/失敗時状態を採取。K05/T05、#43/#27 |
-| context/usage | stable used/sizeで本当の占有率候補、unstable turn usageは別 | model容量から逆算しない。category内訳/利用枠は別契約。K10/T09、#42 |
+| context/usage | stable used/sizeで本当の占有率候補、unstable turn usageは別 | model容量から逆算しない。category内訳/利用枠は別契約。K10/T09。既存表示#71（CLOSED）/QA #106を参照し、ACP usageは新しい後続scope予定 |
 | Skills/custom modes | available_commands_updateを補完へ、mode configをpickerへ | slash単発とsession持続を分離。未広告を捏造しない。K14/T11、#117 |
 | queue/steering | Client queueは最小の順次promptで実現可能 | prompt中の追加prompt/即時steering契約は未確認、同session並列送信しない。T11、#48 |
 | IDE未保存state/双方向編集 | fs callbacksでDocument内容を渡し、IDE write actionで反映する候補 | 自前Agent shell/fs経路は別、競合/undo/root検証。K12/T12、#24/#47 |
@@ -392,7 +392,7 @@ P1の完了条件は、上記範囲の既存print回帰・fake protocol検査・
 
 - 要件に存在するF-IDは36件。F-07〜09等の欠番を新規要件として補わない。全件を§4へ、独自機能15群を§5へ、旧UX26-01〜67を各1行で対応付けた。
 - 現行callsiteと保存/停止/復元を§2、標準/未安定/拡張/広告/liveの区別を§1/3、最小層と互換性を§6、旧未実現機能を§7、移行順と将来Caseを§8へ記録した。
-- #10/#66/#117/#118/#24/#44/#45/#47/#48/#98/#42/#43/#25等は既存Issueを再利用する。関連Issueを本PRだけでcloseしない。共通層・blocking request UI・Android統合の新IssueはPMがscope/owner/Caseを割り当てる。
+- #10/#66/#117/#118/#24/#44/#45/#47/#48/#98/#43/#25等は既存Issueを再利用する。圧縮は#117、tokens表示は過去実装#71（CLOSED）/QA #106を参照する。ACP usage実装は新しい後続scope予定とし、閉じた#71を新writerの作業先にしない。関連Issueを本PRだけでcloseしない。共通層・blocking request UI・ACP usage・Android統合の新IssueはPMがscope/owner/Caseを割り当てる。
 - 本Issueの検証は文書coverage・リンク/固定SHA照合・`git diff --check`・`./gradlew test`。製品build/GUI操作を伴わないため専用[検証JSON](../verification/changes/issue-115.json)はGUI不要・cases空とする。上記Tは将来製品Caseであり、今回のJSONをGUI合格にするためのものではない。
 - 既存GUI状態、#66の名前取得hold、printの即時編集実測、legacy history/rootの安全拒否を維持する。次はPMの独立レビュー後に本調査をdevelopへ統合し、P0/P1の具体的実装Issueへ引き継ぐ。
 
