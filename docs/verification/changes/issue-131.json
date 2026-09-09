@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 131,
+  "gui_required": false,
+  "reason": "GitHub Projectsを既存Issue運用の案内図として利用する専用文書と本JSONのみ。製品コード・設定・既存自動化に変更はなく、Projectの登録Issue/Status/Views/概要/非公開設定をGitHub APIで読み戻す。IDE操作や製品GUIの新たな合格を主張しない。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "GitHub APIで全IssueとProject項目を照合し、追加漏れ/重複/Status差分0、既存13フィールド/Status/非公開設定の保持、5 Viewのfilter/既存列とrepository関連付けを確認する",
+    "Project概要と親#1から相互に辿れ、実装DoneとQA/main未完了の区別および更新担当/契機が明記されていることを確認する"
+  ],
+  "cases": []
+}

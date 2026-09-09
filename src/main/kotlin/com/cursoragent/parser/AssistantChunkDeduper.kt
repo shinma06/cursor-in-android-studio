@@ -3,11 +3,13 @@ package com.cursoragent.parser
 /**
  * Deduplicates `AssistantDelta` chunks against a running buffer for one turn.
  *
- * Verified against live `cursor-agent` stream-json (Teams plan, CLI
+ * Mixed chunk shapes were observed in live print stream-json (Teams plan, CLI
  * `2026.09.02-c22c1a3`, 2026-09): `--stream-partial-output` interleaves true
  * incremental fragments with occasional cumulative/resend full sentences. The
  * heuristics below handle prefix-extension and drop exact repeats; disconnected
  * short orphan fragments are dropped when a longer replacement message arrives.
+ * This is a heuristic, not a proof for every stream or an ACP chunk contract;
+ * keep its regression tests and re-evaluate before reuse across transports.
  *
  * [dedupe] always returns the full text that should be displayed (or null if
  * [text] adds nothing new) rather than an incremental fragment — a "resend the

@@ -3,6 +3,9 @@ description: GitHub-first parallel development and exclusive GUI verification
 alwaysApply: true
 ---
 
+設計前に [最上位ミッション](../../docs/project-mission.md) と [ACP First](../../docs/architecture/cursor-integration.md) を確認する。現行print経路の実測を全transportの制約にせず、未実装ACPや未確認GUIを完了にしない。開発Agentの追加は [Codex実行規約](../../docs/development/codex-execution-policy.md) に従う。
+
+
 Gitへの言及がない修正依頼にも AGENTS.md と docs/development/github-workflow.md を適用する。
 Issue確認/作成とclaim → 専用Issue branch/worktree → Draft PR → テスト/独立レビュー → GitHub merge。
 main直接commit/pushは禁止。1 task/worktreeにつきwriterは1人。状態/引継ぎはIssueへ記録する。

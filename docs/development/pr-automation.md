@@ -32,6 +32,7 @@ queued → reviewing → reviewed
 ```
 
 reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。GitHub token/設定MCP/GUI権限を渡しません。
+GPT-6 Astraがメインの場合は[Codex実行規約](codex-execution-policy.md)に従い、reviewer/fixerを現在のAgentの子として生成・委譲してはいけません。独立top-level Sessionとの連携かどうかを実行構造で確認し、workerという名称や自動化スクリプト経由を禁止回避の根拠にしません。
 GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認を拒否しません。コード不具合、必要テスト失敗、Case追跡不足は修正対象です。
 最大3 PRを交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。
 

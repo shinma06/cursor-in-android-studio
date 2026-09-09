@@ -14,7 +14,7 @@ enum class AgentMode(val cliValue: String?) {
 }
 
 /**
- * Existing three-way CLI flag mapping (F-22/F-24). These labels do not guarantee
+ * Current print transport three-way CLI flag mapping (F-22/F-24). These labels do not guarantee
  * interactive approval in a headless process: live verification found immediate
  * edits even with no permission flag. The plugin offers post-edit Revert only.
  */

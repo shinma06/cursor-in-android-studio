@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
+/** Regression checks for the current print JSON contract; not ACP capability acceptance. */
 class StreamJsonParserTest {
     @Test
     fun `maps completed edit tool_call to ToolCallCompleted`() {

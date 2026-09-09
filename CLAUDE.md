@@ -3,6 +3,14 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 `AGENTS.md` is a symlink to this file, so any agent reading either name gets identical content.
 
+## 最上位ミッションとACP First（2026-09-09 / #134）
+
+[Project Mission](docs/project-mission.md)をプロジェクト全体の最上位判断基準、[ACP First](docs/architecture/cursor-integration.md)を今後の統合設計基準とする。対象はCursor **IDE内Agent panel** の機能・操作フロー・フィードバック・IDE統合であり、独立Agents Window専用UIやピクセル単位の複製を目的にしない。
+
+新機能ごとに最新のCursor公式IDE内panel、JetBrains AI Assistant + Cursor ACP、さらにIntelliJ / Android Studio integration + IntelliJ MCP Server + 利用可能なMCP toolsを含む最も強い構成と比較し、本Pluginの同等以上UXと直接IDE統合による上積みを記録する。競合の既存能力を独自機能と呼ばない。完成像はAndroid開発のIDE・ビルド・デバイス・実行環境まで深く理解・操作できるCursor Agent環境である。
+
+新規連携はACP標準 → Cursor ACP extensions → IDE APIs → MCP → CLI → 非構造出力解析の順で検討する。正確なIDE APIの直接利用を妨げず、CLI専用処理・合理的な補助/fallbackを残す。ACPをChat APIに限定せず、session・tool進捗・承認・質問・Plan/Todo・停止・context/usage等の構造化状態をUIへ対応付ける。各能力の提供可否は検証し、現方式Bの実装状態とACP Firstの設計方針を混同しない。Cursor内部のAgent機構を不必要に再実装せず、Cursor固有/ACP標準/IDE/MCP/CLI/UIの責務を分ける。
+
 ## Ponytail（full / #128）
 
 通常の実装・監査・レビューは [Ponytail](https://github.com/DietrichGebert/ponytail) の `full` 相当で進める。
@@ -12,15 +20,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 trust boundary のvalidation、認証/認可、型安全性、データ整合性/損失防止、エラー処理、
 アクセシビリティ、並行処理、必要なログと明示要件を優先し、既存テストを弱めない。
 安全な変更候補がなければ維持する。大規模rewrite・一括整形・新規依存・ultraへの自動切替はしない。
-この方針はplugin/hook未読込時も本ファイルから適用し、委譲時はsubagentにも渡す。
+この方針はplugin/hook未読込時も本ファイルから適用し、独立Sessionへの引継ぎにも含める。追加Agentの可否は[Codex実行規約](docs/development/codex-execution-policy.md)に従う。
 既存のGitHub/GUI/承認規約は維持する。導入方法・有効状態・監査結果は
 [導入と監査記録](docs/development/ponytail.md)を参照。
 
 ## 最新の能力比較（2026-09-08 / #114）
 
-[機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ち、現方式Bは維持する。以下の過去記録の「非対応」は観測時点・経路に限定する。
+[機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ちは維持する。方式Bは現行実装の記録であり、新規連携の設計方針は上記ACP Firstを優先する。以下の過去記録の「非対応」は観測時点・経路に限定する。
 
 ## GitHub-first collaboration (2026-09-06, #31)
+
+開発Agentの追加・委譲前に[Codex実行規約](docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
 The previous no-PR/direct-main and GUI-before-any-merge policies are superseded. Read
@@ -102,13 +112,14 @@ The product name is **Cursor in Android Studio** and the repository/artifact slu
 and the internal `Cursor Agent` tool-window/notification IDs stable for upgrades.
 Use `PluginBrand.NAME` for runtime product labels. Historical evidence keeps its original names.
 
-An Android Studio (IntelliJ Platform) plugin that reproduces Cursor IDE's Agent tab as a native
-tool window. It works by shelling out to the `cursor-agent` CLI (`agent -p --output-format
-stream-json`) as a subprocess and rendering the JSON-Lines event stream in a custom Swing/JBUI
-chat UI. The CLI is treated as an opaque black box — no protocol/API integration, just process
-control and defensive JSON parsing. This is referred to as "方式B" (native UI approach) in
-`docs/cursor-agent-plugin-requirements.md`, which is the full requirements/design doc and the
-source of truth for feature scope and rationale — check it before adding features.
+An Android Studio (IntelliJ Platform) client for Cursor Agent inside the IDE. The target integration
+is ACP First, with native IDE APIs, MCP and supplementary CLI paths as needed; see the mission and
+architecture documents above. Cursor Agent internals remain a black box, accessed through official interfaces.
+
+The current implementation uses `agent -p --output-format stream-json` subprocesses and a Swing/JBUI
+chat UI (方式B). This describes shipped code, not a prohibition on protocol/API integration.
+`docs/cursor-agent-plugin-requirements.md` records detailed requirements and implementation status
+under the mission and ACP First policy. Read these before adding features.
 
 ## Current blocker (check this before picking a task)
 
@@ -198,68 +209,28 @@ vs. Caskroom versioned path).
 Manual install (no auto-update channel): Settings → Plugins → ⚙ → Install Plugin from Disk →
 select the built zip → restart IDE.
 
-## Architecture
+## Architecture（2026-09-09 / #142、現行develop）
 
-Layered, unidirectional: `ToolWindowFactory` → root panel → `AgentUiController` (mediator) →
-`AgentProcessService` (subprocess + stream parsing) → `StreamJsonParser`. Settings are a separate
-persisted side-channel read by both the service and the UI.
+設計方針は [ACP First](docs/architecture/cursor-integration.md)、現在のソースの責務・送受信・停止・復元は
+[現行実装](docs/architecture/current-implementation.md) を参照する。ACP transportは未実装。
 
-- **`toolwindow/CursorAgentToolWindowFactory`** — registers the "Cursor in Android Studio" right-anchored
-  tool window (see `plugin.xml`), instantiates `AgentToolWindowRootPanel`.
-- **`ui/AgentToolWindowRootPanel`** — wires together `AgentHeaderBar` (NORTH), `ChatTimelinePanel`
-  (CENTER), `ComposerPanel` (SOUTH), and constructs the `AgentUiController` that owns the wiring
-  between them.
-- **`ui/AgentUiController`** — the only class that talks to `AgentProcessService`. On send: pushes
-  the user bubble, prepends active-file/selection context (`buildActiveFileContext`, via
-  `FileEditorManager`), and registers an `AgentProcessListener` per request. All UI mutation from
-  the listener callbacks is marshaled onto the EDT via `runOnEdt` — the service invokes callbacks
-  from process-output threads, so never touch Swing state directly in a listener override.
-- **`service/AgentProcessService`** (project-level `@Service`) — builds the `GeneralCommandLine`
-  for `agent`, owns the single `OSProcessHandler` at a time (`activeHandler`, an `AtomicReference`;
-  a new prompt kills any in-flight process first), and tracks `chatId` across turns to pass
-  `--resume`. `resolveAgentExecutable` searches a fixed candidate list
-  (`/usr/local/bin/agent`, `/opt/homebrew/bin/agent`, `~/.local/bin/agent`, then bare `agent` on
-  `PATH`) unless a path is explicitly configured in settings. `dispose()` kills the process —
-  this is load-bearing for not leaking zombie CLI processes when the tool window/project closes.
-- **`parser/StreamJsonParser`** — line-oriented (JSON Lines), maps each line to a `StreamEvent`
-  sealed interface (`SessionInit`, `AssistantDelta`, `ThinkingDelta`, `ToolCall`, `ToolCallStarted`,
-  `ToolCallCompleted`, `Result`, `Unknown`). Must stay defensive: unrecognized `type` values or
-  malformed lines become `Unknown` or are silently dropped rather than throwing, because the CLI's
-  stream-json schema is explicitly unstable across `cursor-agent` versions (see requirements doc
-  §7, §11). Both `mapEvent()` (in `parseLine`) and `ToolCallPayloadParser.parse()` are wrapped in
-  `runCatching` for this reason — a 2026-09 review found the original `tool_call` parsing did an
-  unguarded `JsonElement.asJsonObject` cast that could throw and abort the rest of that output
-  chunk; keep new event-shape parsing similarly defensive rather than trusting the shape.
-- **`parser/AssistantChunkDeduper`** — guesses whether `AssistantDelta` events are incremental or
-  cumulative/repeated against a running buffer, and returns the **full** text to display (never a
-  fragment) — `AgentTurnListenerFactory.onAssistantDelta` calls `timeline.setAssistantText(full)`
-  (replace), not append. **This return-full-text contract is load-bearing**: the original PR #18
-  implementation returned a fragment for the "cumulative resend" case while the caller appended it,
-  which duplicated/garbled the assistant bubble whenever the CLI resent a corrected message — fixed
-  in the 2026-09 review pass below. Don't reintroduce an append-based caller without also reverting
-  `dedupe()` to return fragments consistently.
-  **Correction (2026-09 codebase review, see GitHub issue #2)**: this was inherited from the
-  original pre-existing code with no verification behind it, and CLAUDE.md previously
-  (incorrectly) described it as based on "observed" CLI behavior — the M0 spike never actually
-  got a real `assistant` event before hitting `resource_exhausted`. Treat it as an unverified
-  guess sitting on the critical path of chat rendering, not a confirmed fact. `AssistantChunkDeduperTest`
-  pins down its current behavior so a future change is at least deliberate, not a spec for
-  correctness.
-- **`settings/AgentSettingsState`** (application-level `@Service` + `PersistentStateComponent`,
-  storage `cursor-agent-settings.xml`) — holds `agentExecutablePath`, `selectedModel`, `mode`
-  (`AgentMode`: ASK/AGENT/PLAN, each mapping to a `--mode` CLI value or `null` for default agent
-  mode), and `permissionMode` (`PermissionMode`: ASK_EVERY_TIME/AUTO_REVIEW/RUN_EVERYTHING, mapping
-  to no flag / `--auto-review` / `--force`). **Must default to `ASK_EVERY_TIME`** — a deliberate
-  compatibility/safety requirement to avoid silently adding `--auto-review` or `--force`.
-  It does not prevent immediate headless file edits. This replaced an earlier binary `forceEnabled` toggle once research showed the CLI's
-  real approval model is 3-way (requirements doc F-22/F-24, 2026-09).
-- **`ui/composer/`, `ui/header/`, `ui/timeline/`** — plain Swing/JBUI view components with no CLI
-  knowledge; they expose callbacks (`onSend`, `onNewChat`) and mutation methods
-  (`setAssistantText`, `showStatus`, etc.) that the controller drives. `ChatTimelinePanel` tracks
-  in-progress tool-call rows by `callId` (`activeToolCallRows`) so a `completed` event's card
-  replaces the `started` row instead of leaving a stale duplicate — don't add a tool-call row type
-  without going through that map, or it'll orphan rows the same way the pre-fix code did (2026-09
-  PR #18 review, see below).
+- `AgentToolWindowRootPanel` → tab別`AgentUiController` → project共通`AgentProcessService`。
+  `SessionTabs`のtab UUID、会話chat ID、ターンrun tokenを分け、複数タブの`AgentRun`を同時に管理する。
+  別タブへの送信で既存processをkillしない。選択タブではなくtokenの所有viewへ配送する。
+- `prepareTurn`でrun/準備予約とworkspace/settingsを固定。EDTのeditor/VFS contextと、背景のGit/checkpoint/CLI起動を分ける。
+  `AgentRun`は準備を含む要求の寿命であり、会話全体やOS processと同一ではない。
+- 現行printの`StreamJsonParser`/`ToolCallPayloadParser`は不正/未知JSONを防御的に処理。
+  `AgentTurnListenerFactory`はEDT上でtoken/generation/disposeを再照合。`Result`だけでprocess終了と判断しない。
+- 通常Stopはそのrunのみ停止し、`onStopped`表示後にtokenを終了。close/disposeはtoken無効化・detach・停止。
+  `killActiveProcess()`は全runのcleanup用。復元予約は物理process終了まで保持する。
+- `WorkspaceOperationGate`は複数準備を許可し、準備/実行と復元を排他にする。ISOLATED/未知resume/root不明を復元しない。
+  古いafter・未保存変更・root外を拒否する。過去の「ISOLATEDでもproject rootへ戻す」問題には現在この保護がある。
+- `AssistantChunkDeduper`は全文を返し、timelineは置換する。増分/累積混在の実測はあるがheuristic全体の正しさの証明ではない。
+  started tool payloadは捕捉済みcompleted fixtureと同じ検証強度ではない。cardはcall IDでstarted/completedを置換する。
+- `ChatHistoryState`はmetadataのみ、開いたtab viewはメモリ内。再起動後の本文復元、ACP session IDとの互換性は未実装/未検証。
+  `PermissionMode.ASK_EVERY_TIME`既定値と保存enum/IDを維持する。現行printでは追加flagなしでも即時編集が起こる。
+
+以下の検証・レビュー履歴は記載日時・経路の記録。現在の責務は上記とソースを優先し、当時の未実装/制約を新規設計へ転用しない。
 
 ## Verified CLI behavior (from a live spike, 2026-09)
 
@@ -384,7 +355,7 @@ CLI behavior" above). `./gradlew test` was green throughout (40 tests after this
 `StreamJsonParserTest`'s malformed-input case, two `ToolCallPayloadParserTest` defensive-parsing
 cases).
 
-## Current implementation status vs. requirements doc
+## Implementation history vs. requirements doc
 
 **#27 model option grouping (2026-09-06):** The composer model trigger opens Thinking/Fast/Context/Effort controls and a Model picker. `ModelFamilies` groups recognized trailing alias tokens, retains exact CLI IDs, keeps ambiguous aliases separate, and exposes only transitions compatible with other known options. The family picker searches all variant labels/IDs while showing one row per family. Context choices require multiple explicit capacities from the CLI list; no 300K/other overrides are invented from the screenshot or generic bracket syntax. The current live catalog mostly exposes 1M only. Nested choices use pages in one popup for focus/cancel consistency. MV-044 tracks actual GUI acceptance.
 
@@ -430,14 +401,14 @@ source SHA is unknown. Model readability (#27) and build/CLI diagnostics (#28) w
 Input/menu interactions remain unverified due to UI-tool capture failures; do not mark existing QA passed.
 These are proposed changes, not implemented features. Cursor UI shows four Run Mode options;
 this does not prove matching headless CLI behavior or invalidate the immediate-write finding above.
-Start with permission/sandbox clarity and the known isolated-worktree/checkpoint mismatch, then
-input actions, transcript persistence, review/status/queue UX, and context controls. Keep existing
+That was the 2026-09-05 ordering. Current work follows #141 and the ACP contract audit in #115;
+the dated gap plan does not override ACP First or the current restore protections. Keep existing
 #5 manual QA and #10 multimodal work rather than duplicating them. New execution-based verification
 is separate from the read-only UI evidence and requires an appropriate authorized test scope.
 
 The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
 with feature IDs (F-01, F-02, ...); the live milestone tracker is **the tracking issue's own
-checklist and its child issues** (GitHub issue #1 — see "Multi-agent collaboration model" above),
+checklist and its child issues** (GitHub issue #1),
 which is the up-to-date source for what's done. Deliberately not naming a specific issue-number
 range here: issue #1's checklist has drifted out of sync with a hardcoded range in this file at
 least once already (this file said "#1–#10" after #11/#12/#13 already existed) — read #1 itself
@@ -489,7 +460,7 @@ F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
 `TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
 returns a helpful placeholder if none is available.
 
-**GUI verification (Computer Use first, human fallback)**: tracked in
-[`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md) — Enter/Shift+Enter,
-`@` popup, diff cards, notifications, etc. Agents must keep that file current; GPT or the human observer fills in `Status` / `Verified by` / `Date` with build identity and evidence.
+**GUI verification (Computer Use first, human fallback)**: use the Case JSON and fixed-candidate
+results under [docs/verification](docs/verification/README.md). The old manual-verification matrix
+and runs are historical evidence; do not rewrite them or generated current.md as new results.
 The #29 loop infrastructure does not complete the pending product QA in #5/#19–#28.

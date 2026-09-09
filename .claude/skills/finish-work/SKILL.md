@@ -6,6 +6,7 @@ description: Validate, independently review and hand off develop/main PRs with c
 # Finish work
 
 Read docs/development/github-workflow.md, pr-automation.md and docs/verification/README.md.
+Check mission/ACP First policy against actual implementation and evidence; do not mark ACP support or GUI acceptance complete from documentation alone. Follow docs/development/codex-execution-policy.md for independent-session review.
 
 1. Run ./gradlew test and affected tooling tests; buildPlugin for packaging/GUI builds. Push only the owned Issue branch.
 2. Obtain a separate-session review of fixed HEAD/base. Concrete code defects/test failures block both targets.

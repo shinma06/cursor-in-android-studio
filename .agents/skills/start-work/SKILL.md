@@ -5,7 +5,8 @@ description: Start an Issue-scoped worktree and develop PR with acceptance track
 
 # Start work
 
-Read AGENTS.md, docs/development/github-workflow.md, requirements, #1, target Issue/comments and open PRs.
+Read AGENTS.md, docs/project-mission.md, docs/architecture/cursor-integration.md, docs/development/codex-execution-policy.md, docs/development/github-workflow.md, requirements, #1, target Issue/comments and open PRs.
+ACP First is the design policy; the shipped transport is still print/stream-json. Check ACP/IDE/MCP before adding CLI-based state inference, and preserve existing transport evidence.
 Use the title and exclusive type/priority/status labels from github-workflow.md (#96); closed means status:done. Every change needs Issue search, a unique ownership claim, isolated Issue-numbered branch/worktree and Draft PR.
 Read-only advice/review needs no Issue. Preserve unrelated work and unreleased claims.
 

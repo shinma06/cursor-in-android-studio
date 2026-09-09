@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 134,
+  "gui_required": false,
+  "reason": "最上位ミッション・ACP First方針と文書入口の更新のみ。製品コード、実transport、既存GUI結果を変更しない。",
+  "cli_checks": [
+    "git diff --check",
+    "文書の相対リンク・AGENTS.md symlink・validate_changeを照合",
+    "方針の机上評価: Agents Window専用Design Modeは対象外、IDE情報は直接API、構造化質問はACP優先、CLI専用機能は併用、未検証capabilityは実装済みにしない",
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain"
+  ],
+  "cases": []
+}

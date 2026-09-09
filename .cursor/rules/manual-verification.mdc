@@ -3,10 +3,13 @@ description: GUI変更はComputer Useまたは人間による証跡付き検証�
 alwaysApply: true
 ---
 
+設計前に [最上位ミッション](../../docs/project-mission.md) と [ACP First](../../docs/architecture/cursor-integration.md) を確認する。現行print経路の実測を全transportの制約にせず、未実装ACPや未確認GUIを完了にしない。開発Agentの追加は [Codex実行規約](../../docs/development/codex-execution-policy.md) に従う。
+
+
 # GUI検証
 
-- 正本は `docs/manual-verification/matrix.md`。詳細は `docs/loop-engineering/README.md`。
-- Swing、入力、メニュー、Diff、通知などは対象MV行を追加/更新する。
+- 正本は `docs/verification/changes/issue-N.json` と固定候補の結果JSON。詳細は `docs/verification/README.md`。旧manual-verification matrix/runは履歴、current.mdは生成物として保持する。
+- Swing、入力、メニュー、Diff、通知などは対象Caseと必要な手順・期待結果・証跡を追加/更新する。
 - GPTがComputer Useで実画面を観察し、人間が補完する。Cursorは自分の返答をGUI成功の証拠にしない。
 - 対象SHA、起動ビルド、手順、期待/実際、証跡、確認者、日付を記録する。
 - `pending / pass / fail / blocked`を使う。取得失敗はblocked。mergeだけで検証を完了/アーカイブしない。

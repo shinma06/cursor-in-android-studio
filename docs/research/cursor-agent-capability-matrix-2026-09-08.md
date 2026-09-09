@@ -1,5 +1,7 @@
 # Cursor Agent 機能・UI/UX・CLI実現性マトリクス
 
+> **2026-09-09 方針更新（#134）**: [最上位ミッション](../project-mission.md)と[ACP First](../architecture/cursor-integration.md)を今後の判断基準とする。本表は2026-09-08の調査・実装状態の記録。方式B中心の採用方針は更新され、新規連携はACP標準/拡張を先に確認する。#115ではJetBrains AI Assistant + Cursor ACPにIDE integration / IntelliJ MCP Server / 利用可能なMCP toolsを含む構成との比較と、具体的な実装契約を検証する。既存の実測結果・未確認状態は変更しない。
+
 更新: **2026-09-08 / Issue #114**。Cursor IDE Agentサイドパネルを中心に、別surfaceの機能を分けて比較する。これは調査と次の実装判断の資料であり、新機能の実装・GUI合格・方式変更の承認ではない。
 
 ## 読み方
@@ -135,9 +137,9 @@
 
 | 方式 | 得られるもの・制約 | 次の判断 |
 |---|---|---|
-| 現方式B | 既存Swing/fixture/タブ/復元とstream-jsonを継続。対話質問/承認/途中操作の公開input契約は弱い | 既存改善と小さいlive spikeを進める。採用方針は維持 |
+| 現方式B | 既存Swing/fixture/タブ/復元とstream-jsonを継続。対話質問/承認/途中操作の公開input契約は弱い | 既存経路の検証・互換性維持に利用。今後の設計優先順はACP First（#134） |
 | [Cursor ACP](https://cursor.com/docs/cli/acp) | `agent acp` stdio JSON-RPC。session/prompt/cancel、permission reply、質問/plan/todo/子task/画像通知の公開経路。Team-level MCPの制約あり | #115でsession/質問/承認/停止の最小adapterを比較。通知の記述だけで完全互換と断定しない |
-| [公式JetBrains](https://cursor.com/docs/integrations/jetbrains) / [SDK Bridge](https://cursor.com/docs/sdk/bridge) | AI Chat→Agent Registryの公式連携、または別SDK runtime/公開protocol。現在の方式Bへflag追加するだけの変更ではない | #115でAndroid Studio版/IDE依存/認証/配布/既存pluginとの共存とUXを比較。採用決定や移行は別Issue |
+| [公式JetBrains](https://cursor.com/docs/integrations/jetbrains) / [SDK Bridge](https://cursor.com/docs/sdk/bridge) | AI Chat→Agent Registryの公式連携、または別SDK runtime/公開protocol。現在の方式Bへflag追加するだけの変更ではない | #115でAndroid Studio版/IDE依存/認証/配布/既存pluginとの共存とUXを比較。ACP Firstは#134で決定。具体的な接続・移行実装は別Issue |
 
 ### ACPの限定実測（2026-09-08）
 

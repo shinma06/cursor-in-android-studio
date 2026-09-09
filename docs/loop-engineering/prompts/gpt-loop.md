@@ -1,5 +1,7 @@
 # GPTへの開始/再開依頼
 
+現在の設計は [Project Mission](../../project-mission.md) / [ACP First](../../architecture/cursor-integration.md)、実行体制は [Codex実行規約](../../development/codex-execution-policy.md)を優先する。以下の依頼例は子Agent生成の許可ではない。追加担当は独立top-level Sessionとして確認し、既存の担当・許可範囲を維持する。
+
 以下の<>を対象に置き換える。
 
 ```text
