@@ -46,3 +46,5 @@ CI待ち・ビルド失敗の間は新HEADのZIPは存在しない。Release本�
 | ブランチ別Release asset | 期限に依存せず、同じページで最新ZIPを取得できるため採用 |
 
 根拠: [JetBrains標準buildPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#build-plugin)、[ZIPからのインストール](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html)、[GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)、[Actionsイベントとschedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
+
+初回確認（#127）: [push実行](https://github.com/shinma06/cursor-in-android-studio/actions/runs/34348315165) で標準ZIPの生成・Release公開が成功。取得したZIPのCRC、プラグインID `com.cursoragent.plugin` と依存JAR同梱を確認した。公開後の更新・全ブランチ移行の結果は [Issue #127](https://github.com/shinma06/cursor-in-android-studio/issues/127) に記録する。
