@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "issue": 157,
+  "gui_required": true,
+  "reason": "JCEF手動ブラウザーの描画・移動・終了は識別buildのGUI観察が必要。上部︙から手動閲覧へ進む導線を含めて確認する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "BrowserUrlTest: HTTP(S)/IDN/localhost/IPv6/escape、credentials/scheme/host/port拒否（接続なし）",
+    "固定HEAD/baseのPM独立レビューとgit diff --check"
+  ],
+  "cases": [
+    {
+      "id": "BROWSER-ENTRY-NAVIGATION",
+      "issue": 157,
+      "change": "手動入口・URL欄・履歴移動・閉じて再表示",
+      "preconditions": "#157と上部メニュー接続を含む固定候補のSHA・ZIP/JAR hash・ロード実体を記録。GUIはPM指定担当のhost lease下のみ。外部の実ページは担当の許可したfixtureだけを使う。上部メニュー接続は#156統合後に実装済み。",
+      "steps": [
+        "指定GUI担当が上部︙の「ブラウザーを開く…」から開く。初回はURL入力待ちで外部へのページ要求がないことを確認する。",
+        "担当が管理するローカルHTTP fixtureでページA→Bへ移動する。URL欄のEnterと移動ボタン、戻る・進む・再読込、通常リンク、リダイレクト、アンカーを確認する。",
+        "URL欄/各ボタンをTabとEnterで操作し、狭幅でも入力・状態が判読できることを確認する。初期案内が手動閲覧でありAgent操作/会話共有を提供していないことを確認する。",
+        "ブラウザーcontentを標準の閉じる操作で閉鎖する（ToolWindowを隠す操作とは区別）。上部メニューから再度開き、空入口になることを確認する。"
+      ],
+      "expected": "初回・再作成時はabout:blankでHTTP接続なし。URL、戻る/進む可否、読込状態が現在ページに追従し、閉鎖後に再作成できる。ページ閲覧をAgent自動操作・DOM/context共有・Cursor browser全体の同等実装と表示しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、修正を含む固定候補で再確認する。",
+      "next_action": "PMが固定候補を用意し、指定GUI担当が上部メニューから固定buildで確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5609993894"
+      ]
+    },
+    {
+      "id": "BROWSER-URL-BOUNDARY",
+      "issue": 157,
+      "change": "HTTP(S) validationと拒否時の無接続",
+      "preconditions": "#157と上部メニュー接続を含む固定候補のSHA・ZIP/JAR hash・ロード実体を記録。GUIはPM指定担当のhost lease下のみ。外部の実ページは担当の許可したfixtureだけを使う。上部メニュー接続は#156統合後に実装済み。",
+      "steps": [
+        "ローカルfixtureでlocalhost、127.0.0.1、[::1]のHTTP URLを入力する。管理したHTTPS/IDN fixtureがない場合はその部分を未確認と記録し、実URLを勝手に開かない。",
+        "認証情報入り、file/javascript/data/custom scheme、hostなし、壊れたIPv6、空/範囲外port、backslashや制御文字を含むURLを入力する。",
+        "fixtureから禁止schemeへのリンク/redirectと別window要求を発生させる。既定外部ブラウザー/IDE操作/ファイルアクセスが発生しないことを観察する。"
+      ],
+      "expected": "有効なHTTP(S)だけを読み込む。日本語domainはIDN、Unicode pathはURIで正規化し既存escapeを保持。拒否時は日本語案内と現ページ保持。popupは日本語で未対応を示す。JS bridge、認証/MCP/セキュリティ設定の自動変更がない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、修正を含む固定候補で再確認する。",
+      "next_action": "PMが固定候補を用意し、指定GUI担当が上部メニューから固定buildで確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5609993894"
+      ]
+    },
+    {
+      "id": "BROWSER-ERROR-SUPPORT",
+      "issue": 157,
+      "change": "非対応・初期化失敗・読込失敗からの回復",
+      "preconditions": "#157と上部メニュー接続を含む固定候補のSHA・ZIP/JAR hash・ロード実体を記録。GUIはPM指定担当のhost lease下のみ。外部の実ページは担当の許可したfixtureだけを使う。上部メニュー接続は#156統合後に実装済み。",
+      "steps": [
+        "対応環境でローカルfixtureの404/500、未listen port、読込途中の接続切断を試す。失敗後に有効URLへ移動し、再読込も試す。",
+        "指定担当がJCEF非対応の隔離IDE実行環境を用意できる場合に起動し、入口を開く。用意できなければ本項目をpending/blockedのまま残す。",
+        "初期化失敗やrenderer終了の再現環境が用意できる場合に日本語の失敗表示を確認する。通常IDEのセキュリティ/認証設定を変更しない。"
+      ],
+      "expected": "失敗を読み込み完了と誤表示せず、日本語で理由と次の操作を示す。HTTPエラーはstatus code、接続失敗はerror codeを表示。非対応でチャット全体が壊れず、ブラウザー入力を無効化する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、修正を含む固定候補で再確認する。",
+      "next_action": "PMが固定候補を用意し、指定GUI担当が上部メニューから固定buildで確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5609993894"
+      ]
+    },
+    {
+      "id": "BROWSER-LIFECYCLE-PROJECT",
+      "issue": 157,
+      "change": "content/project終了・遅延callback・別projectの分離",
+      "preconditions": "#157と上部メニュー接続を含む固定候補のSHA・ZIP/JAR hash・ロード実体を記録。GUIはPM指定担当のhost lease下のみ。外部の実ページは担当の許可したfixtureだけを使う。上部メニュー接続は#156統合後に実装済み。",
+      "steps": [
+        "異なる使い捨てproject A/Bでブラウザーを開き、各ローカルfixtureの別ページを表示する。再度開く操作は同projectの画面だけを選択することを確認する。",
+        "Aで遅延応答を読み込み中にブラウザーcontentを閉じて再度開き、旧画面の遅延URL/状態が新画面へ混入しないことを確認する。Bの画面は維持する。",
+        "Aのprojectを読込中に閉じ、IDEのエラー表示/ログと残ったブラウザーがないことを確認する。Bへ影響がないことを確認する。",
+        "必要なら担当のlease下でplugin unloadを検証し、ブラウザーcontentとJCEF client/handlerの解放を確認する。単なるToolWindow非表示ではbrowserが生存する点を区別する。"
+      ],
+      "expected": "内容はproject別。content/project/plugin終了では標準disposer経由でJCEFと暗黙client/handlerを解放し、終了後のEDT callbackは更新しない。新画面/他projectへ旧callbackが混入しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUIを実行しない。固定候補の準備後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、修正を含む固定候補で再確認する。",
+      "next_action": "PMが固定候補を用意し、指定GUI担当が上部メニューから固定buildで確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/154#issuecomment-5609993894"
+      ]
+    }
+  ]
+}
