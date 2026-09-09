@@ -3,11 +3,21 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 `AGENTS.md` is a symlink to this file, so any agent reading either name gets identical content.
 
+## 最上位ミッションとACP First（2026-09-09 / #134）
+
+[Project Mission](docs/project-mission.md)をプロジェクト全体の最上位判断基準、[ACP First](docs/architecture/cursor-integration.md)を今後の統合設計基準とする。対象はCursor **IDE内Agent panel** の機能・操作フロー・フィードバック・IDE統合であり、独立Agents Window専用UIやピクセル単位の複製を目的にしない。
+
+新機能ごとに最新のCursor公式IDE内panel、JetBrains AI Assistant + Cursor ACP、さらにIntelliJ / Android Studio integration + IntelliJ MCP Server + 利用可能なMCP toolsを含む最も強い構成と比較し、本Pluginの同等以上UXと直接IDE統合による上積みを記録する。競合の既存能力を独自機能と呼ばない。完成像はAndroid開発のIDE・ビルド・デバイス・実行環境まで深く理解・操作できるCursor Agent環境である。
+
+新規連携はACP標準 → Cursor ACP extensions → IDE APIs → MCP → CLI → 非構造出力解析の順で検討する。正確なIDE APIの直接利用を妨げず、CLI専用処理・合理的な補助/fallbackを残す。ACPをChat APIに限定せず、session・tool進捗・承認・質問・Plan/Todo・停止・context/usage等の構造化状態をUIへ対応付ける。各能力の提供可否は検証し、現方式Bの実装状態とACP Firstの設計方針を混同しない。Cursor内部のAgent機構を不必要に再実装せず、Cursor固有/ACP標準/IDE/MCP/CLI/UIの責務を分ける。
+
 ## 最新の能力比較（2026-09-08 / #114）
 
-[機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ち、現方式Bは維持する。以下の過去記録の「非対応」は観測時点・経路に限定する。
+[機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ちは維持する。方式Bは現行実装の記録であり、新規連携の設計方針は上記ACP Firstを優先する。以下の過去記録の「非対応」は観測時点・経路に限定する。
 
 ## GitHub-first collaboration (2026-09-06, #31)
+
+開発Agentの追加・委譲前に[Codex実行規約（#135の固定版）](https://github.com/shinma06/cursor-in-android-studio/blob/ffb63ab944f920a1d3a78a78e4eb46cd7bf0f9a0/docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
 The previous no-PR/direct-main and GUI-before-any-merge policies are superseded. Read
@@ -89,13 +99,14 @@ The product name is **Cursor in Android Studio** and the repository/artifact slu
 and the internal `Cursor Agent` tool-window/notification IDs stable for upgrades.
 Use `PluginBrand.NAME` for runtime product labels. Historical evidence keeps its original names.
 
-An Android Studio (IntelliJ Platform) plugin that reproduces Cursor IDE's Agent tab as a native
-tool window. It works by shelling out to the `cursor-agent` CLI (`agent -p --output-format
-stream-json`) as a subprocess and rendering the JSON-Lines event stream in a custom Swing/JBUI
-chat UI. The CLI is treated as an opaque black box — no protocol/API integration, just process
-control and defensive JSON parsing. This is referred to as "方式B" (native UI approach) in
-`docs/cursor-agent-plugin-requirements.md`, which is the full requirements/design doc and the
-source of truth for feature scope and rationale — check it before adding features.
+An Android Studio (IntelliJ Platform) client for Cursor Agent inside the IDE. The target integration
+is ACP First, with native IDE APIs, MCP and supplementary CLI paths as needed; see the mission and
+architecture documents above. Cursor Agent internals remain a black box, accessed through official interfaces.
+
+The current implementation uses `agent -p --output-format stream-json` subprocesses and a Swing/JBUI
+chat UI (方式B). This describes shipped code, not a prohibition on protocol/API integration.
+`docs/cursor-agent-plugin-requirements.md` records detailed requirements and implementation status
+under the mission and ACP First policy. Read these before adding features.
 
 ## Current blocker (check this before picking a task)
 
@@ -185,7 +196,7 @@ vs. Caskroom versioned path).
 Manual install (no auto-update channel): Settings → Plugins → ⚙ → Install Plugin from Disk →
 select the built zip → restart IDE.
 
-## Architecture
+## Architecture（現行方式Bの実装構造）
 
 Layered, unidirectional: `ToolWindowFactory` → root panel → `AgentUiController` (mediator) →
 `AgentProcessService` (subprocess + stream parsing) → `StreamJsonParser`. Settings are a separate
