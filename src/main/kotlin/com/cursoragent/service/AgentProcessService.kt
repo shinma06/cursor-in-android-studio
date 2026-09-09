@@ -3,6 +3,7 @@ package com.cursoragent.service
 import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.settings.detectAgentExecutable
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
@@ -275,18 +276,6 @@ class AgentProcessService(private val project: Project) : Disposable {
             return configuredPath
         }
 
-        val candidates = listOf(
-            "/usr/local/bin/agent",
-            "/opt/homebrew/bin/agent",
-            "${System.getProperty("user.home")}/.local/bin/agent",
-            "agent",
-        )
-
-        for (candidate in candidates) {
-            if (candidate == "agent") return candidate
-            if (File(candidate).canExecute()) return candidate
-        }
-
-        return "agent"
+        return detectAgentExecutable() ?: "agent"
     }
 }

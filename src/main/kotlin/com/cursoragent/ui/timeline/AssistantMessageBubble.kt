@@ -15,7 +15,6 @@ class AssistantMessageBubble(initialText: String = "") : JPanel(BorderLayout()) 
     private val contentLabel = MessageTextPane().apply {
         border = JBUI.Borders.empty()
     }
-    private val contentBuilder = StringBuilder(initialText)
 
     init {
         isOpaque = false
@@ -26,19 +25,8 @@ class AssistantMessageBubble(initialText: String = "") : JPanel(BorderLayout()) 
         }
     }
 
-    fun appendContent(text: String) {
-        contentBuilder.append(text)
-        refreshLabel()
-    }
-
     fun setContent(text: String) {
-        contentBuilder.clear()
-        contentBuilder.append(text)
-        refreshLabel()
-    }
-
-    private fun refreshLabel() {
-        contentLabel.text = "<html>${MarkdownRenderer.toHtmlFragment(contentBuilder.toString())}</html>"
+        contentLabel.text = "<html>${MarkdownRenderer.toHtmlFragment(text)}</html>"
         revalidate()
         repaint()
     }

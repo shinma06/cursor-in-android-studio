@@ -14,7 +14,7 @@ data class CheckpointRecord(
     var gitSha: String = "",
     var chatId: String? = null,
     /** `git ls-files --others --exclude-standard` output at snapshot time, used by
-     *  [com.cursoragent.service.CheckpointService.restore] to remove files the agent
+     *  [com.cursoragent.service.CheckpointService.restoreResult] to remove files the agent
      *  created after this checkpoint (a plain `git checkout <sha> -- .` only restores
      *  paths that existed in the snapshot; it never deletes new ones). */
     var untrackedFilesAtSnapshot: MutableList<String> = mutableListOf(),

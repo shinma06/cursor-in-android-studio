@@ -3,10 +3,27 @@ package com.cursoragent.ui.timeline
 import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class MessageTextPaneTest {
+    @Test
+    fun `assistant updates replace prior text including cumulative corrections and empty content`() = SwingUtilities.invokeAndWait {
+        val bubble = AssistantMessageBubble("old reply")
+        val pane = bubble.components.filterIsInstance<MessageTextPane>().single()
+        fun renderedText() = pane.document.getText(0, pane.document.length).trim()
+        assertEquals("old reply", renderedText())
+        bubble.setContent("**new**")
+        assertEquals("new", renderedText())
+        bubble.setContent("**new** reply")
+        assertEquals("new reply", renderedText())
+        bubble.setContent("corrected <tag>")
+        assertEquals("corrected <tag>", renderedText())
+        bubble.setContent("")
+        assertEquals("", renderedText())
+    }
+
     @Test
     fun `HTML reflows on width change and cached height updates after streaming text`() = SwingUtilities.invokeAndWait {
         val pane = MessageTextPane()

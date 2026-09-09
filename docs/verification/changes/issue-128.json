@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "issue": 128,
+  "gui_required": true,
+  "reason": "全文描画経路とCLI候補共有の既存挙動を固定buildで確認する。未使用コード削除だけで過去QAを完了にしない。",
+  "cli_checks": [
+    "./gradlew test buildPlugin --console=plain",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "git diff --check、固定HEAD/baseの独立Ponytail diff reviewと正当性review"
+  ],
+  "cases": [
+    {
+      "id": "PONYTAIL-CHAT",
+      "issue": 128,
+      "change": "描画bufferと未使用Timelineリセット削除後のチャット表示",
+      "preconditions": "#128を含む固定develop候補のSHA・ZIP/JAR hash・ロード実体と観察者を記録し、GUI leaseを取得。既存の固定候補/結果は変更しない。",
+      "steps": [
+        "識別済みbuildを使い、使い捨てfixtureで長文・Markdown・List<String>を含む応答を表示する。ストリーム更新で重複や文字欠落がないことを確認する。",
+        "新規タブを作り、空状態から別の応答へ進める。元タブへ戻り会話とスクロール位置を確認する。",
+        "ツール結果とDiffを表示し、正当な事後Revertと古い編集の拒否を既存RESTORE-TARGET-1の手順で照合する。"
+      ],
+      "expected": "応答は全文置換され、HTML風文字列も表示される。新規タブは空状態、既存タブは会話を保持。Diff/Revertの成功/拒否と理由が変わらない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回GUI未実施。次の固定develop候補で指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回GUI未実施。次の固定develop候補で指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認。",
+      "next_action": "develop統合後、QAへ引継ぎ、指定担当が固定buildで実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/128"
+      ]
+    },
+    {
+      "id": "PONYTAIL-CLI",
+      "issue": 128,
+      "change": "設定表示と実行serviceのCLI検出候補共有",
+      "preconditions": "#128を含む固定develop候補のSHA・ZIP/JAR hash・ロード実体と観察者を記録し、GUI leaseを取得。既存の固定候補/結果は変更しない。",
+      "steps": [
+        "元設定を控え、CLIパスを空欄でApply。検出結果と、モデル一覧取得が使うCLIを照合する。",
+        "通信しない使い捨てCLI fixtureの空白入りパスを手動保存し、呼出先がfixtureであることを確認する。",
+        "自動検出へ戻してApply/Cancelを確認し、元設定へ戻す。候補なし/無効指定のfallbackはコード/単体検証で確認し、実CLIを削除しない。"
+      ],
+      "expected": "固定候補の順と実行可能判定、手動指定優先、自動検出/PATH fallbackは従来どおり。自動表示を保存overrideとして固定しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回GUI未実施。次の固定develop候補で指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回GUI未実施。次の固定develop候補で指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認。",
+      "next_action": "develop統合後、QAへ引継ぎ、指定担当が固定buildで実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/128"
+      ]
+    }
+  ]
+}

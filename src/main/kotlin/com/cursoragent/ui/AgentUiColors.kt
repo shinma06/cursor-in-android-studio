@@ -21,7 +21,6 @@ object AgentUiColors {
     val mutedText: Color get() = JBColor(Color(0x686868), Color(0x969696))
 
     fun bubbleBorder(padding: Int = 10): Border = javax.swing.border.CompoundBorder(RoundedBorder(), JBUI.Borders.empty(padding))
-    fun sectionPadding(): Border = JBUI.Borders.empty(8, 12)
 
     class RoundedBorder(private val radius: Int = CORNER_ARC) : AbstractBorder() {
         override fun getBorderInsets(c: Component) = JBUI.insets(1)
