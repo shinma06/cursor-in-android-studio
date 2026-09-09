@@ -15,7 +15,8 @@ def gh(*args):
 
 
 def api(path, method='GET', data=None):
-    args = ['gh', 'api', f'repos/{os.environ["GITHUB_REPOSITORY"]}/{path}', '--method', method]
+    endpoint = f'repos/{os.environ["GITHUB_REPOSITORY"]}' + (f'/{path}' if path else '')
+    args = ['gh', 'api', endpoint, '--method', method]
     if data is not None:
         args += ['--input', '-']
     return json.loads(subprocess.check_output(args, input=json.dumps(data) if data is not None else None, text=True) or 'null')
@@ -85,8 +86,12 @@ def publish(branch, sha, directory):
     matches = [r for r in pages('releases') if r['tag_name'] == tag]
     if len(matches) > 1:
         raise ValueError('Multiple releases for branch tag')
+    # Anchor new tags on the default branch; source-only workflow changes can
+    # require permissions unavailable to GITHUB_TOKEN when tagging their SHA.
+    # Release updates leave existing tag refs untouched.
+    default_branch = api('')['default_branch']
     release = matches[0] if matches else api('releases', 'POST', {
-        'tag_name': tag, 'target_commitish': sha, 'name': f'Plugin ZIP — {branch}',
+        'tag_name': tag, 'target_commitish': default_branch, 'name': f'Plugin ZIP — {branch}',
         'draft': True, 'prerelease': True, 'make_latest': 'false',
     })
     if release.get('immutable'):
@@ -114,10 +119,11 @@ def publish(branch, sha, directory):
     repo = os.environ['GITHUB_REPOSITORY']
     body = (f'ブランチ: `{branch}`\n\nソース HEAD: [{sha}](https://github.com/{repo}/commit/{sha})\n\n'
             f'Assets の `{name}` を Install Plugin from Disk... で選択してください。\n'
-            'Source code の ZIP はインストール用ではありません。タグは配布ページの固定識別子で、HEAD追従タグではありません。\n\n'
+            'Source code の ZIP はインストール用ではありません。タグは配布ページの固定識別子です。'
+            '新規タグは作成時の既定ブランチを参照し、既存タグは移動しません。ZIPのソースは上記HEADです。\n\n'
             + marker(branch, sha))
     api(f'releases/{release_id}', 'PATCH', {'name': f'Plugin ZIP — {branch}', 'body': body,
-        'draft': False, 'prerelease': True, 'make_latest': 'false'})
+        'target_commitish': default_branch, 'draft': False, 'prerelease': True, 'make_latest': 'false'})
     for asset in pages(f'releases/{release_id}/assets'):
         if asset['name'] != name:
             api(f'releases/assets/{asset["id"]}', 'DELETE')

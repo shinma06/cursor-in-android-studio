@@ -23,6 +23,8 @@ class BranchZipTest(unittest.TestCase):
         self.branches = [{'name': self.branch, 'commit': {'sha': A}}]
         self.releases = []
         self.operations = []
+        self.default_branch = 'trunk/release'
+        self.release_writes = []
         self.fail_upload = False
         self.fail_patch = False
         self.move_after_upload = False
@@ -34,14 +36,20 @@ class BranchZipTest(unittest.TestCase):
     def api(self, path, method='GET', data=None):
         self.operations.append((method, path))
         if method == 'GET':
+            if path == '':
+                return {'default_branch': self.default_branch}
             endpoint, query = path.split('?')
             page = int(query.split('page=')[-1])
             rows = self.branches if endpoint == 'branches' else self.releases if endpoint == 'releases' else self.releases[0]['assets']
             return copy.deepcopy(rows[(page - 1) * 100:page * 100])
         if method == 'POST':
+            self.assertEqual(path, 'releases')
+            self.release_writes.append((method, copy.deepcopy(data)))
             self.releases.append({**data, 'id': 7, 'assets': []})
             return copy.deepcopy(self.releases[-1])
         if method == 'PATCH':
+            self.assertEqual(path, 'releases/7')
+            self.release_writes.append((method, copy.deepcopy(data)))
             if self.fail_patch:
                 raise RuntimeError('metadata update failed')
             self.releases[0].update(data)
@@ -65,6 +73,7 @@ class BranchZipTest(unittest.TestCase):
 
     def old_release(self):
         self.releases = [{'id': 7, 'tag_name': bz.tag_for(self.branch), 'draft': False,
+                          'target_commitish': B,
                           'body': bz.marker(self.branch, B), 'assets': [
                               {'id': 11, 'name': bz.asset_for(B), 'state': 'uploaded', 'size': 25}]}]
 
@@ -84,7 +93,11 @@ class BranchZipTest(unittest.TestCase):
         self.assertEqual(bz.plan(), [])
         self.assertEqual(len(self.releases), 1)
         self.assertFalse(self.releases[0]['draft'])
-        self.assertEqual(self.releases[0]['target_commitish'], A)
+        self.assertEqual([method for method, _ in self.release_writes], ['POST', 'PATCH'])
+        self.assertTrue(all(data['target_commitish'] == self.default_branch
+                            for _, data in self.release_writes))
+        self.assertIn(bz.marker(self.branch, A), self.releases[0]['body'])
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(A)])
 
     def test_update_uploads_before_deleting_previous_zip(self):
         self.old_release()
@@ -93,6 +106,17 @@ class BranchZipTest(unittest.TestCase):
         methods = [method for method, path in self.operations]
         self.assertLess(methods.index('UPLOAD'), methods.index('DELETE'))
         self.assertLess(methods.index('PATCH'), methods.index('DELETE'))
+
+    def test_update_uses_current_repository_default_without_moving_existing_tag(self):
+        self.old_release()
+        self.default_branch = 'integration/next'
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual([method for method, _ in self.release_writes], ['PATCH'])
+        self.assertEqual(self.release_writes[0][1]['target_commitish'], self.default_branch)
+        self.assertEqual(self.releases[0]['tag_name'], bz.tag_for(self.branch))
+        self.assertFalse(any('git/refs' in path or 'git/tags' in path for _, path in self.operations))
+        self.assertIn(bz.marker(self.branch, A), self.releases[0]['body'])
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(A)])
 
     def test_failed_upload_or_metadata_keeps_previous_zip_and_retries(self):
         for stage in ('upload', 'patch'):
