@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 114,
+  "gui_required": false,
+  "reason": "公式Cursor資料・CLI help・固定main/develop sourceの調査と要件/Issue整理のみ。製品とGUI結果を変更しないためGUI操作不要。",
+  "cli_checks": [
+    "git diff --check",
+    "./gradlew test buildPlugin --console=plain",
+    "調査表のID・公式URL・Issueリンクと固定SHAの独立照合"
+  ],
+  "cases": []
+}
