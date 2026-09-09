@@ -1,0 +1,107 @@
+name: Branch Plugin ZIP
+on:
+  push:
+    branches: ['**']
+  # Old branches may not contain this workflow. Also recover missed/token-origin pushes.
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build (empty checks all live branch HEADs)
+        required: false
+        type: string
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.plan.outputs.branches }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event_name == 'push' && github.ref_name || inputs.branch }}
+        run: |
+          branches=$(python3 scripts/workflow/branch_zip.py plan --branch "$BRANCH")
+          echo "branches=$branches" >> "$GITHUB_OUTPUT"
+  build:
+    needs: plan
+    if: needs.plan.outputs.branches != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.branches) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        id: studio
+        with:
+          path: /tmp/android-studio
+          key: android-studio-2026.1.3.8-quail3-patch1
+      - if: steps.studio.outputs.cache-hit != 'true'
+        run: |
+          curl -fL --retry 3 -o /tmp/studio.tar.gz https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2026.1.3.8/android-studio-quail3-patch1-linux.tar.gz
+          mkdir -p /tmp/android-studio
+          tar -xzf /tmp/studio.tar.gz -C /tmp/android-studio --strip-components=1
+          rm /tmp/studio.tar.gz
+      - name: Build standard installable distribution
+        run: ./gradlew buildPlugin --console=plain -PplatformPath=/tmp/android-studio
+      - name: Name ZIP by its source HEAD (no repackaging)
+        env:
+          SOURCE_SHA: ${{ matrix.sha }}
+        run: |
+          mkdir -p delivery
+          archives=(build/distributions/*.zip)
+          test "${#archives[@]}" -eq 1
+          cp "${archives[0]}" "delivery/cursor-in-android-studio-${SOURCE_SHA}.zip"
+      # Short-lived transport between isolated runners; Releases hold the durable download.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.tag }}
+          path: delivery/*.zip
+          retention-days: 1
+          if-no-files-found: error
+  publish:
+    needs: [plan, build]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.branches != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.branches) }}
+    concurrency:
+      group: ${{ matrix.tag }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Execute the same publisher revision as plan, never the scanned branch's build code.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.tag }}
+          path: delivery
+      - name: Replace this branch's latest ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ matrix.branch }}
+          SOURCE_SHA: ${{ matrix.sha }}
+        run: python3 scripts/workflow/branch_zip.py publish --branch "$BRANCH" --sha "$SOURCE_SHA"

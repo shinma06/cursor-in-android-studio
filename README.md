@@ -36,10 +36,12 @@ export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+�
 
 ## Android Studio へのインストール
 
-1. **Settings → Plugins → ⚙ → Install Plugin from Disk...**
-2. `build/distributions/cursor-in-android-studio-<version>.zip` を選択
+1. [GitHub Releases](https://github.com/shinma06/cursor-in-android-studio/releases) で **Plugin ZIP — ブランチ名** を開き、Assets のプラグインZIPを取得（`Source code` は対象外）
+2. **Settings → Plugins → ⚙ → Install Plugin from Disk...** で取得したZIPを選択
 3. Restart IDE
 4. **View → Tool Windows → Cursor in Android Studio**
+
+[ブランチ別ZIPの保存・更新と制約](docs/development/plugin-zip-delivery.md)。ローカルビルド時は `build/distributions/cursor-in-android-studio-<version>.zip` を選択できます。
 
 旧名称「Cursor Agent」からの更新でも、プラグインIDと設定・履歴の保存先は共通です。
 

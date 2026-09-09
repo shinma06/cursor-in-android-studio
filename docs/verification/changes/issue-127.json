@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 127,
+  "gui_required": false,
+  "reason": "CI・Release配布・旧ZIP運用撤去のみ。製品コードとGradle構成は変更しない。標準buildPluginと実Actions/Release読取で形式・HEAD対応・更新・衝突回避を確認する。実IDEインストール観察は未実施の間はpassとしない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "実pushのActions成功・同一branch再push更新・全生存branchのRelease HEAD/ZIP対応・旧asset削除を確認"
+  ],
+  "cases": []
+}
