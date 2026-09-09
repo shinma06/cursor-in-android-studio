@@ -1,5 +1,7 @@
 # Claude Proへの独立レビュー依頼
 
+現在の設計は [Project Mission](../../project-mission.md) / [ACP First](../../architecture/cursor-integration.md)、実行体制は [Codex実行規約](../../development/codex-execution-policy.md)を優先する。以下の依頼例は子Agent生成の許可ではない。追加担当は独立top-level Sessionとして確認し、既存の担当・許可範囲を維持する。
+
 GPTは<>を埋め、必要な差分と根拠を添える。Claudeアプリの**新しい会話**、またはPro認証済みClaude Codeを使う。他プロジェクトの会話に混ぜない。
 
 ```text

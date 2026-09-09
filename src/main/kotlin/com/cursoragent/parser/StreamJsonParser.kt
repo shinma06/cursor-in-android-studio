@@ -5,7 +5,7 @@ import com.google.gson.JsonParser
 
 /**
  * stream-json (JSON Lines) の防御的パーサー。
- * cursor-agent 2026-09 時点の出力形式に対応する。
+ * 現行CLI print経路の2026-09観測形式を扱う。ACP JSON-RPCのパーサーではない。
  */
 class StreamJsonParser(
     private val onEvent: (StreamEvent) -> Unit,

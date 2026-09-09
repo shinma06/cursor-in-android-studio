@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 
+/** Checks tab/run routing and restore exclusion with simulated processes; real IDE/CLI QA remains separate. */
 class SessionTabsExecutionTest {
     @Test
     fun `send arguments remain a snapshot after changing another tab and application defaults`() {

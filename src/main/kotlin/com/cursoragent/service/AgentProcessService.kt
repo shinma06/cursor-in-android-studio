@@ -35,6 +35,7 @@ interface AgentProcessListener {
     fun onStopped() {}
 }
 
+/** Current print transport: owns multiple per-turn runs; session identity and UI state live separately. */
 @Service(Service.Level.PROJECT)
 class AgentProcessService(private val project: Project) : Disposable {
     private val LOG = logger<AgentProcessService>()
@@ -206,9 +207,8 @@ class AgentProcessService(private val project: Project) : Disposable {
         return ModelListParser.parse(output)
     }
 
-    /** Raw `agent mcp list` output; format unverified against a populated config
-     *  (no MCP servers were configured on the machine this was written on), so the
-     *  UI shows this verbatim rather than attempting a specific parse. */
+    /** Current CLI metadata path. The dialog parses observed `id: status` rows with
+     *  McpListParser and falls back to raw output when no rows can be parsed. */
     fun listMcpServersRaw(): String = runAgentCommandSync("mcp", "list") ?: "(agent mcp list failed)"
 
     fun setMcpServerEnabled(identifier: String, enabled: Boolean): Boolean {

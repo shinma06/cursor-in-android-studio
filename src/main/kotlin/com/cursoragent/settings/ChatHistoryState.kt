@@ -13,10 +13,10 @@ data class ChatHistoryRecord(
 )
 
 /**
- * `agent ls`/`agent resume` (the CLI's own past-session picker) require a raw TTY
- * and hard-fail through this plugin's non-interactive subprocess (verified live,
- * see requirements doc §13), so past chats are tracked here instead, independent
- * of the CLI.
+ * Metadata for the current print transport; message bodies are not persisted here.
+ * The 2026-09 non-TTY `agent ls`/`agent resume` picker failure motivated this store
+ * (requirements §13). It does not rule out other transports' session APIs.
+ * ACP restoration and compatibility with these stored chat IDs require #115 validation.
  */
 @Service(Service.Level.PROJECT)
 @State(name = "CursorAgentChatHistory", storages = [Storage("cursor-agent-chat-history.xml")])

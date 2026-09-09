@@ -44,8 +44,8 @@ class GitSnapshotStore(private val workspaceDir: File) {
      *
      * Known gap: a new file the agent both wrote and `git add`ed during the turn
      * would no longer be untracked, so it's invisible to this cleanup and survives
-     * a rollback. This only matters if the CLI stages files itself, which ordinary
-     * edit/write tool calls don't do.
+     * a rollback. Staging by the agent or user can trigger this regardless of
+     * transport; the snapshot contract does not promise complete new-file undo.
      */
     fun restore(
         sha: String,

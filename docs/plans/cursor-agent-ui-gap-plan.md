@@ -1,5 +1,7 @@
 # Cursor Agent UI 差分取り込み計画
 
+> 2026-09-09方針: 現在の順序は [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)、契約調査は #115。[Project Mission](../project-mission.md) / [ACP First](../architecture/cursor-integration.md) / [現行実装](../architecture/current-implementation.md)を優先する。以下のCLIゲートや旧Project/QA運用は当時の記録であり、新規機能をCLIだけに限定しない。現行QA正本は[verification](../verification/README.md)。
+
 > 履歴資料。現在の機能・UI/UX・main/develop差分とCLI実現性は[2026-09-08比較マトリクス](../research/cursor-agent-capability-matrix-2026-09-08.md)を参照。以下の当時の観測・優先度を最新状態やGUI合格として転用しない。
 
 作成: 2026-09-05 / 状態: 計画登録済み、追加機能は未実装。

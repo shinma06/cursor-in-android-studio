@@ -5,6 +5,9 @@ live `cursor-agent` CLI (`2026.09.02-c22c1a3`), for use in parser unit tests (M0
 
 Each file is JSON Lines — one event object per line, verbatim from the CLI (paths sanitized where noted).
 
+These fixtures cover the print transport only, not ACP JSON-RPC or GUI acceptance.
+The tool fixtures capture completed payloads; started-field assumptions still need a live capture.
+
 ## Files
 
 - `01_plain_question.jsonl` — partial Free-tier capture (`resource_exhausted` before assistant).

@@ -2,18 +2,21 @@
 
 **開発ルール:** Gitへの言及がなくても [Issue → worktree → PR](docs/development/github-workflow.md) を必須とします。main直接commit/pushは禁止。GUIは[ホスト単位の予約](docs/development/gui-coordination.md)で直列化し、実装は並列化します。
 
-Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI をサブプロセスとして起動し、
-`stream-json` 出力をパースして独自のSwing/JBUI製チャットUIに描画する(CLIをブラックボックスとして
-ラップする方式)。
+Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE Agent Client。
+[最上位ミッション](docs/project-mission.md)と[ACP First](docs/architecture/cursor-integration.md)に従い、主要な構造化通信はACPを優先し、IDE API / MCP / 補助CLIを組み合わせる。
+
+現在の製品は `agent -p --output-format stream-json` とSwing/JBUIによるprint実装（方式B）。ACP製品接続はまだ未実装であり、方針の導入と動作確認済みの範囲を分ける。
 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
 > 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues/1)** — 進捗の一次情報源。GPTが進行・実装・GUI検証と統合、Claude Proが独立レビュー、Cursor ProがGUI検証課題を担当する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues/1)** — 進捗の一次情報源。担当と独立レビューは各Issueのclaimで確認する。[Codex実行規約](docs/development/codex-execution-policy.md)とPonytail fullに従い、GUIは指定担当だけが操作する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
-> **GUI QA（Computer Use優先、人間による補完）**: 実画面で確認する項目は [docs/manual-verification/matrix.md](docs/manual-verification/matrix.md) に一覧化する。確認前に Branch 列を参照すること。
+> **GUI QA**: [現在のCase管理と固定候補の手順](docs/verification/README.md)を参照する。[旧手動マトリクス](docs/manual-verification/matrix.md)は履歴・詳細であり、過去buildの結果を最新候補へ転用しない。
+
+現行コードの責務は [現行実装](docs/architecture/current-implementation.md)、指示と命名の点検結果は [Project Context監査](docs/development/project-context-audit.md) を参照してください。
 
 ## ループ開発
 
@@ -48,7 +51,7 @@ export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+�
 ## 開発
 
 - UI比較の証跡: [Cursor Agent UI 閲覧調査（2026-09-05）](docs/research/cursor-agent-ui-survey-2026-09-05.md)
-- 次の対応順・優先度・受入条件: [UI差分取り込み計画](docs/plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19)
+- 現在の設計・移行順: [ACP First再評価 #141](https://github.com/shinma06/cursor-in-android-studio/issues/141) / [契約・機能分類 #115](https://github.com/shinma06/cursor-in-android-studio/issues/115)。[旧UI差分計画](docs/plans/cursor-agent-ui-gap-plan.md)と[UI tracking #19](https://github.com/shinma06/cursor-in-android-studio/issues/19)は既存受入・経緯として併用する。
 - ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
 - 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
 - 進捗・タスク管理: [GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)

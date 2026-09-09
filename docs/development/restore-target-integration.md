@@ -20,7 +20,7 @@ ISOLATEDの実保存先は追跡できていないため、分離先パスを推
 `WorkspaceOperationGate`はproject serviceに1つ。送信受付時からバックグラウンド準備終了まで保持し、
 OSProcessHandler生成前に別のprocess予約を取得して、物理終了の通知まで保持する。
 `AgentRun.isActive`、停止要求、UIの完了状態だけでは予約を解放しない。
-停止中の古いrunが残っている間は新規送信も復元も拒否する。新規会話へ移ってもこの制約を維持する。
+複数タブの準備・processは並行できる。停止中の古いrunのprocess予約は復元を拒否するが、新規準備を一律に拒否しない。復元中は全タブの新規準備を拒否する（#142ソース照合）。
 
 checkpointの確認ダイアログ後に復元予約を取得し、Git処理はEDT外で実行、結果表示をEDTへ戻す。
 Revertは同じ予約の下でIDE write commandを実行する。復元失敗でも予約を解放する。
