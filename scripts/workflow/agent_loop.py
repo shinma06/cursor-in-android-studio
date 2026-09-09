@@ -22,7 +22,6 @@ from handoff_registry import register, resolve
 from verification import verify_pr, metadata
 from issue_schema import validate_issue, done_labels, labels
 from qa_handoff import handoff
-from plugin_zip_publish import retain_source
 
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
@@ -547,9 +546,6 @@ class Loop:
             # Compare-and-delete only. Never force-update a branch.
             if not path.exists():
                 raise ValueError('No managed checkout for safe remote deletion; preserve ref')
-            # Preserve the final branch head and all ancestors before squash cleanup.
-            # Any creation/readback failure leaves remote and local resources intact.
-            retain_source(sha, self.gh.api)
             command(['git', 'push', f'--force-with-lease={ref}:{sha}', f'https://github.com/{REPO}.git',
                      ':' + ref], path)
         if path.exists():
