@@ -3,6 +3,8 @@
 2026-09-07 / #83。ユーザー方針が従来の「mainのみ・GUI完了まで全merge待ち」を上書きします。
 変更は文書・設定を含め、Issue → claim → 専用branch/worktree → Draft PR → テスト/独立レビュー → target別gate → GitHub merge → 残条件更新で進めます。読み取りだけの相談・レビューは新Issue不要です。
 
+開発Agentの追加・委譲前に[Codex実行規約](codex-execution-policy.md)を確認します。メインモデルがGPT-6 AstraならSubagentの生成・委譲は禁止し、合理的理由のある独立top-level Session / Thread間連携と通常のToolを使います。Astra以外には本規約による禁止を適用しません。
+
 ## 統合条件
 
 | 対象 | 必須条件 | GUI未実施/環境blocked/製品fail | merge方式 |
@@ -85,7 +87,7 @@ cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/ma
 
 ## 自動gateとGitHub設定
 
-- push前のZIP作成: 更新を伴うpushではPythonテストと `./gradlew test buildPlugin --console=plain` を実行し、対象worktreeの `build/distributions/cursor-in-android-studio-<version>.zip` を生成する。テストまたはビルド失敗時はpushを中断する。Gradleが入力変更なしと判断した場合は既存の最新出力を再利用する。dirty/別HEADのpushは事前に拒否し、ブランチ削除のみ・更新なしはビルドしない。ZIPはローカル成果物で、GitHubへのアップロードやIDEへのインストールは行わない。導入前に分岐した既存ブランチでは、この変更を通常mergeで取り込んでから有効になる。
+- push前はPythonとGradleのテストを実行する。ZIPはpush後の [Branch Plugin ZIP](plugin-zip-delivery.md) が標準 `buildPlugin` で生成し、ブランチごとのReleaseへ最新1件を保存する。ローカルのZIP生成・取得・cacheはpush/checkout hookでは行わない。
 - hooks: Issue branch以外のcommit、main/master/developへのpush/削除、別branch/dirty/非fast-forwardのpushを拒否。
 - PR policy: target/Integration、実在open Issue、branch番号、GUI理由、Case JSONパスを検査。developの自動close文言を拒否。
 - Acceptance gate: eventの遅延し得るbase.shaを信用せず、許可された最新base branchからcheckoutし、コードHEADと現在refを照合する。trusted baseのコードでPRのJSONをデータとして読み、developはCase追跡、main toolingはパスと理由、promotionは固定候補の全commit/Case/build/観察を検査。
