@@ -27,7 +27,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
+        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -80,7 +80,7 @@ class ToolWindowChatActionsTest {
             { calls.add("summary:$selected") }, { calls.add("new") }, { calls.add("history") },
             { calls.add("mcp") }, { calls.add("settings") }, { calls.add("notice") },
             { calls.add("opened") }, { calls.add("closeAll") }, { calls.add(it) },
-            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") })
+            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") }, { calls.add("browser") })
         val summary = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "このセッションの内容を要約" }
         val event = event(summary)
         summary.update(event)
@@ -108,10 +108,19 @@ class ToolWindowChatActionsTest {
         transport.update(transportEvent)
         assertFalse(transportEvent.presentation.isEnabled)
         actions.titleActions.forEach { it.actionPerformed(event(it)) }
-        for (label in listOf("MCPサーバー設定", "設定", "ファイル編集について")) {
+        for (label in listOf("MCPサーバー設定", "設定", "ファイル編集について", "ブラウザーを開く…")) {
             actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == label }.let { it.actionPerformed(event(it)) }
         }
-        assertEquals(listOf("summary:1", "new", "history", "mcp", "settings", "notice"), calls)
+        assertEquals(listOf("summary:1", "new", "history", "mcp", "settings", "notice", "browser"), calls)
+        val browser = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "ブラウザーを開く…" }
+        assertTrue(browser.isDumbAware)
+        assertEquals(ActionUpdateThread.EDT, browser.actionUpdateThread)
+        assertTrue(browser.templatePresentation.description!!.contains("手動"))
+        assertTrue(browser.templatePresentation.description!!.contains("未接続"))
+        running[1] = true
+        val browserEvent = event(browser)
+        browser.update(browserEvent)
+        assertTrue(browserEvent.presentation.isEnabled, "Manual browsing does not require an idle Agent")
         available = false
         val before = calls.toList()
         fun leaves(group: DefaultActionGroup): List<AnAction> = group.childActionsOrStubs.flatMap {
@@ -136,7 +145,7 @@ class ToolWindowChatActionsTest {
         var histories = 0
         var notifications = 0
         val actions = ToolWindowChatActions(settings, { true }, { false }, { AgentTransport.PRINT to false },
-            {}, {}, { newChats++ }, { histories++ }, {}, {}, {}, {}, {}, {}, { false }, {}, {}, { notifications++ })
+            {}, {}, { newChats++ }, { histories++ }, {}, {}, {}, {}, {}, {}, { false }, {}, {}, { notifications++ }, {})
         val visibility = actions.group("上部アイコンの表示").childActionsOrStubs
         visibility.take(2).forEach { (it as ToggleAction).setSelected(event(it), false) }
         actions.titleActions.forEach { action ->
@@ -169,7 +178,7 @@ class ToolWindowChatActionsTest {
         var previewChanges = 0
         var editorSettings = 0
         val actions = ToolWindowChatActions(AgentSettingsState(), { true }, { false }, { AgentTransport.PRINT to false },
-            {}, {}, {}, {}, {}, {}, {}, {}, {}, urls::add, { preview }, { preview = it; previewChanges++ }, { editorSettings++ }, {})
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, urls::add, { preview }, { preview = it; previewChanges++ }, { editorSettings++ }, {}, {})
         actions.group("フィードバック…").childActionsOrStubs.forEach { it.actionPerformed(event(it)) }
         assertEquals(listOf("https://github.com/shinma06/cursor-in-android-studio/issues/new",
             "https://prod.cursor.com/help/troubleshooting/reporting-bugs"), urls)
@@ -245,7 +254,7 @@ class ToolWindowChatActionsTest {
         val unexpected = { fail<Unit>("Opening or updating a menu must not invoke an action") }
         return ToolWindowChatActions(settings, { true }, { false }, { AgentTransport.PRINT to false },
             { unexpected() }, unexpected, unexpected, { unexpected() }, unexpected, unexpected, unexpected,
-            { unexpected() }, unexpected, { unexpected() }, { false }, { unexpected() }, unexpected, {})
+            { unexpected() }, unexpected, { unexpected() }, { false }, { unexpected() }, unexpected, {}, unexpected)
     }
 
     private fun ToolWindowChatActions.group(caption: String) =

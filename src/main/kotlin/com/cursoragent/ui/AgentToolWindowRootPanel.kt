@@ -6,6 +6,7 @@ import com.cursoragent.session.SessionTabsSnapshot
 import com.cursoragent.settings.AgentSettingsConfigurable
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.ChatHistoryState
+import com.cursoragent.ui.browser.ManualBrowser
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.ToolWindowChatActions
 import com.cursoragent.ui.mcp.McpServersDialog
@@ -71,6 +72,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
             )
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
+        onBrowser = { ManualBrowser.open(project) },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this, ::open)
 
