@@ -3,6 +3,7 @@ package com.cursoragent.toolwindow
 import com.cursoragent.PluginBrand
 import com.cursoragent.ui.AgentToolWindowRootPanel
 import com.cursoragent.ui.header.ChatOptionsActionGroup
+import com.cursoragent.ui.header.compactHeaderIcon
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -34,12 +35,14 @@ class CursorAgentToolWindowFactory : ToolWindowFactory {
         val headerWasVisible = decorator?.isHeaderVisible
         if (toolWindow is ToolWindowImpl) {
             val more = ChatOptionsActionGroup(toolWindow.createPopupGroup(true))
+            val hideIcon = IconLoader.getIcon("/icons/hide-agent-panel.svg", javaClass)
             val hide = object : DumbAwareAction(
                 "Agentパネルを隠す", "会話と実行を保持したまま、パネルを隠します。",
-                IconLoader.getIcon("/icons/hide-agent-panel.svg", javaClass),
+                compactHeaderIcon(hideIcon, panel),
             ) {
                 override fun getActionUpdateThread() = ActionUpdateThread.EDT
                 override fun update(e: AnActionEvent) {
+                    e.presentation.icon = compactHeaderIcon(hideIcon, panel)
                     e.presentation.isEnabled = !toolWindow.isDisposed
                 }
                 override fun actionPerformed(e: AnActionEvent) {
