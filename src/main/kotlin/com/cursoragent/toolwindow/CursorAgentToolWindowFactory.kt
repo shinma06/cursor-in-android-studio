@@ -51,8 +51,9 @@ class CursorAgentToolWindowFactory : ToolWindowFactory {
             ).apply {
                 targetComponent = panel
                 layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY
-                setMinimumButtonSize(JBUI.size(30, 34))
-                component.border = JBUI.Borders.empty()
+                // Native ActionButton adds 2px on each side: 4 × (22 + 4) + 4 = 108px.
+                setMinimumButtonSize(JBUI.size(22, 34))
+                component.border = JBUI.Borders.emptyRight(4)
                 component.isOpaque = false
             }
             panel.installHeaderToolbar(toolbar.component)

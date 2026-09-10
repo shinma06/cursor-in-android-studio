@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "issue": 183,
+  "gui_required": true,
+  "reason": "右固定toolbarの外観と押下領域の変更。SDK headless寸法検証と製品GUI受入を区別する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "実SDK ActionButton preferred size: 1.0/1.25/2.0倍率で旧136/176/272px→新108/141/216px（borderと右余白込み）",
+    "git diff --check; verification.validate_change(issue-183, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "HEADER-ACTION-WIDTH",
+      "issue": 183,
+      "change": "右固定4操作の幅と余白を縮小",
+      "preconditions": "GUI leaseを取得した指定担当が#183の固定SHA・ZIP hash・loaded JARを識別し、使い捨てprojectで確認する。ユーザーの比較画像は変更前の観測でbuild identity未確定。",
+      "steps": [
+        "同じパネル幅とUI倍率で、左側New Agentタブの幅を変えず右固定4操作が横に詰まったことを比較する。基準は4×26pxと右余白4pxで108 logical px（旧136px）。",
+        "幅240/320/800 logical px相当・通常/Compact・別UI倍率で右端固定と1行配置を確認する。左タブの選択/スクロール/閉じる/キーボード操作、ボタンhover/tooltipと縦の押しやすさを維持する。",
+        "4ボタンの新規/履歴/横…/パネル非表示を確認する。新規/履歴の表示設定をoff/onして余白が残らず、再表示後も寸法と操作が維持されることを確認する。"
+      ],
+      "expected": "右固定部は通常倍率で108px、標準IDEボタン余白込みで約21%縮小する。New Agentタブの幅と高さ、選択背景、4 Actionの挙動を維持し、非表示は会話を破棄しない。拡大倍率ではSDKの整数丸めを許容する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "固定buildで同幅比較と4操作を実施し、QA #182の旧COMPACT-HEADER-LAYOUTの幅期待を本Caseへ更新する。他Caseは維持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/183",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/182",
+        "https://github.com/JetBrains/intellij-community/blob/master/platform/platform-impl/src/com/intellij/openapi/actionSystem/impl/ActionButton.java"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正後の固定buildで実IDE比較は未実施。提供画像は変更前の観測。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正後の固定buildで実IDE比較は未実施。提供画像は変更前の観測。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}
