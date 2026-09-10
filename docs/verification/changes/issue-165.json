@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 165,
+  "gui_required": false,
+  "reason": "ブランチ調査と既存運用文書だけの変更。製品コード・GUI・自動cleanup実装を変更しない。originのGit設定/追跡参照同期はCLIで検証する。",
+  "cli_checks": [
+    "./gradlew test",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "git diff --check; trusted verification.validate_change(issue-165, GUI not required)",
+    "originの実branch/local branch/tag/worktreeと未保存状態をprune前後で照合し、削除済みremote-tracking refだけの同期を確認",
+    "remote.origin.prune=trueのreadback、通常fetch後のprune dry-runが空、他設定を維持"
+  ],
+  "cases": []
+}

@@ -29,7 +29,7 @@ PM/進行役は統合順・claim・GitHub設定を管理します。実装担当
 ## 開始
 
 1. AGENTS.md、本文書、要件、#1、対象Issue本文と全コメント、open PRを読む。
-2. `git status --short --branch`、`git worktree list`、`git fetch origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
+2. `git status --short --branch`、`git worktree list`、`git fetch --prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
 3. 重複Issueを検索し、必要な専用Issueを作る。親へリンクし、独立した実装やGUI検証を分ける。
 4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。
 5. 通常はorigin/developから `<codex|claude|cursor>/<Issue>-<slug>` と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
@@ -78,6 +78,7 @@ main/developへの直接commit/push、admin bypass、hook無効化、force push�
 
 merge SHA・CI・Case結果・残条件をIssueへ記録し、受入を個別に満たす範囲だけcloseします。promotion Issue完了でも元の機能/QA Issueを一括closeしません。
 cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/master/developはremote/localとも削除しません。他担当の変更/branchを整理しません。
+merge/Issue closeとcleanup完了を分け、[ブランチ残存の判定と完了確認](pr-automation.md#ブランチ残存の判定と完了確認)に従って実ref・追跡ref・worktreeを照合します。残す場合は理由・担当・次の操作を引き継ぎます。
 
 ## 中断・再開
 
