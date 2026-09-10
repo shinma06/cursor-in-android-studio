@@ -503,7 +503,9 @@ class Loop:
             if body != parent['body']:
                 self.gh.api(f'repos/{REPO}/issues/{h["parent"]}', 'PATCH', {'body': body})
         self.cleanup(pr, h)
-        state.update(phase='done', next='Claim released; Issue closed' if complete else 'Claim released; Issue remains open for remaining acceptance',
+        state.update(phase='done',
+                     next=('Claim released; Issue closed' if complete else 'Claim released; Issue remains open for remaining acceptance') +
+                          '; PM: reconcile parent roadmap and Project registration/status for origin and QA; record readback or retry owner',
                      merge_sha=pr['merge_commit_sha'])
         self.save(pr, state, comment_id)
         return {'pr': pr['number'], 'phase': 'done', 'issue_closed': bool(complete)}

@@ -87,6 +87,8 @@ remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他w
 **main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
 cleanup中断は次tickで再試行し、merge成功だけで状態を消しません。
 
+`done`の次操作はPMへの[Issue/QA/親/Project整合確認](github-projects.md#issue終了時の整合確認)を含みます。coordinatorはProjectへ自動追加せず、developのQA分離で親全体の受入を自動チェックしません。PMは元IssueとQAのProject登録・Status、親の現行参照/分割先、主要変更時の概要を確認して、読み戻し結果または未反映対象・担当・再試行条件を元Issueへ記録します。Project障害だけで受入完了済みIssueを開き直したり、未達QAを閉じたりしません。
+
 ```bash
 python3 scripts/workflow/agent_loop.py cleanup-branches
 python3 scripts/workflow/agent_loop.py cleanup-branches --apply

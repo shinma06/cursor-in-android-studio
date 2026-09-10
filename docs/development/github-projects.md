@@ -43,6 +43,17 @@ ViewのIssueタイトル・ラベル・open/closedはGitHub上のIssueを参照�
 
 新しいセッション・中断後はProject概要 → Now/Next/Later → 親#1・対象Issueの全コメント/PR → 必要なQAを確認します。既存計画を起点に差分を復元し、claimを無断で引き継ぎません。Projectにアクセスできない場合は親#1とIssue/PRを使って復元し、Project未照合を明記します。
 
+## Issue終了時の整合確認
+
+2026-09-10 / #168。Issue close、QA引継ぎ、Projectへの反映を別々に確認します。PMはcoordinatorのdoneを受け、今回の元Issueと新規/再利用QAを対象に次を照合します。全Issueの監査を毎PRに課しません。
+
+1. **正本**: 元Issueの全受入・最新claim・固定PR/mergeを照合し、残る実装は分割先へ、GUI/mainはQAへ引き継いだことを双方向link/readbackで確認する。open/closedとstatusラベルを一致させる。
+2. **親の現行表示**: closedの子を未実装として残さず、完了した実装と残る実装/QAのIssueを別行にする。名前だけでチェックを付けず、行全体の受入を確認する。親全体/QAを子PRだけでcloseしない。日付付きの履歴は保持し、現在の次操作と明確に分ける。
+3. **Project**: 元IssueとQAの登録・Statusを再取得して正本と一致させる。主要な進捗/計画変更なら親の現在地とProject概要も更新する。再試行はURL/Issue番号で既存項目を再利用し、カードを重複作成しない。
+4. **終了記録**: 元Issueへ確認済みの対象と結果を残す。失敗/未反映は具体的な対象・PM担当・再試行条件を残し、次の引継ぎで回収する。Project表示の未反映と実装受入の未完了を混同しない。
+
+棚卸しを依頼された場合は、全ページのIssue/PRとProjectを取得し、閉じ忘れ、QA重複/引継ぎ漏れ、closedとラベルの不一致、親の古い分割先、Project未登録/Status不一致を調べる。日数、PR merge、全子closedのいずれかだけで自動closeしない。未達受入・GUI/main待ち・有効claim・明示保留は残す。重複なら受入と担当を正本へ引き継いでからcloseし、Issueは永久削除しない。
+
 ## 設定と履歴
 
 2026-09-09 / #131で、項目0件・未関連付けだった非公開Project #2を再利用しました。既定13フィールドとStatusの名称を保存し、空のView 1をNowへ変更、Next/Later/Past/全体を追加しました。非公開の共有範囲、closed Project #1、Issue構造/粒度、ラベル名、ブランチ戦略、PR gate、テンプレート、既存自動化とPAUSED状態は維持します。

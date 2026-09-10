@@ -77,6 +77,7 @@ promotionはmerge commitに限定し、GitHub APIのHEAD指定とstrict baseを�
 main/developへの直接commit/push、admin bypass、hook無効化、force push、`--no-verify`は禁止です。
 
 merge SHA・CI・Case結果・残条件をIssueへ記録し、受入を個別に満たす範囲だけcloseします。promotion Issue完了でも元の機能/QA Issueを一括closeしません。
+PMは[Issue終了時の整合確認](github-projects.md#issue終了時の整合確認)で元Issue・QA・親の現行表示・Projectを読み戻します。coordinatorのdoneはProject同期の完了ではありません。未反映は対象・担当・再試行条件を元Issueへ残します。
 cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/master/developはremote/localとも削除しません。他担当の変更/branchを整理しません。
 merge/Issue closeとcleanup完了を分け、[ブランチ残存の判定と完了確認](pr-automation.md#ブランチ残存の判定と完了確認)に従って実ref・追跡ref・worktreeを照合します。残す場合は理由・担当・次の操作を引き継ぎます。
 
