@@ -70,6 +70,12 @@ class HandoffTests(unittest.TestCase):
             self.transfer()
         self.assertEqual(self.gh.issue(100)['milestone'], {'number': 8})
 
+    def test_same_number_in_another_repository_is_not_the_qa(self):
+        self.gh.children = [{'id': 99999, 'number': 100,
+                             'repository_url': 'https://api.github.com/repos/owner/other'}]
+        self.transfer()
+        self.assertEqual([i['id'] for i in self.gh.children], [99999, 10000])
+
     def test_failed_relationship_readback_keeps_origin_open(self):
         self.gh.fail_relationship = True
         with self.assertRaisesRegex(ValueError, 'parent relationship readback'):

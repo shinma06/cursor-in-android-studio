@@ -54,9 +54,9 @@ def handoff(gh, repo, pr, origin, change):
     if milestone and (qa.get('milestone') or {}).get('number') != milestone['number']:
         raise ValueError('QA milestone differs from origin; reconcile before closure')
     children_path = f'repos/{repo}/issues/{number}/sub_issues'
-    if not any(x['number'] == qa['number'] for x in gh.pages(children_path + '?per_page=100')):
+    if not any(x['id'] == qa['id'] for x in gh.pages(children_path + '?per_page=100')):
         gh.api(children_path, 'POST', {'sub_issue_id': qa['id']})
-    if not any(x['number'] == qa['number'] for x in gh.pages(children_path + '?per_page=100')):
+    if not any(x['id'] == qa['id'] for x in gh.pages(children_path + '?per_page=100')):
         raise ValueError('QA parent relationship readback failed')
     if payload not in qa['body']:
         comments = gh.comments(qa['number'])
