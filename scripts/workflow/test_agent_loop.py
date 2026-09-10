@@ -447,6 +447,15 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(self.gh.merges, 1)
         self.loop.cleanup.assert_called_once()
 
+    def test_standalone_issue_closes_without_parent_update(self):
+        h, _, _, _ = self.loop.load(36)
+        h['parent'] = None
+        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.loop.tick(36)
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.gh.issues[35]['state'], 'closed')
+        self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
+
     def test_crash_after_merge_resumes_cleanup_only(self):
         self.loop.tick(36); self.gh.fail_after_merge = True
         self.loop.tick(36)

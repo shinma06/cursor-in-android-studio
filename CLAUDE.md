@@ -30,6 +30,8 @@ trust boundary のvalidation、認証/認可、型安全性、データ整合性
 
 ## GitHub-first collaboration (2026-09-06, #31)
 
+[GitHub Work Management Rules](docs/development/work-management.md)に従い、Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは実際の依存/分解に使う。作成/triage時にProject登録・Milestone選定・関係判定・Status/Priority表示を確認する。Standaloneは正常であり、#1等へ分類目的で接続しない。
+
 開発Agentの追加・委譲前に[Codex実行規約](docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
@@ -39,7 +41,7 @@ Every code, docs, or configuration task needs an existing/new Issue, an ownershi
 its own Issue-numbered branch and worktree, and a PR. Never commit or push directly to main.
 Read-only advice/review does not need a new Issue. Preserve unrelated local work.
 
-1. Read this file, requirements, Issue #1, target Issue/comments, and open PRs. Inspect status,
+1. Read this file, requirements, the Project roadmap and relevant Milestone, target Issue/comments, and open PRs. Inspect status,
    worktrees, run `git fetch --prune origin`, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
 2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
    and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules

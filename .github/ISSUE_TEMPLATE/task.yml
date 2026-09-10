@@ -7,7 +7,7 @@ body:
     id: outcome
     attributes:
       label: 目的・現象
-      description: 現在の問題と期待する成果。関連する親Issueも記載。題名はtypeに合わせ [機能]/[修正]/[調査]/[試験]/[運用]/[追跡]。ラベルは各軸1つに変更し、優先度は題名に重ねない。
+      description: 単一の具体的な問題と期待する成果。実際の作業分解がある場合だけ親Issueを記載。題名はtypeに合わせ [機能]/[修正]/[調査]/[試験]/[運用]/[追跡]。ラベルは各軸1つに変更し、優先度は題名に重ねない。
     validations:
       required: true
   - type: textarea
@@ -22,6 +22,20 @@ body:
     attributes:
       label: 受入条件
       description: チェックリストで記載。Case JSON、再現手順、期待結果、GUI不要なら理由とCLI検証。developとmainの完了を分ける。
+    validations:
+      required: true
+  - type: textarea
+    id: management
+    attributes:
+      label: Project・到達目標・Relationship判定
+      description: 作成後にProject登録、Milestone、必要なnative親子/依存関係、ProjectのRelationship Status・Status/Priority表示を設定して確認する。本文の参照だけで設定済みとしない。
+      value: |
+        Project:
+        Milestone: （未決なら理由・判断担当・次の条件）
+        Parent / Sub-issue: （実際の分解がなければ不要）
+        blocked by / blocking: （開始・完了に必要な依存がなければ不要）
+        Relationship Status: Standalone / Has Relationship （未判定は空欄、架空の関係を作らない）
+        next: 作成後にmetadataを設定しreadback
     validations:
       required: true
   - type: textarea

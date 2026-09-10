@@ -497,7 +497,7 @@ class Loop:
             closed = self.gh.issue(h['issue'])
             if closed['state'] != 'closed' or 'status:done' not in labels(closed):
                 raise ValueError('Issue closure readback failed')
-        if complete and not transferred:
+        if complete and not transferred and h.get('parent') is not None:
             parent = self.gh.issue(h['parent'])
             body = update_parent(parent['body'], h['issue'])
             if body != parent['body']:
@@ -505,7 +505,7 @@ class Loop:
         self.cleanup(pr, h)
         state.update(phase='done',
                      next=('Claim released; Issue closed' if complete else 'Claim released; Issue remains open for remaining acceptance') +
-                          '; PM: reconcile parent roadmap and Project registration/status for origin and QA; record readback or retry owner',
+                          '; PM: reconcile parent roadmap and Project registration/status for origin and QA, Milestone and Relationship Status; record readback or retry owner',
                      merge_sha=pr['merge_commit_sha'])
         self.save(pr, state, comment_id)
         return {'pr': pr['number'], 'phase': 'done', 'issue_closed': bool(complete)}
@@ -660,7 +660,7 @@ def main():
     audit = sub.add_parser('cleanup-branches'); audit.add_argument('--apply', action='store_true')
     en = sub.add_parser('enroll'); en.add_argument('--pr', type=int, required=True)
     en.add_argument('--source', type=Path, required=True); en.add_argument('--owner', required=True)
-    en.add_argument('--scope', nargs='+', required=True); en.add_argument('--parent', type=int, default=1)
+    en.add_argument('--scope', nargs='+', required=True); en.add_argument('--parent', type=int, help='Actual parent Issue; omit for Standalone')
     en.add_argument('--close-issue', action='store_true')
     en.add_argument('--writer-stopped', action='store_true', required=True)
     rebound = sub.add_parser('rebind-target'); rebound.add_argument('--pr', type=int, required=True)
