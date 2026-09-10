@@ -11,10 +11,13 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
+import com.intellij.util.IconUtil
+import java.awt.Component
 import javax.swing.Icon
 
 /** ToolWindow-local actions. Read the selected tab at update AND invocation, never capture a tab. */
@@ -111,6 +114,9 @@ internal class ToolWindowChatActions(
     ) = object : DumbAwareAction(label, help, icon) {
         override fun getActionUpdateThread() = ActionUpdateThread.EDT
         override fun update(e: AnActionEvent) {
+            e.presentation.icon = if (e.isFromActionToolbar) {
+                icon?.let { compactHeaderIcon(it, e.getData(PlatformDataKeys.CONTEXT_COMPONENT)) }
+            } else icon
             e.presentation.isEnabled = available() && enabled()
             e.presentation.isVisible = !e.isFromActionToolbar || toolbarVisible()
         }
@@ -171,5 +177,13 @@ internal class ChatOptionsActionGroup(private val nativeMenu: ActionGroup) : Act
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
+    override fun update(e: AnActionEvent) {
+        e.presentation.icon = if (e.isFromActionToolbar) {
+            compactHeaderIcon(AllIcons.Actions.MoreHorizontal, e.getData(PlatformDataKeys.CONTEXT_COMPONENT))
+        } else AllIcons.Actions.MoreHorizontal
+    }
     override fun getChildren(e: AnActionEvent?) = nativeMenu.getChildren(e)
 }
+
+/** Shrink the glyph from 16 to 14 logical pixels without changing its ActionButton hit area. */
+internal fun compactHeaderIcon(icon: Icon, component: Component? = null): Icon = IconUtil.scale(icon, component, 0.875f)

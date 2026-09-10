@@ -15,8 +15,13 @@ import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.UpdateSession
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.actionSystem.impl.ActionButton
+import com.intellij.openapi.util.IconLoader
+import com.intellij.ui.scale.JBUIScale
+import com.intellij.util.ui.JBUI
 import java.awt.Component
 import java.awt.event.InputEvent
+import kotlin.math.roundToInt
 import javax.swing.SwingUtilities
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -268,11 +273,60 @@ class ToolWindowChatActionsTest {
             }
         }
         more.update(event)
-        assertSame(AllIcons.Actions.MoreHorizontal, event.presentation.icon)
+        assertSame(AllIcons.Actions.MoreHorizontal, more.templatePresentation.icon)
+        assertEquals(JBUI.scale(14), event.presentation.icon!!.iconWidth)
         assertEquals("その他の操作", event.presentation.text)
         assertEquals(true, event.presentation.getClientProperty(ActionUtil.HIDE_DROPDOWN_ICON))
         assertTrue(more.isPopup)
         assertEquals(children, more.getChildren(event).toList())
+    }
+
+    @Test
+    fun `header icons shrink without changing button sizes or menu icons across updates and scales`() = SwingUtilities.invokeAndWait {
+        val previousScale = JBUIScale.scale(1f)
+        try {
+            val actions = actions(AgentSettingsState()).titleActions + ChatOptionsActionGroup(DefaultActionGroup())
+            val component = javax.swing.JPanel()
+            val context = DataContext { if (PlatformDataKeys.CONTEXT_COMPONENT.`is`(it)) component else null }
+            for (scale in listOf(1f, 1.25f, 2f)) {
+                JBUIScale.setUserScaleFactorForTest(scale)
+                var totalWidth = JBUI.scale(4)
+                for (action in actions) {
+                    val original = action.templatePresentation.icon!!
+                    val toolbar = event(action, ActionUiKind.TOOLBAR, context)
+                    val menu = event(action, ActionUiKind.POPUP)
+                    repeat(3) {
+                        action.update(toolbar)
+                        action.update(menu)
+                        assertEquals((original.iconWidth * 0.875).roundToInt(), toolbar.presentation.icon!!.iconWidth)
+                        assertEquals((original.iconHeight * 0.875).roundToInt(), toolbar.presentation.icon!!.iconHeight)
+                        assertSame(original, menu.presentation.icon)
+                        assertSame(original, action.templatePresentation.icon)
+                    }
+                    fun buttonSize(presentation: Presentation) = ActionButton(
+                        action, presentation, "CursorAgent.SessionHeader", JBUI.size(22, 34),
+                    ).apply { border = JBUI.Borders.empty(1, 2) }.preferredSize
+                    assertEquals(buttonSize(action.templatePresentation), buttonSize(toolbar.presentation))
+                    totalWidth += buttonSize(toolbar.presentation).width
+                }
+                val hide = IconLoader.getIcon("/icons/hide-agent-panel.svg", javaClass)
+                val compactHide = compactHeaderIcon(hide, component)
+                assertEquals((hide.iconWidth * 0.875).roundToInt(), compactHide.iconWidth)
+                assertEquals((hide.iconHeight * 0.875).roundToInt(), compactHide.iconHeight)
+                val hideAction = object : AnAction("Hide", null, hide) {
+                    override fun actionPerformed(e: AnActionEvent) = Unit
+                }
+                fun hideButtonSize(icon: javax.swing.Icon) = ActionButton(
+                    hideAction, hideAction.templatePresentation.clone().apply { this.icon = icon },
+                    "CursorAgent.SessionHeader", JBUI.size(22, 34),
+                ).apply { border = JBUI.Borders.empty(1, 2) }.preferredSize
+                assertEquals(hideButtonSize(hide), hideButtonSize(compactHide))
+                totalWidth += hideButtonSize(compactHide).width
+                assertEquals(4 * (JBUI.scale(22) + 2 * JBUI.scale(2)) + JBUI.scale(4), totalWidth)
+            }
+        } finally {
+            JBUIScale.setUserScaleFactorForTest(previousScale)
+        }
     }
 
     private fun actions(settings: AgentSettingsState): ToolWindowChatActions {
@@ -290,8 +344,8 @@ class ToolWindowChatActionsTest {
         action.setSelected(event(action), true)
     }
 
-    private fun event(action: AnAction, kind: ActionUiKind = ActionUiKind.NONE) = AnActionEvent(
-        DataContext.EMPTY_CONTEXT, action.templatePresentation.clone(), "test", kind, null, 0, unusedActionManager,
+    private fun event(action: AnAction, kind: ActionUiKind = ActionUiKind.NONE, context: DataContext = DataContext.EMPTY_CONTEXT) = AnActionEvent(
+        context, action.templatePresentation.clone(), "test", kind, null, 0, unusedActionManager,
     )
 
     // No IDE application or GUI: these actions only read Presentation and their injected callbacks.
