@@ -2,13 +2,12 @@ package com.cursoragent.toolwindow
 
 import com.cursoragent.PluginBrand
 import com.cursoragent.ui.AgentToolWindowRootPanel
-import com.intellij.icons.AllIcons
+import com.cursoragent.ui.header.ChatOptionsActionGroup
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -34,14 +33,7 @@ class CursorAgentToolWindowFactory : ToolWindowFactory {
         val decorator = (toolWindow as? ToolWindowImpl)?.decorator
         val headerWasVisible = decorator?.isHeaderVisible
         if (toolWindow is ToolWindowImpl) {
-            val more = toolWindow.createPopupGroup(true).apply {
-                isPopup = true
-                templatePresentation.apply {
-                    text = "その他の操作"
-                    icon = AllIcons.Actions.MoreHorizontal
-                    putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, true)
-                }
-            }
+            val more = ChatOptionsActionGroup(toolWindow.createPopupGroup(true))
             val hide = object : DumbAwareAction(
                 "Agentパネルを隠す", "会話と実行を保持したまま、パネルを隠します。",
                 IconLoader.getIcon("/icons/hide-agent-panel.svg", javaClass),

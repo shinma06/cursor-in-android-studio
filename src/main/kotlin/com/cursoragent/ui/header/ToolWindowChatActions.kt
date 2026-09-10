@@ -6,10 +6,12 @@ import com.cursoragent.settings.PermissionMode
 import com.cursoragent.settings.SandboxMode
 import com.cursoragent.settings.WorktreeMode
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
@@ -159,4 +161,15 @@ internal class ToolWindowChatActions(
             e.presentation.isEnabled = available() && enabled()
         }
     }
+}
+
+/** Keep native menu children without ActionGroupWrapper copying its vertical-ellipsis presentation. */
+internal class ChatOptionsActionGroup(private val nativeMenu: ActionGroup) : ActionGroup("その他の操作", true), DumbAware {
+    init {
+        templatePresentation.icon = AllIcons.Actions.MoreHorizontal
+        templatePresentation.putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, true)
+    }
+
+    override fun getActionUpdateThread() = ActionUpdateThread.EDT
+    override fun getChildren(e: AnActionEvent?) = nativeMenu.getChildren(e)
 }

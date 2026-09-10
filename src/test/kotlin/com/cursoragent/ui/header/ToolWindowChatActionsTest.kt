@@ -3,19 +3,23 @@ package com.cursoragent.ui.header
 import com.cursoragent.service.AgentTransport
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.settings.AgentMode
-import com.cursoragent.ui.confirmCloseChats
-import com.cursoragent.ui.openedChatEntries
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.PermissionMode
 import com.cursoragent.settings.SandboxMode
 import com.cursoragent.settings.WorktreeMode
+import com.cursoragent.ui.confirmCloseChats
+import com.cursoragent.ui.openedChatEntries
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.UpdateSession
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.extensions.PluginId
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
 import java.awt.Component
 import java.awt.event.InputEvent
 import javax.swing.SwingUtilities
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 class ToolWindowChatActionsTest {
     @Test
@@ -248,6 +252,27 @@ class ToolWindowChatActionsTest {
             true
         }) { tabs.closeAll(it) }
         assertEquals(listOf(addedWhileConfirming), tabs.snapshot().tabs.map { it.id })
+    }
+
+    @Test
+    fun `chat options retain horizontal icon during a real update session and preserve native children`() {
+        val children = actions(AgentSettingsState()).titleActions
+        val native = DefaultActionGroup(children).apply {
+            templatePresentation.text = "Show Options Menu"
+            templatePresentation.icon = AllIcons.Actions.More
+        }
+        val more = ChatOptionsActionGroup(native)
+        val event = event(more, ActionUiKind.TOOLBAR).apply {
+            updateSession = object : UpdateSession {
+                override fun presentation(action: AnAction): Presentation = action.templatePresentation.clone()
+            }
+        }
+        more.update(event)
+        assertSame(AllIcons.Actions.MoreHorizontal, event.presentation.icon)
+        assertEquals("その他の操作", event.presentation.text)
+        assertEquals(true, event.presentation.getClientProperty(ActionUtil.HIDE_DROPDOWN_ICON))
+        assertTrue(more.isPopup)
+        assertEquals(children, more.getChildren(event).toList())
     }
 
     private fun actions(settings: AgentSettingsState): ToolWindowChatActions {

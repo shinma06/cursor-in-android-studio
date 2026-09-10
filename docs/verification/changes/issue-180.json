@@ -34,8 +34,8 @@
       ],
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "status": "blocked",
+        "reason": "MacがロックされComputer Useのアプリ一覧取得に失敗。IDE起動・操作は未実施。解除後に固定buildで再試行する。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -78,8 +78,8 @@
       ],
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "status": "blocked",
+        "reason": "MacがロックされComputer Useのアプリ一覧取得に失敗。IDE起動・操作は未実施。解除後に固定buildで再試行する。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -124,8 +124,8 @@
       ],
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "status": "blocked",
+        "reason": "MacがロックされComputer Useのアプリ一覧取得に失敗。IDE起動・操作は未実施。解除後に固定buildで再試行する。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -169,8 +169,8 @@
       ],
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "status": "blocked",
+        "reason": "MacがロックされComputer Useのアプリ一覧取得に失敗。IDE起動・操作は未実施。解除後に固定buildで再試行する。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
