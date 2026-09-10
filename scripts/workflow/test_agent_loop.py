@@ -440,6 +440,8 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(self.gh.merges, 1)
         self.assertEqual(self.gh.issues[35]['state'], 'closed')
         self.assertEqual(self.gh.issues[1]['body'], '- [x] #35 task')
+        _, state, _, _ = self.loop.load(36)
+        self.assertIn('PM: reconcile parent roadmap and Project registration/status for origin and QA', state['next'])
         self.loop.cleanup.assert_called_once()
         self.loop.tick(36)
         self.assertEqual(self.gh.merges, 1)
