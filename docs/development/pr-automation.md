@@ -95,6 +95,26 @@ python3 scripts/workflow/agent_loop.py cleanup-branches --apply
 #83導入PRは [bootstrap手順](github-workflow.md#83の一回限りのbootstrap)に従い、旧enrollを使わずPMへ引継ぎます。
 通常運用で必須gateを省略する手動経路は作りません。
 
+## ブランチ残存の判定と完了確認
+
+2026-09-10 / #165。更新日時や`[gone]`だけで実ブランチを削除しない。調査では次を区別する。
+
+| 対象 | 判定と処置 |
+| --- | --- |
+| `origin/*`のremote-tracking ref | `git ls-remote --heads origin`と照合。remoteで削除済みなら`git fetch --prune origin`で同期する。実branch/worktreeの削除ではない。 |
+| remote/localの実branch | PRのmerged/closed、固定HEAD、取り込み先、claim、dirty/未追跡、worktreeでの使用を確認する。squashは`--merged`だけで判定せずPR HEADも照合する。 |
+| detached worktree | app/reviewer/GUI fixtureの用途・担当・未保存データを別に確認する。branch一覧にないことや古さだけでは削除しない。 |
+
+通常のcloneでoriginのfetch refspecが`+refs/heads/*:refs/remotes/origin/*`であり、tag pruningが有効でないことを確認したら、`git config --local remote.origin.prune true`を一度設定する。以後の通常fetchでも削除済みの追跡refを整理する。設定は本repositoryのoriginに限定し、global設定・他remote・タグ設定を変更しない。独自refspecや`fetch.pruneTags`/`remote.origin.pruneTags`がある場合は削除範囲を先に確認する。`--prune-tags`は使わない。[Git公式のpruning仕様](https://git-scm.com/docs/git-fetch#_pruning)を参照。
+
+PM/coordinatorはmerge後の区切りで以下を確認し、Issue/PRへ結果を残す。
+
+1. **統合**: PRのmerge SHA、受入、必要なQA引継ぎを読み戻す。
+2. **後片付け**: 既存の所有確認付きcleanupを実行し、`git fetch --prune origin`後にremote/localの対象branch、`origin/<branch>`、登録source/managed checkoutの残存を確認する。終了報告は削除済み/保留を分ける。既存`cleanup-branches`は補助監査であり、使用中worktree・remote実ref・未登録/旧形式・mergedでないPR等をすべて整理する仕組みではない。
+3. **保留**: branch、固定HEAD、残る資源の種類、理由、owner、次の操作/再開条件を元Issue/PRへ記録する。ローカル絶対パスはprivate registryだけに残す。GUI leaseで中断した場合、元coordinatorまたは明示引継ぎ先が解放確認後に既存登録の停止理由を照合し、通常のresume/cleanup手順を再開する。Issueがclosedでもこの後片付け責務は消えない。停止理由不明の自動再開、owner/sourceの付け替え、heartbeatの勝手な再開はしない。
+
+mergedでなくclosed/supersededになったPR、PRのない旧形式branch、未追跡ファイルを持つworktreeは、自動cleanupへ無理に登録し直さない。代替PR/取り込み証拠、担当解放、未保存データの保全と削除範囲を確認してから別途判断する。`main/master/develop`、有効claim、未公開成果物、GUI証拠は保護し、件数ゼロのために削除しない。
+
 ## 検証
 
 `python3 -m unittest discover -s scripts/workflow -p 'test_*.py'` はtarget変更、固定候補全範囲、古いbuild拒否、Case漏れ、

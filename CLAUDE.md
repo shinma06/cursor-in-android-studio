@@ -40,7 +40,7 @@ its own Issue-numbered branch and worktree, and a PR. Never commit or push direc
 Read-only advice/review does not need a new Issue. Preserve unrelated local work.
 
 1. Read this file, requirements, Issue #1, target Issue/comments, and open PRs. Inspect status,
-   worktrees, fetch origin, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
+   worktrees, run `git fetch --prune origin`, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
 2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
    and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
    in the workflow; no concurrent writers to the same worktree.
@@ -61,6 +61,8 @@ Read-only advice/review does not need a new Issue. Preserve unrelated local work
    Develop permits pending/blocked/failed GUI with complete Case/fix tracking. Main requires every
    required Case of the entire fixed candidate to pass on its identified build. See docs/verification/README.md. Never force push, bypass hooks or invent a GUI pass.
    Close Issues only when acceptance is complete; otherwise record blockers, next action and ownership.
+   Merge and cleanup are separate completion checks: verify remote/local/tracking refs and owned worktrees,
+   or record the retained resource, owner and retry trigger under [branch hygiene](docs/development/pr-automation.md#ブランチ残存の判定と完了確認).
 
 The [loop protocol](docs/loop-engineering/README.md) defines GUI cases and evidence;
 [the runbook](docs/loop-engineering/human-runbook.md) is the human entrypoint.
