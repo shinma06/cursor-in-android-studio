@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "issue": 177,
+  "gui_required": true,
+  "reason": "ToolWindow stripeの外観変更。実IDEの隣接比較は固定buildで確認し、headless SVG描画と区別する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "SDK native resource selection and SVG 16/20px light/dark rendering; geometry transform and no clipping",
+    "git diff --check; verification.validate_change(issue-177, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "TOOLWINDOW-ICON-NATIVE-STYLE",
+      "issue": 177,
+      "change": "ToolWindowアイコンの純正テーマ色と通常20px/compact16pxの線幅・余白",
+      "preconditions": "#177を含む固定SHA/ZIP hash/loaded JARを識別し、指定GUI lease担当が使い捨てプロジェクトで確認する。",
+      "steps": [
+        "Dark/Lightの各テーマで通常モードのCursor AgentとCursor Manual BrowserのToolWindow stripeを、隣接する純正Project/Problems/Servicesと比較する。",
+        "Compact Modeへ切り替え、両ToolWindowの色・線幅・余白・中央位置・欠けを確認する。",
+        "各テーマ/サイズでhover/選択状態を確認し、IDEの標準foreground処理と視認性を確認する。"
+      ],
+      "expected": "通常20pxは線幅1.5px・図形高約17.85px、compact16pxは線幅1px・図形高約14.08px。未選択時は純正のDark #CED0D6 / Light #6C707Eを元にIDEが描画する。六角形と内側の折線の形状を保ち、中央に表示され、約1pxの上下余白を確保して欠けない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "スケールや欠けの不一致は修正Issue/PRと新固定buildで再確認する。",
+      "next_action": "headless描画とbuild検証後、固定buildで隣接する純正アイコンと実IDE比較。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新しいSVGの実IDE上の確認は未実施。提供スクリーンショットは変更前の観測。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しいSVGの実IDE上の確認は未実施。提供スクリーンショットは変更前の観測。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/177",
+        "https://plugins.jetbrains.com/docs/intellij/icons.html#new-ui-tool-window-icons"
+      ]
+    }
+  ]
+}
