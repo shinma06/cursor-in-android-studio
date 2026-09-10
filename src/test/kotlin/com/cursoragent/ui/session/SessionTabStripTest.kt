@@ -222,6 +222,27 @@ class SessionTabStripTest {
     }
 
     @Test
+    fun `leaving tabs through fixed actions hides the overlaid scrollbar`() = onEdt {
+        val strip = fixture()
+        val toolbar = JPanel().apply {
+            isOpaque = false
+            preferredSize = Dimension(JBUI.scale(108), JBUI.scale(38))
+        }
+        strip.add(toolbar, BorderLayout.EAST)
+        layout(strip)
+        assertTrue(strip.scrollPane.horizontalScrollBar.isVisible)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_MOVED, Point(20, 15))
+        assertTrue(strip.scrollbarRevealed)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_EXITED, Point(toolbar.x + 2, 15))
+        mouse(toolbar, MouseEvent.MOUSE_ENTERED, Point(2, 15))
+        assertFalse(strip.scrollbarRevealed)
+        mouse(toolbar, MouseEvent.MOUSE_EXITED, Point(2, toolbar.height + 10))
+        assertFalse(strip.scrollbarRevealed)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_ENTERED, Point(20, 15))
+        assertTrue(strip.scrollbarRevealed)
+    }
+
+    @Test
     fun `hover exposes close on that tab and preserves active close and full tooltip`() = onEdt {
         val strip = fixture()
         assertTrue(strip.closeVisible("a"))

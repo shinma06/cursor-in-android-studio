@@ -181,8 +181,8 @@ class SessionTabStrip : JPanel(BorderLayout()) {
     private fun hit(point: Point): SessionTabPresentation? = tabBounds().firstOrNull { it.second.contains(point) }?.first
 
     private fun updateAreaHover(e: MouseEvent) {
-        val point = SwingUtilities.convertPoint(e.component, e.point, this)
-        areaHovered = contains(point)
+        val point = SwingUtilities.convertPoint(e.component, e.point, scrollPane)
+        areaHovered = scrollPane.contains(point)
         scrollPane.horizontalScrollBar.repaint()
     }
 
