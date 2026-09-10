@@ -16,12 +16,23 @@ class GH(FakeGitHub):
         self.created = 0
         self.fail_create = False
         self.fail_link = False
+        self.children = []
+        self.fail_relationship = False
     def pages(self, path):
+        if '/sub_issues?' in path:
+            return copy.deepcopy(self.children)
         return [dict(copy.deepcopy(x), number=n) for n, x in self.issues.items()]
     def api(self, path, method='GET', data=None):
+        if path.endswith('/sub_issues') and method == 'POST':
+            if not self.fail_relationship:
+                assert data['sub_issue_id'] == 10000
+                self.children.append(self.issue(100))
+            return self.issue(100)
         if path.endswith('/issues') and method == 'POST':
             self.created += 1
-            self.issues[100] = dict(data, number=100, state='open')
+            self.issues[100] = dict(data, id=10000, number=100, state='open')
+            if 'milestone' in data:
+                self.issues[100]['milestone'] = {'number': data['milestone']}
             if self.fail_create:
                 self.fail_create = False
                 raise RuntimeError('lost create response')
@@ -48,6 +59,27 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(self.gh.created, 1)
         self.assertIn('cases', self.gh.issue(100)['body'])
         self.assertEqual(len(self.gh.comments(35)), 1)
+    def test_milestone_and_parent_are_preserved_on_retry(self):
+        self.gh.issues[35]['milestone'] = {'number': 7}
+        self.transfer()
+        self.transfer()
+        self.assertEqual(self.gh.issue(100)['milestone'], {'number': 7})
+        self.assertEqual([i['number'] for i in self.gh.children], [100])
+        self.gh.issues[100]['milestone'] = {'number': 8}
+        with self.assertRaisesRegex(ValueError, 'milestone differs'):
+            self.transfer()
+        self.assertEqual(self.gh.issue(100)['milestone'], {'number': 8})
+
+    def test_failed_relationship_readback_keeps_origin_open(self):
+        self.gh.fail_relationship = True
+        with self.assertRaisesRegex(ValueError, 'parent relationship readback'):
+            self.transfer()
+        self.assertEqual(self.gh.issue(35)['state'], 'open')
+        self.assertEqual(self.gh.comments(35), [])
+        self.gh.fail_relationship = False
+        self.transfer()
+        self.assertEqual(self.gh.created, 1)
+
     def test_lost_create_response_reuses_issue(self):
         self.gh.fail_create = True
         with self.assertRaises(RuntimeError): self.transfer()

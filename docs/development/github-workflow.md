@@ -19,6 +19,8 @@
 
 ## 正本と役割
 
+[GitHub Work Management Rules](work-management.md)を作成・triage・完了時に適用します。Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは依存/分解。Standaloneに架空の親や依存を要求しません。
+
 Issueは目的・受入・担当・依存・次の操作、PRは差分・固定HEAD/base・レビュー・CI・統合判断の正本です。
 QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのpassは別buildを保証しません。
 
@@ -28,9 +30,9 @@ PM/進行役は統合順・claim・GitHub設定を管理します。実装担当
 
 ## 開始
 
-1. AGENTS.md、本文書、要件、#1、対象Issue本文と全コメント、open PRを読む。
+1. AGENTS.md、本文書、要件、Projectのロードマップと対象Milestone、対象Issue本文と全コメント、open PRを読む。旧#1は必要な判断履歴として参照する。
 2. `git status --short --branch`、`git worktree list`、`git fetch --prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
-3. 重複Issueを検索し、必要な専用Issueを作る。親へリンクし、独立した実装やGUI検証を分ける。
+3. 重複Issueを検索し、必要な具体作業のIssueを作る。[作成/triage確認](work-management.md#issue作成triageの確認)に従いProjectへ追加、Milestoneを選定、実際の親子/依存をnative設定する。関係なしはStandaloneと明示し、独立した実装やGUI検証を分ける。
 4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。
 5. 通常はorigin/developから `<codex|claude|cursor>/<Issue>-<slug>` と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
 6. 最初の意味あるpushでDraft PRを作成する。PR本文はテンプレートに従い、`Issue`、`Integration`、`Verification`、`GUI`、`GUI reason`を記録する。source JSONはGUI不要変更にも必須で、理由・CLI検証を含む。
@@ -39,7 +41,7 @@ claim例（パスとhostはprivate local registryだけ）:
 
 ```text
 status: in-progress
-owner: gpt-83-policy-a; issue: #83; parent: #1
+owner: gpt-issue-session; issue: #N; parent: <actual parent or none>
 base: <full SHA>; target: develop
 branch: codex/83-policy; worktree: isolated (local registry)
 scope: <files and acceptance>; excluded: <out of scope>
