@@ -36,7 +36,7 @@ import javax.swing.JPanel
 class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
-    private val cards = JPanel(CardLayout())
+    private val cards = JPanel(CardLayout()).apply { isOpaque = false }
     private data class TabView(val panel: JPanel, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
@@ -165,6 +165,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
                 timeline.showStatus("過去の会話本文は保存されていません。次の送信からこのセッションを再開します。")
             }
             val panel = JPanel(BorderLayout()).apply {
+                isOpaque = false
                 add(timeline, BorderLayout.CENTER)
                 add(composer, BorderLayout.SOUTH)
             }

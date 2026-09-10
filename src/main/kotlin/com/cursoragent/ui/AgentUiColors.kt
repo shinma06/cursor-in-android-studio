@@ -13,7 +13,7 @@ import javax.swing.border.Border
 
 object AgentUiColors {
     const val CORNER_ARC = 12
-    val panelBackground: Color get() = JBColor(Color(0xFAFAFA), Color(0x181818))
+    val panelBackground: Color get() = JBUI.CurrentTheme.ToolWindow.background()
     val userBubbleBackground: Color get() = JBColor(Color(0xF0F0F0), Color(0x222222))
     val assistantBubbleBackground: Color get() = panelBackground
     val composerBackground: Color get() = JBColor(Color.WHITE, Color(0x202020))
