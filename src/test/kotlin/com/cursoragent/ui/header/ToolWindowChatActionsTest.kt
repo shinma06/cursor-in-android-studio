@@ -22,8 +22,6 @@ import com.intellij.util.ui.JBUI
 import java.awt.Component
 import java.awt.event.InputEvent
 import kotlin.math.roundToInt
-import kotlin.math.floor
-import kotlin.math.ceil
 import javax.swing.SwingUtilities
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -313,11 +311,9 @@ class ToolWindowChatActionsTest {
                 }
                 val hide = IconLoader.getIcon("/icons/hide-agent-panel.svg", javaClass)
                 val compactHide = compactHeaderIcon(hide, component)
-                // Fractional SVG sizes can rasterize to either adjacent pixel across SDK/platforms.
-                val expectedHideSize = hide.iconWidth * 0.875
-                assertTrue(compactHide.iconWidth in floor(expectedHideSize).toInt()..ceil(expectedHideSize).toInt(),
-                    "scale=$scale source=${hide.iconWidth} compact=${compactHide.iconWidth}")
-                assertEquals(compactHide.iconWidth, compactHide.iconHeight)
+                // The SVG is 16px; an inactive IconLoader can report a 1px placeholder before scaling loads it.
+                assertEquals(JBUI.scale(14), compactHide.iconWidth)
+                assertEquals(JBUI.scale(14), compactHide.iconHeight)
                 val hideAction = object : AnAction("Hide", null, hide) {
                     override fun actionPerformed(e: AnActionEvent) = Unit
                 }
