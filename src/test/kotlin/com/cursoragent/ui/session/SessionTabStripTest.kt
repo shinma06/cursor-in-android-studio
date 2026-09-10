@@ -3,6 +3,7 @@ package com.cursoragent.ui.session
 import com.intellij.util.ui.JBUI
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.awt.Color
 import java.awt.Font
 import java.awt.Point
 import java.awt.event.MouseEvent
@@ -81,6 +82,23 @@ class SessionTabStripTest {
         assertTrue(bar.value > before)
         mouse(bar, MouseEvent.MOUSE_EXITED, Point(-20, -20))
         assertFalse(strip.scrollbarRevealed)
+    }
+
+    @Test
+    fun `selected tab follows the actual viewport background after IDE theme recoloring`() = onEdt {
+        val strip = fixture()
+        for (background in listOf(Color(0x181A1B), Color(0xF4F5F7))) {
+            strip.scrollPane.viewport.background = background
+            val image = BufferedImage(strip.width, strip.height, BufferedImage.TYPE_INT_ARGB)
+            val graphics = image.createGraphics()
+            try {
+                strip.paint(graphics)
+                assertEquals(background.rgb, image.getRGB(4, 4))
+                assertEquals(background.rgb, image.getRGB(4, strip.scrollPane.viewport.height - 2))
+            } finally {
+                graphics.dispose()
+            }
+        }
     }
 
     @Test

@@ -29,6 +29,7 @@ import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.CardLayout
+import javax.swing.JComponent
 import javax.swing.JPanel
 
 /** Retain complete tab views so editor caret/selection and timeline scroll never cross sessions. */
@@ -87,6 +88,14 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
         showSelected()
+    }
+
+    internal fun installHeaderToolbar(toolbar: JComponent) {
+        add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(strip, BorderLayout.CENTER)
+            add(toolbar, BorderLayout.EAST)
+        }, BorderLayout.NORTH)
     }
 
     private fun showOpenedChats(event: AnActionEvent) {
