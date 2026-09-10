@@ -91,11 +91,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     }
 
     internal fun installHeaderToolbar(toolbar: JComponent) {
-        add(JPanel(BorderLayout()).apply {
-            isOpaque = false
-            add(strip, BorderLayout.CENTER)
-            add(toolbar, BorderLayout.EAST)
-        }, BorderLayout.NORTH)
+        strip.add(toolbar, BorderLayout.EAST)
     }
 
     private fun showOpenedChats(event: AnActionEvent) {

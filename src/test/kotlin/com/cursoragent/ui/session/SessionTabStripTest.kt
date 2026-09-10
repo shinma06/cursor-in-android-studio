@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Container
+import java.awt.Dimension
 import java.awt.Font
 import java.awt.Point
 import java.awt.event.MouseEvent
@@ -91,7 +92,7 @@ class SessionTabStripTest {
     }
 
     @Test
-    fun `selected tab follows the actual viewport background after IDE theme recoloring`() = onEdt {
+    fun `selected tab uses chat background independently of tab area viewport`() = onEdt {
         val strip = fixture()
         for (background in listOf(Color(0x181A1B), Color(0xF4F5F7))) {
             strip.scrollPane.viewport.background = background
@@ -99,8 +100,8 @@ class SessionTabStripTest {
             val graphics = image.createGraphics()
             try {
                 strip.paint(graphics)
-                assertEquals(background.rgb, image.getRGB(4, 4))
-                assertEquals(background.rgb, image.getRGB(4, strip.scrollPane.viewport.height - 2))
+                assertEquals(AgentUiColors.panelBackground.rgb, image.getRGB(4, 4))
+                assertEquals(AgentUiColors.panelBackground.rgb, image.getRGB(4, strip.scrollPane.viewport.height - 2))
             } finally {
                 graphics.dispose()
             }
@@ -160,6 +161,85 @@ class SessionTabStripTest {
         } finally {
             if (previous == null) UIManager.getDefaults().remove(key) else UIManager.put(key, previous)
         }
+    }
+
+    @Test
+    fun `fixed actions share tab area background and divide only at touching or clipped tabs`() = onEdt {
+        val strip = SessionTabStrip()
+        val tabs = listOf(SessionTabPresentation("a"), SessionTabPresentation("b"))
+        val toolbar = JPanel().apply {
+            isOpaque = false
+            preferredSize = Dimension(JBUI.scale(108), JBUI.scale(38))
+        }
+        strip.add(toolbar, BorderLayout.EAST)
+        fun paint(): BufferedImage {
+            layout(strip)
+            return BufferedImage(strip.width, strip.height, BufferedImage.TYPE_INT_ARGB).also { image ->
+                val g = image.createGraphics()
+                try { strip.paint(g) } finally { g.dispose() }
+            }
+        }
+        for (selected in listOf("a", "b")) {
+            strip.setTabs(tabs, selected)
+            val total = strip.boundsFor("b")!!.let { it.x + it.width }
+            for (gap in listOf(40, 1, 0, -40, -100, 40)) {
+                strip.setSize(total + toolbar.preferredSize.width + gap, strip.preferredSize.height)
+                strip.scrollPane.viewport.viewPosition = Point(0, 0)
+                val image = paint()
+                val area = image.getRGB(toolbar.x + 3, 3)
+                assertNotEquals(AgentUiColors.panelBackground.rgb, area, "Tab area differs from chat")
+                val active = strip.boundsFor(selected)!!
+                if (active.x + 4 < toolbar.x) {
+                    assertEquals(AgentUiColors.panelBackground.rgb, image.getRGB(active.x + 4, 3))
+                }
+                assertEquals(if (gap <= 0) AgentUiColors.bubbleBorder.rgb else area,
+                    image.getRGB(toolbar.x, 3), "Divider for $selected, gap=$gap")
+                if (gap > 0) assertEquals(area, image.getRGB(toolbar.x - 1, 3), "Unused tab area")
+                if (gap < 0) {
+                    strip.scrollPane.horizontalScrollBar.value = Int.MAX_VALUE
+                    val scrolled = paint()
+                    assertEquals(AgentUiColors.bubbleBorder.rgb, scrolled.getRGB(toolbar.x, 3), "Scrolled to end")
+                }
+                assertEquals(JBUI.scale(108), toolbar.width)
+                assertEquals(JBUI.scale(38), toolbar.height)
+            }
+        }
+        // Removing tabs or hiding toolbar actions creates a gap and removes the divider again.
+        strip.setTabs(listOf(tabs.first()), "a")
+        var image = paint()
+        assertEquals(image.getRGB(toolbar.x + 3, 3), image.getRGB(toolbar.x, 3))
+        strip.setTabs(tabs, "a")
+        val total = strip.boundsFor("b")!!.let { it.x + it.width }
+        strip.setSize(total + toolbar.preferredSize.width, strip.preferredSize.height)
+        image = paint()
+        assertEquals(AgentUiColors.bubbleBorder.rgb, image.getRGB(toolbar.x, 3))
+        toolbar.preferredSize = Dimension(JBUI.scale(56), toolbar.preferredSize.height)
+        image = paint()
+        assertEquals(image.getRGB(toolbar.x + 3, 3), image.getRGB(toolbar.x, 3))
+        strip.setTabs(emptyList(), null)
+        image = paint()
+        assertEquals(image.getRGB(toolbar.x + 3, 3), image.getRGB(toolbar.x, 3))
+    }
+
+    @Test
+    fun `leaving tabs through fixed actions hides the overlaid scrollbar`() = onEdt {
+        val strip = fixture()
+        val toolbar = JPanel().apply {
+            isOpaque = false
+            preferredSize = Dimension(JBUI.scale(108), JBUI.scale(38))
+        }
+        strip.add(toolbar, BorderLayout.EAST)
+        layout(strip)
+        assertTrue(strip.scrollPane.horizontalScrollBar.isVisible)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_MOVED, Point(20, 15))
+        assertTrue(strip.scrollbarRevealed)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_EXITED, Point(toolbar.x + 2, 15))
+        mouse(toolbar, MouseEvent.MOUSE_ENTERED, Point(2, 15))
+        assertFalse(strip.scrollbarRevealed)
+        mouse(toolbar, MouseEvent.MOUSE_EXITED, Point(2, toolbar.height + 10))
+        assertFalse(strip.scrollbarRevealed)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_ENTERED, Point(20, 15))
+        assertTrue(strip.scrollbarRevealed)
     }
 
     @Test
