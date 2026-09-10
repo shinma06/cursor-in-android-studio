@@ -3,6 +3,7 @@ package com.cursoragent.ui.session
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.AgentUiMetrics
 import com.intellij.util.ui.JBUI
+import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Container
 import java.awt.Dimension
@@ -32,7 +33,7 @@ import javax.swing.plaf.basic.BasicScrollBarUI
  * Controlled Swing tab strip. Call setTabs on the EDT after handling ID-based callbacks.
  * No CLI, persisted settings, global event listener or desktop-wide drag registration.
  */
-class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
+class SessionTabStrip : JPanel(BorderLayout()) {
     var onSelect: (String) -> Unit = {}
     var onClose: (String) -> Unit = {}
     /** Destination is the final index after removing the dragged tab. */
@@ -70,7 +71,7 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         setComponentZOrder(horizontalScrollBar, 0)
         border = JBUI.Borders.empty()
         viewportBorder = JBUI.Borders.empty()
-        viewport.background = AgentUiColors.panelBackground
+        viewport.background = AgentUiColors.tabAreaBackground
         // Blitting viewport pixels would also move the overlapping scrollbar's old pixels.
         viewport.scrollMode = JViewport.SIMPLE_SCROLL_MODE
         verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_NEVER
@@ -103,9 +104,8 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
 
     init {
         isOpaque = true
-        background = AgentUiColors.panelBackground
+        background = AgentUiColors.tabAreaBackground
         minimumSize = Dimension(0, tabHeight)
-        preferredSize = Dimension(JBUI.scale(320), minimumSize.height)
         add(scrollPane)
         addHierarchyListener { event ->
             if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && !isShowing) {
@@ -192,6 +192,7 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
             hit(Point(point.x + position.x, point.y + position.y))?.id
         }
         canvas.repaint()
+        repaint() // The viewport position also controls the fixed toolbar divider.
     }
 
     private fun cancelDrag() {
@@ -217,6 +218,27 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
         }
         scrollPane.horizontalScrollBar.value += direction * JBUI.scale(12)
         updateDropTarget()
+    }
+
+    override fun getPreferredSize(): Dimension {
+        val toolbar = (layout as BorderLayout).getLayoutComponent(BorderLayout.EAST)?.takeIf { it.isVisible }?.preferredSize
+        return Dimension(JBUI.scale(320) + (toolbar?.width ?: 0), maxOf(tabHeight, toolbar?.height ?: 0))
+    }
+
+    override fun paintChildren(g: Graphics) {
+        super.paintChildren(g)
+        val toolbar = (layout as BorderLayout).getLayoutComponent(BorderLayout.EAST) ?: return
+        val viewport = scrollPane.viewport
+        val tabEnd = tabBounds().lastOrNull()?.second?.let { it.x + it.width } ?: return
+        if (toolbar.isVisible && viewport.width > 0 && tabEnd >= viewport.viewPosition.x + viewport.width) {
+            val copy = g.create()
+            try {
+                copy.color = AgentUiColors.bubbleBorder
+                copy.drawLine(toolbar.x, 0, toolbar.x, height - 1)
+            } finally {
+                copy.dispose()
+            }
+        }
     }
 
     override fun removeNotify() {
@@ -334,11 +356,8 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
                 for ((tab, bounds) in tabBounds()) {
                     if (!copy.clipBounds.intersects(bounds)) continue
                     val active = tab.id == selectedId
-                    // The IDE can recolor the viewport. Let the selected tab share that actual background.
-                    if (!active) {
-                        copy.color = AgentUiColors.composerBackground
-                        copy.fillRect(bounds.x, 0, bounds.width, height)
-                    }
+                    copy.color = if (active) AgentUiColors.panelBackground else AgentUiColors.tabAreaBackground
+                    copy.fillRect(bounds.x, 0, bounds.width, height)
                     copy.color = AgentUiColors.bubbleBorder
                     copy.drawLine(bounds.x, 0, bounds.x, height)
                     if (!active) copy.drawLine(bounds.x, height - 1, bounds.x + bounds.width, height - 1)
