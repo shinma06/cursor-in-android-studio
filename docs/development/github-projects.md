@@ -52,7 +52,7 @@ ViewのIssueタイトル・ラベル・open/closedはGitHub上のIssueを参照�
 3. **Project**: 元IssueとQAの登録・Status、Milestone、native関係と両端のRelationship Statusを再取得して正本と一致させる。主要な進捗/計画変更なら親の現在地とProject概要も更新する。再試行はURL/Issue番号で既存項目を再利用し、カードを重複作成しない。
 4. **終了記録**: 元Issueへ確認済みの対象と結果を残す。失敗/未反映は具体的な対象・PM担当・再試行条件を残し、次の引継ぎで回収する。Project表示の未反映と実装受入の未完了を混同しない。
 
-棚卸しを依頼された場合は、全ページのIssue/PRとProjectを取得し、閉じ忘れ、QA重複/引継ぎ漏れ、closedとラベルの不一致、親の古い分割先、Project未登録/Status不一致を調べる。日数、PR merge、全子closedのいずれかだけで自動closeしない。未達受入・GUI/main待ち・有効claim・明示保留は残す。重複なら受入と担当を正本へ引き継いでからcloseし、Issueは永久削除しない。
+棚卸しを依頼された場合と所定の発火条件では、[Git Governance Audit](git-governance-audit.md)の全体確認・安全な修正・記録手順を使う。通常の終了時照合は上記の対象Issue/QAに限定する。
 
 ## 設定と履歴
 

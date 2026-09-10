@@ -32,6 +32,8 @@ trust boundary のvalidation、認証/認可、型安全性、データ整合性
 
 [GitHub Work Management Rules](docs/development/work-management.md)に従い、Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは実際の依存/分解に使う。作成/triage時にProject登録・Milestone選定・関係判定・Status/Priority表示を確認する。Standaloneは正常であり、#1等へ分類目的で接続しない。
 
+[Git Governance Audit](docs/development/git-governance-audit.md)を開始・統合終了時の判断に適用する。主要Milestone/High Impact/構造問題と10 meaningful mergesを確認し、既存ルールの削除・統合・単純化を先に検討する。監査状態は各回の監査Issueを正本とし、毎PRの全体監査や二重台帳を追加しない。
+
 開発Agentの追加・委譲前に[Codex実行規約](docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
@@ -120,8 +122,9 @@ An Android Studio (IntelliJ Platform) client for Cursor Agent inside the IDE. Th
 is ACP First, with native IDE APIs, MCP and supplementary CLI paths as needed; see the mission and
 architecture documents above. Cursor Agent internals remain a black box, accessed through official interfaces.
 
-The current implementation uses `agent -p --output-format stream-json` subprocesses and a Swing/JBUI
-chat UI (方式B). This describes shipped code, not a prohibition on protocol/API integration.
+The default transport uses `agent -p --output-format stream-json` with a Swing/JBUI chat UI (方式B).
+Develop also has explicit ACP selection for new conversations (#147); fixed-build GUI acceptance
+remains in #152. See the current implementation document for transport scope and limitations.
 `docs/cursor-agent-plugin-requirements.md` records detailed requirements and implementation status
 under the mission and ACP First policy. Read these before adding features.
 
@@ -412,13 +415,9 @@ the dated gap plan does not override ACP First or the current restore protection
 #5 manual QA and #10 multimodal work rather than duplicating them. New execution-based verification
 is separate from the read-only UI evidence and requires an appropriate authorized test scope.
 
-The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
-with feature IDs (F-01, F-02, ...); the live milestone tracker is **the tracking issue's own
-checklist and its child issues** (GitHub issue #1),
-which is the up-to-date source for what's done. Deliberately not naming a specific issue-number
-range here: issue #1's checklist has drifted out of sync with a hardcoded range in this file at
-least once already (this file said "#1–#10" after #11/#12/#13 already existed) — read #1 itself
-rather than trusting a number written into this doc at some point in the past.
+The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines feature scope and IDs.
+Current progress lives in the Project, concrete Issue/PR/QA records and native Milestones;
+see [work management](docs/development/work-management.md). Issue #1 is historical, not the live tracker.
 
 Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
 mode control (F-20), the 3-way permission model (F-22/F-24 redesign: `PermissionMode`, a Stop

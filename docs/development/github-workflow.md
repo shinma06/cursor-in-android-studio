@@ -32,7 +32,7 @@ PM/進行役は統合順・claim・GitHub設定を管理します。実装担当
 
 1. AGENTS.md、本文書、要件、Projectのロードマップと対象Milestone、対象Issue本文と全コメント、open PRを読む。旧#1は必要な判断履歴として参照する。
 2. `git status --short --branch`、`git worktree list`、`git fetch --prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
-3. 重複Issueを検索し、必要な具体作業のIssueを作る。[作成/triage確認](work-management.md#issue作成triageの確認)に従いProjectへ追加、Milestoneを選定、実際の親子/依存をnative設定する。関係なしはStandaloneと明示し、独立した実装やGUI検証を分ける。
+3. [Governance Audit](git-governance-audit.md)のread-only statusと今回の影響から発火条件を判断する。対象なら監査Issueへまとめ、通常のPRごとに全監査しない。重複Issueを検索し、必要な具体作業のIssueを作る。[作成/triage確認](work-management.md#issue作成triageの確認)に従いProjectへ追加、Milestoneを選定、実際の親子/依存をnative設定する。関係なしはStandaloneと明示し、独立した実装やGUI検証を分ける。
 4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。
 5. 通常はorigin/developから `<codex|claude|cursor>/<Issue>-<slug>` と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
 6. 最初の意味あるpushでDraft PRを作成する。PR本文はテンプレートに従い、`Issue`、`Integration`、`Verification`、`GUI`、`GUI reason`を記録する。source JSONはGUI不要変更にも必須で、理由・CLI検証を含む。
@@ -78,6 +78,7 @@ mainは[固定候補手順](../verification/README.md)で範囲全体を確認�
 promotionはmerge commitに限定し、GitHub APIのHEAD指定とstrict baseを通します。merge直前にmain/develop refを再取得します。
 main/developへの直接commit/push、admin bypass、hook無効化、force push、`--no-verify`は禁止です。
 
+統合・終了時も[Governance Audit](git-governance-audit.md)のcount/主要変更/Milestone完了を判断する。
 merge SHA・CI・Case結果・残条件をIssueへ記録し、受入を個別に満たす範囲だけcloseします。promotion Issue完了でも元の機能/QA Issueを一括closeしません。
 PMは[Issue終了時の整合確認](github-projects.md#issue終了時の整合確認)で元Issue・QA・親の現行表示・Projectを読み戻します。coordinatorのdoneはProject同期の完了ではありません。未反映は対象・担当・再試行条件を元Issueへ残します。
 cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/master/developはremote/localとも削除しません。他担当の変更/branchを整理しません。
