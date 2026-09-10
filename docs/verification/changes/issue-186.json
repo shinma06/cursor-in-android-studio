@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "issue": 186,
+  "gui_required": true,
+  "reason": "選択タブと会話背景の外観変更。SDK再設定を使ったheadless描画と実IDE受入を区別する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "SessionTabStripTest: native SDK background recoloring + actual strip/timeline pixel equality for dark/light/custom, empty/populated, late-created cards",
+    "git diff --check; verification.validate_change(issue-186, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "SELECTED-TAB-CHAT-BACKGROUND",
+      "issue": 186,
+      "change": "選択タブと空/会話あり背景をIDEテーマへ統一",
+      "preconditions": "GUI lease下の指定担当が#186の固定SHA・ZIP hash・loaded JARを識別する。ユーザー画像は変更前観測でbuild identity未確定。選択可能なIDEと使い捨てfixtureを使用する。",
+      "steps": [
+        "Dark/LightとカスタムToolWindow背景で、選択タブ中央/下端と空チャット背景の色差がないことを比較する。",
+        "既存タブで会話表示を開始し、メッセージ周囲の背景、選択タブとの継ぎ目、非選択タブ/hover/closeの識別を確認する。",
+        "起動後に新規タブを複数作成し、切替・閉じる・非表示/再表示・テーマ切替後も背景が一致することを確認する。",
+        "共通背景色を使うassistant/toolカードとmodel popupの通常行でテーマ色・文字の視認性を確認する。右固定幅108 logical px、タブ幅・高さ・スクロール・既存Actionは維持する。"
+      ],
+      "expected": "固定#181818ではなく、IDEのToolWindow背景色をタブ・空チャット・会話viewportで共有する。後から作るTabViewも親背景を透過する。Light/カスタムテーマにも追従し、既存操作と読みやすさを維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "GUIで選択可能な識別済みIDEに修正buildを用意し本Caseを確認する。直近#183のrunIde/MainWrapper選択不可という環境制約を引き継ぎ、未確認をpassにしない。QA #182 COMPACT-HEADER-BACKGROUNDの後続Caseとして追跡する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/186",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/182",
+        "https://github.com/JetBrains/intellij-community/blob/master/platform/util/ui/src/com/intellij/util/ui/JBUI.java"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正後固定buildの実IDE比較は未実施。SDKでの部品描画比較は通過、実GUI受入とは区別する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正後固定buildの実IDE比較は未実施。SDKでの部品描画比較は通過、実GUI受入とは区別する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

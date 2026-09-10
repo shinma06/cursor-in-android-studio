@@ -1,9 +1,14 @@
 package com.cursoragent.ui.session
 
+import com.cursoragent.ui.AgentUiColors
+import com.cursoragent.ui.timeline.ChatTimelinePanel
+import com.intellij.toolWindow.InternalDecoratorImpl
 import com.intellij.util.ui.JBUI
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Container
 import java.awt.Font
 import java.awt.Point
 import java.awt.event.MouseEvent
@@ -13,6 +18,7 @@ import java.util.regex.Pattern
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import javax.swing.UIManager
 
 class SessionTabStripTest {
     @Test
@@ -98,6 +104,61 @@ class SessionTabStripTest {
             } finally {
                 graphics.dispose()
             }
+        }
+    }
+
+    @Test
+    fun `selected tab and empty or populated chat share native theme background`() = onEdt {
+        val key = "ToolWindow.background"
+        val previous = UIManager.get(key)
+        fun layoutTree(container: Container) {
+            container.doLayout()
+            container.components.filterIsInstance<Container>().forEach(::layoutTree)
+        }
+        try {
+            val strip = fixture()
+            val root = JPanel(BorderLayout()).apply {
+                background = AgentUiColors.panelBackground
+                add(strip, BorderLayout.NORTH)
+                setSize(320, 180)
+            }
+            // Invoke the installed SDK's actual recoloring rule, not a copy of its implementation.
+            val recolor = InternalDecoratorImpl.Companion::class.java.methods.single {
+                it.name.startsWith("setBackgroundRecursively")
+            }
+            for (color in listOf(Color(0x191A1C), Color(0xF4F5F7), Color(0x34495E))) {
+                UIManager.put(key, color)
+                recolor.invoke(InternalDecoratorImpl.Companion, root, JBUI.CurrentTheme.ToolWindow.background())
+                for (createdAfterRecolor in listOf(false, true)) {
+                    val timeline = ChatTimelinePanel()
+                    val chat = JPanel(BorderLayout()).apply {
+                        // Newly opened tab cards inherit the root's background without another SDK pass.
+                        isOpaque = !createdAfterRecolor
+                        add(timeline)
+                    }
+                    root.add(chat, BorderLayout.CENTER)
+                    if (!createdAfterRecolor) {
+                        recolor.invoke(InternalDecoratorImpl.Companion, root, JBUI.CurrentTheme.ToolWindow.background())
+                    }
+                    for (populated in listOf(false, true)) {
+                        if (populated) timeline.showStatus("Ready")
+                        layoutTree(root)
+                        val image = BufferedImage(root.width, root.height, BufferedImage.TYPE_INT_ARGB)
+                        val graphics = image.createGraphics()
+                        try {
+                            root.paint(graphics)
+                            assertEquals(color.rgb, image.getRGB(4, strip.height + 4), "Actual chat background")
+                            assertEquals(image.getRGB(4, strip.height + 4), image.getRGB(4, 4), "Selected tab background")
+                            assertEquals(color.rgb, image.getRGB(4, strip.height - 2), "Selected tab lower edge")
+                        } finally {
+                            graphics.dispose()
+                        }
+                    }
+                    root.remove(chat)
+                }
+            }
+        } finally {
+            if (previous == null) UIManager.getDefaults().remove(key) else UIManager.put(key, previous)
         }
     }
 
