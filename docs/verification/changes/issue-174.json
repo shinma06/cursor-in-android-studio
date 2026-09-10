@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "issue": 174,
+  "gui_required": true,
+  "reason": "ToolWindow stripeの外観変更。実IDEの隣接比較は固定buildで確認し、headless SVG描画と区別する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "SVG XML/path同一性と16/20px描画領域・余白の確認",
+    "git diff --check; verification.validate_change(issue-174, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "TOOLWINDOW-ICON-SCALE",
+      "issue": 174,
+      "change": "提供された六角形SVGの描画領域とnative ToolWindowスケール",
+      "preconditions": "#174を含む固定SHA/ZIP hash/loaded JARを識別し、指定GUI lease担当が使い捨てプロジェクトで確認する。",
+      "steps": [
+        "通常モードでToolWindow stripeの隣接する純正アイコンと比べる。図形全体の高さ・中央位置・欠けを確認する。",
+        "Compact Modeでも比率を保って縮小し、hover/選択時に識別できることを確認する。"
+      ],
+      "expected": "通常20px枠内で図形の高さ約18px、compact16px枠内で約14.4px。元の六角形/内側の折線の比率を保持し、輪郭が欠けず中央に表示される。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "スケールや欠けの不一致は修正Issue/PRと新固定buildで再確認する。",
+      "next_action": "headless描画とbuild検証後、固定buildで隣接する純正アイコンと実IDE比較。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新しいSVGの実IDE上の確認は未実施。提供スクリーンショットは変更前の観測。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しいSVGの実IDE上の確認は未実施。提供スクリーンショットは変更前の観測。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/174",
+        "https://plugins.jetbrains.com/docs/intellij/icons.html#new-ui-tool-window-icons"
+      ]
+    }
+  ]
+}
