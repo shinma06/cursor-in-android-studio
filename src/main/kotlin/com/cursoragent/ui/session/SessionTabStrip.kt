@@ -334,8 +334,11 @@ class SessionTabStrip : JPanel(java.awt.BorderLayout()) {
                 for ((tab, bounds) in tabBounds()) {
                     if (!copy.clipBounds.intersects(bounds)) continue
                     val active = tab.id == selectedId
-                    copy.color = if (active) AgentUiColors.panelBackground else AgentUiColors.composerBackground
-                    copy.fillRect(bounds.x, 0, bounds.width, height)
+                    // The IDE can recolor the viewport. Let the selected tab share that actual background.
+                    if (!active) {
+                        copy.color = AgentUiColors.composerBackground
+                        copy.fillRect(bounds.x, 0, bounds.width, height)
+                    }
                     copy.color = AgentUiColors.bubbleBorder
                     copy.drawLine(bounds.x, 0, bounds.x, height)
                     if (!active) copy.drawLine(bounds.x, height - 1, bounds.x + bounds.width, height - 1)

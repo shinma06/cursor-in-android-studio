@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "issue": 180,
+  "gui_required": true,
+  "reason": "ヘッダー配置と実際のIDE背景/標準メニュー・非表示操作の変更。headless部品描画と製品GUI受入を区別する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "git diff --check; verification.validate_change(issue-180, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "COMPACT-HEADER-LAYOUT",
+      "issue": 180,
+      "change": "タブ左・4操作右の1行レイアウト",
+      "preconditions": "指定PMがhost GUI leaseを取得し、#180の固定候補SHA・ZIP hash・loaded JARを識別。使い捨てprojectを使用し、既存IDE/設定を保全する。必要な実送信はPro/Teams、ACPの公開証拠前提は#152/#146を維持する。",
+      "steps": [
+        "固定buildでCursor AgentのToolWindowを開き、旧製品名のタイトル行が重複せず、左にタブ、右に新規/履歴/横…/サイドパネル型非表示アイコンが同じ行にあることを確認する。",
+        "右固定部がNew Agentタブ程度の幅（基準120 logical px、標準4ボタン×30px）で、幅240/320/800 logical px相当・通常/Compact・別UI倍率でも固定され、タブ領域が残ることを確認する。",
+        "多数のタブを追加し、ホイール/横スクロール、hover時のみタブ内側の細いscrollbar、選択・×・D&D・キーボードによる切替/並べ替え/閉じるを確認する。"
+      ],
+      "expected": "ヘッダーは1行。右固定部はNew Agentタブ程度で、タブの横操作領域を確保する。既存の省略/tooltip/キーボードとNew Agent表示を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/180",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "COMPACT-HEADER-BACKGROUND",
+      "issue": 180,
+      "change": "選択タブと会話背景の一致",
+      "preconditions": "指定PMがhost GUI leaseを取得し、#180の固定候補SHA・ZIP hash・loaded JARを識別。使い捨てprojectを使用し、既存IDE/設定を保全する。必要な実送信はPro/Teams、ACPの公開証拠前提は#152/#146を維持する。",
+      "steps": [
+        "Dark/Lightそれぞれで、新規会話の空画面とメッセージのある画面を比較し、選択タブとメイン会話背景が同じ色に見えることを確認する。",
+        "起動後にテーマを変更し、選択タブを切り替え、ToolWindowを非表示/再表示する。選択中タブの下境界やfocus枠が現れず、非選択タブとの区別は維持されることを確認する。"
+      ],
+      "expected": "選択タブは実際のIDE/会話背景と一体になり、固定色の色差を生まない。非選択タブ/hover/closeは識別できる。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/180",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "COMPACT-HEADER-ACTIONS",
+      "issue": 180,
+      "change": "固定操作と既存メニュー/IDE操作",
+      "preconditions": "指定PMがhost GUI leaseを取得し、#180の固定候補SHA・ZIP hash・loaded JARを識別。使い捨てprojectを使用し、既存IDE/設定を保全する。必要な実送信はPro/Teams、ACPの公開証拠前提は#152/#146を維持する。",
+      "steps": [
+        "新規・履歴を右固定部から操作する。選択タブの会話/下書き/実行が混ざらず、履歴再開や既存タブ選択が維持されることを確認する。",
+        "横…を開き、既存チャット設定/接続方法/実行中要約無効化/MCP/設定/会話管理/ブラウザー/表示設定とIDE本来の移動・表示モードが使えることを確認する。変更した設定は元に戻す。",
+        "新規/履歴アイコンの表示設定を個別にoff/onし、toolbarでは設定どおり、メニュー内では操作が残ることを確認する。",
+        "右端のサイドパネル型アイコンで非表示にしstripeから再表示する。会話/下書きが保持され、実行中処理は停止せず、標準ショートカットで非表示/再表示できることを確認する。"
+      ],
+      "expected": "4操作の動作と既存設定/IDEメニューを維持する。非表示はchat closeではなく、会話を破棄しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/180",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "COMPACT-HEADER-LIFECYCLE",
+      "issue": 180,
+      "change": "popup取消・複数project・content破棄",
+      "preconditions": "指定PMがhost GUI leaseを取得し、#180の固定候補SHA・ZIP hash・loaded JARを識別。使い捨てprojectを使用し、既存IDE/設定を保全する。必要な実送信はPro/Teams、ACPの公開証拠前提は#152/#146を維持する。",
+      "steps": [
+        "横…と履歴を開いてEscape/外側クリック/ToolWindow非表示で閉じ、再表示後に再度操作できることを確認する。",
+        "複数の使い捨てprojectを開き、toolbar操作が所属project・選択タブにのみ届くことを確認する。",
+        "実行中のcontent/projectを破棄し、popup/toolbar参照と子processの終了を確認する。単なる非表示とは区別し、別projectの操作/実行を壊さない。"
+      ],
+      "expected": "破棄済みpanelから操作しない。標準ヘッダーの表示状態とgear/action設定を破棄時に復帰し、他projectへ影響させない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/180",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "この固定buildでの製品GUI受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}
