@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 198,
+  "gui_required": false,
+  "reason": "変更影響分類・GitHub Actions/hook/coordinator/ZIPの実行選択と運用文書のみ。Plugin runtime/GUI/保存形式は変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "./gradlew test; actionlint v1.7.12; git diff --check",
+    "必須8ケース、Git全差分/rename/delete/mode/unknown、実pre-push、ZIP skip/復旧/full指定、required test summaryと通常CIの照合",
+    "main反映で既定branch schedule/trusted coordinatorを切替。未反映はQAへ保持"
+  ],
+  "cases": []
+}

@@ -8,7 +8,7 @@ description: Validate, independently review and hand off develop/main PRs with c
 Read docs/development/github-workflow.md, pr-automation.md and docs/verification/README.md.
 Check mission/ACP First policy against actual implementation and evidence; do not mark ACP support or GUI acceptance complete from documentation alone. Follow docs/development/codex-execution-policy.md for independent-session review.
 
-1. Run ./gradlew test and affected tooling tests; buildPlugin for packaging/GUI builds. Push only the owned Issue branch.
+1. Follow docs/development/change-impact.md and run `python3 scripts/workflow/change_impact.py --run-tests` for the fixed Issue diff. Record selected checks and safe skips; mixed/unknown changes retain required validation. Explicit packaging/GUI builds still require buildPlugin. Push only the owned Issue branch.
 2. Obtain a separate-session review of fixed HEAD/base. Concrete code defects/test failures block both targets.
 3. Develop requires a complete Case matrix, not GUI pass. Keep pending/blocked/fail and dedicated fix Issues visible.
    Main promotion requires all candidate commits and all required Cases to pass on one fixed build; GPT/human evidence is valid.

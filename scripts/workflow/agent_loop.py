@@ -22,6 +22,7 @@ from handoff_registry import register, resolve
 from verification import verify_pr, metadata
 from issue_schema import validate_issue, done_labels, labels
 from qa_handoff import handoff
+from change_impact import git_impact, test_commands, report as impact_report
 
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
@@ -248,9 +249,12 @@ class Loop:
         if remote['head']['sha'] != expected:
             raise ValueError('Remote HEAD changed; do not publish recovered work')
         # These repositories are maintainer-owned, enrolled work only. No forks are executed.
-        command(['python3', '-m', 'unittest', 'discover', '-s', 'scripts/workflow', '-p', 'test_*.py'], path, 180)
-        command(['python3', '-m', 'unittest', 'discover', '-s', 'scripts/loop', '-p', 'test_*.py'], path, 180)
-        command(['./gradlew', 'test', '--console=plain'], path, 600)
+        impact = git_impact(pr['base']['sha'], actual, cwd=path)
+        print(impact_report(impact))
+        for test in test_commands(impact):
+            command(test, path, 600)
+        if impact.get('base'):
+            command(['git', 'diff', '--check', impact['base'], impact['head'], '--'], path)
         if git('status', '--porcelain', cwd=path):
             raise ValueError('Tests left dirty files; cannot publish')
         remote = self.gh.pr(pr['number'])

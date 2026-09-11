@@ -39,7 +39,7 @@ GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認
 最大3 PRを交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。
 
 coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/本文/Issue条件/feedback変更は承認を失効させます。
-base同期は通常merge → テスト → 非force push → 独立再レビューです。未解決会話とstrict baseはGitHub保護も検査します。
+base同期は通常merge → [共通Change Impact](change-impact.md)の必要テスト → 非force push → 独立再レビューです。知識のみのskipも判定結果を残し、dirty/remote HEAD/受入の照合は省略しません。未解決会話とstrict baseはGitHub保護も検査します。
 `test` / `PR policy` / `Acceptance gate`成功と独立レビューを読み戻し、merge直前に受入を再検証して `Agent review` を発行します。
 
 - develop: 必要Case JSONと次の操作、製品failなら修正Issueが必須。GUI passは要求せずsquash merge。

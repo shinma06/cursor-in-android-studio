@@ -60,7 +60,7 @@ GitHubへ接続できずclaimを確認できないときは新規実装を開始
 - 共通ファイルは担当者だけが編集。依存PRは通常develop統合後に取り込む。stacked PRは依存baseと順序を明記し、base変更後に再レビューする。
 - テスト/buildPluginは専用worktreeで実施可能。共有cache削除/他タスクdaemon停止は禁止。runIde、install、再起動は[GUI lease](gui-coordination.md)必須。
 - 開始、PR作成、scope変更、review待ち、GUI待ち、blocked、引継ぎ、mergeごとにIssueへ最新HEAD/次の一手を記録する。
-- `./gradlew test`と変更したworkflow/loopテストを実行。パッケージ/GUI buildはbuildPluginも実施する。
+- [Change Impact](change-impact.md)の共通コマンドで必要テストを実行する。Knowledge/Metadataだけは重いコード検証をskipし、混在/unknownは必要な検証を維持。パッケージ/GUI buildの明示要求はbuildPluginも実施する。
 - 別sessionが固定HEAD/baseの差分と受入を確認し、`reviewer session / reviewed SHA / base / findings / disposition`を記録する。同一GitHubアカウントのApproveだけでは代替しない。
 - 重大/中程度のコード指摘を解消し、再レビューする。GUI状態と実装scopeを分け、未実施だけをコード欠陥としない。
 - writerを停止して[自動進行役](pr-automation.md)へopaque IDでenrollする。登録後は同じbranchを編集/commit/pushせず、coordinatorに任せる。既存PAUSED heartbeatを勝手に再開しない。
@@ -92,7 +92,7 @@ merge/Issue closeとcleanup完了を分け、[ブランチ残存の判定と完�
 
 ## 自動gateとGitHub設定
 
-- push前はPythonとGradleのテストを実行する。ZIPはpush後の [Branch Plugin ZIP](plugin-zip-delivery.md) が標準 `buildPlugin` で生成し、ブランチごとのReleaseへ最新1件を保存する。ローカルのZIP生成・取得・cacheはpush/checkout hookでは行わない。
+- push前は[共通Change Impact](change-impact.md)が選んだテストを実行する。required `test` は常に起動し、安全なskip判断もsuccessと理由を記録する。ZIPはpush後の [Branch Plugin ZIP](plugin-zip-delivery.md) が同じ分類で必要なときに標準 `buildPlugin` で生成し、ブランチごとのReleaseへ最後に実buildした1件を保存する。ローカルのZIP生成・取得・cacheはpush/checkout hookでは行わない。
 - hooks: Issue branch以外のcommit、main/master/developへのpush/削除、別branch/dirty/非fast-forwardのpushを拒否。
 - PR policy: target/Integration、実在open Issue、branch番号、GUI理由、Case JSONパスを検査。developの自動close文言を拒否。
 - Acceptance gate: eventの遅延し得るbase.shaを信用せず、許可された最新base branchからcheckoutし、コードHEADと現在refを照合する。trusted baseのコードでPRのJSONをデータとして読み、developはCase追跡、main toolingはパスと理由、promotionは固定候補の全commit/Case/build/観察を検査。
