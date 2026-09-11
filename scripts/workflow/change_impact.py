@@ -98,7 +98,7 @@ def git_impact(base=None, head='HEAD', *, cwd=None, merge_base=True, force_full=
         elif ancestor != base:
             raise ValueError('Non-ancestor comparison; full validation required')
         # Disable rename detection: inspect both deleted and added paths/modes.
-        raw = git('diff', '--raw', '-z', '--no-renames', '--no-ext-diff', base, head, '--', cwd=cwd)
+        raw = git('diff', '--raw', '-z', '--no-renames', '--no-ext-diff', '--ignore-submodules=none', base, head, '--', cwd=cwd)
         entries = raw.split(b'\0')
         changes = []
         for index in range(0, len(entries) - 1, 2):

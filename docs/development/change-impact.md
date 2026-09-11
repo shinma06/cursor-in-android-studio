@@ -31,7 +31,7 @@ python3 scripts/workflow/change_impact.py --base origin/develop --force-full --r
 
 commit済みのHEADを対象にする。push直前のdirty/別branch/非fast-forward拒否は従来のgit guardが先に実施する。ローカルの分類は直前commitだけでなくIssue差分全体を使い、コード変更後に文書commitを追加してもコード検証を消さない。
 
-Gitの完全なraw diffをNUL区切りで読み、renameは旧pathの削除＋新pathの追加として双方を分類する。実行権限・symlinkへの変化も確認する。GitHubのファイル一覧APIの件数上限へ依存しない。PR CIはbase SHAとcheckoutしたmerge結果、push CIはbefore〜HEAD全範囲を検証する。履歴不足・初回pushのzero before・非祖先push・空差分では全実行。誤検知による余分な実行を、必要な検証の欠落より優先する。
+Gitの完全なraw diffをNUL区切りで読み、renameは旧pathの削除＋新pathの追加として双方を分類する。実行権限・symlinkへの変化も確認し、`diff.ignoreSubmodules`によるgitlink省略を明示解除する。GitHubのファイル一覧APIの件数上限へ依存しない。PR CIはbase SHAとcheckoutしたmerge結果、push CIはbefore〜HEAD全範囲を検証する。履歴不足・初回pushのzero before・非祖先push・空差分では全実行。誤検知による余分な実行を、必要な検証の欠落より優先する。
 
 ## Git起点の処理の棚卸し
 

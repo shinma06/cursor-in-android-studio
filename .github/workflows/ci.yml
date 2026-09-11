@@ -41,7 +41,6 @@ jobs:
         id: impact
         run: python3 scripts/workflow/change_impact.py --event
 
-
       - uses: actions/setup-java@v4
         if: steps.impact.outputs.gradle_test == 'true'
         with:

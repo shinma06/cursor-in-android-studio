@@ -30,7 +30,7 @@ class BranchZipTest(unittest.TestCase):
         self.fail_patch = False
         self.move_after_upload = False
         self.addCleanup(patch.stopall)
-        patch.dict(os.environ, {'GITHUB_REPOSITORY': 'owner/repo'}).start()
+        patch.dict(os.environ, {'GITHUB_REPOSITORY': 'owner/repo', 'GITHUB_STEP_SUMMARY': '', 'GITHUB_OUTPUT': ''}).start()
         self.impact = patch.object(bz, 'git_impact', return_value=classify([], reason='fixture unknown')).start()
         patch.object(bz, 'api', side_effect=self.api).start()
         patch.object(bz, 'gh', side_effect=self.upload).start()

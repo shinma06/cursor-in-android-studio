@@ -19,6 +19,8 @@ class PrePushTest(unittest.TestCase):
         self.repo = base / 'source'
         self.repo.mkdir()
         self.env = os.environ.copy()
+        for key in ('GITHUB_STEP_SUMMARY', 'GITHUB_OUTPUT'):
+            self.env.pop(key, None)
         for key in subprocess.check_output(['git', 'rev-parse', '--local-env-vars'], text=True).splitlines():
             self.env.pop(key, None)
         self.env['GIT_CONFIG_NOSYSTEM'] = '1'

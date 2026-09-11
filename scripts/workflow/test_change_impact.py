@@ -107,6 +107,34 @@ class GitImpactTest(unittest.TestCase):
         with patch.object(ci, 'git', side_effect=OSError('unavailable')):
             self.assertTrue(ci.git_impact(self.base, second, cwd=self.root)['gradle_test'])
 
+    def test_gitlinks_are_visible_even_when_git_config_ignores_submodules(self):
+        self.git('config', 'diff.ignoreSubmodules', 'all')
+        previous = self.base
+        for operation in ('add', 'update', 'delete'):
+            if operation == 'delete':
+                self.git('update-index', '--force-remove', 'vendor/module')
+            else:
+                self.git('update-index', '--add', '--cacheinfo', '160000,' + previous + ',vendor/module')
+            self.write('docs/design.md', operation + '\n'); self.git('add', 'docs/design.md')
+            self.git('commit', '-m', operation); head = self.git('rev-parse', 'HEAD')
+            result = ci.git_impact(previous, head, cwd=self.root)
+            with self.subTest(operation=operation):
+                self.assertEqual({f['path'] for f in result['files']}, {'vendor/module', 'docs/design.md'})
+                self.assertIn(ci.UNKNOWN, result['impacts'])
+                self.assertTrue(result['gradle_test']); self.assertTrue(result['plugin_zip'])
+            previous = head
+
+    def test_hook_and_zip_fixtures_leave_outer_github_outputs_unchanged(self):
+        summary = self.root / '.git/outer-summary'; summary.write_text('real CI summary\n')
+        output = self.root / '.git/outer-output'; output.write_text('real=true\n')
+        env = dict(self.env, GITHUB_STEP_SUMMARY=str(summary), GITHUB_OUTPUT=str(output))
+        subprocess.run(['python3', '-m', 'unittest',
+                        'test_branch_zip.BranchZipTest.test_knowledge_skip_keeps_built_sha_and_manual_override_builds',
+                        'test_pre_push.PrePushTest.test_knowledge_branch_skips_gradle_but_mixed_push_runs_it'],
+                       cwd=Path(ci.__file__).parent, env=env, check=True, capture_output=True)
+        self.assertEqual(summary.read_text(), 'real CI summary\n')
+        self.assertEqual(output.read_text(), 'real=true\n')
+
     def test_test_runner_rejects_dirty_or_different_checkout(self):
         self.write('docs/design.md', 'dirty\n')
         command = ['python3', str(Path(ci.__file__).resolve()), '--base', self.base, '--run-tests']
