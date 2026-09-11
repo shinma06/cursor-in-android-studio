@@ -13,7 +13,7 @@ def audit(number=195, **changes):
                   completed_at='2026-09-10T01:00:00Z', health='MINOR ISSUES',
                   merge_threshold=10, audited_milestones=[1, 2], last_high_impact_change='#171')
     record.update(changes)
-    return dict(number=number, state='closed', html_url=f'https://example.test/issues/{number}',
+    return dict(number=number, state='closed', user={'login': g.OWNER}, html_url=f'https://example.test/issues/{number}',
                 body=g.MARKER + '\n```json\n' + json.dumps(record) + '\n```')
 
 
@@ -61,6 +61,18 @@ class GovernanceAuditTests(unittest.TestCase):
                       audit(audited_through='2026-09-10T00:00:00')]:
             with self.subTest(issue=issue), self.assertRaises(ValueError):
                 g.status([issue], [], [], NOW)
+
+    def test_external_issues_cannot_replace_or_break_the_trusted_baseline(self):
+        external = audit(999, audited_through='2026-09-10T03:00:00Z',
+                         completed_at='2026-09-10T04:00:00Z', health='HEALTHY')
+        external['user'] = {'login': 'external-contributor'}
+        prs = [pull(n) for n in range(1, 11)]
+        for body in [external['body'], g.MARKER + '\nmalformed']:
+            external['body'] = body
+            result = g.status([audit(), external], prs, [], NOW)
+            self.assertEqual(195, result['last_audit']['issue'])
+            self.assertEqual(10, result['merge_count_since_audit'])
+            self.assertIn('10 meaningful merges reached', result['due_reasons'])
 
     def test_cli_uses_read_only_paginated_endpoints_and_propagates_failure(self):
         with patch.object(g, 'GitHub') as cls, patch('builtins.print'):

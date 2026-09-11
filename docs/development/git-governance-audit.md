@@ -61,7 +61,7 @@ closeを日数、merge、全子closedだけで判定しない。残受入を正�
 
 ## Trigger Stateの正本
 
-各回の監査Issue本文だけに、結果と次の1レコードを置く。新しいProject Field、常設のtracking Issue、別ファイルの台帳、手入力のmerge counterは作らない。初回は[#195](https://github.com/shinma06/cursor-in-android-studio/issues/195)。次回は具体的な監査Issueを作り、完了レコードの`audited_through`が最新のものをコマンドが選ぶ。
+各回の監査Issue本文だけに、結果と次の1レコードを置く。既存coordinatorの`OWNER`（本repositoryのmaintainer）で作成したIssueだけを正本として読み、外部投稿者のmarkerは解析前に除外する。新しいProject Field、常設のtracking Issue、別ファイルの台帳、手入力のmerge counterは作らない。初回は[#195](https://github.com/shinma06/cursor-in-android-studio/issues/195)。次回は具体的な監査Issueを作り、完了レコードの`audited_through`が最新のものをコマンドが選ぶ。
 
 ````text
 <!-- governance-audit-state:v1 -->

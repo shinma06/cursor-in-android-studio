@@ -4,7 +4,7 @@ import json
 import re
 from datetime import datetime, timezone
 
-from agent_loop import GitHub, REPO
+from agent_loop import GitHub, OWNER, REPO
 
 MARKER = '<!-- governance-audit-state:v1 -->'
 HEALTH = {'HEALTHY', 'MINOR ISSUES', 'NEEDS CLEANUP', 'STRUCTURAL PROBLEM'}
@@ -20,6 +20,8 @@ def timestamp(value):
 def latest_audit(issues, now):
     records = []
     for issue in issues:
+        if issue.get('user', {}).get('login') != OWNER:
+            continue
         body = issue.get('body') or ''
         if 'pull_request' in issue or MARKER not in body:
             continue
