@@ -7,6 +7,9 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
+
+from change_impact import git_impact, report as impact_report
 from urllib.parse import quote
 
 
@@ -53,7 +56,23 @@ def current_head(branch):
     return next((b['commit']['sha'] for b in pages('branches') if b['name'] == branch), None)
 
 
-def plan(branch=None):
+def published_sha(branch, release):
+    try:
+        markers = re.findall(r'<!-- branch-zip:(\{[^\n]*\}) -->', release.get('body') or '')
+        if len(markers) != 1 or release.get('draft', True):
+            return None
+        data = json.loads(markers[0])
+        sha = data['sha']
+        assets = release.get('assets', [])
+        if (data['branch'] == branch and len(assets) == 1 and assets[0]['name'] == asset_for(sha)
+                and assets[0].get('state') == 'uploaded' and assets[0].get('size', 0) > 0):
+            return sha
+    except (KeyError, TypeError, ValueError):
+        pass
+    return None
+
+
+def plan(branch=None, force_build=False):
     releases = {r['tag_name']: r for r in pages('releases')}
     pending = []
     for b in pages('branches'):
@@ -62,11 +81,20 @@ def plan(branch=None):
             continue
         tag = tag_for(name)
         release = releases.get(tag, {})
-        assets = release.get('assets', [])
-        if (not release.get('draft', True) and marker(name, sha) in (release.get('body') or '')
-                and len(assets) == 1 and assets[0]['name'] == asset_for(sha)
-                and assets[0].get('state') == 'uploaded' and assets[0].get('size', 0) > 0):
+        previous = published_sha(name, release)
+        if previous == sha and not force_build:
             continue
+        # Preserve/recover incomplete releases. A brand-new knowledge-only branch
+        # may have no ZIP; never rename the last build to an unbuilt source SHA.
+        if not force_build and (previous or not release):
+            impact = git_impact(previous, sha, merge_base=False)
+            message = f'Branch {json.dumps(name)} / {sha}:\n' + impact_report(impact)
+            print(message, file=sys.stderr)
+            if os.environ.get('GITHUB_STEP_SUMMARY'):
+                with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+                    summary.write(message + '\n\n')
+            if not impact['plugin_zip']:
+                continue
         pending.append({'branch': name, 'sha': sha, 'tag': tag})
     # GitHub matrix supports at most 256 jobs; fail visibly instead of dropping branches.
     if len(pending) > 256:
@@ -136,9 +164,10 @@ def main():
     parser.add_argument('--branch')
     parser.add_argument('--sha')
     parser.add_argument('--directory', default='delivery')
+    parser.add_argument('--force-build', action='store_true')
     args = parser.parse_args()
     if args.command == 'plan':
-        print(json.dumps(plan(args.branch or None), ensure_ascii=True))
+        print(json.dumps(plan(args.branch or None, args.force_build), ensure_ascii=True))
     else:
         if not args.branch or not args.sha:
             parser.error('publish needs --branch and --sha')

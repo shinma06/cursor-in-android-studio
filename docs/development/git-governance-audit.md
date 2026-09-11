@@ -40,7 +40,7 @@ python3 scripts/workflow/governance_audit.py
 | Project | 全Issue登録、実際のStatus/Priority、fieldの利用・意思決定上の必要性、Labelとの二重正本、View条件、概要/roadmapの現在地。標準の表示fieldを増えすぎたcustom fieldと混同しない。 |
 | Branch | remote実ref/local branch/tracking ref/worktreeを区別し、merged/stale・命名・Issue対応・担当・未保存成果物・mainと統合先developとの差を照合。経過日数やbehindだけで不要としない。 |
 | PR | Issue対応、merge後の元Issue/QA/Project、template・必須条件の目的と現実の負担。テスト/レビュー/受入を未確認のまま緩和しない。 |
-| Rule | 各現行ルールを必要性・実際の利用・重複/矛盾・自動化可能性で上の6分類へ。既存だからKEEPとしない。 |
+| Rule | 各現行ルールを必要性・実際の利用・重複/矛盾・自動化可能性で上の6分類へ。既存だからKEEPとしない。[Change Impact](change-impact.md)の分類と消費側の一致、古いpath/新runtime resource、不要な重いCI、条件の重複、required checksとskipの整合も点検する。 |
 | Context | 適用されるAGENTS/CLAUDE、instructions、README/CONTRIBUTING（存在するもの）、architecture/workflow、Issue/PR template、roadmap、Git文書を実GitHub状態と照合。歴史記録と現在の指示を区別する。 |
 
 全ページを取得する。既存の[終了時照合](github-projects.md#issue終了時の整合確認)・[branch照合](pr-automation.md#ブランチ残存の判定と完了確認)とCase/受入の正本を再利用し、別のclose/削除判定を作らない。

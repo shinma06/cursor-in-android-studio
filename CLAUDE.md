@@ -153,6 +153,8 @@ F-60 image UI remains unimplemented. The 2026-09-04 absence of an image flag is 
 
 ## Commands
 
+[Change Impact](docs/development/change-impact.md)をCI・hook・自動進行役・ZIP生成で共通利用する。Knowledge/Metadataだけは重いコード検証を省略し、runtime/build/test/tooling・混在・unknownには必要な検証を残す。新しい入力/同梱resourceを追加したら分類も更新する。PR/独立review/Acceptance/GUI受入のgateは維持する。
+
 ```bash
 # Gradle itself needs JDK 17+; Kotlin compilation uses a JDK 21 toolchain
 # (auto-provisioned via the foojay-resolver plugin, independent of JAVA_HOME).
@@ -160,21 +162,13 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 
 ./gradlew buildPlugin   # produces build/distributions/cursor-in-android-studio-<version>.zip
 ./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
-./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin — run this before every push
+./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin
+python3 scripts/workflow/change_impact.py --run-tests  # selects required pre-push checks
 ```
 
-**This is enforced automatically, not just a convention**: any `./gradlew <task>` invocation configures
-`git config core.hooksPath .githooks` (see the top of `build.gradle.kts`), and `.githooks/pre-push`
-runs `./gradlew test` and blocks the push if it fails. This is deliberately git-level rather than a
-Claude-Code-specific hook, so it applies no matter which agent (or human) is pushing. Don't rely on
-it as your only check, though — run `./gradlew test` yourself before pushing so you find out about a
-failure before the hook does, and never reach for `git push --no-verify` to route around a real
-failure. Bypassing hooks is prohibited by the GitHub workflow.
+Gradleとbootstrapは `core.hooksPath .githooks` を設定する。pre-pushは最初にbranch/dirty/fast-forwardを検査し、共通Change Impactから必要なPython/Gradleテストを実行して失敗時にpushを拒否する。push前にも上記の共通コマンドで確認する。知識変更の安全なskipはhook迂回ではなく、`--no-verify`や保護無効化は禁止する。
 
-**Second, independent safety net: GitHub Actions CI** (`.github/workflows/ci.yml`) runs the test
-suite on every push/PR against `main`, so a `--no-verify` push (or any push from an environment
-where the local hook never got installed) still gets caught. It resolves the IntelliJ platform
-dependency differently than local dev does — worth knowing before touching either file:
+GitHub Actionsのrequired `test` jobも同じ分類を利用し、実行/skipの理由をsummaryへ記録する。通常の製品変更のJUnitは従来どおり実行し、知識だけならAndroid Studio取得まで省略する。必要時のSDK解決方法は次のとおり。
 
 - **Local dev** uses `local(providers.gradleProperty("platformPath"))` in `build.gradle.kts`,
   pointing at a real Android Studio install on the machine (`gradle.properties`).
