@@ -80,6 +80,8 @@ for line in sys.stdin:
             update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
             if scenario != "task-stop":
                 update(sessionUpdate="tool_call_update", toolCallId="task-one", status="failed" if scenario == "task-failed" else "completed", rawOutput={"durationMs": 12, "isBackground": False})
+                if scenario == "task-reopened":
+                    update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
                 send({"method": "cursor/task", "params": {"sessionId": "foreign-session", "toolCallId": "task-one", "agentId": "foreign"}})
                 send({"method": "cursor/task", "params": {"toolCallId": "unknown", "agentId": "unknown"}})
                 send({"method": "cursor/task", "params": {"agentId": "missing-id"}})
@@ -106,7 +108,7 @@ for line in sys.stdin:
         if scenario == "task-stop":
             send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-stop"}})
     elif "method" not in request and request.get("id") == pending:
-        if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard"):
+        if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard", "task-reopened"):
             assert request["error"]["code"] == -32601
         response(prompt_id, {"stopReason": scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn"})
         if scenario == "task-late-standard":

@@ -16,7 +16,6 @@ import com.cursoragent.service.ModelOption
 import com.cursoragent.service.PermissionOption
 import com.cursoragent.service.Question
 import com.cursoragent.service.QuestionOption
-import com.cursoragent.service.taskStatus
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -150,8 +149,8 @@ internal class AcpProtocol {
             path = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("path") ?: old.path,
             title = update.string("title") ?: old.title,
             kind = update.string("kind") ?: old.kind,
-            status = if (task != null)
-                taskStatus(old.status, update.string("status") ?: old.status) else update.string("status") ?: old.status,
+            // Quiescence uses the latest wire state, never the presentation's retained result.
+            status = update.string("status") ?: old.status,
             task = task,
             content = if (update["content"]?.isJsonArray == true) update.array("content").map { item ->
                 val data = item.asJsonObject

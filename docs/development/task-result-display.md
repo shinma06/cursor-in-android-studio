@@ -9,7 +9,7 @@
 raw prompt、任意のraw JSON、推定したモデル・usageは保持しない。[TaskPayload](../../src/main/kotlin/com/cursoragent/parser/TaskPayload.kt) で型と上限を検査する。
 
 - **ACP標準:** session/updateのsessionIdと同一turnのtoolCallIdで更新。rawInputの`_toolName=task`でTaskを識別し、既存status/content/locationsの更新を再利用する。
-  TaskのrawInput/rawOutputは提供時に対応する全項目を置換、欠損は保持、明示null/不正型は対応項目を未取得にする。子failedは後のcompletedでも成功へ変えない。
+  TaskのrawInput/rawOutputは提供時に対応する全項目を置換、欠損は保持、明示null/不正型は対応項目を未取得にする。実終了確認は最新のwire statusを使い、完了後に再進行が来れば未終了として扱う。子failedの表示保持とは分離する。
 - **cursor/task:** 同じ接続の有効prompt・既存Taskまたはkind=otherのtoolCallIdに限って補足情報を付ける。明示的な別session、未知ID、Stop後、終端後は無視する。
   標準toolより先に来た補足は保留キューを作らず破棄する。標準toolが後から来ても架空の結果で補わない。
   前turnで使ったIDの再利用は、遅着との区別ができないため補足を結合しない。接続内の履歴は4,096 IDまで保持し、上限後は補足の結合を停止する。標準tool表示は継続する。
@@ -26,7 +26,7 @@ durationMsは数字だけの整数number/整数string、0〜31,536,000,000 ms（
 
 [TaskToolCard](../../src/main/kotlin/com/cursoragent/ui/timeline/TaskToolCard.kt) は既存timeline内の安定した1行。更新時も詳細の開閉と行位置を保つ。本文・エラーはJTextAreaの文字表示でHTML/画像/リンクを実行しない。
 標準content/locationsがあれば既存StructuredToolCardと差分操作を詳細内で再利用する。未取得の子本文、モデル、usage、内部進捗を推定しない。
-背景開始のtool完了は「背景実行（子の終了は未確認）」と表示する。親Stop/失敗/完了で未完了の子は「終了を確認できません」へ移し、子の完了・失敗の根拠は上書きしない。
+背景開始のtool完了は「背景実行（子の終了は未確認）」と表示する。親Stop/失敗/完了で未完了の子は「終了を確認できません」へ移し、子の失敗表示は親成功で上書きしない。完了後に再び進行中が届いた場合は過去の結果を保持しつつ「終了を確認できません」と表示し、最新wireが未終了なら既存の不確定終了/復元拒否へ進む。
 
 [Factory](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt) は既存run token/EDT/Stop/dispose検査の内側で配送し、子ごとの開始通知を増やさず既存の親完了/エラー通知を使う。
 #98の未実装APIを仮定しない。将来の共通折畳み・通知整理では、この安定した行と親通知の経路を接続対象にする。

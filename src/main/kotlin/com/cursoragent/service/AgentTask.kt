@@ -15,10 +15,11 @@ data class AgentTask(
     val errorText: String? = null,
 )
 
-/** A duplicate start or parent completion cannot erase a confirmed child failure/completion. */
+/** Presentation only: a confirmed failure is retained; contradictory activity makes completion uncertain. */
 internal fun taskStatus(previous: String?, incoming: String?): String? = when {
     previous == "failed" || incoming == "failed" -> "failed"
-    previous == "completed" -> "completed"
+    previous in setOf("completed", "unconfirmed") && incoming in setOf("pending", "in_progress", "unconfirmed") -> "unconfirmed"
+    previous == "completed" && incoming == null -> "completed"
     else -> incoming
 }
 

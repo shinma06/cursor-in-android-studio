@@ -62,6 +62,7 @@
       "preconditions": "指定GUI担当がleaseを取得し、#263を含む固定候補のHEAD/ZIP hash/loaded JAR/CLI版/transportを照合する。使い捨てprojectと公開可能な合成子・隔離serverのみを使い、固定契約#118を参照する。",
       "steps": [
         "合成fixtureで子result.errorと親success/exit0を併存させ、子は失敗のまま、親の実結果は維持されることを確認する。provider拒否を故意に繰り返さない。",
+        "合成serverで子completed→in_progress→親end_turnを送り、最新wireの未終了判定によりACP終了未確認・復元拒否となり、カードも過去の完了表示で隠さず終了未確認と表示することを確認する。",
         "子の開始後に親をStop/close/失敗させ、子の終了根拠がない場合は「終了を確認できません」と表示する。completed/failedの子の結果は親終端で上書きしない。",
         "背景開始を示すisBackground=trueの合成成功を表示し、子の終了は未確認と表示する。親Stopだけを子の物理停止のpassにしない。",
         "別run・別タブ・終了後の遅着を合成serverで送る。別タブへの混入・通知重複・自動再送・推定usage/親子時間加算がないこと、既存ACP不確定終了時の復元禁止が保たれることを確認する。"

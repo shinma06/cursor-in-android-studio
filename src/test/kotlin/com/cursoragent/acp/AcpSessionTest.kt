@@ -76,6 +76,17 @@ class AcpSessionTest {
     }
 
     @Test
+    fun `Task reopened before parent end_turn cannot bypass unfinished tool and restore guards`() {
+        Harness(temp, "task-reopened").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertNull(h.gate.tryRestore())
+            assertEquals("in_progress", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
     fun `late standard Task activity still marks the workspace uncertain and rejects restore`() {
         Harness(temp, "task-late-standard").use { h ->
             h.send()

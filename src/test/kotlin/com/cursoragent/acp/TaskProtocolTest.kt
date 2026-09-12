@@ -48,14 +48,17 @@ class TaskProtocolTest {
         }
     }
 
-    @Test fun `failed status survives supplementary metadata and contradictory completion`() {
+    @Test fun `metadata cannot change wire status and terminal checks use latest actual status`() {
         val protocol = AcpProtocol().apply { beginTurn(); update(initial()) }
         protocol.update(update(""""status":"failed""""))
         val task = protocol.taskMetadata(json("""{"toolCallId":"t","agentId":"reported","model":"default"}"""))!!.state
         assertEquals("failed", task.status)
         assertEquals("request-id", task.task!!.requestedAgentId)
         assertEquals("reported", task.task.reportedAgentId)
-        assertEquals("failed", (protocol.update(update(""""status":"completed"""")) as AgentEvent.Tool).state.status)
+        assertEquals("completed", (protocol.update(update(""""status":"completed"""")) as AgentEvent.Tool).state.status)
+        protocol.update(update(""""status":"in_progress""""))
+        assertTrue(protocol.hasUnfinishedTools)
+        assertEquals("in_progress", protocol.taskMetadata(json("""{"toolCallId":"t","model":"new metadata"}"""))!!.state.status)
     }
 
     @Test fun `unknown malformed unrelated and previous-turn task IDs never create tools`() {

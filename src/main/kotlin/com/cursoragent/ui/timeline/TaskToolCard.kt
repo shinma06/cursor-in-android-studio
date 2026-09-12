@@ -48,10 +48,10 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
     }
 
     fun update(incoming: AgentTool) {
-        // A replayed start has no new result and must not replace a terminal card's details.
+        // Retain the observed result, but do not hide contradictory activity behind "completed".
         if (tool.status == "failed" && incoming.status != "failed") return
-        if (tool.status in setOf("completed", "failed") && incoming.status in setOf("pending", "in_progress")) return
-        tool = incoming.copy(status = taskStatus(tool.status, incoming.status))
+        val status = taskStatus(tool.status, incoming.status)
+        tool = if (status == "unconfirmed") tool.copy(status = status) else incoming.copy(status = status)
         val task = requireNotNull(tool.task)
         val title = "子Task: ${task.name ?: task.description ?: "名前は未取得"}\n${taskStatusText(tool.status, task.isBackground)}"
         if (summary.text != title) summary.text = title
