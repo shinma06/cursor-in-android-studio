@@ -1,5 +1,5 @@
 import json
-import os
+import shlex
 from pathlib import Path
 import subprocess
 import tempfile
@@ -23,7 +23,7 @@ class AdapterBoundaryTest(unittest.TestCase):
 
     def refused(self, arguments, cwd=None):
         trap = self.root / 'agent'
-        trap.write_text('#!/bin/sh\ntouch ' + str(self.root / 'FALLBACK_USED') + '\n')
+        trap.write_text('#!/bin/sh\nprintf used > ' + shlex.quote(str(self.root / 'FALLBACK_USED')) + '\n')
         trap.chmod(0o700)
         result = subprocess.run([str(self.launcher), *arguments], cwd=cwd or self.workspace,
                                 env={'PATH': str(self.root), 'PROVIDER_SECRET': 'DO_NOT_COLLECT'},
@@ -45,6 +45,8 @@ class AdapterBoundaryTest(unittest.TestCase):
         self.marker.unlink()
         self.refused(['acp'])
         self.marker.write_text('{}')
+        self.refused(['acp'])
+        self.marker.write_text(json.dumps({'schema': True, 'purpose': acp_fixture.PURPOSE, 'workspace': str(self.workspace)}))
         self.refused(['acp'])
 
     def test_pins_reject_changed_manifest_and_prepare_preserves_existing_output(self):

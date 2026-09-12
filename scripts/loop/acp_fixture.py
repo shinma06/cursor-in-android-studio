@@ -20,7 +20,8 @@ def workspace_marker(workspace):
     marker = workspace / MARKER
     if marker.is_symlink() or not marker.is_file():
         raise ValueError('Explicit synthetic workspace marker is required')
-    if json.loads(marker.read_text(encoding='utf-8')) != {
+    value = json.loads(marker.read_text(encoding='utf-8'))
+    if not isinstance(value, dict) or type(value.get('schema')) is not int or value != {
         'schema': 1, 'purpose': PURPOSE, 'workspace': str(workspace),
     }:
         raise ValueError('Synthetic workspace marker does not match this root')
@@ -68,7 +69,7 @@ def run(config_path, arguments):
     if config_path.is_symlink():
         raise ValueError('Launch configuration must not be a symlink')
     config = json.loads(config_path.read_text(encoding='utf-8'))
-    if config['schema'] != 1 or config['purpose'] != PURPOSE:
+    if type(config['schema']) is not int or config['schema'] != 1 or config['purpose'] != PURPOSE:
         raise ValueError('Invalid synthetic launch configuration')
     root = Path(config['workspace']).resolve(strict=True)
     if Path.cwd().resolve() != root:
