@@ -171,3 +171,14 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | KEYS-97-IME | 日本語IME・mention/slash確定 | pending / pending |
 | KEYS-97-DRAFT | 複数行貼付・tab別draft/caret/focus | pending / pending |
 | KEYS-97-RUNNING | 実行中Enter・Stop/終了競合・明示予約 | pending / pending |
+
+
+## R. #300 権限設定の案内（未確認）
+
+正本: [issue-300.json](../verification/changes/issue-300.json)。#297 P1/P2/P3対応の新3CaseはGPT/human pending、main未反映。既存QA40/102/104/107や過去buildの結果は変更しない。
+
+| Case | 確認対象 | GPT / 人間 |
+|---|---|---|
+| PERM-300-SCOPE | 共有保存値・次回適用・メニュー/Settings | pending / pending |
+| PERM-300-ACP | 選択候補の案内・18組合せ・既存拒否 | pending / pending |
+| PERM-300-REQUEST | permissionのscope・回答/取消/遅着 | pending / pending |

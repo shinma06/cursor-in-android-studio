@@ -1,6 +1,9 @@
 package com.cursoragent.ui
 
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.TurnSettings
+import com.cursoragent.settings.AgentMode
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.session.SessionTabsSnapshot
 import com.cursoragent.settings.AgentSettingsConfigurable
@@ -74,6 +77,11 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        settingsUnavailableReason = { permission, sandbox, worktree ->
+            project.getService(AgentProcessService::class.java).settingsUnavailableReason(
+                AgentTransport.ACP, TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
+            )
+        },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId ->
