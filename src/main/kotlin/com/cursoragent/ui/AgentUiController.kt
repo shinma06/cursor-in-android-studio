@@ -39,6 +39,7 @@ class AgentUiController(
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val history = project.getService(ConversationHistory::class.java)
+    private var resumeAllowed = restored == null && !legacyOnly
     private var saveRevision = 0L
     var hasUnsavedBody = false
         private set
@@ -104,12 +105,30 @@ class AgentUiController(
         agentService.closeSession(tabId)
     }
 
+    fun showResumeAvailability() {
+        val saved = restored ?: return
+        val root = project.basePath
+        val mode = AgentSettingsState.getInstance().worktreeMode
+        composer.setInputEnabled(false)
+        timeline.showStatus("再開できる作業場所か確認中…")
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val allowed = saved.canResume(root, mode)
+            runOnEdt {
+                if (!disposed && !project.isDisposed) {
+                    resumeAllowed = allowed
+                    composer.setInputEnabled(allowed)
+                    timeline.showStatus(if (allowed) "次の送信でprintセッションの再開を試みます。過去のRevertは利用できません。" else "保存本文の閲覧のみです。Agentの再開には新しい会話を開始してください。")
+                }
+            }
+        }
+    }
+
     fun sendPrompt(userText: String) {
         if (disposed || legacyOnly || userText.isBlank() || activeRun != null) return
 
         val shared = AgentSettingsState.getInstance()
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return
-        if (restored != null && !restored.canResume(project.basePath, shared.worktreeMode)) {
+        if (!resumeAllowed) {
             timeline.showStatus("保存本文の閲覧のみです。この接続・作業場所からAgentを再開できないため、新しい会話を開始してください。")
             return
         }
@@ -171,6 +190,9 @@ class AgentUiController(
             try {
                 if (!run.isActive) return@executeOnPooledThread
                 val commandTarget = workspace.commandTarget
+                check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                    "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
+                }
                 runOnEdt { if (!disposed && sessions.accepts(sessionTurn.token)) recorder.provenance(commandTarget.rootPath, workspace.mode) }
                 val target = workspace.restoreTarget
                 val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
@@ -194,6 +216,10 @@ class AgentUiController(
                     timeline.showStatus("実行中…")
                 }
 
+                // Context/checkpoint preparation may take time; do not trust the earlier path check.
+                check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                    "準備中に作業場所が変わったため会話を再開しません。"
+                }
                 agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
             } catch (error: Exception) {
                 run.reportError("送信の準備に失敗しました: ${error.message}")

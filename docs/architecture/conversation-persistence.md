@@ -17,6 +17,8 @@
 
 v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMode、updatedMs、turns。SavedTurnはid(UUID)、state、messages。ChatMessageはid(UUID)、role(user/assistant/tool/error)、text。配列が順序。会話ID、tab ID、turn UUID、run tokenの参照同一性、provider IDは別物。provider IDはPRINT/ACPと組で解釈する。providerから取得できないIDを生成して補わない。
 
+root/worktreeModeは直近の実行先来歴でありturn別の復元権限ではない。履歴を開くsnapshotはそのview/controllerへ渡すだけでrootにキャッシュせず、closeで解放する。
+
 同じassistant全文置換はmessage IDを維持。ACP startsMessageで新ID、tool更新はturn内のprovider call IDをlocal message IDへ対応付ける。call ID自体や実行可能な要求は保存しない。printは現行表示の正規化結果であり、deduperの正しさを新たに保証しない。#116の実wire差は別修正scopeで追跡し、その修正後も保存の全文置換契約を使う。
 
 controller/listenerのisCurrent/token/停止guard後だけRecorderを更新。close/disposeはcallbackを待たずinterruptedで終える。workerは最新の会話snapshotを200msごとにまとめ、順に書く。書込み完了したrevisionだけ「保存済み」、保留は「保存中」、例外/上限は保存失敗。保存失敗はAgent応答失敗とは別。突然のprocess停止は最後の200ms以内の未完了保存を失い得る。OS電源断の完全な耐久性は保証しない。
@@ -39,7 +41,7 @@ IDE config配下のcursor-agent-conversations/project.locationHashへ1会話1フ
 | 旧XML metadata | 本文なし明示 | 来歴不明のため不可 | 不可 |
 | 未完turn | interruptedとして保存された分だけ表示 | 自動再送しない | 不可 |
 
-UI再表示はuser/assistant/tool要約/errorと終端状態だけ。過去tool/permissionは再実行しない。現行serviceのRestoreTarget/WorkspaceOperationGateを保存IDから復活させない。新規PRINTの実行後でも、過去保存カードからRevertはできない。
+UI再表示はuser/assistant/tool要約/errorと終端状態だけ。過去tool/permissionは再実行しない。現行serviceのRestoreTarget/WorkspaceOperationGateを保存IDから復活させない。再開可否のUI案内は背景threadで実体パスを確認し、送信前にも固定commandTargetと保存rootを既存RestorePolicyで再照合する。正当なsymlink経由は同じ実rootなら許可し、準備中のsymlink置換やroot変更は拒否する。新規PRINTの実行後でも、過去保存カードからRevertはできない。
 
 ## 公式比較と採用根拠
 
@@ -49,6 +51,6 @@ ACP標準の[session/loadとsession/resume](https://agentclientprotocol.com/prot
 
 ## 検証・後続担当
 
-Case正本は[issue-44.json](../verification/changes/issue-44.json)。移行・破損・容量/書込み失敗・ID/順序・未完turn・PRINT/ACP非互換はConversationStoreTest、イベント/Stop guardは既存dispatch/text/tab回帰と組み合わせる。実IDE再起動は同じ固定buildを指定GUI lease担当が確認し、未観察はpendingでQAへ引き継ぐ。
+Case正本は[issue-44.json](../verification/changes/issue-44.json)。移行・破損・容量/書込み失敗・ID/順序・未完turn・PRINT/ACP非互換はConversationStoreTestとConversationResumeRootTest、イベント/Stop guardは既存dispatch/text/tab回帰と組み合わせる。実IDE再起動は同じ固定buildを指定GUI lease担当が確認し、未観察はpendingでQAへ引き継ぐ。
 
 #45/#47/#48へConversation/SavedTurn/ChatMessageと独立IDを渡す。共有controller/listener/ComposerはEngineer Bが直列writer、scripts/workflowはEngineer A、#116は研究担当。次回の保存型/ID/配置/イベント境界変更時はwriterと独立reviewerが旧XML/v1 fixture、失敗隔離、秘密の保存範囲、再実行禁止を既存レビューで確認する。運用効果は次回の実変更まで未測定。High Impact監査はPMの#251へ統合する。

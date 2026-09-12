@@ -1,6 +1,8 @@
 package com.cursoragent.history
 
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.service.RestorePolicy
+import com.cursoragent.service.RestoreTarget
 import com.cursoragent.settings.WorktreeMode
 import java.util.UUID
 
@@ -28,9 +30,10 @@ data class Conversation(
     fun interrupted(): Conversation = copy(turns = turns.map {
         if (it.state == "running") it.copy(state = "interrupted") else it
     })
+    /** Resolves filesystem identity; call off EDT, including immediately before provider dispatch. */
     fun canResume(currentRoot: String?, mode: WorktreeMode): Boolean =
-        transport == AgentTransport.PRINT && !providerId.isNullOrBlank() && root != null &&
-            root == currentRoot && worktreeMode == mode && mode == WorktreeMode.DEFAULT
+        transport == AgentTransport.PRINT && !providerId.isNullOrBlank() &&
+            RestorePolicy.rejectionReason(RestoreTarget(root, worktreeMode), RestoreTarget.capture(currentRoot, mode)) == null
 }
 
 /** One controller owns this model; all calls run on EDT, independently of the selected tab. */

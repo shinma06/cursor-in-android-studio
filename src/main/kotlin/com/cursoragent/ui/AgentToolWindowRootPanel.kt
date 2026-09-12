@@ -35,8 +35,6 @@ import javax.swing.JPanel
 /** Retain complete tab views so editor caret/selection and timeline scroll never cross sessions. */
 class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
     private val sessions = SessionTabs()
-    private val restored = mutableMapOf<String, com.cursoragent.history.Conversation>()
-    private val legacyTabs = mutableSetOf<String>()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
     private data class TabView(val panel: JPanel, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
@@ -80,13 +78,11 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId ->
             if (conversation != null) {
-                restored[conversation.id] = conversation
                 sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
             } else {
-                val tab = sessions.open(legacyId)
-                legacyTabs.add(tab.id)
+                sessions.open(legacyId)
             }
-            showSelected()
+            showSelected(conversation, legacyId != null)
         },
         isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
     )
@@ -165,22 +161,19 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         showSelected()
     }
 
-    private fun showSelected() {
+    private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
         if (disposed) return
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
             val composer = ComposerPanel(project)
-            val saved = restored[tab.conversationId]
-            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, tab.id in legacyTabs)
+            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly)
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
             if (saved != null) {
                 timeline.restore(saved)
-                val canResume = saved.canResume(project.basePath, AgentSettingsState.getInstance().worktreeMode)
-                timeline.showStatus(if (canResume) "次の送信でprintセッションの再開を試みます。過去のRevertは利用できません。" else "保存本文の閲覧のみです。Agentの再開には新しい会話を開始してください。")
-                if (!canResume) composer.setInputEnabled(false)
-            } else if (tab.id in legacyTabs) {
+                controller.showResumeAvailability()
+            } else if (legacyOnly) {
                 timeline.showStatus("本文は未保存です。作業場所の来歴を確認できないため、新しい会話を開始してください。")
                 composer.setInputEnabled(false)
             }

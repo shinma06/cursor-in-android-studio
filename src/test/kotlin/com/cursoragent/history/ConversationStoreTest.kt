@@ -79,6 +79,20 @@ class ConversationStoreTest {
         }
     }
 
+    @Test fun `malformed provider and fractional schema are isolated before history selection`() {
+        val store = ConversationStore(directory)
+        val value = Conversation(providerId = "provider")
+        store.save(value)
+        val path = directory.resolve("${value.id}.json")
+        val original = Files.readString(path)
+        for (malformed in listOf(original.replace("\"version\":1", "\"version\":1.5"), original.replace("\"provider\"", "\" \""))) {
+            Files.writeString(path, malformed)
+            assertEquals(1, store.load().unreadable)
+            assertThrows(IllegalArgumentException::class.java) { store.save(value) }
+            assertEquals(malformed, Files.readString(path))
+        }
+    }
+
     @Test fun `count limit is explicit and delete frees only the selected file`() {
         val store = ConversationStore(directory)
         val records = List(ConversationStore.MAX_CONVERSATIONS) { Conversation() }
@@ -94,20 +108,23 @@ class ConversationStoreTest {
 
     @Test fun `legacy XML state remains metadata only and is never mistaken for ACP`() {
         val legacy = ChatHistoryState.State().apply { records.add(ChatHistoryRecord("provider-legacy", "preview", 123)) }
+        val xml = com.intellij.util.xmlb.XmlSerializer.serialize(legacy)
+        val decoded = com.intellij.util.xmlb.XmlSerializer.deserialize(xml, ChatHistoryState.State::class.java)
         val history = ChatHistoryState()
-        history.loadState(legacy)
+        history.loadState(decoded)
         assertEquals("provider-legacy", history.list().single().chatId)
         assertEquals(0, ConversationStore(directory).load().conversations.size)
-        assertEquals(legacy, history.getState())
+        assertEquals(legacy.records, history.getState().records)
     }
 
     @Test fun `provider resume requires print and matching known workspace while display does not`() {
-        val print = Conversation(providerId = "same-provider", root = "/project", worktreeMode = WorktreeMode.DEFAULT)
-        assertTrue(print.canResume("/project", WorktreeMode.DEFAULT))
-        assertFalse(print.copy(transport = AgentTransport.ACP).canResume("/project", WorktreeMode.DEFAULT))
-        assertFalse(print.copy(root = null).canResume("/project", WorktreeMode.DEFAULT))
+        val root = directory.toRealPath().toString()
+        val print = Conversation(providerId = "same-provider", root = root, worktreeMode = WorktreeMode.DEFAULT)
+        assertTrue(print.canResume(root, WorktreeMode.DEFAULT))
+        assertFalse(print.copy(transport = AgentTransport.ACP).canResume(root, WorktreeMode.DEFAULT))
+        assertFalse(print.copy(root = null).canResume(root, WorktreeMode.DEFAULT))
         assertFalse(print.canResume("/other", WorktreeMode.DEFAULT))
-        assertFalse(print.canResume("/project", WorktreeMode.ISOLATED))
+        assertFalse(print.canResume(root, WorktreeMode.ISOLATED))
         val store = ConversationStore(directory)
         store.save(print.copy(transport = AgentTransport.ACP))
         assertEquals("same-provider", store.load().conversations.single().providerId)

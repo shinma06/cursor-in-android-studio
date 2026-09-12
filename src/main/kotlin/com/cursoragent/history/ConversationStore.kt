@@ -67,7 +67,7 @@ class ConversationStore(private val directory: Path) {
         val bytes = Files.newInputStream(path).use { it.readNBytes(MAX_BYTES + 1) }
         require(bytes.size <= MAX_BYTES)
         val json = JsonParser.parseString(bytes.toString(Charsets.UTF_8)).asJsonObject
-        require(json["version"]?.asInt == 1)
+        require(json["version"]?.toString() == "1")
         require(json["transport"]?.asString in setOf("PRINT", "ACP"))
         require(json.has("id") && json.has("updatedMs") && json["turns"]?.isJsonArray == true)
         val value = gson.fromJson(json, Conversation::class.java)
@@ -81,6 +81,7 @@ class ConversationStore(private val directory: Path) {
     private fun validate(value: Conversation) {
         require(value.version == 1 && UUID.fromString(value.id).toString() == value.id)
         require(value.updatedMs >= 0)
+        require(value.providerId == null || value.providerId.isNotBlank())
         val ids = mutableSetOf<String>()
         require(value.turns.size <= 10000)
         value.turns.forEach { turn ->

@@ -17,7 +17,8 @@
       "steps": [
         "固定build/ZIP hash/loaded JAR、CLI版、指定GUI leaseを記録し使い捨てprojectでprintとACP会話を作る。元入力とassistant反復・toolを記録する。",
         "保存済み表示を待ちIDEを終了・同じbuildで再起動し履歴を開く。本文順序、保存JSONの会話/turn/message IDを終了前と比較する。",
-        "printの同root/DEFAULTのみ次送信で再開を試す。ACP、root変更/不明、ISOLATEDは閲覧のみ。旧metadata fixtureを読み本文なし表示を確認。"
+        "printの同root/DEFAULTのみ次送信で再開を試す。ACP、root変更/不明、ISOLATEDは閲覧のみ。旧metadata fixtureを読み本文なし表示を確認。",
+        "同一実rootへのsymlink経由で再開できることを確認後、使い捨て保存rootを別rootへのsymlinkに差し替え、旧providerで送信されないことを確認する。準備中の差し替えも確認する。"
       ],
       "expected": "保存済み本文/順序/IDが維持される。ACPをprintとして再開せず、本文なしを生成しない。旧履歴と来歴不一致は閲覧専用。保存カードにはRevert/permission再実行がない。",
       "history": [],
@@ -103,7 +104,8 @@
       "steps": [
         "隔離fixtureの1会話JSONを破損/未来versionへ変更し、別会話を正常に保ったまま履歴を開く。",
         "使い捨て保存先の権限不足/容量上限を用意し保存失敗表示と旧ファイル保持を確認する。100会話/8MiB上限も確認する。",
-        "開いている会話の削除拒否、close後の確認付き削除、他会話と旧metadataの保全を確認する。"
+        "開いている会話の削除拒否、close後の確認付き削除、他会話と旧metadataの保全を確認する。",
+        "履歴を開いてclose/削除し、root panelが保存本文snapshotを保持し続けないことを確認する。"
       ],
       "expected": "破損件数を明示し該当ファイルと正常会話を保全。失敗は保存済みにならない。保持は無期限・上限で自動削除せず、明示削除は選択した会話だけに適用。",
       "history": [],
