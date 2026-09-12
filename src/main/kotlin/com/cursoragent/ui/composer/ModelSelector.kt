@@ -75,6 +75,8 @@ class ModelSelector(
         }
     }
 
+    fun closePopup() = popupController.close()
+
     fun waitForAcp() {
         if (!acp) printModelId = settings.selectedModel
         settings.selectedModel = ""
