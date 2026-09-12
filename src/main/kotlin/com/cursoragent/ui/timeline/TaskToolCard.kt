@@ -71,7 +71,7 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
         }
         if (bodyText.text != body) bodyText.text = body
         standardContent?.let(details::remove)
-        standardContent = if (tool.content.isNotEmpty() || tool.locations.isNotEmpty()) StructuredToolCard(tool, viewDiff) else null
+        standardContent = if (tool.content.isNotEmpty() || tool.locations.isNotEmpty() || tool.locationsNotice != null) StructuredToolCard(tool, viewDiff) else null
         standardContent?.let { details.add(it, BorderLayout.CENTER) }
         revalidate()
         repaint()

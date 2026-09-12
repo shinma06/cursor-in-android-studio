@@ -94,3 +94,7 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 print/ACPの本文・思考・tool・要求返答・終端・usageと、全文置換/メッセージ境界の分離理由は [UIイベント契約](event-contracts.md)を参照。イベント変更のwriterと独立reviewerがwire/表示/未知処理と実経路テストを照合する。
 
 #44の会話/turn/message ID、保存型/責務・来歴、保持削除、元入力と注入context、保存状態は[会話保存契約](conversation-persistence.md)を参照。過去のprovider sessionと本文閲覧・Revertを分ける。
+
+## ACP非テキスト内容（#296）
+
+画像・音声・リソースの有限情報表示、更新/上限/保存互換と未実装previewの境界は[ACP内容の有限表示](acp-content.md)を参照。

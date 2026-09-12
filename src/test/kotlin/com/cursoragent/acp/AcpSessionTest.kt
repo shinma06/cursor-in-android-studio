@@ -407,6 +407,28 @@ class AcpSessionTest {
         }
     }
 
+    @Test
+    fun `nontext siblings survive malformed input while foreign terminal and stopped content are gated`() {
+        Harness(temp.resolve("normal"), "content-normal").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            assertEquals(listOf("before", "after"), h.events.filterIsInstance<AgentEvent.Text>().map { it.text })
+            val media = h.events.filterIsInstance<AgentEvent.Content>().single().summary
+            assertTrue(media.details.contains("image/png"))
+            assertEquals(2, h.events.filterIsInstance<AgentEvent.Tool>().single().state.content.size)
+            h.gate.tryRestore()!!.close()
+        }
+        Harness(temp.resolve("stop"), "content-stop").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            h.run.stop()
+            h.finish()
+            assertEquals(listOf("stopped"), h.outcomes)
+            assertTrue(h.events.filterIsInstance<AgentEvent.Content>().none { it.summary.details.contains("after-stop") })
+        }
+    }
+
     private fun awaitCondition(condition: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
         while (!condition() && System.nanoTime() < deadline) Thread.sleep(10)

@@ -42,7 +42,10 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
             turn.messages.forEach { message ->
                 when (message.role) {
                     "user" -> addUserMessage(message.text)
-                    "assistant" -> { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    "assistant" -> {
+                        if (message.presentation == "acp_content") addAssistantContent(message.text)
+                        else { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    }
                     "tool" -> addToolCallSummary(null, message.text)
                     "error" -> showError(message.text)
                 }
@@ -106,6 +109,13 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun setAssistantText(text: String) {
         ensureAssistantBubble().setContent(text)
         scrollToBottom()
+    }
+
+    fun addAssistantContent(text: String) {
+        finalizeAssistantMessage()
+        clearStatus()
+        hideEmptyState()
+        addRow(AssistantContentRow(text))
     }
 
     fun finalizeAssistantMessage() {

@@ -73,6 +73,15 @@ for line in sys.stdin:
             if child is not None:
                 threading.Thread(target=child.wait, daemon=True).start()
             update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "running"})
+        elif scenario.startswith("content-"):
+            send({"method": "session/update", "params": {"sessionId": "foreign-session", "update": {"sessionUpdate": "agent_message_chunk", "content": {"type": "image", "mimeType": "foreign", "data": "x"}}}})
+            update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "before"})
+            update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "image/png", "data": "synthetic"})
+            update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "after"})
+            update(sessionUpdate="tool_call", toolCallId="media", status="completed", content=[None, {"type": "content", "content": {"type": "audio", "mimeType": "audio/wav", "data": "synthetic"}}])
+            if scenario != "content-stop":
+                response(prompt_id, {"stopReason": "end_turn"})
+                update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "late", "data": "x"})
         elif scenario.startswith("task-"):
             # Synthetic adaptation of #118's public projection; requests remain unsupported.
             send({"method": "cursor/task", "params": {"toolCallId": "missing", "model": "ignore-before-tool"}})
@@ -105,6 +114,8 @@ for line in sys.stdin:
     elif method == "session/cancel":
         response(prompt_id, {"stopReason": "cancelled"})
         (root / "cancel-response").touch()
+        if scenario == "content-stop":
+            update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "after-stop", "data": "x"})
         if scenario == "task-stop":
             send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-stop"}})
     elif "method" not in request and request.get("id") == pending:

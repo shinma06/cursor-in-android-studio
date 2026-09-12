@@ -17,6 +17,7 @@ enum class AgentTurnOutcome(val message: String) {
 sealed interface AgentEvent {
     /** Exact text delta with an explicit message boundary (no print deduplication). */
     data class Text(val text: String, val messageId: String?, val startsMessage: Boolean) : AgentEvent
+    data class Content(val summary: AgentToolContent.Summary) : AgentEvent
     data class Thought(val text: String) : AgentEvent
     data class Tool(val state: AgentTool) : AgentEvent
     data class Input(val request: AgentInputRequest) : AgentEvent
@@ -34,6 +35,7 @@ data class AgentTool(
     val command: String? = null,
     val path: String? = null,
     val task: AgentTask? = null,
+    val locationsNotice: String? = null,
 ) {
     val hasPermissionTarget: Boolean get() = !command.isNullOrBlank() || !path.isNullOrBlank() ||
         locations.isNotEmpty() || content.any { it is AgentToolContent.Diff }
@@ -43,6 +45,8 @@ sealed interface AgentToolContent {
     data class Text(val text: String) : AgentToolContent
     data class Diff(val path: String, val before: String?, val after: String) : AgentToolContent
     data class Unsupported(val type: String) : AgentToolContent
+    /** Finite plain display data; never contains binary data or an executable URI. */
+    data class Summary(val type: String, val state: ContentDisplayState, val details: String = "") : AgentToolContent
 }
 
 sealed interface AgentInput {
@@ -93,3 +97,12 @@ class AgentInputRequest(val input: AgentInput, private val reply: (AgentAnswer) 
         }
     }
 }
+
+/** Display support is independent of the provider's tool execution status. */
+enum class ContentDisplayState(val label: String) {
+    METADATA("情報のみ・内容未検証"), INVALID("内容の形式が不正"),
+    UNSUPPORTED("表示未対応"), LIMITED("表示上限により省略"),
+}
+
+fun AgentToolContent.Summary.displayText(): String =
+    "$type（${state.label}）" + if (details.isEmpty()) "" else "\n$details"

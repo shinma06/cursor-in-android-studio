@@ -11,7 +11,6 @@ import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentInput
 import com.cursoragent.service.AgentTask
 import com.cursoragent.service.AgentTool
-import com.cursoragent.service.AgentToolContent
 import com.cursoragent.service.ModelOption
 import com.cursoragent.service.PermissionOption
 import com.cursoragent.service.Question
@@ -26,6 +25,7 @@ internal class AcpProtocol {
     private val retiredToolIds = mutableSetOf<String>()
     private var metadataCorrelationExhausted = false
     private var payloadSize = 0
+    private var contents = AcpContent()
     private var messageId: String? = null
     private var interrupted = true
 
@@ -37,6 +37,7 @@ internal class AcpProtocol {
         else { metadataCorrelationExhausted = true; retiredToolIds.clear() }
         tools.clear()
         payloadSize = 0
+        contents = AcpContent()
         interrupted = true
     }
 
@@ -47,9 +48,9 @@ internal class AcpProtocol {
         acceptPayload(update)
         return when (update.string("sessionUpdate")) {
             "agent_message_chunk", "agent_thought_chunk" -> {
-                val content = update.getAsJsonObject("content")
-                if (content.string("type") == "text") {
-                    val text = content.requiredString("text")
+                val content = update["content"]?.takeIf { it.isJsonObject }?.asJsonObject
+                val text = content?.get("text")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+                if (content?.string("type") == "text" && text != null) {
                     if (update.string("sessionUpdate") == "agent_message_chunk") {
                         val id = update.string("messageId")
                         val boundary = interrupted || messageId != id
@@ -57,7 +58,12 @@ internal class AcpProtocol {
                         interrupted = false
                         AgentEvent.Text(text, id, boundary)
                     } else { interrupted = true; AgentEvent.Thought(text) }
-                } else null // Image/audio input and richer output are separate acceptance scopes.
+                } else {
+                    interrupted = true
+                    if (update.string("sessionUpdate") == "agent_message_chunk")
+                        contents.assistant(update["content"])?.let(AgentEvent::Content)
+                    else null // Thoughts are transient, never persisted as assistant content.
+                }
             }
             "tool_call", "tool_call_update" -> {
                 interrupted = true
@@ -144,6 +150,8 @@ internal class AcpProtocol {
 
     private fun tool(update: JsonObject, old: AgentTool): AgentTool {
         val task = task(update, old.task)
+        val locations = if (update.has("locations")) contents.locations(update["locations"])
+            else old.locations to old.locationsNotice
         return old.copy(
             command = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("command") ?: old.command,
             path = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("path") ?: old.path,
@@ -152,19 +160,9 @@ internal class AcpProtocol {
             // Quiescence uses the latest wire state, never the presentation's retained result.
             status = update.string("status") ?: old.status,
             task = task,
-            content = if (update["content"]?.isJsonArray == true) update.array("content").map { item ->
-                val data = item.asJsonObject
-                when (data.string("type")) {
-                    "content" -> {
-                        val content = data.getAsJsonObject("content")
-                        if (content.string("type") == "text") AgentToolContent.Text(content.requiredString("text"))
-                        else AgentToolContent.Unsupported(content.string("type") ?: "unknown")
-                    }
-                    "diff" -> AgentToolContent.Diff(data.requiredString("path"), data.string("oldText"), data.requiredString("newText"))
-                    else -> AgentToolContent.Unsupported(data.string("type") ?: "unknown")
-                }
-            } else old.content,
-            locations = if (update["locations"]?.isJsonArray == true) update.array("locations").map { it.asJsonObject.requiredString("path") } else old.locations,
+            content = if (update.has("content")) contents.tool(update["content"]) else old.content,
+            locations = locations.first,
+            locationsNotice = locations.second,
         )
     }
 }
