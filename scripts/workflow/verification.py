@@ -211,7 +211,9 @@ def verify_pr(pr, api, git=git_read):
                 raise ValueError('Case execution requirement changed across candidate commits')
             required[key] = requirement
     results = promotion.get('results', {})
-    if not isinstance(results, dict) or set(results) != set(required):
+    if not isinstance(results, dict):
+        raise ValueError('Candidate results must be an object matching ALL required Cases')
+    if set(results) != set(required):
         raise ValueError('Candidate results must match ALL required Cases; missing=' +
                          ','.join(sorted(set(required) - set(results))) + '; extra=' +
                          ','.join(sorted(set(results) - set(required))))

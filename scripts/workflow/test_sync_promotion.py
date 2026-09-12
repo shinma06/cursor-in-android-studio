@@ -105,6 +105,15 @@ class SyncPromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'ALL required Cases'):
             self.verify()
 
+    def test_non_object_results_keep_a_clear_validation_error(self):
+        self.prepare()
+        for malformed in (None, [], [{}]):
+            with self.subTest(results=malformed):
+                self.manifest['results'] = malformed
+                self.record()
+                with self.assertRaisesRegex(ValueError, 'results must be an object'):
+                    self.verify()
+
     def test_missing_duplicate_and_reassigned_commits_are_rejected(self):
         self.prepare()
         original = copy.deepcopy(self.manifest)
