@@ -1,0 +1,500 @@
+{
+  "schema": 1,
+  "date": "2026-09-12",
+  "base": "9979266b4e99e7d4dc46689dac1f61f33f09b88a",
+  "cli_version": "2026.09.10-fd3934a",
+  "model_id": "composer-2.5[fast=true]",
+  "evidence_kind": "author-observed allowlist projection; not raw wire or independent live replay",
+  "agent_capabilities": {
+    "image": true,
+    "loadSession": true
+  },
+  "acp_client_callback_requests": 0,
+  "stderr_bytes": 0,
+  "images": {
+    "7c4e2a91.png": {
+      "cells": [
+        [
+          "blue",
+          "square"
+        ],
+        [
+          "yellow",
+          "triangle"
+        ],
+        [
+          "yellow",
+          "circle"
+        ],
+        [
+          "yellow",
+          "circle"
+        ],
+        [
+          "green",
+          "triangle"
+        ],
+        [
+          "green",
+          "circle"
+        ]
+      ],
+      "sha256": "5e2c78ac61464dc698511e8992b75812ccd06fb6aa75c23dfa9cc652fa06bff6",
+      "bytes": 3707
+    },
+    "a90d63f2.png": {
+      "cells": [
+        [
+          "red",
+          "triangle"
+        ],
+        [
+          "blue",
+          "circle"
+        ],
+        [
+          "red",
+          "triangle"
+        ],
+        [
+          "red",
+          "square"
+        ],
+        [
+          "yellow",
+          "triangle"
+        ],
+        [
+          "yellow",
+          "square"
+        ]
+      ],
+      "sha256": "af5ac8f829b83a784d8830c6e64a92aa69373084bf2287035cd92fa81be62a26",
+      "bytes": 3206
+    },
+    "53b8d1ac.png": {
+      "cells": [
+        [
+          "red",
+          "triangle"
+        ],
+        [
+          "blue",
+          "circle"
+        ],
+        [
+          "blue",
+          "square"
+        ],
+        [
+          "yellow",
+          "circle"
+        ],
+        [
+          "green",
+          "circle"
+        ],
+        [
+          "green",
+          "circle"
+        ]
+      ],
+      "sha256": "b3c1c6450cac9cc80d61e7ec87e754638582d3665027b699f41998b53c77338d",
+      "bytes": 3538
+    },
+    "e64f09b3.png": {
+      "code": "R8Q2",
+      "sha256": "59f0b02a9f526b1b9f3026c7dd210ecb60469e3aa74a0356b7f3cf438b0f74cd",
+      "bytes": 7677
+    }
+  },
+  "acp": [
+    {
+      "case": "a1",
+      "answer": {
+        "cells": [
+          [
+            "blue",
+            "square"
+          ],
+          [
+            "yellow",
+            "triangle"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "green",
+            "triangle"
+          ],
+          [
+            "green",
+            "circle"
+          ]
+        ]
+      },
+      "stopReason": "end_turn",
+      "image": "7c4e2a91.png",
+      "source_copy_deleted_before_send": false
+    },
+    {
+      "case": "a2",
+      "answer": {
+        "cells": [
+          [
+            "red",
+            "triangle"
+          ],
+          [
+            "blue",
+            "circle"
+          ],
+          [
+            "red",
+            "triangle"
+          ],
+          [
+            "red",
+            "square"
+          ],
+          [
+            "yellow",
+            "triangle"
+          ],
+          [
+            "yellow",
+            "square"
+          ]
+        ]
+      },
+      "stopReason": "end_turn",
+      "image": "a90d63f2.png",
+      "source_copy_deleted_before_send": true
+    },
+    {
+      "case": "a3",
+      "answer": {
+        "cells": [
+          [
+            "red",
+            "triangle"
+          ],
+          [
+            "blue",
+            "circle"
+          ],
+          [
+            "blue",
+            "square"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "green",
+            "circle"
+          ],
+          [
+            "green",
+            "circle"
+          ]
+        ]
+      },
+      "stopReason": "end_turn",
+      "image": "53b8d1ac.png",
+      "source_copy_deleted_before_send": true
+    },
+    {
+      "case": "seed",
+      "answer": "画像を受け取りました。ACK",
+      "stopReason": "end_turn"
+    },
+    {
+      "case": "resume",
+      "answer": "R8Q2",
+      "stopReason": "end_turn"
+    },
+    {
+      "case": "other-root",
+      "answer": "R8Q2",
+      "stopReason": "end_turn"
+    },
+    {
+      "case": "invalid",
+      "answer": "UNAVAILABLE",
+      "stopReason": "end_turn"
+    }
+  ],
+  "print": [
+    {
+      "case": "normal",
+      "cwd": "<print-root>",
+      "requested_path": "資料 files/7c4e2a91.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "cells": [
+          [
+            "blue",
+            "square"
+          ],
+          [
+            "yellow",
+            "triangle"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "green",
+            "triangle"
+          ],
+          [
+            "green",
+            "circle"
+          ]
+        ]
+      },
+      "non_json_setup_lines": 0,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<print-root>/資料 files/7c4e2a91.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "path": "<print-root>/資料 files/7c4e2a91.png",
+          "success": true,
+          "fileSize": 3707
+        }
+      ]
+    },
+    {
+      "case": "resume",
+      "cwd": "<print-root>",
+      "requested_path": "<print-root>/資料 files/a90d63f2.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "cells": [
+          [
+            "red",
+            "triangle"
+          ],
+          [
+            "blue",
+            "circle"
+          ],
+          [
+            "red",
+            "triangle"
+          ],
+          [
+            "red",
+            "square"
+          ],
+          [
+            "yellow",
+            "triangle"
+          ],
+          [
+            "yellow",
+            "square"
+          ]
+        ]
+      },
+      "non_json_setup_lines": 0,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<print-root>/資料 files/a90d63f2.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "path": "<print-root>/資料 files/a90d63f2.png",
+          "success": true,
+          "fileSize": 3206
+        }
+      ]
+    },
+    {
+      "case": "missing",
+      "cwd": "<print-root>",
+      "requested_path": "資料 files/a90d63f2.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "unavailable": true
+      },
+      "non_json_setup_lines": 0,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<print-root>/資料 files/a90d63f2.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "error": "File not found"
+        }
+      ]
+    },
+    {
+      "case": "isolated",
+      "cwd": "<isolated-root>",
+      "requested_path": "資料 files/7c4e2a91.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "cells": [
+          [
+            "blue",
+            "square"
+          ],
+          [
+            "yellow",
+            "triangle"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "yellow",
+            "circle"
+          ],
+          [
+            "green",
+            "triangle"
+          ],
+          [
+            "green",
+            "circle"
+          ]
+        ]
+      },
+      "non_json_setup_lines": 1,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<isolated-root>/資料 files/7c4e2a91.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "path": "<isolated-root>/資料 files/7c4e2a91.png",
+          "success": true,
+          "fileSize": 3707
+        }
+      ]
+    },
+    {
+      "case": "other-root",
+      "cwd": "<other-root>",
+      "requested_path": "資料 files/7c4e2a91.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "unavailable": true
+      },
+      "non_json_setup_lines": 0,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<other-root>/資料 files/7c4e2a91.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "error": "File not found"
+        },
+        {
+          "kind": "globToolCall",
+          "subtype": "started",
+          "targetDirectory": "<other-root>",
+          "globPattern": "**/7c4e2a91.png"
+        },
+        {
+          "kind": "globToolCall",
+          "subtype": "completed",
+          "targetDirectory": "<other-root>",
+          "globPattern": "**/7c4e2a91.png",
+          "success": true,
+          "totalFiles": 0
+        }
+      ]
+    },
+    {
+      "case": "isolated-untracked",
+      "cwd": "<isolated-root>",
+      "requested_path": "資料 files/8f261b0d.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "unavailable": true
+      },
+      "non_json_setup_lines": 1,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<isolated-root>/資料 files/8f261b0d.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "error": "File not found"
+        }
+      ]
+    },
+    {
+      "case": "isolated-absolute",
+      "cwd": "<isolated-root>",
+      "requested_path": "<print-root>/資料 files/8f261b0d.png",
+      "exit": 0,
+      "is_error": false,
+      "answer": {
+        "unavailable": true
+      },
+      "non_json_setup_lines": 1,
+      "tool_events": [
+        {
+          "kind": "readToolCall",
+          "subtype": "started",
+          "path": "<print-root>/资料 files/8f261b0d.png"
+        },
+        {
+          "kind": "readToolCall",
+          "subtype": "completed",
+          "error": "File not found"
+        }
+      ]
+    }
+  ],
+  "limits": {
+    "frame_bytes": 1048576,
+    "normalized_png_bytes": 524288,
+    "source_bytes": 10485760,
+    "max_side": 4096,
+    "max_pixels": 8000000
+  }
+}
