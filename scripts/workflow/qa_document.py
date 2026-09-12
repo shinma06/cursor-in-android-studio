@@ -47,6 +47,14 @@ def ensure_document(gh, repo, number, document):
     marker = '<!-- qa-human-document:v1 -->'
     payload = marker + '\n' + document
     comments = gh.comments(number)
+    body = gh.issue(number).get('body') or ''
+    pattern = r'<!-- qa-human-link:v1 -->\n.*?\n<!-- /qa-human-link -->'
+    links = re.findall(pattern, body, re.S)
+    if links:
+        current = re.search(re.escape(f'https://github.com/{repo}/issues/{number}#issuecomment-') + r'(\d+)\)', links[0])
+        linked = next((c for c in comments if current and c['id'] == int(current[1])), None)
+        if len(links) != 1 or not linked or linked['body'] != payload:
+            raise ValueError('Current QA human document changed; reconcile before retry')
     if not any(c['body'] == payload for c in comments):
         gh.comment(number, payload)
     matches = [c for c in gh.comments(number) if c['body'] == payload]
@@ -56,7 +64,6 @@ def ensure_document(gh, repo, number, document):
     url = f'https://github.com/{repo}/issues/{number}#issuecomment-{comment_id}'
     link = f'<!-- qa-human-link:v1 -->\n**試験内容ドキュメント:** [前提条件・試験手順・期待結果・結果記録]({url})\n<!-- /qa-human-link -->'
     body = gh.issue(number).get('body') or ''
-    pattern = r'<!-- qa-human-link:v1 -->\n.*?\n<!-- /qa-human-link -->'
     updated = re.sub(pattern, lambda _: link, body, flags=re.S) if re.search(pattern, body, re.S) else link + '\n\n' + body
     if updated != body:
         gh.api(f'repos/{repo}/issues/{number}', 'PATCH', {'body': updated})

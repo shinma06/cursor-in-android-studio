@@ -70,6 +70,18 @@ class HandoffTests(unittest.TestCase):
         for text in ('前提条件', '試験手順', '期待結果', 'main反映', 'unit tests'):
             self.assertIn(text, documents[0]['body'])
 
+    def test_human_amendment_blocks_retry_without_redirecting_current_guide(self):
+        self.transfer()
+        document = next(c for c in self.gh.comments(100) if c['body'].startswith('<!-- qa-human-document:v1 -->'))
+        self.gh.comment(100, document['body'] + '\nHuman prerequisite: wait for fix #205.', document['id'])
+        body = self.gh.issue(100)['body']
+        comments = copy.deepcopy(self.gh.comments(100))
+        with self.assertRaisesRegex(ValueError, 'human document changed'):
+            self.transfer()
+        self.assertEqual(self.gh.issue(100)['body'], body)
+        self.assertEqual(self.gh.comments(100), comments)
+        self.assertEqual(self.gh.issue(35)['state'], 'open')
+
     def test_missing_document_readback_blocks_and_retry_recovers(self):
         original = self.gh.comment
         self.gh.comment = lambda n, body, comment_id=None: None if n == 100 else original(n, body, comment_id)
