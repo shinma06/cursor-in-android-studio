@@ -2,7 +2,7 @@ package com.cursoragent.ui.composer.context
 
 import com.cursoragent.parser.TokenUsage
 
-enum class UsagePhase { NOT_STARTED, RUNNING, COMPLETED, STOPPED, FAILED }
+enum class UsagePhase { NOT_STARTED, RUNNING, STOPPING, COMPLETED, STOPPED, FAILED }
 
 /** EDT-owned generation gate. Finishing seals counters without discarding the response's values. */
 class ContextUsageState {
@@ -36,11 +36,15 @@ class ContextUsageState {
 
     fun finish(ticket: Long, outcome: UsagePhase): Boolean {
         require(outcome in setOf(UsagePhase.COMPLETED, UsagePhase.STOPPED, UsagePhase.FAILED))
-        if (ticket != generation || phase != UsagePhase.RUNNING) return false
+        if (ticket != generation || phase !in setOf(UsagePhase.RUNNING, UsagePhase.STOPPING)) return false
         phase = outcome
         generation++
         return true
     }
 
-    fun stop(): Boolean = finish(generation, UsagePhase.STOPPED)
+    fun stop(): Boolean {
+        if (phase != UsagePhase.RUNNING) return false
+        phase = UsagePhase.STOPPING
+        return true
+    }
 }

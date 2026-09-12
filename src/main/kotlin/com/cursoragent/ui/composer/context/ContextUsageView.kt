@@ -133,6 +133,7 @@ class ContextUsageView {
         status.text = when (state.phase) {
             UsagePhase.NOT_STARTED -> "直近の応答"
             UsagePhase.RUNNING -> "応答を準備・実行中"
+            UsagePhase.STOPPING -> "停止処理中の応答"
             UsagePhase.COMPLETED -> "完了した応答"
             UsagePhase.STOPPED -> "停止した応答"
             UsagePhase.FAILED -> "失敗した応答"
@@ -145,7 +146,7 @@ class ContextUsageView {
             UsagePhase.NOT_STARTED -> "まだ応答を開始していません"
             UsagePhase.RUNNING -> "トークン数の報告待ちです"
             UsagePhase.COMPLETED -> "この応答では情報未提供です"
-            UsagePhase.STOPPED, UsagePhase.FAILED -> "トークン数は未取得です"
+            UsagePhase.STOPPING, UsagePhase.STOPPED, UsagePhase.FAILED -> "トークン数は未取得です"
         }
         emptyMessage.isVisible = !hasCounters
         status.toolTipText = "この応答で受信した値です。入力とキャッシュの重複関係は未確認のため合計しません。"
