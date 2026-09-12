@@ -75,6 +75,12 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass
 
+    def parse_request(self):
+        accepted = super().parse_request()
+        if accepted:
+            self.server.owner.log('request', method=self.command, path=self.path[:2048])
+        return accepted
+
     def send(self, status, body='', headers=None):
         data = body.encode('utf-8')
         self.send_response(status)
@@ -97,7 +103,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         run = self.server.owner
-        run.log('request', method='GET', path=self.path[:2048])
         if not self.permitted():
             self.send(403)
             return

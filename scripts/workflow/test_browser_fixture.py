@@ -73,6 +73,9 @@ class BrowserFixtureTest(unittest.TestCase):
             self.assertEqual(404, self.request(path)[0])
         self.assertEqual(403, self.request('http://outside.invalid/a')[0])
         self.assertEqual(403, self.request('/a', headers={'Host': 'outside.invalid'})[0])
+        self.assertEqual(501, self.request('/head-probe', method='HEAD')[0])
+        log = [json.loads(line) for line in (self.fixture.directory / 'requests.jsonl').read_text().splitlines()]
+        self.assertTrue(any(row.get('method') == 'HEAD' and row.get('path') == '/head-probe' for row in log))
 
     def test_partial_response_is_truncated_not_a_normal_error_page(self):
         with self.assertRaises(http.client.IncompleteRead) as failure:
