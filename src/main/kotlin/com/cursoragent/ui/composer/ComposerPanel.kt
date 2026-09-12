@@ -19,6 +19,8 @@ import javax.swing.KeyStroke
 class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
+    var onEnqueue: (String) -> Unit = {}
+    var onShowQueue: () -> Unit = {}
     var isRunning = false
         private set
     private var acp = false
@@ -27,7 +29,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     val inputArea = GrowingPromptField(project)
 
-    private val mentionPopupController = MentionPopupController(project, inputArea)
+    val promptContext = com.cursoragent.ui.composer.context.PromptContextPanel(project)
+    private val mentionPopupController = MentionPopupController(project, inputArea, promptContext::addMention)
 
     private val sendButton = SelectorButton().apply {
         text = "↑"
@@ -43,6 +46,25 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         accessibleContext.accessibleName = "送信（Enter）"
     }
 
+    private val enqueueButton = javax.swing.JButton("予約に追加").apply {
+        isVisible = false
+        toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
+        addActionListener { if (isRunning && inputArea.isEnabled) inputText().takeIf { it.isNotBlank() }?.let(onEnqueue) }
+    }
+    private val queueButton = javax.swing.JButton().apply {
+        isVisible = false
+        toolTipText = "予約を一時停止して一覧・編集・削除・順序を確認します。"
+        addActionListener { onShowQueue() }
+    }
+
+    fun showQueueState(count: Int, paused: Boolean) {
+        queueButton.text = "予約 $count 件" + if (paused) "（停止中）" else ""
+        queueButton.isVisible = count > 0
+        accessoryPanel.isVisible = isRunning || count > 0
+        revalidate()
+        repaint()
+    }
+
     // Detached selector state: application settings supply defaults only for a new tab.
     val selection = AgentSettingsState().apply {
         val defaults = AgentSettingsState.getInstance()
@@ -52,7 +74,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     val modeSelector = ModeSelector(selection)
     val modelSelector = ModelSelector(selection)
 
-    /** Reserved for diff review bar etc. */
+    /** Transient queue actions live above the input to preserve the compact selector row. */
     val accessoryPanel = JPanel(BorderLayout()).apply {
         isVisible = false
         isOpaque = false
@@ -67,7 +89,14 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             add(inputArea, BorderLayout.CENTER)
         }
 
+        accessoryPanel.add(JPanel(FlowLayout(FlowLayout.RIGHT, JBUI.scale(4), 0)).apply {
+            isOpaque = false
+            add(queueButton)
+            add(enqueueButton)
+        })
         mentionPopupController.install()
+        promptContext.onAddMention = { mentionPopupController.showPopup() }
+        inputWrapper.add(promptContext, BorderLayout.NORTH)
 
         object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) = submit()
@@ -125,6 +154,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun setRunning(running: Boolean) {
         isRunning = running
+        enqueueButton.isVisible = running
+        accessoryPanel.isVisible = running || queueButton.isVisible
         if (acp) {
             modeSelector.isEnabled = !running
             modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
@@ -137,6 +168,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun clearInput() {
         inputArea.text = ""
+        promptContext.clearExplicit()
     }
 
     fun inputText(): String = inputArea.text.trim()
