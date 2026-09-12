@@ -15,6 +15,26 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 
 object DiffViewerHelper {
+    /** Both the individual print card and the aggregate list use this same restore gate. */
+    fun revertObservedEdit(
+        project: Project,
+        path: String,
+        before: String?,
+        after: String?,
+        target: RestoreTarget,
+        isCurrent: () -> Boolean = { true },
+        onRestored: () -> Unit,
+    ) {
+        if (project.isDisposed) return
+        val reservation = project.getService(com.cursoragent.service.AgentProcessService::class.java).tryRestore()
+        val result = if (reservation == null) RestoreResult(RestorePolicy.BUSY) else reservation.use {
+            if (before == null || after == null) RestoreResult(RestorePolicy.RESTORE_FAILED)
+            else revertFileContentResult(project, path, before, after, target, isCurrent)
+        }
+        if (result.restored) onRestored()
+        else com.intellij.openapi.ui.Messages.showErrorDialog(project, result.rejectionReason!!, com.cursoragent.PluginBrand.NAME)
+    }
+
     fun showFileEditDiff(project: Project, path: String, before: String, after: String) {
         val factory = DiffContentFactory.getInstance()
         val request = SimpleDiffRequest(
@@ -39,7 +59,9 @@ object DiffViewerHelper {
         beforeContent: String,
         expectedCurrentContent: String,
         target: RestoreTarget,
+        isCurrent: () -> Boolean = { true },
     ): RestoreResult {
+        if (!isCurrent()) return RestoreResult("会話の状態が変わったためRevertできません。変更一覧を開き直してください。")
         fun currentTarget() = RestoreTarget.capture(project.basePath, AgentSettingsState.getInstance().worktreeMode)
         RestorePolicy.rejectionReason(target, currentTarget())?.let { return RestoreResult(it) }
         val resolved = RestorePolicy.resolveFile(target, currentTarget(), path)
@@ -50,6 +72,10 @@ object DiffViewerHelper {
             var result = RestoreResult(RestorePolicy.RESTORE_FAILED)
             WriteCommandAction.writeCommandAction(project).run<Throwable> {
                 // Recheck at the write boundary, including unsaved editor changes.
+                if (!isCurrent()) {
+                    result = RestoreResult("会話の状態が変わったためRevertできません。変更一覧を開き直してください。")
+                    return@run
+                }
                 result = FileRevertOperation.restore(
                     target, currentTarget(), path, beforeContent, expectedCurrentContent,
                     object : FileRevertOperation.FileAccess {
