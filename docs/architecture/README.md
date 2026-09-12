@@ -100,3 +100,5 @@ scripts/workflow/               同じ配置（4経路の検証は#232）
 境界・保存型・配置・設計を変えたwriterは該当行から正本と必要検証を選び、独立reviewerが固定HEAD/baseで追跡する。全体再監査は[既存の発火条件](../development/git-governance-audit.md)で判断。Project概要は短い段階案内と正本へのリンクにし、更新責任は[終了時同期](../development/github-projects.md#issue終了時の整合確認)に残す。
 
 初回の経路確認は、独立reviewerが①設定拒否案内の製品変更、②設計説明の文書変更について、本入口だけから実装/更新先、担当境界、検証を回答しPRへ記録する。図の作成だけでは合格にせず、リンクとソースへの到達を確認する。次回変更の作業時間や品質改善は未測定。
+
+会話本文の保存型・更新・破損隔離・旧XML互換・再表示/再開/Revertの境界は[会話保存契約（#44）](conversation-persistence.md)を参照。

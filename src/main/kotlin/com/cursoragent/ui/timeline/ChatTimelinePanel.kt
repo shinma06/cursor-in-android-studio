@@ -29,6 +29,36 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         border = JBUI.Borders.empty(6, 12, 12, 12)
     }
 
+    private val saveStatus = javax.swing.JLabel().apply { border = JBUI.Borders.empty(2, 12) }
+    fun setSaveStatus(text: String) {
+        saveStatus.text = text
+        saveStatus.toolTipText = "元入力と本文・ツール状態を保存します。注入context・未送信の下書きは保存しません。"
+        add(saveStatus, BorderLayout.SOUTH)
+        revalidate()
+    }
+
+    fun restore(conversation: com.cursoragent.history.Conversation) {
+        conversation.turns.forEach { turn ->
+            turn.messages.forEach { message ->
+                when (message.role) {
+                    "user" -> addUserMessage(message.text)
+                    "assistant" -> { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    "tool" -> addToolCallSummary(null, message.text)
+                    "error" -> showError(message.text)
+                }
+            }
+            if (turn.state != "completed") addToolCallSummary(null, "ターン状態: " + when (turn.state) {
+                "running", "interrupted" -> "中断（自動再送しません）"
+                "stopped", "cancelled" -> "停止"
+                "failed" -> "失敗"
+                "refused" -> "拒否"
+                else -> "上限到達"
+            })
+        }
+        finalizeAssistantMessage()
+        setSaveStatus("保存本文を表示中（過去のRevert・承認は再実行しません）")
+    }
+
     private val emptyState = EmptyStatePanel()
     private val scrollPane = JBScrollPane(messagesPanel).apply {
         border = JBUI.Borders.empty()

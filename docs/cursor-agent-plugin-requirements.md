@@ -120,7 +120,7 @@ AgentToolWindowRootPanel / SessionTabs
 |---|---|---|---|
 | F-01 | テキストプロンプト送信 | MVP | `agent -p --output-format stream-json "<prompt>"` |
 | F-02 | ストリーミング応答表示(トークン単位) | MVP | `--stream-partial-output`イベントを逐次パースしUI更新 |
-| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。再起動後の本文永続化は #44、検索/exportは #45で未実装 |
+| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。develop #44は今後観測した本文を保存・再表示（再起動GUIは別QA）、検索/exportは #45で未実装 |
 | F-04 | セッション再開(前回の続きから) | MVP | `--resume [chatId]` |
 | F-05 | 新規チャット開始 | MVP | セッションID未指定で新規起動 |
 | F-06 | コンテキスト圧縮 | P2 | `/summarize`をプロンプト経由で送信 |
@@ -182,7 +182,7 @@ AgentToolWindowRootPanel / SessionTabs
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-50 | 過去チャット一覧 | P2(部分実装) | pluginがchatId/冒頭prompt/更新時刻を保存し、選択後の次turnを`--resume`する。developでは同IDの既存タブを再選択。本文は未保存でその旨を表示し、再起動後本文復元は #44。CLIの履歴存在と非TTY取得API、plugin本文復元を区別する |
+| F-50 | 過去チャット一覧 | P2(部分実装) | pluginがchatId/冒頭prompt/更新時刻を保存し、選択後の次turnを`--resume`する。developでは同IDの既存タブを再選択。develop #44は新規本文を保存・再表示。旧metadataは本文なし、来歴不明とACP保存本文は閲覧のみ。CLIの履歴存在と非TTY取得API、plugin本文復元を区別する |
 | F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`と起動cwdをプロジェクトルートへ揃える。mainは`AgentProcessService`、developは`TurnWorkspace.arguments()`がworkspace引数を生成する |
 | F-52 | Worktree分離実行 | P3(基本実装済み) | 上部チャット設定から`-w`を選択。`--worktree-base`/`--skip-worktree-setup`のUIは未実装。develop #39は実rootを追跡できないISOLATEDの復元を安全拒否（QA #102）。分離rootで復元可能になったとは扱わない |
 
@@ -295,7 +295,7 @@ agent mcp list
 | データ | 保存先 | 現在の内容・制約 |
 |---|---|---|
 | 会話metadata | project `cursor-agent-chat-history.xml` | chatId、firstPromptPreview、lastUpdatedMs。本文は保存しない |
-| 開いたタブ | `SessionTabs` とtab別viewのメモリ | draft/mode/model/title、本文・caret・scroll。再起動後の本文保存は #44 |
+| 開いたタブ | `SessionTabs` とtab別viewのメモリ | draft/mode/model/title、本文・caret・scroll。本文は#44のproject単位JSON、draftは未保存 |
 | checkpoint | project `cursor-agent-checkpoints.xml` とGitオブジェクト | SHA、prompt preview、chatId、root/mode、untracked名一覧。未追跡本文の完全保存ではない |
 | 設定 | application `cursor-agent-settings.xml` | モデル・mode・permission・sandbox・worktree・実行path・通知等。既存enum/IDと既定permissionを維持 |
 
@@ -374,3 +374,5 @@ ACP session IDと保存済みprint chat IDの互換性や復元は #115で検証
 同じモデルのThinking/Fast/Context/Effort違いをモデル系列にまとめ、利用可能なオプションだけを表示する。選択値は実際の `agent --list-models` のIDへ解決して既存の `--model` に渡す。モデルや容量の固定カタログは持たず、不明な派生は独立項目として残す。既存IDの設定はそのまま復元する。
 
 取得した一覧でContext容量が1種類しか分からない場合はContextを隠す。CLIヘルプには `model[context=1m,effort=high,fast=false]` 形式の説明があるが、対応値一覧は得られないため、未検証の容量を生成しない。Cursorの画像はUI参考であり、このCLIアカウントでの対応値を保証しない。
+
+#44の保存形式version/ID・上限・秘密情報・削除・再開条件は[会話保存契約](architecture/conversation-persistence.md)。実IDE再起動Caseは[issue-44.json](verification/changes/issue-44.json)で追跡する。

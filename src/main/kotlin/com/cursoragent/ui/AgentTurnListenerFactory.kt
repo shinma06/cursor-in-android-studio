@@ -10,7 +10,7 @@ import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.RestorePolicy
 import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
-import com.cursoragent.settings.ChatHistoryState
+import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
@@ -26,11 +26,10 @@ class AgentTurnListenerFactory(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
-    private val chatHistoryState: ChatHistoryState,
+    private val recorder: ConversationRecorder,
     private val onRunFinished: () -> Unit,
 ) {
     fun create(
-        userText: String,
         usageTicket: Long,
         isCurrent: () -> Boolean,
         isStopped: () -> Boolean,
@@ -40,7 +39,10 @@ class AgentTurnListenerFactory(
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
         }
-        val assistantText = TurnAssistantText(timeline::setAssistantText, timeline::finalizeAssistantMessage)
+        val assistantText = TurnAssistantText(
+            { text -> timeline.setAssistantText(text); recorder.assistant(text) },
+            { timeline.finalizeAssistantMessage(); recorder.newAssistant() },
+        )
 
         return object : AgentProcessListener {
             override fun onStructuredEvent(event: AgentEvent) {
@@ -48,8 +50,11 @@ class AgentTurnListenerFactory(
                     when (event) {
                         is AgentEvent.Text -> assistantText.acpDelta(event)
                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
-                        is AgentEvent.Tool -> timeline.upsertStructuredTool(event.state) { diff ->
-                            DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
+                        is AgentEvent.Tool -> {
+                            recorder.tool(event.state.id, "ツール: ${safeToolKind(event.state.kind)} (${safeToolStatus(event.state.status)})")
+                            timeline.upsertStructuredTool(event.state) { diff ->
+                                DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
+                            }
                         }
                         is AgentEvent.Input -> timeline.addInputRequest(event.request)
                         is AgentEvent.Plan -> timeline.showPlan(event.entries)
@@ -65,6 +70,7 @@ class AgentTurnListenerFactory(
                 }
                 update {
                     timeline.finalizeAssistantMessage()
+                    recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
                     onRunFinished()
                 }
@@ -73,6 +79,8 @@ class AgentTurnListenerFactory(
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
                     timeline.finalizeAssistantMessage()
+                    recorder.error("接続の終了を確認できませんでした。")
+                    recorder.finish("failed")
                     timeline.showError(message)
                     onRunFinished()
                 }
@@ -106,6 +114,7 @@ class AgentTurnListenerFactory(
             override fun onToolCallStarted(payload: ParsedToolCall) {
                 update {
                     timeline.showStatus(payload.summary)
+                    recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（実行中）")
                     timeline.addToolCallStarted(payload)
                     AgentNotificationService.notifyToolCall(project, payload.summary)
                 }
@@ -114,6 +123,7 @@ class AgentTurnListenerFactory(
             override fun onToolCallCompleted(payload: ParsedToolCall) {
                 update {
                     timeline.clearStatus()
+                    recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（完了）")
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
                         val target = restoreTarget()
@@ -165,7 +175,7 @@ class AgentTurnListenerFactory(
                         timeline.toolTipText = parts.joinToString(" | ")
                     }
                     if (chatId != null) {
-                        chatHistoryState.recordTurn(chatId, userText)
+                        recorder.provider(chatId)
                     }
                 }
             }
@@ -175,6 +185,8 @@ class AgentTurnListenerFactory(
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     timeline.showError(message)
+                    recorder.error("このターンでエラーが発生しました。")
+                    recorder.finish("failed")
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
                     if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished()
@@ -185,6 +197,7 @@ class AgentTurnListenerFactory(
                 update(allowStopped = true) {
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
+                    recorder.finish("stopped")
                     timeline.showStatus("停止しました")
                     onRunFinished()
                 }
@@ -197,6 +210,8 @@ class AgentTurnListenerFactory(
                     if (exitCode != 0) {
                         timeline.showError("Agent exited with code $exitCode")
                     }
+                    if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
+                    recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
                     onRunFinished()
                 }
@@ -246,4 +261,19 @@ internal class TurnAssistantText(
         acpText.append(event.text)
         replaceText(acpText.toString())
     }
+}
+
+/** Persist allowlisted categories only; provider titles/commands can contain secrets. */
+internal fun safeToolKind(kind: String?): String = when (kind) {
+    "read", "readToolCall" -> "読取り"
+    "edit", "editToolCall" -> "編集"
+    "shell", "shellToolCall", "execute" -> "コマンド"
+    "search", "searchToolCall" -> "検索"
+    else -> "ツール"
+}
+internal fun safeToolStatus(status: String?): String = when (status) {
+    "completed" -> "完了"
+    "failed" -> "失敗"
+    "pending" -> "待機"
+    else -> "実行中"
 }

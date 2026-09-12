@@ -42,6 +42,8 @@ class ChatHistoryState : PersistentStateComponent<ChatHistoryState.State> {
         }
     }
 
+    fun delete(chatId: String) { state.records.removeAll { it.chatId == chatId } }
+
     fun list(): List<ChatHistoryRecord> = state.records.sortedByDescending { it.lastUpdatedMs }
 
     companion object {

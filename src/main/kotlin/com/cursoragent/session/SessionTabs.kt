@@ -8,6 +8,7 @@ import java.util.UUID
 data class SessionTab(
     val id: String,
     val chatId: String? = null,
+    val conversationId: String = UUID.randomUUID().toString(),
     val title: String = NEW_AGENT_TITLE,
     val renamedByUser: Boolean = false,
     val mode: AgentMode = AgentMode.AGENT,
@@ -24,7 +25,9 @@ data class SessionTab(
 }
 
 /** Opaque identity; callers retain the issued token rather than constructing one. */
-class SessionRunToken internal constructor(val tabId: String)
+class SessionRunToken internal constructor(val tabId: String) {
+    val turnId: String = UUID.randomUUID().toString()
+}
 
 data class SessionTurn(
     val token: SessionRunToken,
@@ -55,15 +58,20 @@ class SessionTabs(
     fun snapshot(): SessionTabsSnapshot = SessionTabsSnapshot(tabs.toList(), selectedId)
 
     @Synchronized
-    fun open(chatId: String? = null, title: String? = null): SessionTab {
+    fun open(chatId: String? = null, title: String? = null, conversationId: String? = null, transport: AgentTransport = AgentTransport.PRINT): SessionTab {
         require(chatId == null || chatId.isNotBlank()) { "CLI chat ID must not be blank" }
+        if (conversationId != null) {
+            tabs.firstOrNull { it.conversationId == conversationId }?.let { selectedId = it.id; return it }
+        }
         if (chatId != null) {
-            tabs.firstOrNull { it.chatId == chatId }?.let {
+            tabs.firstOrNull { it.chatId == chatId && it.transport == transport }?.let {
                 selectedId = it.id
                 return it
             }
         }
-        val tab = newTab().copy(chatId = chatId, title = cleanTitle(title) ?: SessionTab.NEW_AGENT_TITLE)
+        val fresh = newTab()
+        val tab = fresh.copy(chatId = chatId, title = cleanTitle(title) ?: SessionTab.NEW_AGENT_TITLE,
+            conversationId = conversationId ?: fresh.conversationId, transport = transport, transportLocked = conversationId != null)
         tabs.add(tab)
         selectedId = tab.id
         return tab
@@ -143,7 +151,7 @@ class SessionTabs(
     @Synchronized
     fun bindChat(token: SessionRunToken, chatId: String): Boolean {
         if (chatId.isBlank() || !accepts(token)) return false
-        if (tabs.any { it.id != token.tabId && it.chatId == chatId }) return false
+        if (tabs.any { it.id != token.tabId && it.chatId == chatId && it.transport == tabs.first { tab -> tab.id == token.tabId }.transport }) return false
         val tab = tabs.first { it.id == token.tabId }
         if (tab.chatId != null && tab.chatId != chatId) return false
         return update(token.tabId) { it.copy(chatId = chatId) }

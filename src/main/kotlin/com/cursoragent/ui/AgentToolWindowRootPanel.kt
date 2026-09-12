@@ -75,7 +75,17 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
     )
-    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this, ::open)
+    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
+        onChatResumed = { conversation, legacyId ->
+            if (conversation != null) {
+                sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
+            } else {
+                sessions.open(legacyId)
+            }
+            showSelected(conversation, legacyId != null)
+        },
+        isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
+    )
 
     init {
         border = JBUI.Borders.empty()
@@ -123,16 +133,19 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
                 project,
                 "このウィンドウのチャット $count 件を閉じます。\n" +
                     "実行中: $running 件（この確認を開いた時点）。閉じる時点で実行中の処理は停止します。\n\n" +
-                    "このプラグインでは会話本文と未送信の下書きを保存していないため、閉じると復元できません。\n" +
+                    "保存済みの本文は履歴から表示できます。未送信の下書き・保存に失敗した本文は閉じると失われます。\n" +
                     "ファイルエディター・別プロジェクトのチャット・履歴一覧のデータは削除しません。",
                 "すべてのチャットを閉じる",
                 "すべて閉じる", "キャンセル", Messages.getWarningIcon(),
             ) == Messages.YES
-        }, close = ::closeTabs)
+        }, close = { closeTabs(it, confirmed = true) })
     }
 
-    private fun closeTabs(ids: List<String>) {
+    private fun closeTabs(ids: List<String>, confirmed: Boolean = false) {
         if (disposed || project.isDisposed) return
+        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.composer.isRunning || it.composer.inputArea.text.isNotBlank() } == true }) {
+            if (Messages.showYesNoDialog(project, "未保存の本文・下書き、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
+        }
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
                 view.controller.dispose()
@@ -148,17 +161,21 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         showSelected()
     }
 
-    private fun showSelected() {
+    private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
         if (disposed) return
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
             val composer = ComposerPanel(project)
-            val controller = AgentUiController(project, timeline, composer, sessions, tab.id)
+            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly)
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
-            if (tab.chatId != null) {
-                timeline.showStatus("過去の会話本文は保存されていません。次の送信からこのセッションを再開します。")
+            if (saved != null) {
+                timeline.restore(saved)
+                controller.showResumeAvailability()
+            } else if (legacyOnly) {
+                timeline.showStatus("本文は未保存です。作業場所の来歴を確認できないため、新しい会話を開始してください。")
+                composer.setInputEnabled(false)
             }
             val panel = JPanel(BorderLayout()).apply {
                 isOpaque = false
