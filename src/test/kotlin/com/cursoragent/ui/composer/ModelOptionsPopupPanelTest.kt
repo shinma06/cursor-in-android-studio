@@ -20,7 +20,8 @@ class ModelOptionsPopupPanelTest {
     fun `unlisted saved ID is never presented as Auto or implicitly selected`() = SwingUtilities.invokeAndWait {
         var changes = 0
         val panel = ModelOptionsPopupPanel(options, "saved-unlisted", null, { changes++ }, {}, {})
-        assertTrue(panel.modelRow.text.contains("saved-unlisted"))
+        assertEquals("Model: saved-unlisted", panel.modelRow.accessibleContext.accessibleName)
+        assertTrue(panel.modelRow.components.filterIsInstance<javax.swing.JLabel>().any { it.text.contains("saved-unlisted") })
         assertEquals("saved-unlisted", panel.currentId)
         assertTrue(panel.optionControls.isEmpty())
         panel.showModels()
