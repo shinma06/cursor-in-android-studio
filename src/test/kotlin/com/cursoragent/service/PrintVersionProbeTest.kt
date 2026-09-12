@@ -55,12 +55,18 @@ class PrintVersionProbeTest {
         worker.join(5000)
         assertFalse(worker.isAlive)
         assertNull(result.get(1, TimeUnit.SECONDS))
-        assertFalse(ProcessHandle.of(pid).map { it.isAlive }.orElse(false))
+        assertProcessExited(pid)
         val timed = AgentRun(object : AgentProcessListener {})
         val started = System.nanoTime()
         assertNull(probePrintVersion(command, timed))
         assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(10))
         val timedPid = Files.readString(directory.resolve("pid")).trim().toLong()
-        assertFalse(ProcessHandle.of(timedPid).map { it.isAlive }.orElse(false))
+        assertProcessExited(timedPid)
+    }
+
+    private fun assertProcessExited(pid: Long) {
+        // ProcessHandler destroys asynchronously; require real exit within a bound on every OS.
+        ProcessHandle.of(pid).orElse(null)?.onExit()?.get(5, TimeUnit.SECONDS)
+        assertFalse(ProcessHandle.of(pid).map { it.isAlive }.orElse(false))
     }
 }
