@@ -67,6 +67,7 @@ class HandoffTests(unittest.TestCase):
         self.assertIn('/issues/100#issuecomment-', body)
         documents = [c for c in self.gh.comments(100) if c['body'].startswith('<!-- qa-human-document:v1 -->')]
         self.assertEqual(len(documents), 1)
+        self.assertIn('unit tests', documents[0]['body'].split('<details>', 1)[0])
         for text in ('前提条件', '試験手順', '期待結果', 'main反映', 'unit tests'):
             self.assertIn(text, documents[0]['body'])
 
@@ -113,6 +114,8 @@ class HandoffTests(unittest.TestCase):
             self.assertIn(value, summary)
         self.assertNotIn('### 開始前の準備', summary)
         self.assertEqual(summary.count('fixtureを用意'), 1)
+        self.assertIn('| GUI-1 · 手順2', summary)
+        self.assertNotIn('送信する<br>', summary)
         for value in ('### 開始前の準備', '「A|B」と送信する', '画像を保存\nログを照合する', 'PMが準備', '新buildで再確認'):
             self.assertIn(value, details)
         self.assertTrue(doc.endswith('</details>\n'))

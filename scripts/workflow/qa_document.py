@@ -19,11 +19,16 @@ def render_summary(change, source_url):
         lines += [f'**{label}:** {condition}', '']
     lines += ['| 項目 | 手順 | 期待値 |', '| --- | --- | --- |']
     for case in change['cases']:
-        steps = '<br>'.join(f'{i}. {cell(step)}' for i, step in enumerate(case['steps'], 1))
         route = '（Computer Use必須）' if case.get('required_execution') == 'computer_use' else ''
-        lines += [f'| {cell(case["id"] + ": " + case["change"])}{route} | {steps} | {cell(case["expected"])} |']
+        for i, step in enumerate(case['steps'], 1):
+            item = case['id'] + f' · 手順{i}'
+            if i == 1:
+                item += ': ' + case['change']
+            expected = 'Case全体: ' + case['expected'] if i == 1 else '同Caseの期待値を確認'
+            lines += [f'| {cell(item)}{route} | {cell(step)} | {cell(expected)} |']
     if not change['cases']:
-        lines += ['| 文書・運用 | 対象PRの変更・Checks・独立レビューを開き、元の受入と照合する | 記録と変更内容が一致する。製品GUI操作は不要 |']
+        for i, check in enumerate(change['cli_checks'], 1):
+            lines += [f'| 検証{i} | 対象PRの検証記録で照合: {cell(check)} | 記録が確認項目と一致する。再実行が必要なら担当へ依頼 |']
     lines += ['| main反映（PM） | main統合PRと対象変更を照合する | 未反映はpendingを維持 |', '']
     if change['cases']:
         lines += ['**送信・証拠:** 表の指定文・試験用ファイルを使用。画像・ログ・Computer Use指定はその証拠を残し、それ以外の表示/クリック操作は口頭OKです。モデル・process停止・ファイル内容はログ/実体で確認します。文面や準備が未確定ならPMが具体化してから開始します。', '',
