@@ -48,14 +48,15 @@
       },
       "history": [],
       "fix_issue": 208,
-      "fix_pr": null,
+      "fix_pr": 260,
       "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
       "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/208",
         "https://github.com/shinma06/cursor-in-android-studio/issues/164",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/260"
       ]
     },
     {
@@ -93,14 +94,15 @@
       },
       "history": [],
       "fix_issue": 208,
-      "fix_pr": null,
+      "fix_pr": 260,
       "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
       "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/208",
         "https://github.com/shinma06/cursor-in-android-studio/issues/164",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/260"
       ]
     },
     {
@@ -140,14 +142,15 @@
       },
       "history": [],
       "fix_issue": 208,
-      "fix_pr": null,
+      "fix_pr": 260,
       "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
       "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/208",
         "https://github.com/shinma06/cursor-in-android-studio/issues/164",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/260"
       ]
     },
     {
@@ -186,14 +189,15 @@
       },
       "history": [],
       "fix_issue": 208,
-      "fix_pr": null,
+      "fix_pr": 260,
       "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
       "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/208",
         "https://github.com/shinma06/cursor-in-android-studio/issues/164",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/260"
       ]
     }
   ]
