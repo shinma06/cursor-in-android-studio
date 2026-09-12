@@ -24,6 +24,12 @@ manifestの`urls.http4/https4/http6/https6`が実際の接続先。`run_id`、fi
 ```sh
 python3 docs/verification/fixtures/browser_fixture.py release "$browser_qa_run" first
 python3 docs/verification/fixtures/browser_fixture.py stop "$browser_qa_run"
+```
+
+stopの成功は停止要求の受付であり、全待受の停止完了ではない。起動したterminalでserveが終了してpromptへ戻るのを待ち、manifestのstateが`stopped`になったことを読み戻してから、別操作として片付ける。stop直後にcleanupを連続実行しない。
+
+```sh
+python3 -m json.tool "$browser_qa_run/manifest.json"
 python3 docs/verification/fixtures/browser_fixture.py cleanup "$browser_qa_run"
 ```
 

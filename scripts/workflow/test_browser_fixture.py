@@ -162,6 +162,7 @@ class BrowserFixtureTest(unittest.TestCase):
             self.assertEqual('running', manifest['state'])
             self.assertEqual({'http4', 'https4'}, set(manifest['urls']))
             subprocess.run([sys.executable, str(SOURCE), 'stop', str(directory)], check=True, capture_output=True, timeout=5)
+            # The documented foreground terminal must return before cleanup; stop only acknowledges intent.
             _, errors = process.communicate(timeout=10)
             self.assertEqual(0, process.returncode, errors)
             subprocess.run([sys.executable, str(SOURCE), 'cleanup', str(directory)], check=True, capture_output=True, timeout=5)
