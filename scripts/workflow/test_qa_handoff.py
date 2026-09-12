@@ -101,6 +101,22 @@ class HandoffTests(unittest.TestCase):
         for value in ('GUI-1', '条件', '1. 最初の操作', '2. 次の操作', '固有の期待結果', 'Computer Use', '準備担当', '再確認先'):
             self.assertIn(value, doc)
 
+    def test_summary_precedes_details_and_preserves_case_text_and_evidence(self):
+        from qa_document import render_document
+        case = {'id': 'GUI-1', 'change': '送信と比較', 'preconditions': 'fixtureを用意',
+                'steps': ['「A|B」と送信する', '画像を保存\nログを照合する'], 'expected': 'A|Bを表示',
+                'required_execution': 'computer_use', 'next_action': 'PMが準備', 'recheck': '新buildで再確認'}
+        doc = render_document({'cases': [case, dict(case, id='GUI-2')]}, 'https://github.com/example/cases')
+        summary, details = doc.split('<details>', 1)
+        for value in ('| 項目 | 手順 | 期待値 |', r'A\|B', '画像を保存<br>ログを照合する',
+                      'fixtureを用意', 'Computer Use必須', '口頭', '一部のOK'):
+            self.assertIn(value, summary)
+        self.assertNotIn('### 開始前の準備', summary)
+        self.assertEqual(summary.count('fixtureを用意'), 1)
+        for value in ('### 開始前の準備', '「A|B」と送信する', '画像を保存\nログを照合する', 'PMが準備', '新buildで再確認'):
+            self.assertIn(value, details)
+        self.assertTrue(doc.endswith('</details>\n'))
+
     def test_document_link_failure_keeps_origin_open(self):
         original = self.gh.api
         def api(path, method='GET', data=None):

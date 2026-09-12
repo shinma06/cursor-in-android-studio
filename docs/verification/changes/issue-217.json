@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 217,
+  "gui_required": false,
+  "reason": "人間向けQAの短い実行表と折り畳み詳細、生成処理と既存QA案内の更新のみ。製品src・固定Case/結果・GUI・owner・承認条件を変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "実行表が共通管理チェックより先に表示され、操作/期待値・特殊文字・Computer Use指定・口頭報告範囲を保持することを検証",
+    "元の再試行/人間補足保持テストを維持し、既存QA移行で旧文書全文・本文JSON・結果/ownerを保全する",
+    "open QAの現行文書に基づく更新案を確認し、各文書・本文リンク・Projectからの入口をreadbackする。close済みQAは移行対象から外す",
+    "schema・変更リンク・git diff --check・固定HEAD/baseの独立レビュー。mainの自動引継ぎへの適用はmain反映を別QAで照合"
+  ],
+  "cases": []
+}

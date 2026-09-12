@@ -2,6 +2,37 @@
 import re
 
 
+def render_summary(change, source_url):
+    """Keep executable Case text intact; move the common management checklist below it."""
+    def cell(text):
+        return text.replace('|', r'\|').replace('\n', '<br>')
+
+    preparation = ('PMが指定したIDE・build・設定・試験用データを使います。' if change['cases'] else
+                   'GitHubで対象PR・Checks・変更内容を閲覧できれば開始できます。製品GUI操作は不要です。')
+    lines = ['## 今回の試験', '', f'対象: [Case・元の受入]({source_url})', '',
+             '前提: ' + preparation + '既存のOKと待ち条件はQA本文に従います。', '']
+    conditions = {}
+    for case in change['cases']:
+        conditions.setdefault(case['preconditions'], []).append(case['id'])
+    for condition, ids in conditions.items():
+        label = '共通の条件' if len(conditions) == 1 else ' / '.join(ids) + ' の条件'
+        lines += [f'**{label}:** {condition}', '']
+    lines += ['| 項目 | 手順 | 期待値 |', '| --- | --- | --- |']
+    for case in change['cases']:
+        steps = '<br>'.join(f'{i}. {cell(step)}' for i, step in enumerate(case['steps'], 1))
+        route = '（Computer Use必須）' if case.get('required_execution') == 'computer_use' else ''
+        lines += [f'| {cell(case["id"] + ": " + case["change"])}{route} | {steps} | {cell(case["expected"])} |']
+    if not change['cases']:
+        lines += ['| 文書・運用 | 対象PRの変更・Checks・独立レビューを開き、元の受入と照合する | 記録と変更内容が一致する。製品GUI操作は不要 |']
+    lines += ['| main反映（PM） | main統合PRと対象変更を照合する | 未反映はpendingを維持 |', '']
+    if change['cases']:
+        lines += ['**送信・証拠:** 表の指定文・試験用ファイルを使用。画像・ログ・Computer Use指定はその証拠を残し、それ以外の表示/クリック操作は口頭OKです。モデル・process停止・ファイル内容はログ/実体で確認します。文面や準備が未確定ならPMが具体化してから開始します。', '',
+                  '**結果:** 「Case ID・実施項目・OK／不一致／未実施」と実際の動作を伝えてください。一部のOKをCase全体のpassにはしません。', '']
+    else:
+        lines += ['**結果:** 確認したPR/commit・項目・結果・参照URLをこのQAへ記録してください。追加画像は不要です。', '']
+    return '\n'.join(lines)
+
+
 def render_document(change, source_url):
     lines = ['## 人間向け試験内容', '', f'試験内容の根拠: [対象Case・元の受入]({source_url})', '',
              '### 開始前の準備', '',
@@ -39,7 +70,8 @@ def render_document(change, source_url):
               '修正Issue・PR / 次の担当と操作:', 'main反映のPR / 確認状況:', '```', '',
               '失敗は再現した操作と期待との差を記録し、製品不具合は専用修正Issue/PRへ渡す。修正後は新候補で再確認する。',
               '終了時は試験用入力・設定を戻し、この試験で起動したprocessを停止してleaseを解放する。秘密情報・host名・ローカル絶対パスを公開証拠に含めない。', '']
-    return '\n'.join(lines)
+    return (render_summary(change, source_url) + '\n<details>\n<summary>詳細な前提・正式手順・記録と後片付け</summary>\n\n'
+            + '\n'.join(lines) + '\n</details>\n')
 
 
 def ensure_document(gh, repo, number, document):
