@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "issue": 47,
+  "gui_required": true,
+  "reason": "会話/turn変更一覧からDiffと安全な事後Revertへ到達し、元会話へ戻るGUIを確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseで独立レビューし既存復元境界を照合"
+  ],
+  "cases": [
+    {
+      "id": "CHANGES-LIST",
+      "issue": 47,
+      "change": "会話・ターンの変更一覧と元会話へ戻る",
+      "preconditions": "同じ#47固定候補buildと使い捨てproject・非秘密fixtureを使用。指定GUI担当のみhost leaseで操作する。",
+      "steps": [
+        "関連MV-021〜023/029/030を同じ候補で確認する。指定GUI leaseで固定build/ZIP hash/loaded JAR・CLI版を記録し、使い捨てprojectに同名titleの2会話と未送信draftを作る。printの複数turnで同じファイルを連続編集し、重複completedもfixtureで送る。",
+        "対象tabの…→ファイルの変更…を開き、会話全体と各turnを切り替え、1ファイルの最初before→最後after、重複なし、Diffの日本語内容を確認する。",
+        "閉じる／会話へ戻る／Escを試し、元tabへ戻り、別tab・下書き・実行状態が変わらないことを確認する。",
+        "空会話・全文欠落・空after・ACP pending→completed/failed/明示空Diffを確認。保存履歴を開き直した会話に復元ボタンが再生成されないことを確認する。"
+      ],
+      "expected": "ターンと会話を区別した受信記録を表示し、現在disk全体と表示しない。ACPはDiff閲覧のみ。欠落全文と空文字を区別し、古い／別会話に飛ばない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "自動テストとは別に固定buildでの実IDE操作・焦点・復元拒否を確認する。未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "自動テストとは別に固定buildでの実IDE操作・焦点・復元拒否を確認する。未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/47"
+      ]
+    },
+    {
+      "id": "CHANGES-REVERT",
+      "issue": 47,
+      "change": "一覧と既存カードの復元安全性",
+      "preconditions": "同じ#47固定候補buildと使い捨てproject・非秘密fixtureを使用。指定GUI担当のみhost leaseで操作する。",
+      "steps": [
+        "同じ固定buildの使い捨てprojectで前後全文が連続するprint編集を複数回行い、完了後に会話全体のRevertで最初の内容へ戻ることを確認する。",
+        "個別カードと一覧の両方で後続保存編集・未保存editor変更・削除済みファイル・外部path・symlink差替え・root/worktree変更を作り、拒否され対象内容が残ることを確認する。新規ファイルの存在自体は削除されないことも確認する。",
+        "準備／実行／Stop処理／別復元がある状態で拒否を確認。複数編集間に手動変更を挟み、集約Revert無効と理由を確認する。",
+        "一覧を開いたままevent更新、別turn開始、tab切替/closeをfixtureまたは指定操作で発生させる。古いsnapshotで書き込まず、再表示案内／dialog終了となることを確認する。"
+      ],
+      "expected": "既存予約・実root・現在内容確認を共有する。古いsnapshotや保存IDは書込み権限にならない。削除済みファイルを再作成せず、未保存・他root・別会話へ書かない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "自動テストとは別に固定buildでの実IDE操作・焦点・復元拒否を確認する。未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "自動テストとは別に固定buildでの実IDE操作・焦点・復元拒否を確認する。未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/47"
+      ]
+    }
+  ]
+}

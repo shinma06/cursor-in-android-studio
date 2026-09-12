@@ -36,7 +36,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
+        assertEquals(listOf("新規チャット", "履歴", "ファイルの変更…", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -54,6 +54,26 @@ class ToolWindowChatActionsTest {
         assertEquals(PermissionMode.AUTO_REVIEW, settings.permissionMode)
         assertEquals(SandboxMode.ENABLED, settings.sandboxMode)
         assertEquals(WorktreeMode.ISOLATED, settings.worktreeMode)
+    }
+
+    @Test
+    fun `changes action resolves selected conversation on click and rejects a disposed panel`() = SwingUtilities.invokeAndWait {
+        var available = true
+        var selected = "first"
+        val opened = mutableListOf<String>()
+        val actions = ToolWindowChatActions(AgentSettingsState(), { available }, { true }, { AgentTransport.PRINT to true },
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, { false }, {}, {}, {}, {}, onChanges = { opened.add(selected) })
+        val action = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "ファイルの変更…" }
+        action.update(event(action))
+        selected = "second"
+        action.actionPerformed(event(action))
+        assertEquals(listOf("second"), opened)
+        available = false
+        val event = event(action)
+        action.update(event)
+        assertFalse(event.presentation.isEnabled)
+        action.actionPerformed(event)
+        assertEquals(listOf("second"), opened)
     }
 
     @Test
