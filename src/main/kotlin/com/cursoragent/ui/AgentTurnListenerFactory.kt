@@ -2,7 +2,6 @@ package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
-import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
@@ -12,6 +11,7 @@ import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -27,7 +27,7 @@ class AgentTurnListenerFactory(
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
     private val recorder: ConversationRecorder,
-    private val onRunFinished: () -> Unit,
+    private val onRunFinished: (successful: Boolean) -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -35,6 +35,7 @@ class AgentTurnListenerFactory(
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
+        onPrintRequestId: (com.cursoragent.service.PrintRequestId) -> Unit = {},
     ): AgentProcessListener {
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
@@ -69,25 +70,27 @@ class AgentTurnListenerFactory(
                     return
                 }
                 update {
+                    composer.contextUsage.finish(usageTicket, if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) UsagePhase.STOPPED else UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
                     timeline.showError(message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
-            override fun onAssistantDelta(text: String) {
-                update { assistantText.printDelta(text) }
+            override fun onAssistantText(text: String) {
+                update { assistantText.printText(text) }
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -182,6 +185,7 @@ class AgentTurnListenerFactory(
 
             override fun onError(message: String) {
                 update {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     timeline.showError(message)
@@ -189,22 +193,28 @@ class AgentTurnListenerFactory(
                     recorder.finish("failed")
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
-                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished()
+                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished(false)
                 }
             }
 
             override fun onStopped() {
                 update(allowStopped = true) {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.STOPPED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     recorder.finish("stopped")
                     timeline.showStatus("停止しました")
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
-            override fun onCompleted(exitCode: Int) {
+            override fun onCompleted(exitCode: Int) = completed(exitCode, null)
+
+            override fun onPrintCompleted(requestId: com.cursoragent.service.PrintRequestId) = completed(0, requestId)
+
+            private fun completed(exitCode: Int, requestId: com.cursoragent.service.PrintRequestId?) {
                 update {
+                    composer.contextUsage.finish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     if (exitCode != 0) {
@@ -213,7 +223,8 @@ class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
-                    onRunFinished()
+                    if (requestId != null) onPrintRequestId(requestId)
+                    onRunFinished(exitCode == 0)
                 }
             }
         }
@@ -232,17 +243,16 @@ internal fun updateCurrentTurnOnEdt(
     if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
 }
 
-/** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+/** Per-turn text only. Both outputs replace the bubble; print is already normalized by the service. */
 internal class TurnAssistantText(
     private val replaceText: (String) -> Unit,
     private val startMessage: () -> Unit,
 ) {
-    private val printDeduper = AssistantChunkDeduper()
     private var printStarted = false
     private val acpText = StringBuilder()
 
-    fun printDelta(text: String) {
-        val full = printDeduper.dedupe(text) ?: return
+    fun printText(full: String) {
+        if (full.isEmpty()) return
         printStarted = true
         replaceText(full)
     }

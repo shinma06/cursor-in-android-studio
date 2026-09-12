@@ -36,7 +36,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
+        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "Request IDをコピー", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -343,6 +343,83 @@ class ToolWindowChatActionsTest {
     private fun ToolWindowChatActions.choose(caption: String, index: Int) {
         val action = group(caption).childActionsOrStubs[index] as ToggleAction
         action.setSelected(event(action), true)
+    }
+
+    @Test
+    fun `request ID menu freezes its owner and rejects switches new turns and disposal at invocation`() = SwingUtilities.invokeAndWait {
+        for (change in listOf("none", "switch", "switchBack", "next", "close", "dispose")) {
+            val tabs = SessionTabs()
+            val owner = tabs.snapshot().selectedId
+            fun complete() {
+                tabs.updateComposer(owner, AgentMode.AGENT, "", "prompt", 0)
+                val token = tabs.beginTurn(owner)!!.token
+                tabs.confirmRequestId(token, com.cursoragent.service.PrintRequestId("Opaque-ID", null))
+                tabs.finishTurn(token)
+            }
+            complete()
+            var live = true
+            val copied = mutableListOf<String>()
+            val feedback = mutableListOf<String>()
+            val group = RequestIdCopyActions({ if (live) tabs.snapshot() else null }, { feedback += it }, { copied += it })
+            val item = group.getChildren(null).single()
+            val event = event(item, ActionUiKind.POPUP)
+            item.update(event)
+            assertTrue(event.presentation.isEnabled)
+            when (change) {
+                "switch" -> tabs.open()
+                "switchBack" -> { tabs.open(); tabs.select(owner) }
+                "next" -> complete() // Same raw ID still belongs to a different completion.
+                "close" -> tabs.close(owner)
+                "dispose" -> live = false
+            }
+            item.update(event)
+            assertEquals(change == "none", event.presentation.isEnabled, change)
+            item.actionPerformed(event)
+            assertEquals(if (change == "none") listOf("Opaque-ID") else emptyList(), copied, change)
+            assertEquals(1, feedback.size)
+            assertFalse(feedback.single().contains("Opaque-ID"))
+        }
+    }
+
+    @Test
+    fun `unavailable request IDs explain empty running ACP and restored states without clearing clipboard`() = SwingUtilities.invokeAndWait {
+        for (state in listOf("empty", "running", "acp", "restored")) {
+            val tabs = SessionTabs()
+            when (state) {
+                "running" -> {
+                    val owner = tabs.snapshot().selectedId
+                    tabs.updateComposer(owner, AgentMode.AGENT, "", "prompt", 0)
+                    tabs.beginTurn(owner)
+                }
+                "acp" -> tabs.open(transport = AgentTransport.ACP)
+                "restored" -> tabs.open("previous-session", conversationId = "saved-body")
+            }
+            var clipboard = "keep"
+            val group = RequestIdCopyActions(tabs::snapshot, {}, { clipboard = it })
+            val item = group.getChildren(null).single()
+            val event = event(item, ActionUiKind.POPUP)
+            item.update(event)
+            assertFalse(event.presentation.isEnabled, state)
+            assertFalse(event.presentation.description.isNullOrBlank())
+            item.actionPerformed(event)
+            assertEquals("keep", clipboard)
+        }
+    }
+
+    @Test
+    fun `request ID copy failure reports failure without leaking the ID or inventing content`() = SwingUtilities.invokeAndWait {
+        val tabs = SessionTabs()
+        val owner = tabs.snapshot().selectedId
+        tabs.updateComposer(owner, AgentMode.AGENT, "", "prompt", 0)
+        val token = tabs.beginTurn(owner)!!.token
+        tabs.confirmRequestId(token, com.cursoragent.service.PrintRequestId("secret-opaque", null))
+        tabs.finishTurn(token)
+        val feedback = mutableListOf<String>()
+        val group = RequestIdCopyActions(tabs::snapshot, { feedback += it }, { throw IllegalStateException("secret-opaque") })
+        val item = group.getChildren(null).single()
+        item.actionPerformed(event(item))
+        assertTrue(feedback.single().contains("コピーできませんでした"))
+        assertFalse(feedback.single().contains("secret-opaque"))
     }
 
     private fun event(action: AnAction, kind: ActionUiKind = ActionUiKind.NONE, context: DataContext = DataContext.EMPTY_CONTEXT) = AnActionEvent(

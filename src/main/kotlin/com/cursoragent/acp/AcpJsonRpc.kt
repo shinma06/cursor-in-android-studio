@@ -40,7 +40,7 @@ internal class AcpJsonRpc(
     val isClosed: Boolean get() = stopped.get()
     internal val pendingCount: Int get() = pending.size
 
-    fun request(method: String, params: JsonObject, onResult: (JsonElement) -> Unit = {}): CompletableFuture<JsonElement> {
+    fun request(method: String, params: JsonObject, onDispatch: () -> Unit = {}, onResult: (JsonElement) -> Unit = {}): CompletableFuture<JsonElement> {
         val id = "client-${sequence.incrementAndGet()}"
         val result = CompletableFuture<JsonElement>()
         synchronized(pending) {
@@ -51,7 +51,7 @@ internal class AcpJsonRpc(
             pending[id] = result
         }
         val response = result.thenApply { onResult(it); it }
-        send(envelope(method, params).apply { addProperty("id", id) })
+        send(envelope(method, params).apply { addProperty("id", id) }, onDispatch)
         return response
     }
 
@@ -145,7 +145,7 @@ internal class AcpJsonRpc(
         }
     }
 
-    private fun send(message: JsonObject): Boolean {
+    private fun send(message: JsonObject, onDispatch: () -> Unit = {}): Boolean {
         if (isClosed) return false
         val bytes = (message.toString() + "\n").toByteArray(StandardCharsets.UTF_8)
         if (bytes.size > frameLimit) {
@@ -155,6 +155,9 @@ internal class AcpJsonRpc(
         return try {
             writer.execute {
                 if (!isClosed) try {
+                    // Local frame/queue rejection and cancellation before this point wrote no bytes.
+                    // After dispatch begins, a write failure can be partial and must remain uncertain.
+                    onDispatch()
                     output.write(bytes)
                     output.flush()
                 } catch (_: Exception) {

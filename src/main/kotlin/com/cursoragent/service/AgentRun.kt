@@ -65,7 +65,7 @@ class AgentRun(
     fun completeUncertain(message: String) = complete(-1, uncertain = message)
 
     /** Exactly one terminal callback; intentional stop suppresses shutdown stderr/result errors. */
-    fun complete(exitCode: Int, errorOutput: String? = null, uncertain: String? = null, outcome: AgentTurnOutcome? = null) {
+    fun complete(exitCode: Int, errorOutput: String? = null, uncertain: String? = null, outcome: AgentTurnOutcome? = null, printRequestId: PrintRequestId? = null) {
         val stopped: Boolean
         val failure: String?
         val receiver: AgentProcessListener?
@@ -85,6 +85,7 @@ class AgentRun(
                 stopped -> receiver?.onStopped()
                 failure != null -> receiver?.onError(failure)
                 outcome != null -> receiver?.onTurnOutcome(outcome)
+                exitCode == 0 && printRequestId != null -> receiver?.onPrintCompleted(printRequestId)
                 else -> receiver?.onCompleted(exitCode)
             }
         } finally {

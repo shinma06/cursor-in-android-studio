@@ -1,6 +1,7 @@
 package com.cursoragent.session
 
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.service.PrintRequestId
 import com.cursoragent.settings.AgentMode
 import java.util.UUID
 
@@ -18,6 +19,7 @@ data class SessionTab(
     val run: SessionRunToken? = null,
     val transport: AgentTransport = AgentTransport.PRINT,
     val transportLocked: Boolean = false,
+    val requestId: PrintRequestId? = null,
 ) {
     companion object {
         const val NEW_AGENT_TITLE = "New Agent"
@@ -38,7 +40,7 @@ data class SessionTurn(
     val transport: AgentTransport = AgentTransport.PRINT,
 )
 
-data class SessionTabsSnapshot(val tabs: List<SessionTab>, val selectedId: String) {
+data class SessionTabsSnapshot(val tabs: List<SessionTab>, val selectedId: String, val selectionRevision: Long = 0) {
     val selected: SessionTab get() = tabs.first { it.id == selectedId }
 }
 
@@ -52,10 +54,15 @@ class SessionTabs(
     private val initialModelId: String = "",
 ) {
     private val tabs = mutableListOf(newTab())
+    private var selectionRevision = 0L
     private var selectedId = tabs.first().id
+        set(value) {
+            if (field != value) selectionRevision++
+            field = value
+        }
 
     @Synchronized
-    fun snapshot(): SessionTabsSnapshot = SessionTabsSnapshot(tabs.toList(), selectedId)
+    fun snapshot(): SessionTabsSnapshot = SessionTabsSnapshot(tabs.toList(), selectedId, selectionRevision)
 
     @Synchronized
     fun open(chatId: String? = null, title: String? = null, conversationId: String? = null, transport: AgentTransport = AgentTransport.PRINT): SessionTab {
@@ -140,7 +147,7 @@ class SessionTabs(
         val tab = tabs.firstOrNull { it.id == id } ?: return null
         if (tab.run != null || tab.draft.isBlank()) return null
         val token = SessionRunToken(id)
-        update(id) { it.copy(run = token, draft = "", caret = 0, transportLocked = true) }
+        update(id) { it.copy(run = token, draft = "", caret = 0, transportLocked = true, requestId = null) }
         return SessionTurn(token, tab.chatId, tab.mode, tab.modelId, tab.draft, tab.transport)
     }
 
@@ -165,6 +172,27 @@ class SessionTabs(
         return update(token.tabId) { it.copy(title = name) }
     }
 
+    /** Caller has verified that the initial ACP prompt was never dispatched. Metadata alone must not lock transport. */
+    @Synchronized
+    fun abortUnsentAcpTurn(token: SessionRunToken): Boolean {
+        if (!accepts(token)) return false
+        val tab = tabs.first { it.id == token.tabId }
+        if (tab.transport != AgentTransport.ACP || tab.chatId != null) return false
+        return update(tab.id) { it.copy(run = null, transportLocked = false) }
+    }
+
+    /** Called on the owning turn's EDT completion, before finishTurn invalidates its token. */
+    @Synchronized
+    fun confirmRequestId(token: SessionRunToken, requestId: PrintRequestId): Boolean {
+        if (!accepts(token)) return false
+        val tab = tabs.first { it.id == token.tabId }
+        if (tab.transport != AgentTransport.PRINT || tab.chatId != requestId.sessionId) return false
+        return update(tab.id) { it.copy(requestId = requestId) }
+    }
+
+    @Synchronized
+    fun clearRequestId(id: String) { update(id) { it.copy(requestId = null) } }
+
     /** Finish/stop invalidate the token. Repeated terminal/error callbacks are harmless. */
     @Synchronized
     fun finishTurn(token: SessionRunToken): Boolean {
@@ -184,6 +212,7 @@ class SessionTabs(
     fun stopAll(): List<SessionRunToken> {
         val tokens = tabs.mapNotNull { it.run }
         tokens.forEach(::finishTurn)
+        tabs.indices.forEach { index -> tabs[index] = tabs[index].copy(requestId = null) }
         return tokens
     }
 
