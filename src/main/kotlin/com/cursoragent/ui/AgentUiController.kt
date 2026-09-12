@@ -1,8 +1,6 @@
 package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
-import com.cursoragent.acp.AcpException
-import com.cursoragent.acp.AcpSession
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.AgentRun
 import com.cursoragent.service.AgentTransport
@@ -90,26 +88,20 @@ class AgentUiController(
         if (disposed || userText.isBlank() || activeRun != null) return
 
         val shared = AgentSettingsState.getInstance()
-        val selectedTransport = transportState().first
-        if (selectedTransport == AgentTransport.ACP) {
-            try {
-                AcpSession.validateSettings(
-                    TurnSettings(shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode, shared.permissionMode, shared.sandboxMode),
-                    shared.worktreeMode,
-                )
-            } catch (error: AcpException) {
-                timeline.showStatus(error.message!!)
-                return
-            }
+        val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return
+        val settings = TurnSettings(
+            shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode,
+            shared.permissionMode, shared.sandboxMode,
+        )
+        val workspace = agentService.captureWorkspace(tab.chatId, shared.worktreeMode)
+        agentService.settingsUnavailableReason(tab.transport, settings, workspace.mode)?.let { reason ->
+            timeline.showStatus(reason)
+            return
         }
         val generation = turnGeneration + 1
-        sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, userText, userText.length)
+        sessions.updateComposer(tabId, settings.mode, settings.model, userText, userText.length)
         val sessionTurn = sessions.beginTurn(tabId) ?: return
         activeToken = sessionTurn.token
-        val workspace = agentService.captureWorkspace(sessionTurn.chatId)
-        val settings = TurnSettings(
-            shared.agentExecutablePath, sessionTurn.modelId, sessionTurn.mode, shared.permissionMode, shared.sandboxMode,
-        )
         lateinit var run: AgentRun
         val turn = agentService.prepareTurn(workspace, settings) {
             val usageTicket = composer.contextUsage.beginTurn()
