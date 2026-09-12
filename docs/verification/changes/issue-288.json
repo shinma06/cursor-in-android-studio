@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 288,
+  "gui_required": false,
+  "reason": "既存合成ACP fixtureを接続するローカルadapter/分離captureとheadless検査のみ。製品Controller/GUI設定/実providerを変更・操作しない。#24の4正式Caseは両actor pendingを維持する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test",
+    "実providerなしでinitialize/session-new/permission保留/end_turn/cancel/終了と同root 2 processのcapture分離を検証（依存258固定STOP引継ぎ後）",
+    "旧fake Harness wire形式・既存Case/私的素材不変、固定独立レビュー、PR/CI/QAとmain未反映追跡"
+  ],
+  "cases": []
+}
