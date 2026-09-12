@@ -22,6 +22,7 @@ data class SelectionContext(
 
     val key: String get() = "$fileUrl:$startOffset:$endOffset"
     val label: String get() = "$path:$startLine–$endLine"
+    fun coveredBy(content: String): Boolean = endOffset <= content.length && content.substring(startOffset, endOffset) == text
     fun block(): String = "Selection: $label\n```\n$text\n```"
 }
 
@@ -33,9 +34,9 @@ data class PromptContextSnapshot(
     val mentions: List<Mention>,
     val automaticEnabled: Boolean,
 ) {
-    fun selectionBlocks(automatic: EditorContext?, filePaths: Set<String>): List<String> {
-        val explicit = selections.filter { it.path !in filePaths }
-        val autoSelection = automatic?.selection?.takeIf { automaticEnabled && it.path !in filePaths }
+    fun selectionBlocks(automatic: EditorContext?, fileContents: Map<String, String>): List<String> {
+        val explicit = selections.filter { selection -> fileContents[selection.path]?.let(selection::coveredBy) != true }
+        val autoSelection = automatic?.selection?.takeIf { automaticEnabled && fileContents[it.path]?.let(it::coveredBy) != true }
             ?.takeUnless { candidate -> explicit.any { it.key == candidate.key } }
         return (explicit + listOfNotNull(autoSelection)).map(SelectionContext::block)
     }
@@ -46,6 +47,7 @@ class PromptContextDraft {
     private val selections = linkedMapOf<String, SelectionContext>()
     private val mentions = linkedMapOf<Pair<MentionKind, String>, Mention>()
     var automaticEnabled = true
+    val hasExplicit: Boolean get() = selections.isNotEmpty() || mentions.isNotEmpty()
 
     fun add(selection: SelectionContext) { selections[selection.key] = selection }
     fun add(mention: Mention) { mentions[mention.kind to mention.insertToken] = mention }

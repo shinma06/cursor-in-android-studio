@@ -1,6 +1,7 @@
 package com.cursoragent.ui.composer.context
 
 import com.cursoragent.ui.composer.mention.Mention
+import com.cursoragent.ui.composer.mention.contextDescription
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.ui.JBUI
@@ -97,7 +98,7 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
             }, { addCurrentSelection(selection.key) }))
         }
         for (mention in state.mentions) {
-            rows.add(row("明示: ${mention.displayLabel}", "${mention.displayLabel}\n${mention.insertToken}\n参照内容は送信開始時に取り込みます。", {
+            rows.add(row("明示: ${mention.displayLabel}", mention.contextDescription(), {
                 draft.removeMention(mention); render()
             }))
         }

@@ -24,12 +24,18 @@ class MentionResolver(private val project: Project) {
      * every single message would violate the requirements doc's own
      * non-functional requirement against EDT-blocking work (§7).
      */
-    fun buildFileAndFolderContext(promptText: String, explicit: List<Mention> = emptyList()): String? {
+    fun buildFileAndFolderContext(
+        promptText: String,
+        explicit: List<Mention> = emptyList(),
+        onFileContent: (String, String) -> Unit = { _, _ -> },
+    ): String? {
         val blocks = contextMentions(promptText, explicit).mapNotNull { mention ->
             when (mention.kind) {
                 MentionKind.TERMINAL -> buildTerminalBlock()
-                MentionKind.FILE -> buildFileBlock(mention.insertToken)
+                MentionKind.FILE -> buildFileBlock(mention.insertToken, onFileContent)
+                    ?: "@${mention.insertToken}: (file unavailable; no contents attached)"
                 MentionKind.FOLDER -> buildFolderBlock(mention.insertToken.removeSuffix("/"))
+                    ?: "@${mention.insertToken}: (folder unavailable; no listing attached)"
                 else -> null
             }
         }
@@ -50,14 +56,16 @@ class MentionResolver(private val project: Project) {
         return blocks.joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 
-    private fun buildFileBlock(relativePath: String): String? {
+    private fun buildFileBlock(relativePath: String, onContent: (String, String) -> Unit = { _, _ -> }): String? {
         val projectDir = project.guessProjectDir() ?: return null
         val file = VfsUtilCore.findRelativeFile(relativePath, projectDir) ?: return null
         if (file.isDirectory) return buildFolderBlock(relativePath)
+        if (file.fileType.isBinary) return "@$relativePath: (binary contents not attached)"
         val content = runCatching {
             com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)?.text
                 ?: String(file.contentsToByteArray(), Charsets.UTF_8)
         }.getOrNull() ?: return null
+        onContent(relativePath.removePrefix("./"), content)
         return "@$relativePath:\n```\n$content\n```"
     }
 

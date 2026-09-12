@@ -29,7 +29,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     val inputArea = GrowingPromptField(project)
 
-    private val mentionPopupController = MentionPopupController(project, inputArea)
+    val promptContext = com.cursoragent.ui.composer.context.PromptContextPanel(project)
+    private val mentionPopupController = MentionPopupController(project, inputArea, promptContext::addMention)
 
     private val sendButton = SelectorButton().apply {
         text = "↑"
@@ -47,7 +48,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private val enqueueButton = javax.swing.JButton("予約に追加").apply {
         isVisible = false
-        toolTipText = "入力を次のターンに予約します。mode/modelは登録時、contextと実行設定は送信開始時です。"
+        toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
         addActionListener { if (isRunning && inputArea.isEnabled) inputText().takeIf { it.isNotBlank() }?.let(onEnqueue) }
     }
     private val queueButton = javax.swing.JButton().apply {
@@ -94,6 +95,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             add(enqueueButton)
         })
         mentionPopupController.install()
+        promptContext.onAddMention = { mentionPopupController.showPopup() }
+        inputWrapper.add(promptContext, BorderLayout.NORTH)
 
         object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) = submit()
@@ -165,6 +168,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun clearInput() {
         inputArea.text = ""
+        promptContext.clearExplicit()
     }
 
     fun inputText(): String = inputArea.text.trim()

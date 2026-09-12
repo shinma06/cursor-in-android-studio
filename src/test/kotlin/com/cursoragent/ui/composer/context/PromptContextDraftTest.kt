@@ -55,10 +55,11 @@ class PromptContextDraftTest {
         val draft = PromptContextDraft()
         draft.add(selection())
         val automatic = EditorContext(selection().fileUrl, "A.kt", selection())
-        assertEquals(listOf(selection().block()), draft.snapshot().selectionBlocks(automatic, emptySet()))
-        assertTrue(draft.snapshot().selectionBlocks(automatic, setOf("A.kt")).isEmpty())
+        assertEquals(listOf(selection().block()), draft.snapshot().selectionBlocks(automatic, emptyMap()))
+        assertTrue(draft.snapshot().selectionBlocks(automatic, mapOf("A.kt" to "old")).isEmpty())
+        assertEquals(listOf(selection().block()), draft.snapshot().selectionBlocks(automatic, mapOf("A.kt" to "new")))
         draft.clearExplicit()
         draft.automaticEnabled = false
-        assertTrue(draft.snapshot().selectionBlocks(automatic, emptySet()).isEmpty())
+        assertTrue(draft.snapshot().selectionBlocks(automatic, emptyMap()).isEmpty())
     }
 }

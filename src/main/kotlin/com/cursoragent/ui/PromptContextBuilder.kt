@@ -2,9 +2,7 @@ package com.cursoragent.ui
 
 import com.cursoragent.ui.composer.context.EditorContextReader
 import com.cursoragent.ui.composer.context.PromptContextSnapshot
-import com.cursoragent.ui.composer.mention.MentionKind
 import com.cursoragent.ui.composer.mention.MentionResolver
-import com.cursoragent.ui.composer.mention.contextMentions
 import com.intellij.openapi.project.Project
 
 /** Snapshot explicit attachments with their owning request; resolve references when that turn starts. */
@@ -16,12 +14,12 @@ class PromptContextBuilder(
     fun buildEdtContext(userText: String, snapshot: PromptContextSnapshot? = null): String? {
         val context = snapshot ?: PromptContextSnapshot(emptyList(), emptyList(), true)
         val automatic = if (context.automaticEnabled) EditorContextReader.current(project) else null
-        val mentions = contextMentions(userText, context.mentions)
-        val fullFiles = mentions.filter { it.kind == MentionKind.FILE }.map { it.insertToken.removePrefix("./") }.toSet()
-        val selections = context.selectionBlocks(automatic, fullFiles)
-        val activeFile = automatic?.takeUnless { it.path in fullFiles || context.selections.any { selection -> selection.fileUrl == it.fileUrl } }
+        val fileContents = mutableMapOf<String, String>()
+        val referenceContext = mentionResolver.buildFileAndFolderContext(userText, context.mentions) { path, content -> fileContents[path] = content }
+        val selections = context.selectionBlocks(automatic, fileContents)
+        val activeFile = automatic?.takeUnless { it.path in fileContents || context.selections.any { selection -> selection.fileUrl == it.fileUrl } }
             ?.let { "Active file: ${it.path}" }
-        return (listOfNotNull(activeFile, mentionResolver.buildFileAndFolderContext(userText, context.mentions)) + selections)
+        return (listOfNotNull(activeFile, referenceContext) + selections)
             .joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 

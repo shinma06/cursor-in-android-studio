@@ -24,7 +24,8 @@ object MentionCandidateSource {
         val fileCandidates = mutableListOf<Mention>()
 
         fileIndex.iterateContent { file ->
-            if (file == projectDir) return@iterateContent true
+            if (project.isDisposed || Thread.currentThread().isInterrupted) return@iterateContent false
+            if (file == projectDir || (!file.isDirectory && file.fileType.isBinary)) return@iterateContent true
             val relativePath = VfsUtilCore.getRelativePath(file, projectDir, '/') ?: return@iterateContent true
             val kind = if (file.isDirectory) MentionKind.FOLDER else MentionKind.FILE
             val token = if (file.isDirectory) "$relativePath/" else relativePath

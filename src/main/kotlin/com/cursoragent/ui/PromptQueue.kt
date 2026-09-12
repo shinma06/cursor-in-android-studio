@@ -1,14 +1,16 @@
 package com.cursoragent.ui
 
 import com.cursoragent.settings.AgentMode
+import com.cursoragent.ui.composer.context.PromptContextSnapshot
 import java.util.UUID
 
-/** Only text and the explicit mode/model choice; context is resolved when the next turn starts. */
+/** Explicit attachment identities/selections are fixed at registration; referenced files resolve at turn start. */
 internal data class QueuedPrompt(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
     val mode: AgentMode,
     val model: String,
+    val context: PromptContextSnapshot? = null,
 )
 
 internal data class QueueDispatch(val generation: Long, val revision: Long, val prompt: QueuedPrompt)
@@ -22,11 +24,11 @@ internal class PromptQueue(val conversationId: String) {
     val size get() = entries.size
     fun snapshot(): List<QueuedPrompt> = entries.toList()
 
-    fun add(text: String, mode: AgentMode, model: String): Boolean {
+    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null): Boolean {
         if (text.isBlank()) return false
         if (entries.isEmpty()) paused = false
         revision++
-        entries.add(QueuedPrompt(text = text, mode = mode, model = model))
+        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context))
         return true
     }
 

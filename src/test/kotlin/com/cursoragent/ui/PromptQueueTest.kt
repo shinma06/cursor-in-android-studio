@@ -10,6 +10,27 @@ import org.junit.jupiter.api.Test
 import javax.swing.SwingUtilities
 
 class PromptQueueTest {
+    @org.junit.jupiter.api.Test
+    fun `explicit attachment snapshot belongs to queue item across draft edits and dispatch`() {
+        val draft = com.cursoragent.ui.composer.context.PromptContextDraft()
+        val selection = com.cursoragent.ui.composer.context.SelectionContext("file:///A.kt", "A.kt", 0, 3, 1, 1, "old", 1)
+        draft.add(selection)
+        val queue = PromptQueue("owner")
+        queue.add("queued", AgentMode.ASK, "auto", draft.snapshot())
+        val id = queue.next()!!.id
+        draft.replaceSelection(selection.key, selection.copy(text = "new", documentStamp = 2))
+        draft.clearExplicit()
+        queue.edit(id, "edited queued text")
+        queue.resume()
+        val ticket = queue.ticket(1)!!
+        assertTrue(queue.dispatch(ticket, 1, true) { item ->
+            assertEquals("edited queued text", item.text)
+            assertEquals(listOf(selection), item.context!!.selections)
+            assertTrue(draft.snapshot().selections.isEmpty())
+            true
+        })
+    }
+
     @Test
     fun `only explicitly registered immutable prompts are sent in order with their chosen mode and model`() {
         val queue = PromptQueue("conversation")
