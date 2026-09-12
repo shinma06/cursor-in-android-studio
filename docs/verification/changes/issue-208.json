@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "issue": 208,
+  "gui_required": true,
+  "reason": "JCEF provider未導入/disabled時のチャットloadと日本語回復導線、対象261/mac-arm64 provider導入後の実native/JBR/描画は固定buildでGUI再試験が必要。QA #164の4 Caseを継続する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin",
+    "BrowserRecoveryPanelTest: native不要のUI生成で副作用なし、明示操作だけをdispatch、optional依存と無条件ToolWindow登録",
+    "BrowserUrlTest: 既存HTTP(S)/認証情報/host/port境界",
+    "公式Marketplace APIとprovider ZIP manifest/nativeファイルの静的照合（実nativeロード成功ではない）",
+    "固定HEAD/base独立レビュー、git diff --check、ZIP CRC/SHA256/同梱descriptor確認"
+  ],
+  "cases": [
+    {
+      "id": "BROWSER-ENTRY-NAVIGATION",
+      "issue": 208,
+      "change": "手動入口・URL欄・履歴移動・閉じて再表示",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Quail 4/build AI-261.26222.65.2614.16204760・bundled JBR 25.0.3+-15898627-b508.16・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。",
+      "steps": [
+        "指定GUI担当が上部︙の「ブラウザーを開く…」から開く。初回はURL入力待ちで外部へのページ要求がないことを確認する。",
+        "担当が管理するローカルHTTP fixtureでページA→Bへ移動する。URL欄のEnterと移動ボタン、戻る・進む・再読込、通常リンク、リダイレクト、アンカーを確認する。",
+        "URL欄/各ボタンをTabとEnterで操作し、狭幅でも入力・状態が判読できることを確認する。初期案内が手動閲覧でありAgent操作/会話共有を提供していないことを確認する。",
+        "ブラウザーcontentを標準の閉じる操作で閉鎖する（ToolWindowを隠す操作とは区別）。上部メニューから再度開き、空入口になることを確認する。"
+      ],
+      "expected": "初回・再作成時はabout:blankでHTTP接続なし。URL、戻る/進む可否、読込状態が現在ページに追従し、閉鎖後に再作成できる。ページ閲覧をAgent自動操作・DOM/context共有・Cursor browser全体の同等実装と表示しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": 208,
+      "fix_pr": null,
+      "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
+      "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/208",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/164",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+      ]
+    },
+    {
+      "id": "BROWSER-URL-BOUNDARY",
+      "issue": 208,
+      "change": "HTTP(S) validationと拒否時の無接続",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Quail 4/build AI-261.26222.65.2614.16204760・bundled JBR 25.0.3+-15898627-b508.16・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。",
+      "steps": [
+        "ローカルfixtureでlocalhost、127.0.0.1、[::1]のHTTP URLを入力する。管理したHTTPS/IDN fixtureがない場合はその部分を未確認と記録し、実URLを勝手に開かない。",
+        "認証情報入り、file/javascript/data/custom scheme、hostなし、壊れたIPv6、空/範囲外port、backslashや制御文字を含むURLを入力する。",
+        "fixtureから禁止schemeへのリンク/redirectと別window要求を発生させる。既定外部ブラウザー/IDE操作/ファイルアクセスが発生しないことを観察する。"
+      ],
+      "expected": "有効なHTTP(S)だけを読み込む。日本語domainはIDN、Unicode pathはURIで正規化し既存escapeを保持。拒否時は日本語案内と現ページ保持。popupは日本語で未対応を示す。JS bridge、認証/MCP/セキュリティ設定の自動変更がない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": 208,
+      "fix_pr": null,
+      "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
+      "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/208",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/164",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+      ]
+    },
+    {
+      "id": "BROWSER-ERROR-SUPPORT",
+      "issue": 208,
+      "change": "非対応・初期化失敗・読込失敗からの回復",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Quail 4/build AI-261.26222.65.2614.16204760・bundled JBR 25.0.3+-15898627-b508.16・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。",
+      "steps": [
+        "provider未導入またはdisabledの隔離IDEでチャットを開けることを確認。ブラウザー入口のURL/移動が無効で、日本語の状態と導入・回復手順が表示されることを確認。",
+        "初期表示だけで設定/外部ブラウザー/インストールが開始されないことを確認。Tab/Enterでプラグイン設定ボタンへ移動し、Plugins設定が開くことを確認。公式配布ページボタンは固定のJetBrains配布ページだけを外部ブラウザーで開く。狭幅で案内とボタンが読めることを確認。",
+        "指定担当がMarketplaceで提供元JetBrainsの対応版を確認し導入/有効化、IDE案内に従って再起動する。対象版とOS/CPUを照合し、固定buildのJAR/起動ロードを再確認してから入口・描画を試す。互換版がない/起動に失敗する場合は成功扱いにしない。",
+        "対応環境でローカルfixtureの404/500、未listen port、接続切断を試し、有効URLへの移動/再読込で回復することを確認。",
+        "初期化例外/LinkageError/renderer終了の再現環境を用意できる場合に、日本語の失敗表示とログ・復旧手順を確認。再現できない分岐は未実施のまま記録する。"
+      ],
+      "expected": "provider不在でチャット全体のロードを止めず、ブラウザー入力は無効化。対応版確認/有効化/再起動の次操作を日本語で案内し、クリック前の設定・外部ページ起動や自動installをしない。導入後は実native/描画を別途確認し、導入だけで復旧を保証しない。読込失敗を完了と誤表示しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": 208,
+      "fix_pr": null,
+      "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
+      "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/208",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/164",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+      ]
+    },
+    {
+      "id": "BROWSER-LIFECYCLE-PROJECT",
+      "issue": 208,
+      "change": "content/project終了・遅延callback・別projectの分離",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Quail 4/build AI-261.26222.65.2614.16204760・bundled JBR 25.0.3+-15898627-b508.16・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。",
+      "steps": [
+        "異なる使い捨てproject A/Bでブラウザーを開き、各ローカルfixtureの別ページを表示する。再度開く操作は同projectの画面だけを選択することを確認する。",
+        "Aで遅延応答を読み込み中にブラウザーcontentを閉じて再度開き、旧画面の遅延URL/状態が新画面へ混入しないことを確認する。Bの画面は維持する。",
+        "Aのprojectを読込中に閉じ、IDEのエラー表示/ログと残ったブラウザーがないことを確認する。Bへ影響がないことを確認する。",
+        "必要なら担当のlease下でplugin unloadを検証し、ブラウザーcontentとJCEF client/handlerの解放を確認する。単なるToolWindow非表示ではbrowserが生存する点を区別する。"
+      ],
+      "expected": "内容はproject別。content/project/plugin終了では標準disposer経由でJCEFと暗黙client/handlerを解放し、終了後のEDT callbackは更新しない。新画面/他projectへ旧callbackが混入しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正候補のGUI未実施。QA #164の過去の製品failを取り消さない。配布互換性/CLI成功は実native/JBR/描画のpassではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": 208,
+      "fix_pr": null,
+      "recheck": "QA #164の同名Caseで修正PR/固定HEAD/ZIP/ロード実体とGPT・人間の結果を照合する。main受入は別途追跡し、#164を閉じない。",
+      "next_action": "PMが修正PRと固定buildをQA #164へ双方向引継ぎ。指定GUI担当がprovider導入状態とロード実体を記録して本Caseを再試験。未到達手順はpendingを維持。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/208",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/164",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/157"
+      ]
+    }
+  ]
+}
