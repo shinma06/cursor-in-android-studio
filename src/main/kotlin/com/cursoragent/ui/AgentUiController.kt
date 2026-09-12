@@ -55,6 +55,54 @@ class AgentUiController(
             }
         } }
     }
+    private val queue = PromptQueue(recorder.conversation.id)
+    private var queueDialog: PromptQueueDialog? = null
+    val hasQueuedPrompts: Boolean get() = queue.size > 0
+
+    fun enqueuePrompt(text: String) {
+        if (disposed || project.isDisposed || activeRun?.isActive != true || !isSelectedConversation()) return
+        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel)) {
+            composer.clearInput()
+            refreshQueue()
+        }
+    }
+
+    private fun isSelectedConversation(): Boolean {
+        val selected = sessions.snapshot().selected
+        return selected.id == tabId && selected.conversationId == queue.conversationId
+    }
+
+    fun pauseQueue() { queue.pause(); refreshQueue() }
+    private fun refreshQueue() { composer.showQueueState(queue.size, queue.paused) }
+
+    fun showQueue() {
+        if (disposed || project.isDisposed || !isSelectedConversation() || queueDialog != null) return
+        pauseQueue()
+        val dialog = PromptQueueDialog(project, queue,
+            isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
+            onChanged = ::refreshQueue,
+            onResume = {
+                if (!disposed && !project.isDisposed && isSelectedConversation()) {
+                    queue.resume()
+                    refreshQueue()
+                    scheduleNextQueuedPrompt()
+                }
+            },
+        )
+        queueDialog = dialog
+        dialog.show()
+        if (queueDialog === dialog) queueDialog = null
+    }
+
+    private fun scheduleNextQueuedPrompt() {
+        val ticket = queue.ticket(turnGeneration) ?: return
+        SwingUtilities.invokeLater {
+            val ownerIsIdle = !disposed && !project.isDisposed && activeRun == null && isSelectedConversation()
+            queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
+            if (!disposed) refreshQueue()
+        }
+    }
+
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
@@ -95,6 +143,9 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        queue.clear()
+        queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+        queueDialog = null
         modelLoad?.cancel(true)
         modelLoad = null
         turnGeneration++
@@ -124,51 +175,68 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (disposed || legacyOnly || userText.isBlank() || activeRun != null) return
+        if (activeRun != null || userText.isBlank()) return
+        pauseQueue()
+        startPrompt(userText)
+    }
+
+    private fun startPrompt(userText: String, queued: QueuedPrompt? = null): Boolean {
+        if (disposed || project.isDisposed || legacyOnly || userText.isBlank() || activeRun != null) return false
 
         val shared = AgentSettingsState.getInstance()
-        val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return
+        val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return false
+        if (queued != null && tab.chatId.isNullOrBlank()) {
+            timeline.showStatus("会話の継続IDを取得できないため予約送信を一時停止しました。新しい会話への自動送信は行いません。")
+            return false
+        }
         if (!resumeAllowed) {
             timeline.showStatus("保存本文の閲覧のみです。この接続・作業場所からAgentを再開できないため、新しい会話を開始してください。")
-            return
+            return false
         }
         val settings = TurnSettings(
-            shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode,
+            shared.agentExecutablePath, queued?.model ?: composer.selection.selectedModel, queued?.mode ?: composer.selection.mode,
             shared.permissionMode, shared.sandboxMode,
         )
         val workspace = agentService.captureWorkspace(tab.chatId, shared.worktreeMode)
         agentService.settingsUnavailableReason(tab.transport, settings, workspace.mode)?.let { reason ->
             timeline.showStatus(reason)
-            return
+            return false
         }
         val generation = turnGeneration + 1
         sessions.updateComposer(tabId, settings.mode, settings.model, userText, userText.length)
-        val sessionTurn = sessions.beginTurn(tabId) ?: return
+        val sessionTurn = sessions.beginTurn(tabId) ?: return false
         activeToken = sessionTurn.token
         recorder.conversation = recorder.conversation.copy(transport = tab.transport)
         recorder.begin(sessionTurn.token.turnId, userText)
         lateinit var run: AgentRun
-        val turn = agentService.prepareTurn(workspace, settings) {
-            val usageTicket = composer.contextUsage.beginTurn()
-            turnListenerFactory.create(
-                usageTicket,
-                isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
-                onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
-                isStopped = { run.wasStopped },
-                restoreTarget = { workspace.restoreTarget },
-            )
+        var preparationFailure = RestorePolicy.BUSY
+        val turn = try {
+            agentService.prepareTurn(workspace, settings) {
+                val usageTicket = composer.contextUsage.beginTurn()
+                turnListenerFactory.create(
+                    usageTicket,
+                    isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
+                    onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
+                    isStopped = { run.wasStopped },
+                    restoreTarget = { workspace.restoreTarget },
+                )
+            }
+        } catch (_: Exception) {
+            preparationFailure = "送信の準備を開始できませんでした。"
+            null
         }
         if (turn == null) {
             recorder.finish("failed")
             sessions.finishTurn(sessionTurn.token)
             activeToken = null
-            timeline.showStatus(RestorePolicy.BUSY)
-            return
+            timeline.showStatus(preparationFailure)
+            return false
         }
         run = turn.run
         activeRun = run
         turnGeneration = generation
-        composer.clearInput()
+        if (queued == null) composer.clearInput()
+        else sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, composer.inputArea.text, composer.inputArea.editor?.caretModel?.offset ?: 0)
         composer.setInputEnabled(true)
         composer.setRunning(true)
 
@@ -183,54 +251,62 @@ class AgentUiController(
             run.reportError("送信の準備に失敗しました: ${error.message}")
             run.complete(-1)
             turn.preparation.close()
-            return
+            return true
         }
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                if (!run.isActive) return@executeOnPooledThread
-                val commandTarget = workspace.commandTarget
-                check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
-                    "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
-                }
-                runOnEdt { if (!disposed && sessions.accepts(sessionTurn.token)) recorder.provenance(commandTarget.rootPath, workspace.mode) }
-                val target = workspace.restoreTarget
-                val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
-                val checkpointReason = if (checkpointId == null) {
-                    checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
-                } else null
-                if (!run.isActive) return@executeOnPooledThread
-                val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
-                val fullContext = listOfNotNull(edtContext, backgroundContext)
-                    .joinToString("\n\n")
-                    .takeIf { it.isNotBlank() }
-                val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
-
-                if (!run.isActive) return@executeOnPooledThread
-                runOnEdt {
-                    if (disposed || project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
-                    userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
-                    if (checkpointId != null) {
-                        userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+        try {
+            ApplicationManager.getApplication().executeOnPooledThread {
+                try {
+                    if (!run.isActive) return@executeOnPooledThread
+                    val commandTarget = workspace.commandTarget
+                    check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                        "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
                     }
-                    timeline.showStatus("実行中…")
-                }
+                    runOnEdt { if (!disposed && sessions.accepts(sessionTurn.token)) recorder.provenance(commandTarget.rootPath, workspace.mode) }
+                    val target = workspace.restoreTarget
+                    val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
+                    val checkpointReason = if (checkpointId == null) {
+                        checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
+                    } else null
+                    if (!run.isActive) return@executeOnPooledThread
+                    val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
+                    val fullContext = listOfNotNull(edtContext, backgroundContext)
+                        .joinToString("\n\n")
+                        .takeIf { it.isNotBlank() }
+                    val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
 
-                // Context/checkpoint preparation may take time; do not trust the earlier path check.
-                check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
-                    "準備中に作業場所が変わったため会話を再開しません。"
+                    if (!run.isActive) return@executeOnPooledThread
+                    runOnEdt {
+                        if (disposed || project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
+                        userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
+                        if (checkpointId != null) {
+                            userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                        }
+                        timeline.showStatus("実行中…")
+                    }
+
+                    // Context/checkpoint preparation may take time; do not trust the earlier path check.
+                    check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                        "準備中に作業場所が変わったため会話を再開しません。"
+                    }
+                    agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
+                } catch (error: Exception) {
+                    run.reportError("送信の準備に失敗しました: ${error.message}")
+                    run.complete(-1)
+                } finally {
+                    turn.preparation.close()
                 }
-                agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
-            } catch (error: Exception) {
-                run.reportError("送信の準備に失敗しました: ${error.message}")
-                run.complete(-1)
-            } finally {
-                turn.preparation.close()
             }
+        } catch (_: Exception) {
+            run.reportError("送信の準備を開始できませんでした。")
+            run.complete(-1)
+            turn.preparation.close()
         }
+        return true
     }
 
     private fun requestRollback(checkpointId: String) {
+        pauseQueue()
         val confirmed = Messages.showYesNoDialog(
             project,
             "このプロンプトを送信する直前の状態までファイルを復元します。この操作は取り消せません。続行しますか？",
@@ -265,16 +341,20 @@ class AgentUiController(
     }
 
     fun stopRun() {
+        pauseQueue()
         composer.contextUsage.reset()
         activeRun?.stop()
     }
 
-    private fun finishRun() {
+    private fun finishRun(successful: Boolean) {
+        if (!successful) queue.pause()
         activeToken?.let(sessions::finishTurn)
         activeToken = null
         activeRun = null
         composer.setInputEnabled(true)
         composer.setRunning(false)
+        refreshQueue()
+        if (successful) scheduleNextQueuedPrompt()
     }
 
     private fun runOnEdt(block: () -> Unit) {
