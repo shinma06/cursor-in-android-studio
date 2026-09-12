@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 150,
+  "gui_required": false,
+  "reason": "固定SDKと一次資料のread-only事前調査・比較手順の文書のみ。Issue150全体の実IDE比較/GUI/機能選定は未達として保持する。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "固定IDE/plugin descriptor/class署名と一次資料・未達Caseの独立照合"
+  ],
+  "cases": []
+}
