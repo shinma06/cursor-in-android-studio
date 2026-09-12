@@ -16,7 +16,7 @@ Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE 
 >
 > **GUI QA**: [現在のCase管理と固定候補の手順](docs/verification/README.md)を参照する。[旧手動マトリクス](docs/manual-verification/matrix.md)は履歴・詳細であり、過去buildの結果を最新候補へ転用しない。
 
-現行コードの責務は [現行実装](docs/architecture/current-implementation.md)、指示と命名の点検結果は [Project Context監査](docs/development/project-context-audit.md) を参照してください。
+責務・正本・変更先は [全体設計の入口](docs/architecture/README.md) から確認してください。製品、知識、テスト、運用、配布の既存資料へ進めます。
 
 ## ループ開発
 
