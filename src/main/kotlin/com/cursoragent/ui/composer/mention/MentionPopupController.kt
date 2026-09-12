@@ -40,7 +40,22 @@ class MentionPopupController(
         val document = field.document
         val stamp = document.modificationStamp
         lateinit var next: JBPopup
-        val panel = MentionPickerPanel(choose = { mention ->
+        lateinit var panel: MentionPickerPanel
+        var pending: java.util.concurrent.Future<*>? = null
+        var queryGeneration = 0L
+        fun load(query: String) {
+            pending?.cancel(true)
+            val generation = ++queryGeneration
+            pending = ApplicationManager.getApplication().executeOnPooledThread {
+                val result = runCatching { ReadAction.compute<List<Mention>, RuntimeException> { MentionCandidateSource.buildCandidates(project, query) } }
+                SwingUtilities.invokeLater {
+                    if (!project.isDisposed && !next.isDisposed && field.isShowing && generation == queryGeneration) {
+                        result.fold(panel::loaded) { panel.failed() }
+                    }
+                }
+            }
+        }
+        panel = MentionPickerPanel(choose = { mention ->
             if (!project.isDisposed && field.isShowing && document.modificationStamp == stamp &&
                 (triggerOffset == null || triggerOffset in 0 until document.textLength && document.charsSequence[triggerOffset] == '@')
             ) {
@@ -51,23 +66,16 @@ class MentionPopupController(
                 next.cancel()
                 field.requestFocusInWindow()
             }
-        }, cancel = { next.cancel(); field.requestFocusInWindow() })
+        }, cancel = { next.cancel(); field.requestFocusInWindow() }, onQuery = ::load)
         next = JBPopupFactory.getInstance().createComponentPopupBuilder(panel, panel.search)
-            .setTitle("contextを追加（ファイル候補は先頭500件まで）")
+            .setTitle("contextを追加（全体を検索・project候補を最大500件表示）")
             .setRequestFocus(true)
             .setResizable(true)
             .setCancelKeyEnabled(false)
             .createPopup()
         popup = next
-        val load = ApplicationManager.getApplication().executeOnPooledThread {
-            val result = runCatching { ReadAction.compute<List<Mention>, RuntimeException> { MentionCandidateSource.buildCandidates(project) } }
-            SwingUtilities.invokeLater {
-                if (!project.isDisposed && !next.isDisposed && field.isShowing) {
-                    result.fold(panel::loaded) { panel.failed() }
-                }
-            }
-        }
-        Disposer.register(next, Disposable { load.cancel(true); if (popup === next) popup = null })
+        Disposer.register(next, Disposable { queryGeneration++; pending?.cancel(true); if (popup === next) popup = null })
         next.showUnderneathOf(field)
+        load("")
     }
 }

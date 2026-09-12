@@ -24,7 +24,7 @@ JetBrains AI AssistantのChat modeには自動context、手動添付、検索、
 | Terminal | 既存末尾出力。無効/未起動/取得不能はplaceholderで説明 |
 | Docs / Web | tool利用hintのみ。検索・取得実行済みと表示しない |
 
-画像/binary本文、Skills258、Chats本文取得、Browserの実データ添付、意味検索の再現は別scope。現行候補はテキストfile/folder最大500件で上限を表示する。候補収集はpooled thread + read action、検索/取消はUIで可能。loading/取得失敗/0件/多数を区別する。旧#5はopenで既存観察と未確認が混在しており、過去passを本候補へ転記しない。
+画像/binary本文、Skills258、Chats本文取得、Browserの実データ添付、意味検索の再現は別scope。queryごとにproject全体を探索し、一致したテキストfile/folderの表示だけを最大500件に制限する。空queryの先頭500件に含まれないfileも、名前で検索すれば候補になる。候補収集はpooled thread + read action、検索/取消はUIで可能。loading/取得失敗/0件/多数を区別する。旧#5はopenで既存観察と未確認が混在しており、過去passを本候補へ転記しない。
 
 ## データと送信時点
 
@@ -36,6 +36,6 @@ Add to ChatはEditorPopupMenuと入力欄近くの「選択を追加」から実
 
 ## 検証・残す実機確認
 
-自動テストでsnapshotの不変性、tab分離、重複/古いselection、空白path、予約text編集/dispatch、候補loading中検索/0件/500件/矢印EnterEscape/IME合成中抑制を確認する。popupの破棄で収集Futureをcancelし、遅着は破棄・project・表示を再確認する。元の入力が編集されたpopupは閉じて誤置換を防ぐ。context表示のtimerは非表示/破棄で停止する。
+自動テストでsnapshotの不変性、tab分離、重複/古いselection、空白path、予約text編集/dispatch、候補loading中検索/0件/500件/矢印EnterEscape/IME合成中抑制を確認する。popupの破棄で収集Futureをcancelし、遅着はquery世代・破棄・project・表示を再確認する。元の入力が編集されたpopupは閉じて誤置換を防ぐ。context表示のtimerは非表示/破棄で停止する。
 
 GUI/実CLI/インストール/再起動は未実施。[Case24](../verification/changes/issue-24.json)と[手動マトリクス](../manual-verification/matrix.md)へ新規pendingを追加し、#5の旧結果は変更しない。Dark/Light × 通常/Compact、狭幅、実IME/EnterEscape、Terminal無効、文書変更とtab/queue競合を固定source/ZIP/installed全JAR/起動ロード実体で確認する。Android Lifecycle/Context/DB/coroutineはSwing/IDE処理なので対象外。EDT・所有権・キャンセル・失敗経路は上記で扱う。

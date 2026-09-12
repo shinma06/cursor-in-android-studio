@@ -62,7 +62,7 @@
       "change": "候補検索・0件/多数・IMEと種類の保証",
       "preconditions": "#48固定依存を含む#24候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定担当のhost leaseと使い捨てfile/CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別記録。",
       "steps": [
-        "@と追加ボタンを開き、収集中の検索/取消、0件・500件以上のfixture、長名/空白/日本語pathとpath説明を確認する。候補上限を明示し、本文の編集でattachment identityが壊れない。",
+        "@と追加ボタンを開き、収集中の検索/取消、0件・500件以上のfixture、長名/空白/日本語pathとpath説明を確認する。初期500件の外にあるfileを検索して見つかることを確認。探索範囲と一致表示上限を区別し、本文の編集でattachment identityが壊れない。",
         "上下/Enter選択・Escape取消・日本語IMEを試す。元の入力を変更/消去した後に旧popupから誤置換/追加されないことを確認。",
         "Files未保存本文、Folder直下一覧、Git diff/Branch差分、Terminal実出力/タブなし/無効を送信fixtureで照合する。Docs/Webはhintのみ、画像/Skills/Browserは実装済みと表記しない。"
       ],

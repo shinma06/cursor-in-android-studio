@@ -18,7 +18,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 /** Search and cancel stay responsive while project candidates load off EDT. */
-internal class MentionPickerPanel(private val choose: (Mention) -> Unit, private val cancel: () -> Unit) : JPanel(BorderLayout(4, 4)) {
+internal class MentionPickerPanel(private val choose: (Mention) -> Unit, private val cancel: () -> Unit, private val onQuery: (String) -> Unit = {}) : JPanel(BorderLayout(4, 4)) {
     val search = JTextField()
     val model = DefaultListModel<Mention>()
     val list = JBList(model)
@@ -38,9 +38,9 @@ internal class MentionPickerPanel(private val choose: (Mention) -> Unit, private
         add(JBScrollPane(list), BorderLayout.CENTER)
         add(preview, BorderLayout.SOUTH)
         search.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent) = filter()
-            override fun removeUpdate(e: DocumentEvent) = filter()
-            override fun changedUpdate(e: DocumentEvent) = filter()
+            override fun insertUpdate(e: DocumentEvent) = queryChanged()
+            override fun removeUpdate(e: DocumentEvent) = queryChanged()
+            override fun changedUpdate(e: DocumentEvent) = queryChanged()
         })
         search.addInputMethodListener(object : InputMethodListener {
             override fun inputMethodTextChanged(e: InputMethodEvent) {
@@ -67,6 +67,8 @@ internal class MentionPickerPanel(private val choose: (Mention) -> Unit, private
         bind(search, "DOWN") { if (!model.isEmpty) list.selectedIndex = (list.selectedIndex + 1).coerceAtMost(model.size - 1) }
         bind(search, "UP") { if (!model.isEmpty) list.selectedIndex = (list.selectedIndex - 1).coerceAtLeast(0) }
     }
+
+    private fun queryChanged() { status = "候補を読み込み中…"; filter(); onQuery(search.text.trim()) }
 
     fun loaded(values: List<Mention>) { candidates = values; status = "一致する候補はありません"; filter() }
     fun failed() { candidates = emptyList(); status = "候補を取得できませんでした。閉じて再度追加してください。"; filter() }
