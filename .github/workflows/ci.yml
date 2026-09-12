@@ -34,15 +34,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify complete change impact
+        id: impact
+        run: python3 scripts/workflow/change_impact.py --event
 
       - uses: actions/setup-java@v4
+        if: steps.impact.outputs.gradle_test == 'true'
         with:
           distribution: temurin
           java-version: "21"
 
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.impact.outputs.gradle_test == 'true'
 
       - name: Cache Android Studio distribution
+        if: steps.impact.outputs.gradle_test == 'true'
         id: cache-android-studio
         uses: actions/cache@v4
         with:
@@ -50,7 +59,7 @@ jobs:
           key: android-studio-${{ env.ANDROID_STUDIO_VERSION }}-${{ env.ANDROID_STUDIO_CODENAME }}
 
       - name: Download Android Studio (Linux)
-        if: steps.cache-android-studio.outputs.cache-hit != 'true'
+        if: steps.impact.outputs.gradle_test == 'true' && steps.cache-android-studio.outputs.cache-hit != 'true'
         run: |
           # NOTE: the intellijPlatform Gradle plugin's own androidStudio()
           # dependency helper constructs a broken URL for this artifact as of
@@ -65,11 +74,22 @@ jobs:
           tar -xzf /tmp/android-studio.tar.gz -C /tmp/android-studio --strip-components=1
           rm /tmp/android-studio.tar.gz
 
+      - name: Validate GitHub Actions syntax
+        if: steps.impact.outputs.tooling_test == 'true'
+        run: |
+          curl -fL --retry 3 -o /tmp/actionlint.tar.gz https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz' | sha256sum --check
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -shellcheck= -pyflakes=
+
       - name: Test GitHub workflow tooling
+        if: steps.impact.outputs.tooling_test == 'true'
         run: python3 -m unittest discover -s scripts/workflow -p 'test_*.py'
 
       - name: Test GUI loop evidence tooling
+        if: steps.impact.outputs.tooling_test == 'true'
         run: python3 -m unittest discover -s scripts/loop -p 'test_*.py'
 
       - name: Run tests
+        if: steps.impact.outputs.gradle_test == 'true'
         run: ./gradlew test --console=plain -PplatformPath=/tmp/android-studio

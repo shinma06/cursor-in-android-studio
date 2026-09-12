@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 220,
+  "gui_required": false,
+  "reason": "developで受入済みの5件の運用変更をmainへ先行反映する。差分はdocs・workflow/scripts・hooks・agent入口のみ。製品src・Gradle設定・GUI・保存形式はmainから不変。未試験製品commitのpromotionではない。",
+  "cli_checks": [
+    "5元commit/PRとの採用差分照合。main/developの製品状況を区別し、未移植の実装資料は固定develop参照にする",
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests",
+    "verification.validate_change(issue-220, GUI not required); main tooling path check; git diff --check",
+    "actionlint; 変更したMarkdown参照先と元QA #167/#170/#173/#197/#200の残受入を照合",
+    "固定HEAD/baseの独立レビューと必須CI、通常main merge・QA/Project readback・所有確認付きcleanup"
+  ],
+  "cases": []
+}

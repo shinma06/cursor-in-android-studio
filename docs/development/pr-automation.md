@@ -10,8 +10,10 @@ trusted mainの `agent_loop.py` が、明示登録された同一repository/main
 ```bash
 python3 /path/to/trusted-main/scripts/workflow/agent_loop.py enroll \
   --pr 123 --source /path/to/issue-worktree --owner gpt-issue-session \
-  --scope scripts/workflow/ docs/verification/ --parent 1 --writer-stopped
+  --scope scripts/workflow/ docs/verification/ --writer-stopped
 ```
+
+`--parent`は[実際の作業分解の親](work-management.md)があるときだけ指定し、Standaloneは省略します。#1を既定の親にしません。
 
 mainの`--close-issue`は全Issue受入完了時だけ指定します。developのfeature/bug/maintenanceは実装受入完了とQA引継ぎ成功後に元Issueをcloseします。reviewのissue_completeはdevelopでは未実装受入が残らないこと（明示的な別Issueへの分離を含む）、mainでは全受入完了を意味します。
 PRのIssue番号、作者/repository、main/develop target、Integration/Verification metadata、clean source/HEAD一致を検査します。
@@ -37,7 +39,7 @@ GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認
 最大3 PRを交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。
 
 coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/本文/Issue条件/feedback変更は承認を失効させます。
-base同期は通常merge → テスト → 非force push → 独立再レビューです。未解決会話とstrict baseはGitHub保護も検査します。
+base同期は通常merge → [共通Change Impact](change-impact.md)の必要テスト → 非force push → 独立再レビューです。知識のみのskipも判定結果を残し、dirty/remote HEAD/受入の照合は省略しません。未解決会話とstrict baseはGitHub保護も検査します。
 `test` / `PR policy` / `Acceptance gate`成功と独立レビューを読み戻し、merge直前に受入を再検証して `Agent review` を発行します。
 
 - develop: 必要Case JSONと次の操作、製品failなら修正Issueが必須。GUI passは要求せずsquash merge。
@@ -81,11 +83,13 @@ registry喪失、旧writer再開、予期しないcommitやdirty内容は保持�
 
 ## 完了とcleanup
 
-GitHub mergeを読み戻します。developでは元実装Issue単位の `<!-- issue-qa-handoff:v1 origin=N -->` をQA本文から全件取得で照合し、存在すれば再利用します。複数一致は停止します。元Issue/PR/merge SHA/固定mergeのCase JSON全文（GUI不要の場合もmain反映追跡）をQAへ保存してreadbackし、元Issueコメントの `<!-- issue-qa-link:v1 origin=N qa=Q -->` も読み戻してからstatus:doneでcloseします。API失敗やreadback不一致ではcloseせず、再試行で既存QAを再利用します。親チェック/QA受入は完了にしません。既存QA本文は置換せず引継ぎコメントを追加します。
+GitHub mergeを読み戻します。developでは元実装Issue単位の `<!-- issue-qa-handoff:v1 origin=N -->` をQA本文から全件取得で照合し、存在すれば再利用します。複数一致は停止します。元Issue/PR/merge SHA/固定mergeのCase JSON全文（GUI不要の場合もmain反映追跡）をQAへ保存する。元Milestoneを新規QAへ継承し、既存QAの目標と異なれば上書きせず停止する。QAのnative親子関係と内容をreadbackし、元Issueコメントの `<!-- issue-qa-link:v1 origin=N qa=Q -->` も読み戻してからstatus:doneでcloseします。API失敗やreadback不一致ではcloseせず、再試行で既存QAを再利用します。親チェック/QA受入は完了にしません。既存QA本文は置換せず引継ぎコメントを追加します。
 mainで全受入済みのpromotion Issueは新candidate証拠を含む受入判定でclose可能です。元の機能/QA IssuesはPMが残条件を個別照合します。
 remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止・GUI lease空きの場合だけ削除します。
 **main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
 cleanup中断は次tickで再試行し、merge成功だけで状態を消しません。
+
+`done`の次操作はPMへの[Issue/QA/親/Project整合確認](github-projects.md#issue終了時の整合確認)を含みます。coordinatorはProjectへ自動追加せず、developのQA分離で親全体の受入を自動チェックしません。PMは元IssueとQAのProject登録・Status、親の現行参照/分割先、主要変更時の概要を確認して、読み戻し結果または未反映対象・担当・再試行条件を元Issueへ記録します。Project障害だけで受入完了済みIssueを開き直したり、未達QAを閉じたりしません。
 
 ```bash
 python3 scripts/workflow/agent_loop.py cleanup-branches
@@ -94,6 +98,26 @@ python3 scripts/workflow/agent_loop.py cleanup-branches --apply
 
 #83導入PRは [bootstrap手順](github-workflow.md#83の一回限りのbootstrap)に従い、旧enrollを使わずPMへ引継ぎます。
 通常運用で必須gateを省略する手動経路は作りません。
+
+## ブランチ残存の判定と完了確認
+
+2026-09-10 / #165。更新日時や`[gone]`だけで実ブランチを削除しない。調査では次を区別する。
+
+| 対象 | 判定と処置 |
+| --- | --- |
+| `origin/*`のremote-tracking ref | `git ls-remote --heads origin`と照合。remoteで削除済みなら`git fetch --prune origin`で同期する。実branch/worktreeの削除ではない。 |
+| remote/localの実branch | PRのmerged/closed、固定HEAD、取り込み先、claim、dirty/未追跡、worktreeでの使用を確認する。squashは`--merged`だけで判定せずPR HEADも照合する。 |
+| detached worktree | app/reviewer/GUI fixtureの用途・担当・未保存データを別に確認する。branch一覧にないことや古さだけでは削除しない。 |
+
+通常のcloneでoriginのfetch refspecが`+refs/heads/*:refs/remotes/origin/*`であり、tag pruningが有効でないことを確認したら、`git config --local remote.origin.prune true`を一度設定する。以後の通常fetchでも削除済みの追跡refを整理する。設定は本repositoryのoriginに限定し、global設定・他remote・タグ設定を変更しない。独自refspecや`fetch.pruneTags`/`remote.origin.pruneTags`がある場合は削除範囲を先に確認する。`--prune-tags`は使わない。[Git公式のpruning仕様](https://git-scm.com/docs/git-fetch#_pruning)を参照。
+
+PM/coordinatorはmerge後の区切りで以下を確認し、Issue/PRへ結果を残す。
+
+1. **統合**: PRのmerge SHA、受入、必要なQA引継ぎを読み戻す。
+2. **後片付け**: 既存の所有確認付きcleanupを実行し、`git fetch --prune origin`後にremote/localの対象branch、`origin/<branch>`、登録source/managed checkoutの残存を確認する。終了報告は削除済み/保留を分ける。既存`cleanup-branches`は補助監査であり、使用中worktree・remote実ref・未登録/旧形式・mergedでないPR等をすべて整理する仕組みではない。
+3. **保留**: branch、固定HEAD、残る資源の種類、理由、owner、次の操作/再開条件を元Issue/PRへ記録する。ローカル絶対パスはprivate registryだけに残す。GUI leaseで中断した場合、元coordinatorまたは明示引継ぎ先が解放確認後に既存登録の停止理由を照合し、通常のresume/cleanup手順を再開する。Issueがclosedでもこの後片付け責務は消えない。停止理由不明の自動再開、owner/sourceの付け替え、heartbeatの勝手な再開はしない。
+
+mergedでなくclosed/supersededになったPR、PRのない旧形式branch、未追跡ファイルを持つworktreeは、自動cleanupへ無理に登録し直さない。代替PR/取り込み証拠、担当解放、未保存データの保全と削除範囲を確認してから別途判断する。`main/master/develop`、有効claim、未公開成果物、GUI証拠は保護し、件数ゼロのために削除しない。
 
 ## 検証
 

@@ -36,11 +36,14 @@ def handoff(gh, repo, pr, origin, change):
                '既存の観察は履歴であり新候補のpassではない。製品failは修正Issue/PRと再確認へ引き継ぐ。\n'
                'GUI不要でもmain反映確認をこのマトリクスで追跡する。\n\n```json\n' +
                json.dumps({'change': change, 'main_tracking': main_tracking}, ensure_ascii=False, indent=2) + '\n```')
+    milestone = origin.get('milestone')
     if not candidates:
         summary = re.sub(r'^\[[^]]+\]\s*', '', origin['title'])
-        qa = gh.api(f'repos/{repo}/issues', 'POST', {
-            'title': f'[試験] #{number} {summary}', 'body': marker + '\n' + payload,
-            'labels': ['type:qa', 'priority:' + axes['priority'], 'status:ready']})
+        data = {'title': f'[試験] #{number} {summary}', 'body': marker + '\n' + payload,
+                'labels': ['type:qa', 'priority:' + axes['priority'], 'status:ready']}
+        if milestone:
+            data['milestone'] = milestone['number']
+        qa = gh.api(f'repos/{repo}/issues', 'POST', data)
     else:
         qa = candidates[0]
     qa = gh.issue(qa['number'])
@@ -48,6 +51,13 @@ def handoff(gh, repo, pr, origin, change):
         raise ValueError('QA identity readback failed')
     if qa['state'] != 'open':
         raise ValueError('Existing QA is closed; reconcile remaining verification before closure')
+    if milestone and (qa.get('milestone') or {}).get('number') != milestone['number']:
+        raise ValueError('QA milestone differs from origin; reconcile before closure')
+    children_path = f'repos/{repo}/issues/{number}/sub_issues'
+    if not any(x['id'] == qa['id'] for x in gh.pages(children_path + '?per_page=100')):
+        gh.api(children_path, 'POST', {'sub_issue_id': qa['id']})
+    if not any(x['id'] == qa['id'] for x in gh.pages(children_path + '?per_page=100')):
+        raise ValueError('QA parent relationship readback failed')
     if payload not in qa['body']:
         comments = gh.comments(qa['number'])
         if not any(payload == c['body'] for c in comments):

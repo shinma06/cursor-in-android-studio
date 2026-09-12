@@ -19,6 +19,8 @@ class PrePushTest(unittest.TestCase):
         self.repo = base / 'source'
         self.repo.mkdir()
         self.env = os.environ.copy()
+        for key in ('GITHUB_STEP_SUMMARY', 'GITHUB_OUTPUT'):
+            self.env.pop(key, None)
         for key in subprocess.check_output(['git', 'rev-parse', '--local-env-vars'], text=True).splitlines():
             self.env.pop(key, None)
         self.env['GIT_CONFIG_NOSYSTEM'] = '1'
@@ -36,7 +38,8 @@ class PrePushTest(unittest.TestCase):
                 'import unittest\nclass Fixture(unittest.TestCase):\n'
                 '    def test_fixture(self): self.assertTrue(True)\n')
         shutil.copy2(ROOT / '.githooks/pre-push', self.repo / '.githooks/pre-push')
-        shutil.copy2(ROOT / 'scripts/workflow/git_guard.py', self.repo / 'scripts/workflow/git_guard.py')
+        for name in ('git_guard.py', 'change_impact.py'):
+            shutil.copy2(ROOT / 'scripts/workflow' / name, self.repo / 'scripts/workflow' / name)
         (self.repo / '.gitignore').write_text('build/\ngradle-args\n__pycache__/\n')
         (self.repo / 'gradlew').write_text(
             '#!/usr/bin/env bash\nset -eu\nprintf "%s\\n" "$@" > gradle-args\n'
@@ -80,3 +83,26 @@ class PrePushTest(unittest.TestCase):
         self.git('push', 'origin', '--delete', BRANCH)
         self.assertFalse((self.repo / 'gradle-args').exists())
         self.assertEqual(self.git('ls-remote', 'origin', 'refs/heads/' + BRANCH).stdout, '')
+
+    def test_knowledge_branch_skips_gradle_but_mixed_push_runs_it(self):
+        self.git('update-ref', 'refs/remotes/origin/develop', 'HEAD')
+        (self.repo / 'AGENTS.md').write_text('Knowledge only\n')
+        self.git('add', '.'); self.git('commit', '-m', 'docs')
+        self.env['FIXTURE_BUILD_FAIL'] = '1'
+        first = self.git('push', 'origin', BRANCH)
+        self.assertIn('IMPACT_KNOWLEDGE_ONLY', first.stdout + first.stderr)
+        self.assertFalse((self.repo / 'gradle-args').exists())
+        before = self.git('rev-parse', 'HEAD').stdout.strip()
+        (self.repo / 'src/main').mkdir(parents=True)
+        (self.repo / 'src/main/App.kt').write_text('class App\n')
+        self.git('add', '.'); self.git('commit', '-m', 'runtime')
+        result = self.git('push', 'origin', BRANCH, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue((self.repo / 'gradle-args').exists())
+        self.assertIn(before, self.git('ls-remote', 'origin', 'refs/heads/' + BRANCH).stdout)
+
+    def test_legacy_branch_without_classifier_runs_full_tests(self):
+        (self.repo / 'scripts/workflow/change_impact.py').unlink()
+        self.git('add', '.'); self.git('commit', '-m', 'legacy branch')
+        self.git('push', 'origin', BRANCH)
+        self.assertEqual((self.repo / 'gradle-args').read_text().splitlines(), ['test', '--console=plain'])

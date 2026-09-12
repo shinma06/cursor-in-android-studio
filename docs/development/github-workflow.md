@@ -19,6 +19,8 @@
 
 ## 正本と役割
 
+[GitHub Work Management Rules](work-management.md)を作成・triage・完了時に適用します。Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは依存/分解。Standaloneに架空の親や依存を要求しません。
+
 Issueは目的・受入・担当・依存・次の操作、PRは差分・固定HEAD/base・レビュー・CI・統合判断の正本です。
 QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのpassは別buildを保証しません。
 
@@ -28,9 +30,9 @@ PM/進行役は統合順・claim・GitHub設定を管理します。実装担当
 
 ## 開始
 
-1. AGENTS.md、本文書、要件、#1、対象Issue本文と全コメント、open PRを読む。
-2. `git status --short --branch`、`git worktree list`、`git fetch origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
-3. 重複Issueを検索し、必要な専用Issueを作る。親へリンクし、独立した実装やGUI検証を分ける。
+1. AGENTS.md、本文書、要件、Projectのロードマップと対象Milestone、対象Issue本文と全コメント、open PRを読む。旧#1は必要な判断履歴として参照する。
+2. `git status --short --branch`、`git worktree list`、`git fetch --prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
+3. [Governance Audit](git-governance-audit.md)のread-only statusと今回の影響から発火条件を判断する。対象なら監査Issueへまとめ、通常のPRごとに全監査しない。重複Issueを検索し、必要な具体作業のIssueを作る。[作成/triage確認](work-management.md#issue作成triageの確認)に従いProjectへ追加、Milestoneを選定、実際の親子/依存をnative設定する。関係なしはStandaloneと明示し、独立した実装やGUI検証を分ける。
 4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。
 5. 通常はorigin/developから `<codex|claude|cursor>/<Issue>-<slug>` と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
 6. 最初の意味あるpushでDraft PRを作成する。PR本文はテンプレートに従い、`Issue`、`Integration`、`Verification`、`GUI`、`GUI reason`を記録する。source JSONはGUI不要変更にも必須で、理由・CLI検証を含む。
@@ -39,7 +41,7 @@ claim例（パスとhostはprivate local registryだけ）:
 
 ```text
 status: in-progress
-owner: gpt-83-policy-a; issue: #83; parent: #1
+owner: gpt-issue-session; issue: #N; parent: <actual parent or none>
 base: <full SHA>; target: develop
 branch: codex/83-policy; worktree: isolated (local registry)
 scope: <files and acceptance>; excluded: <out of scope>
@@ -58,7 +60,7 @@ GitHubへ接続できずclaimを確認できないときは新規実装を開始
 - 共通ファイルは担当者だけが編集。依存PRは通常develop統合後に取り込む。stacked PRは依存baseと順序を明記し、base変更後に再レビューする。
 - テスト/buildPluginは専用worktreeで実施可能。共有cache削除/他タスクdaemon停止は禁止。runIde、install、再起動は[GUI lease](gui-coordination.md)必須。
 - 開始、PR作成、scope変更、review待ち、GUI待ち、blocked、引継ぎ、mergeごとにIssueへ最新HEAD/次の一手を記録する。
-- `./gradlew test`と変更したworkflow/loopテストを実行。パッケージ/GUI buildはbuildPluginも実施する。
+- [Change Impact](change-impact.md)の共通コマンドで必要テストを実行する。Knowledge/Metadataだけは重いコード検証をskipし、混在/unknownは必要な検証を維持。パッケージ/GUI buildの明示要求はbuildPluginも実施する。
 - 別sessionが固定HEAD/baseの差分と受入を確認し、`reviewer session / reviewed SHA / base / findings / disposition`を記録する。同一GitHubアカウントのApproveだけでは代替しない。
 - 重大/中程度のコード指摘を解消し、再レビューする。GUI状態と実装scopeを分け、未実施だけをコード欠陥としない。
 - writerを停止して[自動進行役](pr-automation.md)へopaque IDでenrollする。登録後は同じbranchを編集/commit/pushせず、coordinatorに任せる。既存PAUSED heartbeatを勝手に再開しない。
@@ -76,8 +78,11 @@ mainは[固定候補手順](../verification/README.md)で範囲全体を確認�
 promotionはmerge commitに限定し、GitHub APIのHEAD指定とstrict baseを通します。merge直前にmain/develop refを再取得します。
 main/developへの直接commit/push、admin bypass、hook無効化、force push、`--no-verify`は禁止です。
 
+統合・終了時も[Governance Audit](git-governance-audit.md)のcount/主要変更/Milestone完了を判断する。
 merge SHA・CI・Case結果・残条件をIssueへ記録し、受入を個別に満たす範囲だけcloseします。promotion Issue完了でも元の機能/QA Issueを一括closeしません。
+PMは[Issue終了時の整合確認](github-projects.md#issue終了時の整合確認)で元Issue・QA・親の現行表示・Projectを読み戻します。coordinatorのdoneはProject同期の完了ではありません。未反映は対象・担当・再試行条件を元Issueへ残します。
 cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/master/developはremote/localとも削除しません。他担当の変更/branchを整理しません。
+merge/Issue closeとcleanup完了を分け、[ブランチ残存の判定と完了確認](pr-automation.md#ブランチ残存の判定と完了確認)に従って実ref・追跡ref・worktreeを照合します。残す場合は理由・担当・次の操作を引き継ぎます。
 
 ## 中断・再開
 
@@ -87,7 +92,7 @@ cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/ma
 
 ## 自動gateとGitHub設定
 
-- push前はPythonとGradleのテストを実行する。ZIPはpush後の [Branch Plugin ZIP](plugin-zip-delivery.md) が標準 `buildPlugin` で生成し、ブランチごとのReleaseへ最新1件を保存する。ローカルのZIP生成・取得・cacheはpush/checkout hookでは行わない。
+- push前は[共通Change Impact](change-impact.md)が選んだテストを実行する。required `test` は常に起動し、安全なskip判断もsuccessと理由を記録する。ZIPはpush後の [Branch Plugin ZIP](plugin-zip-delivery.md) が同じ分類で必要なときに標準 `buildPlugin` で生成し、ブランチごとのReleaseへ最後に実buildした1件を保存する。ローカルのZIP生成・取得・cacheはpush/checkout hookでは行わない。
 - hooks: Issue branch以外のcommit、main/master/developへのpush/削除、別branch/dirty/非fast-forwardのpushを拒否。
 - PR policy: target/Integration、実在open Issue、branch番号、GUI理由、Case JSONパスを検査。developの自動close文言を拒否。
 - Acceptance gate: eventの遅延し得るbase.shaを信用せず、許可された最新base branchからcheckoutし、コードHEADと現在refを照合する。trusted baseのコードでPRのJSONをデータとして読み、developはCase追跡、main toolingはパスと理由、promotionは固定候補の全commit/Case/build/観察を検査。

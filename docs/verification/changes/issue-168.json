@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 168,
+  "gui_required": false,
+  "reason": "Issue管理の文書とcoordinator終了時のPM案内のみ。製品・GUI・close判定・cleanup条件は変更せず、GitHub Issue/Projectの同期をAPI readbackで確認する。",
+  "cli_checks": [
+    "./gradlew test",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "固定差分のCase schema検証とgit diff --check",
+    "全Issue/PR/QAの整合監査、Project登録/Statusと親の修正をreadbackし、既存受入・owner・未達QAを維持"
+  ],
+  "cases": []
+}

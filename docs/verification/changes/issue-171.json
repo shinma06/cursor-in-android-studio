@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 171,
+  "gui_required": false,
+  "reason": "GitHub管理metadataと運用tooling/文書の変更。製品runtime/GUIを変えず、実際のIssue/Milestone/Relationship/ProjectをAPI readbackで検証する。",
+  "cli_checks": [
+    "./gradlew test",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "Standaloneの終了、QAのMilestone継承/親関係/readback失敗と再試行を既存テストで検証",
+    "全Issueのtriage・Project/到達目標/native関係/Relationship Statusをreadback",
+    "Skill frontmatter・参照・Case schema・git diff --check"
+  ],
+  "cases": []
+}

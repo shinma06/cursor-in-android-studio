@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import branch_zip as bz
+from change_impact import classify
 
 A = 'a' * 40
 B = 'b' * 40
@@ -29,7 +30,8 @@ class BranchZipTest(unittest.TestCase):
         self.fail_patch = False
         self.move_after_upload = False
         self.addCleanup(patch.stopall)
-        patch.dict(os.environ, {'GITHUB_REPOSITORY': 'owner/repo'}).start()
+        patch.dict(os.environ, {'GITHUB_REPOSITORY': 'owner/repo', 'GITHUB_STEP_SUMMARY': '', 'GITHUB_OUTPUT': ''}).start()
+        self.impact = patch.object(bz, 'git_impact', return_value=classify([], reason='fixture unknown')).start()
         patch.object(bz, 'api', side_effect=self.api).start()
         patch.object(bz, 'gh', side_effect=self.upload).start()
 
@@ -151,3 +153,30 @@ class BranchZipTest(unittest.TestCase):
         self.releases[0]['assets'] = [{'id': 11, 'name': bz.asset_for(A), 'state': 'starter', 'size': 0}]
         bz.publish(self.branch, A, self.directory)
         self.assertEqual(bz.plan(), [])
+
+    def test_knowledge_skip_keeps_built_sha_and_manual_override_builds(self):
+        self.old_release()
+        original = copy.deepcopy(self.releases)
+        self.impact.return_value = classify([('docs/guide.md', ('100644',))])
+        self.assertEqual(bz.plan(), [])
+        self.impact.assert_called_once_with(B, A, merge_base=False)
+        self.assertEqual(self.releases, original)
+        self.assertEqual(bz.plan(force_build=True)[0]['sha'], A)
+        self.assertEqual(self.releases, original)
+
+    def test_new_docs_branch_has_no_fake_zip_and_invalid_release_is_recovered(self):
+        self.impact.return_value = classify([('CLAUDE.md', ('100644',))])
+        self.assertEqual(bz.plan(), [])
+        self.impact.assert_called_once_with(None, A, merge_base=False)
+        self.assertEqual(self.releases, [])
+        self.old_release(); self.releases[0]['assets'][0]['size'] = 0
+        self.assertEqual(len(bz.plan()), 1)
+        self.assertEqual(self.impact.call_count, 1)
+
+    def test_runtime_build_and_unknown_require_zip_but_tests_and_tooling_do_not(self):
+        self.old_release()
+        for path, expected in [('src/main/resources/help.md', 1), ('build.gradle.kts', 1),
+                               ('unknown.xyz', 1), ('src/test/Test.kt', 0), ('scripts/loop/loop.py', 0)]:
+            with self.subTest(path=path):
+                self.impact.return_value = classify([(path, ('100644',))])
+                self.assertEqual(len(bz.plan()), expected)
