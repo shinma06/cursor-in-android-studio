@@ -5,7 +5,7 @@
   "reason": "QUEUE-REVIEW-PAUSE / QUEUE-REVERT-GUARDS / QUEUE-CHANGE-TURNSの組合せを固定IDEで確認する。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "./gradlew test --tests *QueuedRevertDispatchTest --tests *ConversationChangesTest --tests *PromptQueueTest --tests *FileRevertOperationTest --tests *PrintRecordingDispatchTest",
+    "./gradlew test --tests *ChangesReviewControllerTest --tests *QueuedRevertDispatchTest --tests *ConversationChangesTest --tests *PromptQueueTest --tests *FileRevertOperationTest --tests *PrintRecordingDispatchTest",
     "./gradlew buildPlugin",
     "固定HEAD/baseの独立レビューでController/Factoryの全入口と依存mergeを確認"
   ],

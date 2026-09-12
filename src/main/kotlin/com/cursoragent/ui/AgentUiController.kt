@@ -122,7 +122,35 @@ class AgentUiController(
     }
 
     private val changes = ConversationChanges(recorder.conversation.id)
-    private var changesDialog: ConversationChangesDialog? = null
+    private val changesReview = ChangesReviewController(
+        changes = changes,
+        pauseQueue = ::pauseQueue,
+        isAlive = { !disposed && !project.isDisposed },
+        captureCurrent = {
+            val generation = turnGeneration
+            val current = {
+                !disposed && !project.isDisposed && generation == turnGeneration &&
+                    sessions.snapshot().selectedId == tabId
+            }
+            current
+        },
+        createView = { snapshot, onDiff, onRevert, onConversation ->
+            val dialog = ConversationChangesDialog(project, snapshot, onDiff, onRevert, onConversation)
+            object : ChangesReviewView {
+                override fun show() = dialog.show()
+                override fun cancel() = dialog.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+            }
+        },
+        onDiff = { file ->
+            DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
+        },
+        onRevert = { file, isCurrent ->
+            DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
+                timeline.showStatus("ファイルを編集前に戻しました")
+            }
+        },
+        onConversation = onShowConversation,
+    )
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
@@ -179,34 +207,7 @@ class AgentUiController(
         }
     }
 
-    fun showChanges() {
-        if (disposed || project.isDisposed) return
-        pauseQueue()
-        changesDialog?.let { it.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE); changesDialog = null; return }
-        val snapshot = changes.snapshot()
-        val generation = turnGeneration
-        val isCurrent = {
-            !disposed && !project.isDisposed && generation == turnGeneration &&
-                sessions.snapshot().selectedId == tabId && changes.snapshot() == snapshot
-        }
-        val dialog = ConversationChangesDialog(project, snapshot,
-            onDiff = { file -> if (!disposed && !project.isDisposed && file.canShowDiff) {
-                DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
-            } },
-            onRevert = { file ->
-                pauseQueue()
-                if (!disposed && !project.isDisposed && file.revertRejection == null) {
-                    DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
-                        timeline.showStatus("ファイルを編集前に戻しました")
-                    }
-                }
-            },
-            onConversation = { if (!disposed && !project.isDisposed) onShowConversation() },
-        )
-        changesDialog = dialog
-        dialog.show()
-        if (changesDialog === dialog) changesDialog = null
-    }
+    fun showChanges() = changesReview.show()
 
     fun transportState(): Pair<AgentTransport, Boolean> {
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId }
@@ -238,8 +239,7 @@ class AgentUiController(
         queue.clear()
         queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
         queueDialog = null
-        changesDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
-        changesDialog = null
+        changesReview.dispose()
         modelLoad?.cancel(true)
         modelLoad = null
         turnGeneration++

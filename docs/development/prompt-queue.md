@@ -61,7 +61,9 @@ Factoryのusage/configは同じComposer更新callbackを渡し、IDEの入力Edi
 
 `QueuedRevertDispatchTest`は実Listener→FileEditCard→Revert操作→復元service取得の順で
 保留ticketが停止済みであること、再開時の古ticket拒否・別タブ・内容保持を検査する。
-実turn IDごとのListenerからの変更集約と本文も照合する。既存`ConversationChangesTest`は
-snapshot/after/root/未保存の拒否、`PromptQueueTest`は取消相当pause・明示再開・generation/entry/revisionを確認する。
+実turn IDごとのListenerからの変更集約と本文も照合する（共通startPrompt自体の再実装をテスト証拠とはしない）。
+`ChangesReviewControllerTest`はControllerが委譲する実一覧処理のsnapshot・Revert callback・閉じる・戻る・取消を
+合成modal EDT loopで実行し、保留ticketの不送信と明示再開を確認する。snapshot/current判定と既存復元callbackは一箇所に保つ。
+既存`ConversationChangesTest`はsnapshot/after/root/未保存の拒否、`PromptQueueTest`はcheckpointで使うpause・明示再開・generation/entry/revisionを確認する。
 Controllerからの一覧表示/一覧Revert/checkpoint確認と手動/予約送信の実IDE操作は
 [組合せCase](../verification/changes/issue-308.json)でpendingとして追跡する。

@@ -82,7 +82,7 @@ class QueuedRevertDispatchTest {
         assertEquals("synthetic-turn", changes.snapshot().edits.single().turnId)
     }
 
-    @Test fun `manual then queued listener changes use actual distinct turn IDs and flush text before scheduling`() = SwingUtilities.invokeAndWait {
+    @Test fun `listener changes preserve supplied actual turn IDs and exact text`() = SwingUtilities.invokeAndWait {
         val sessions = SessionTabs()
         val owner = sessions.snapshot().selected
         val queue = PromptQueue(owner.conversationId)
