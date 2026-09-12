@@ -33,6 +33,7 @@ data class AgentTool(
     val locations: List<String> = emptyList(),
     val command: String? = null,
     val path: String? = null,
+    val task: AgentTask? = null,
 ) {
     val hasPermissionTarget: Boolean get() = !command.isNullOrBlank() || !path.isNullOrBlank() ||
         locations.isNotEmpty() || content.any { it is AgentToolContent.Diff }

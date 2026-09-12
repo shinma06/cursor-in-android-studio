@@ -1,0 +1,177 @@
+{
+  "acp": [
+    {
+      "sessionUpdate": "tool_call",
+      "toolCallId": "acp-call-1",
+      "title": "Task: Read fixture.txt",
+      "kind": "other",
+      "status": "pending",
+      "rawInput": {
+        "_toolName": "task",
+        "description": "Read fixture.txt",
+        "subagentType": {
+          "custom": {
+            "name": "issue118-reader"
+          }
+        }
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "acp-call-1",
+      "status": "in_progress"
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "acp-call-1",
+      "status": "completed",
+      "rawOutput": {
+        "durationMs": 7303,
+        "isBackground": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 7001,
+      "method": "cursor/task",
+      "params": {
+        "toolCallId": "acp-call-1",
+        "description": "Read fixture.txt",
+        "subagentType": {
+          "custom": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          }
+        },
+        "model": "default",
+        "agentId": "acp-child-1",
+        "durationMs": 7303
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 7001,
+      "error": {
+        "code": -32601,
+        "message": "Fixture has no client tools"
+      }
+    }
+  ],
+  "print": [
+    {
+      "run": "foreground",
+      "type": "tool_call",
+      "subtype": "started",
+      "call_id": "print-call-1",
+      "session_id": "print-parent-1",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-argument-agent-1"
+        }
+      }
+    },
+    {
+      "run": "foreground",
+      "type": "tool_call",
+      "subtype": "completed",
+      "call_id": "print-call-1",
+      "session_id": "print-parent-1",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-argument-agent-1"
+        },
+        "result": {
+          "success": {
+            "conversationSteps": [
+              {
+                "assistantMessage": {
+                  "text": "契約どおり `fixture.txt` だけ読みます。I118_CHILD|I118_FIXTURE_ALPHA"
+                }
+              }
+            ],
+            "agentId": "print-child-1",
+            "isBackground": false,
+            "durationMs": "8376",
+            "backgroundReason": "SUBAGENT_BACKGROUND_REASON_UNSPECIFIED"
+          }
+        }
+      }
+    },
+    {
+      "run": "resume",
+      "type": "tool_call",
+      "subtype": "started",
+      "call_id": "print-call-2",
+      "session_id": "print-parent-1",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "resume": "print-child-1",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-child-1"
+        }
+      }
+    },
+    {
+      "run": "resume",
+      "type": "tool_call",
+      "subtype": "completed",
+      "call_id": "print-call-2",
+      "session_id": "print-parent-1",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "resume": "print-child-1",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-child-1"
+        },
+        "result": {
+          "error": {
+            "error": "Request blocked We are unable to complete this request because it was blocked under the model provider's usage guidelines. Try a less sensitive prompt."
+          }
+        }
+      }
+    }
+  ]
+}

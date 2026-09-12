@@ -1,8 +1,15 @@
 package com.cursoragent.acp
 
+import com.cursoragent.parser.objectValue
+import com.cursoragent.parser.taskId
+import com.cursoragent.parser.taskString
+import com.cursoragent.parser.withTaskInput
+import com.cursoragent.parser.withTaskMetadata
+import com.cursoragent.parser.withTaskOutput
 import com.cursoragent.service.AgentAnswer
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentInput
+import com.cursoragent.service.AgentTask
 import com.cursoragent.service.AgentTool
 import com.cursoragent.service.AgentToolContent
 import com.cursoragent.service.ModelOption
@@ -16,6 +23,8 @@ import com.google.gson.JsonObject
 /** Cursor v1 boundary: opaque IDs and partial tool updates never pass through the print parser. */
 internal class AcpProtocol {
     private val tools = linkedMapOf<String, AgentTool>()
+    private val retiredToolIds = mutableSetOf<String>()
+    private var metadataCorrelationExhausted = false
     private var payloadSize = 0
     private var messageId: String? = null
     private var interrupted = true
@@ -23,6 +32,9 @@ internal class AcpProtocol {
     fun interruptMessage() { interrupted = true }
 
     fun beginTurn() {
+        // cursor/task lacks a turn ID: reused IDs cannot distinguish this turn from delayed metadata.
+        if (retiredToolIds.size + tools.size <= 4_096 && !metadataCorrelationExhausted) retiredToolIds.addAll(tools.keys)
+        else { metadataCorrelationExhausted = true; retiredToolIds.clear() }
         tools.clear()
         payloadSize = 0
         interrupted = true
@@ -64,6 +76,26 @@ internal class AcpProtocol {
             }
             else -> null
         }
+    }
+
+    /** Supplement an existing tool in this turn only; never create a row or a client task. */
+    fun taskMetadata(params: JsonObject): AgentEvent.Tool? {
+        acceptPayload(params)
+        val id = params.taskId("toolCallId") ?: return null
+        if (metadataCorrelationExhausted || id in retiredToolIds) return null
+        val old = tools[id] ?: return null
+        if (old.task == null && old.kind != "other") return null
+        val next = old.copy(task = (old.task ?: AgentTask()).withTaskMetadata(params))
+        tools[id] = next
+        return AgentEvent.Tool(next)
+    }
+
+    private fun task(update: JsonObject, old: AgentTask?): AgentTask? {
+        val input = update.objectValue("rawInput")
+        var value = old ?: if (input?.taskString("_toolName") == "task") AgentTask() else return null
+        if (update.has("rawInput")) value = value.withTaskInput(input)
+        if (update.has("rawOutput")) value = value.withTaskOutput(update.objectValue("rawOutput"))
+        return value
     }
 
     fun input(method: String, params: JsonObject): AgentInput? {
@@ -110,26 +142,31 @@ internal class AcpProtocol {
         require(payloadSize <= 4 * 1024 * 1024) { "ACP turn payload limit" }
     }
 
-    private fun tool(update: JsonObject, old: AgentTool): AgentTool = old.copy(
-        command = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("command") ?: old.command,
-        path = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("path") ?: old.path,
-        title = update.string("title") ?: old.title,
-        kind = update.string("kind") ?: old.kind,
-        status = update.string("status") ?: old.status,
-        content = if (update["content"]?.isJsonArray == true) update.array("content").map { item ->
-            val data = item.asJsonObject
-            when (data.string("type")) {
-                "content" -> {
-                    val content = data.getAsJsonObject("content")
-                    if (content.string("type") == "text") AgentToolContent.Text(content.requiredString("text"))
-                    else AgentToolContent.Unsupported(content.string("type") ?: "unknown")
+    private fun tool(update: JsonObject, old: AgentTool): AgentTool {
+        val task = task(update, old.task)
+        return old.copy(
+            command = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("command") ?: old.command,
+            path = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("path") ?: old.path,
+            title = update.string("title") ?: old.title,
+            kind = update.string("kind") ?: old.kind,
+            // Quiescence uses the latest wire state, never the presentation's retained result.
+            status = update.string("status") ?: old.status,
+            task = task,
+            content = if (update["content"]?.isJsonArray == true) update.array("content").map { item ->
+                val data = item.asJsonObject
+                when (data.string("type")) {
+                    "content" -> {
+                        val content = data.getAsJsonObject("content")
+                        if (content.string("type") == "text") AgentToolContent.Text(content.requiredString("text"))
+                        else AgentToolContent.Unsupported(content.string("type") ?: "unknown")
+                    }
+                    "diff" -> AgentToolContent.Diff(data.requiredString("path"), data.string("oldText"), data.requiredString("newText"))
+                    else -> AgentToolContent.Unsupported(data.string("type") ?: "unknown")
                 }
-                "diff" -> AgentToolContent.Diff(data.requiredString("path"), data.string("oldText"), data.requiredString("newText"))
-                else -> AgentToolContent.Unsupported(data.string("type") ?: "unknown")
-            }
-        } else old.content,
-        locations = if (update["locations"]?.isJsonArray == true) update.array("locations").map { it.asJsonObject.requiredString("path") } else old.locations,
-    )
+            } else old.content,
+            locations = if (update["locations"]?.isJsonArray == true) update.array("locations").map { it.asJsonObject.requiredString("path") } else old.locations,
+        )
+    }
 }
 
 internal fun answerJson(answer: AgentAnswer): JsonObject {
@@ -190,3 +227,25 @@ internal class AcpConfiguration {
 
 internal fun JsonObject.requiredString(name: String): String = requireNotNull(string(name))
 internal fun JsonObject.array(name: String): JsonArray = requireNotNull(get(name)?.takeIf(JsonElement::isJsonArray)?.asJsonArray)
+
+/** An invalid replacement clears confidence in the entire list; never retain stale partial entries. */
+internal fun availableCommands(update: JsonObject): com.cursoragent.service.CommandCatalog = try {
+    val entries = update.array("availableCommands")
+    require(entries.size() <= 2_000)
+    val commands = entries.map { entry ->
+        val value = entry.asJsonObject
+        val name = value.requiredString("name")
+        // A command must be one slash token. Do not lowercase, trim, or invent a different ID.
+        require(name.isNotEmpty() && name.length <= 256 && !name.startsWith('/') && name.none { it.isWhitespace() || it.isISOControl() })
+        val description = value.requiredString("description")
+        require(description.length <= 16_384)
+        val input = value.get("input")
+        val hint = if (input == null || input.isJsonNull) null else input.asJsonObject.requiredString("hint")
+        require(hint == null || hint.length <= 4_096)
+        com.cursoragent.service.AgentCommand(name, description, hint)
+    }
+    require(commands.map { it.name }.toSet().size == commands.size)
+    com.cursoragent.service.CommandCatalog.Ready(commands)
+} catch (_: Exception) {
+    com.cursoragent.service.CommandCatalog.Invalid
+}
