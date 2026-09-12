@@ -81,6 +81,8 @@ checks against an up-to-date base, and resolved review conversations; main delet
 push are blocked, with no bypass actors. Same-account agents still record independent session
 reviews; required GitHub approval count is 0. See the workflow for settings and verification.
 
+全open `type:qa` は[人間向け試験ドキュメント](docs/verification/human-qa.md)への本文リンクを必須とする。作成/引継ぎ時は前提・番号付き手順・期待結果・記録方法を揃え、Project #2の「QA — 人間向け試験」への登録/表示をreadbackする。
+
 ## develop統合とmain昇格（2026-09-07 / #83、ユーザー方針）
 
 通常実装はdevelop向けIssue PRへ。必要テストと独立コードレビューが通り、

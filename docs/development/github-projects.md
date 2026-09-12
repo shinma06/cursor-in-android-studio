@@ -9,9 +9,10 @@ Project概要の4行で主要な経緯・現在の作業・次の節目・依存
 
 | View | 表示する既存Issue | 判断すること |
 |---|---|---|
-| Now — 進行中 | openかつstatus:in-progress/review、親trackingを除く | 誰が何を進めているか。担当と停止状態はclaim/PRを読む |
-| Next — 着手候補 | openかつstatus:ready、親trackingを除く | 次に着手できる候補。全件を直後の実施予定とは扱わない |
-| Later — 依存待ち・保留 | openかつstatus:blocked/deferred | 何を待ち、何が揃えば再開できるか |
+| Now — 進行中 | openかつstatus:in-progress/review、親trackingとQAを除く | 誰が何を進めているか。担当と停止状態はclaim/PRを読む |
+| Next — 着手候補 | openかつstatus:ready、親trackingとQAを除く | 次に着手できる候補。全件を直後の実施予定とは扱わない |
+| Later — 依存待ち・保留 | openかつstatus:blocked/deferred、QAを除く | 何を待ち、何が揃えば再開できるか |
+| [QA — 人間向け試験](https://github.com/users/shinma06/projects/2/views/6) | openかつtype:qa（blockedも含む） | 本文の試験内容ドキュメントから準備・操作・期待結果へ進む |
 | Past — 完了履歴 | closed | 完了日とIssue/PRから、進めた順序と判断の経緯を辿る |
 | 全体 — 親子と全Issue | 全Issue | 親子関係、横断QA、各Viewに出ない親trackingを確認する |
 
@@ -35,7 +36,7 @@ Todoは着手可能だけを意味しません。ViewはIssueのstatusラベル�
 作業担当または進行役が、既存のIssue更新と同じ区切りで必要な差分だけを反映します。
 
 1. 作成・着手時: [作成/triage確認](work-management.md#issue作成triageの確認)を行い、対象IssueをProjectへ登録し、Milestone・native関係・Relationship Status・既存Status/Priority表示を確認する。親やQAの追加漏れも確認する。
-2. 引継ぎ・blocked・完了時: Issueを先に更新し、Project Statusを合わせる。QA分離時はQAを追加し、元IssueをPastに残す。PRはLinked pull requestsから辿り、重複カードを増やさない。
+2. 引継ぎ・blocked・完了時: Issueを先に更新し、Project Statusを合わせる。QA分離時はQAを追加し、[個別試験ドキュメント](../verification/human-qa.md)の本文リンクとQA専用Viewの表示を必ず確認し、元IssueをPastに残す。PRはLinked pull requestsから辿り、重複カードを増やさない。
 3. 主要な計画変更時: 理由と依存・次操作をIssueへ残し、Project概要の該当行と必要な行順だけ更新する。古い判断はIssue履歴に残す。
 4. 更新後: Projectを再取得し、対象Issueの登録・Status・View条件・リンクと、概要のNow/Nextが現状に合うことを確認する。
 
@@ -62,3 +63,5 @@ ViewのIssueタイトル・ラベル・open/closedはGitHub上のIssueを参照�
 
 API操作にはread:project（読み取り）/project（更新）権限が必要です。認証情報やローカルパスを公開Issue/PRへ貼りません。
 操作仕様: [Projects API](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-api-to-manage-projects)、[Viewのフィルター](https://docs.github.com/en/issues/planning-and-tracking-with-projects/customizing-views-in-your-project/filtering-projects)。
+
+2026-09-11 / #206: QA専用Viewは `is:issue is:open label:type:qa`。Now/Next/Laterには `-label:type:qa` を追加する。Project登録で専用Viewへ表示させ、別カードへの複製/移動は行わない。全体とPastの履歴は維持する。

@@ -83,13 +83,13 @@ registry喪失、旧writer再開、予期しないcommitやdirty内容は保持�
 
 ## 完了とcleanup
 
-GitHub mergeを読み戻します。developでは元実装Issue単位の `<!-- issue-qa-handoff:v1 origin=N -->` をQA本文から全件取得で照合し、存在すれば再利用します。複数一致は停止します。元Issue/PR/merge SHA/固定mergeのCase JSON全文（GUI不要の場合もmain反映追跡）をQAへ保存する。元Milestoneを新規QAへ継承し、既存QAの目標と異なれば上書きせず停止する。QAのnative親子関係と内容をreadbackし、元Issueコメントの `<!-- issue-qa-link:v1 origin=N qa=Q -->` も読み戻してからstatus:doneでcloseします。API失敗やreadback不一致ではcloseせず、再試行で既存QAを再利用します。親チェック/QA受入は完了にしません。既存QA本文は置換せず引継ぎコメントを追加します。
+GitHub mergeを読み戻します。developでは元実装Issue単位の `<!-- issue-qa-handoff:v1 origin=N -->` をQA本文から全件取得で照合し、存在すれば再利用します。複数一致は停止します。元Issue/PR/merge SHA/固定mergeのCase JSON全文（GUI不要の場合もmain反映追跡）をQAへ保存する。元Milestoneを新規QAへ継承し、既存QAの目標と異なれば上書きせず停止する。QAのnative親子関係と内容をreadbackし、人間向けMarkdown試験ドキュメントをコメントへ生成して本文リンクと内容をreadbackし、元Issueコメントの `<!-- issue-qa-link:v1 origin=N qa=Q -->` も読み戻してからstatus:doneでcloseします。API失敗やreadback不一致ではcloseせず、再試行で既存QAを再利用します。親チェック/QA受入は完了にしません。既存QA本文は置換せず引継ぎコメントを追加します。
 mainで全受入済みのpromotion Issueは新candidate証拠を含む受入判定でclose可能です。元の機能/QA IssuesはPMが残条件を個別照合します。
 remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止・GUI lease空きの場合だけ削除します。
 **main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
 cleanup中断は次tickで再試行し、merge成功だけで状態を消しません。
 
-`done`の次操作はPMへの[Issue/QA/親/Project整合確認](github-projects.md#issue終了時の整合確認)を含みます。coordinatorはProjectへ自動追加せず、developのQA分離で親全体の受入を自動チェックしません。PMは元IssueとQAのProject登録・Status、親の現行参照/分割先、主要変更時の概要を確認して、読み戻し結果または未反映対象・担当・再試行条件を元Issueへ記録します。Project障害だけで受入完了済みIssueを開き直したり、未達QAを閉じたりしません。
+`done`の次操作はPMへの[Issue/QA/親/Project整合確認](github-projects.md#issue終了時の整合確認)を含みます。coordinatorはProjectへ自動追加せず、developのQA分離で親全体の受入を自動チェックしません。PMはQAの試験内容ドキュメントへの本文リンク・QA専用View表示と、元IssueとQAのProject登録・Status、親の現行参照/分割先、主要変更時の概要を確認して、読み戻し結果または未反映対象・担当・再試行条件を元Issueへ記録します。Project障害だけで受入完了済みIssueを開き直したり、未達QAを閉じたりしません。
 
 ```bash
 python3 scripts/workflow/agent_loop.py cleanup-branches

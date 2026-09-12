@@ -21,7 +21,7 @@ body:
     id: acceptance
     attributes:
       label: 受入条件
-      description: チェックリストで記載。Case JSON、再現手順、期待結果、GUI不要なら理由とCLI検証。developとmainの完了を分ける。
+      description: type:qaは本文冒頭に個別の試験内容ドキュメントのリンクを必須とする（前提条件・番号付き手順・期待結果・結果記録）。Project #2のQA専用Viewで表示を確認する。チェックリストで記載。Case JSON、再現手順、期待結果、GUI不要なら理由とCLI検証。developとmainの完了を分ける。
     validations:
       required: true
   - type: textarea
