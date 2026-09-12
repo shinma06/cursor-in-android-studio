@@ -5,8 +5,30 @@ import pathlib
 import subprocess
 import sys
 import threading
+import time
 
 scenario, root = sys.argv[1], pathlib.Path(sys.argv[2])
+capture = None
+if len(sys.argv) != 3:
+    try:
+        if len(sys.argv) != 5 or sys.argv[3] != "--capture" or scenario != "permission":
+            raise ValueError("Capture is only available for the permission fixture")
+        root = root.resolve(strict=True)
+        marker = root / "ACP_SYNTHETIC_FIXTURE.json"
+        value = json.loads(marker.read_text(encoding="utf-8"))
+        if marker.is_symlink() or not isinstance(value, dict) or type(value.get("schema")) is not int or value != {
+            "schema": 1, "purpose": "synthetic-acp-fixture", "workspace": str(root),
+        } or pathlib.Path.cwd().resolve() != root:
+            raise ValueError("An explicit synthetic root is required")
+        destination = pathlib.Path(sys.argv[4])
+        if destination.is_symlink() or not destination.is_dir() or destination.resolve().is_relative_to(root):
+            raise ValueError("Capture must be outside the synthetic root")
+        # Exclusive creation also refuses PID reuse; never append another run's log.
+        descriptor = os.open(destination / f"wire-{os.getpid()}.jsonl", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        capture = os.fdopen(descriptor, "w", encoding="utf-8")
+    except (ValueError, OSError, TypeError):
+        print("Synthetic ACP capture refused: check arguments, marker, root and output.", file=sys.stderr)
+        sys.exit(64)
 config = [
     {"id": "mode", "type": "select", "currentValue": "agent", "options": [
         {"value": value, "name": value} for value in ["agent", "ask", "plan"]]},
@@ -19,9 +41,21 @@ child = None
 
 wire_lock = threading.Lock()
 
+def record(direction, payload):
+    if capture is not None:
+        capture.write(json.dumps({
+            "direction": direction, "pid": os.getpid(), "monotonic_ns": time.monotonic_ns(),
+            "rpc_id": payload.get("id"),
+            "session_id": payload.get("params", {}).get("sessionId") or payload.get("result", {}).get("sessionId"),
+            "payload": payload,
+        }, ensure_ascii=False) + "\n")
+        capture.flush()
+
 def send(message):
+    payload = {"jsonrpc": "2.0", **message}
     with wire_lock:
-        print(json.dumps({"jsonrpc": "2.0", **message}, ensure_ascii=False), flush=True)
+        record("out", payload)
+        print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 def response(identifier, result):
     send({"id": identifier, "result": result})
@@ -41,8 +75,12 @@ def update(**value):
 
 for line in sys.stdin:
     request = json.loads(line)
-    with (root / "wire.jsonl").open("a") as output:
-        output.write(json.dumps(request) + "\n")
+    if capture is None:
+        with (root / "wire.jsonl").open("a") as output:
+            output.write(json.dumps(request) + "\n")
+    else:
+        with wire_lock:
+            record("in", request)
     method = request.get("method")
     if method == "initialize":
         assert request["params"]["clientCapabilities"] == {"fs": {"readTextFile": False, "writeTextFile": False}, "terminal": False}

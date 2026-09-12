@@ -6,8 +6,8 @@
   "cli_checks": [
     "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "./gradlew test",
-    "実providerなしでinitialize/session-new/permission保留/end_turn/cancel/終了と同root 2 processのcapture分離を検証（依存258固定STOP引継ぎ後）",
+    "./gradlew test buildPlugin（依存258を含む全候補）",
+    "実providerなしでinitialize/session-new/permission保留/end_turn/cancel/終了と同root 2 processのcapture分離を検証",
     "旧fake Harness wire形式・既存Case/私的素材不変、固定独立レビュー、PR/CI/QAとmain未反映追跡"
   ],
   "cases": []

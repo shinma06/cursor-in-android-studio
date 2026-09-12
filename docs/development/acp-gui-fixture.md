@@ -2,7 +2,7 @@
 
 #24のcontext payloadと予約登録後のsnapshotを、既存ACP fakeのpermissionシナリオで観測するためのローカル準備です。実Cursor/providerへの接続、IDE設定の自動変更は行いません。合成通信成功と製品GUI・実provider・元固定ZIPのPASSは別です。
 
-現在のDraftではadapterと拒否境界の検査が先行しています。#258の固定STOP・所有引継ぎ・実commit通常merge後にfakeの分離記録を追加するまで、GUI接続に使わないでください。新サーバー、独自release、Controller/EDT停止は追加しません。
+既存fakeのpermissionシナリオへ接続します。新サーバー、独自release、Controller/EDT停止は追加しません。今回実施するのはheadless検査のみで、後日のGUI接続には担当者・lease・固定buildの確認が必要です。
 
 ## 操作者向けサマリ
 
@@ -35,7 +35,9 @@ python3 scripts/loop/acp_fixture.py --workspace /absolute/synthetic-workspace --
 
 launcherは固定Pythonでadapterを実行し、marker/cwd/固定fileを照合して既存fakeのpermissionをexecします。受け付けるPlugin引数は `acp` 一つだけ。metadata/print/追加引数は拒否し、環境変数のprovider資格情報を子へ継承しません。実Cursor/providerの検索・fallbackはありません。
 
-分離captureは#258引継ぎ後の実装待ちです。既存Harnessの引数とwire.jsonl形式を維持し、合成marker確認済みの明示capture実行だけPID別にdirection/単調時刻/RPCとsession識別/JSON payloadを記録する予定です。stdoutはprotocol専用とし、認証値や全環境を記録しません。
+`capture/wire-<PID>.jsonl` に1プロセス1ファイルで送受信を記録します。新規排他作成・権限0600で、PID再利用時にも既存記録へ追記しません。共有workspaceの `wire.jsonl` はcapture実行では作りません。従来の単体Harnessは追加引数なしのまま、従来どおり受信のみの `wire.jsonl` を使います。
+
+各行は `direction`（in/out）、`pid`、`monotonic_ns`、`rpc_id`、`session_id`、元JSONの `payload` です。session IDがpayloadにない応答ではnullとし、同じPID・RPC ID・方向で要求と対応付けます。単調時刻はその実行中の順序確認用で、日時ではありません。outはstdout書込み直前の観測であり、IDEでの受信・描画成功を保証しません。stdoutはprotocol専用です。子へ環境変数を継承せず、認証値や全環境を記録しません。payload自体は保存するため、明示した合成入力だけを送信してください。
 
 permissionシナリオは回答の許否にかかわらず合成end_turnを返します。「今回は拒否」で正常終了するこのfixtureの挙動を、実providerの拒否挙動と扱わないでください。Stop/cancelは別の取消経路です。正常配送の試験にcancelや子process releaseを代用しません。
 
@@ -43,6 +45,14 @@ permissionシナリオは回答の許否にかかわらず合成end_turnを返�
 
 外部fakeが止められるのはprompt受信後です。通常受理直後/context構築前と、ticket作成済みactual dispatch直前を停止する機構はありません。queue一覧pauseで作れる広い窓とexact raceを分け、後者は#24へ未達として残します。
 
-実行終了時は、このrunで起動した会話/所有processだけを終了し、終端とPIDを確認して記録を保管します。他のIDE/processを停止しません。captureは合成内容のローカル証拠として保存し、自動公開しません。復元先を変えたときはlauncher/configを流用せず、ソース/markerを照合して新runを生成します。原素材は削除しません。
+後日のGUI接続前に、元の実行ファイル設定・transport設定を控えます。実行終了時は、このrunで起動した会話/所有processだけを終了し、終端とPIDを確認して記録を保管します。担当者が元設定へ戻し、合成会話を実provider会話として再利用しないでください。headlessではstdinを閉じて終了を待ち、タイムアウト時もその所有PIDだけを停止します。他のIDE/processを停止しません。captureは合成内容のローカル証拠として保存し、自動公開しません。復元先を変えたときはlauncher/configを流用せず、ソース/markerを照合して新runを生成します。原素材は削除しません。
 
-#258の停止済み実commitを通常mergeして祖先を保持します。#261統合保留中はenroll/mergeしません。製品build/GUIの受入は既存#24 Caseに残し、本toolingのCLI成功で転記しません。
+#258の停止済み実commit `86934b13a81243b2772daf6a07f20dbf2ad6f95a` を通常mergeして祖先を保持しています。元developは `9979266b4e99e7d4dc46689dac1f61f33f09b88a`。実行時は当該checkoutのHEAD、launch.json、capture、使用したPlugin ZIPのhashを一緒に記録します。ソースが変われば新しいlauncherを生成し、製品の差分がある候補は新しい固定buildで確認します。#261統合保留中はenroll/mergeしません。製品build/GUIの受入は既存#24 Caseに残し、本toolingのCLI成功で転記しません。
+
+## headless回帰
+
+```bash
+python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py
+```
+
+この検査は一時的な合成workspaceだけを使用し、終了後に削除します。Pluginと同じ `launcher acp` 起動、initialize/session-new、permission保留、拒否回答後のend_turn、cancel/終了、同rootの2プロセス分離、誤引数/root/marker/固定hashの拒否、既存ログ非上書きを確認します。IDEは起動せず、永続記録が必要なGUI試験とは別です。
