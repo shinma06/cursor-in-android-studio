@@ -4,6 +4,8 @@
 
 依存祖先は#215 `14081a219d5193dcb081e401e58058e133131140` と#149研究 `ace52be8872a657e4239b8edee01f33cb202af7c`。develop `9979266b4e99e7d4dc46689dac1f61f33f09b88a` から通常mergeした実装前の固有review baseは `bfc59ad93f31c6be63504349c27c4d79c6dfeae5`。未統合の依存変更をコピーせず実commitを保持する。実統合後は最新developを通常同期して全候補を再検証する。
 
+Controller接続前に#258の停止commit `86934b13a81243b2772daf6a07f20dbf2ad6f95a`（#24/#48祖先を含む）を通常mergeし、合流commitは `fda9403b9a44a110f81dae0946431ab410c2a266`。当初baseと#258だけの純依存合流treeは `596c2fa1e49711cf8cd89ed600a8cba07958f6d9`（`git merge-tree --write-tree`で再現）。このtreeからの差分を#287固有変更としてレビューし、developからの全候補とは区別する。#258の公開CI・実統合状態は別途確認する。
+
 | 状態 | 数値がない場合 | 数値がある場合 |
 | --- | --- | --- |
 | 未開始 | まだ応答を開始していません | なし |
@@ -14,7 +16,7 @@
 
 開始から終端までを「応答を準備・実行中」とする。OS processの起動時刻や思考の内訳を推定する状態ではない。ACPの候補一覧を取得するだけの接続は応答開始に含めない。状態は既存の開閉パネル内に置き、入力欄へ恒常的な警告は追加しない。
 
-StateはEDT所有。beginは旧値を消して新ticketを発行、finishは成功/停止/失敗を一度だけ確定してticketを失効させる。停止要求後はSTOPPINGとして数値を受け付けず、実際の終端通知だけを受け付ける。停止要求だけで物理終了を認定しない。終端後のusageや古い終端は保持した値・次の応答を変更できない。resetは値/送信時modelを消して未開始へ戻し、旧ticketを無効にする。Factoryは既存run/token・dispose・Stopの検査をUI配送直前に行い、その内側でticketを照合する。
+StateはEDT所有。beginは旧値を消して新ticketを発行、finishは成功/停止/失敗を一度だけ確定してticketを失効させる。停止要求後はSTOPPINGとして数値を受け付けず、実際の終端通知だけを受け付ける。停止要求だけで物理終了を認定しない。終端後のusageや古い終端は保持した値・次の応答を変更できない。resetは値/送信時modelを消して未開始へ戻し、旧ticketを無効にする。ControllerはprepareTurn直前にticketを発行し、null/例外による開始拒否も失敗へ確定する。既存のEDT準備・背景準備・executor投入例外はAgentRun→Factoryへ流す。StopはAgentRunが受け付けた場合だけ停止中へ進め、既にOS終了を観測した場合は実終端を優先する。接続/transportの置換とdisposeではresetする。#258の未送信入力回復と#48の成功判定・予約送信は変更しない。Factoryは既存run/token・dispose・Stopの検査をUI配送直前に行い、その内側でticketを照合する。
 
 print4counterは`TokenUsage`の非負整数Long・field別validationを維持する。明示0を表示し、部分欠損はその行だけ非表示にする。全field未提供と0は別であり、正常本文も捨てない。null更新はその受信snapshotを表す。入力/cacheの重複関係が不明なため合計せず、context占有率・料金・account残枠へ換算しない。
 
