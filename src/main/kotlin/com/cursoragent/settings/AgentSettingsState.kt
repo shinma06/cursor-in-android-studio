@@ -64,6 +64,10 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     var worktreeMode: WorktreeMode = WorktreeMode.DEFAULT
     var showNewChatIcon: Boolean = true
     var showHistoryIcon: Boolean = true
+    /** Zero follows IDE UI typography; persisted custom sizes are unscaled points. */
+    var conversationFontSize: Int = 0
+        set(value) { field = if (value == 0 || value in 8..36) value else 0 }
+    var wrapCodeLines: Boolean = false
     var sendKeyMode: SendKeyMode = SendKeyMode.ENTER
     var notifyOnTurnComplete: Boolean = true
     var notifyOnApprovalPending: Boolean = true
@@ -75,6 +79,9 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     }
 
     companion object {
+        @Topic.AppLevel
+        val DISPLAY_CHANGED: Topic<Runnable> = Topic.create("Cursor Agent display changed", Runnable::class.java)
+
         @Topic.AppLevel
         val SEND_KEY_CHANGED: Topic<Runnable> = Topic.create("Cursor Agent send key changed", Runnable::class.java)
 

@@ -48,7 +48,7 @@ class AssistantMessageBubble(
     init {
         isOpaque = false
         border = JBUI.Borders.empty(0, 8, 0, 8)
-        add(contentLabel, BorderLayout.CENTER)
+        add(contentLabel.scrollable(), BorderLayout.CENTER)
         add(JPanel(FlowLayout(FlowLayout.LEADING, 0, 0)).apply {
             isOpaque = false
             border = JBUI.Borders.emptyTop(4)
