@@ -5,7 +5,7 @@
   "reason": "hooks・複数root・worktree・保存再開の公開契約と既存sourceの有限調査。製品変更/provider/実hook/私的設定/GUI操作なし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "既存の純粋合成テストでworkspace/復元/保存境界を確認",
+    "既存7クラス42件: ConversationStore/Writer/ResumeRoot、WorkspaceOperationGate、TurnWorkspace、RestorePolicy、SessionTabs（provider/実hook/実設定操作なし）",
     "固定HEAD/baseの独立レビューと参照照合"
   ],
   "cases": []
