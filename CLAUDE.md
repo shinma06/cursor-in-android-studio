@@ -166,3 +166,7 @@ Gradle自体はJDK17+、KotlinはJDK21 toolchain。`gradle.properties`の`platfo
 ## 履歴の参照
 
 旧spike・foundation review・PR #18・UI調整の全文は[変更前の固定版](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md)に保持する。現在の説明を上書きする指示ではない。段落群ごとの維持/移動/置換理由とsuperseded判断は[知識の正本](docs/architecture/knowledge.md)から追える。新しい履歴の複製ファイルは作らない。
+
+### Verified CLI behavior
+
+`AgentNotificationService`の既存コメントからの入口。print即時編集の版付き観測は[固定版のCLI記録](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#verified-cli-behavior-from-a-live-spike-2026-09)、現在の適用範囲は[現行実装](docs/architecture/current-implementation.md#イベント補助cli保存)へ。ACPへの一般化や新buildの実測済み判定には使わない。
