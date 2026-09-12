@@ -1,6 +1,6 @@
 # 運用スクリプトとビルドの境界
 
-#249の同期基準: develop `f1d84cbc4006f76805fda22904a91fa1b490c841`、main `041a58255f2f432b290bb6956333c064677d803e`。mainへ導入済みの配布cleanup（#219 / PR #248）とpromotion履歴照合（#250 / PR #253）を含む。#232の境界整理と前回同期#223 / PR #226は履歴として保持する。developへの反映と既定branchのschedule・trusted-mainでの実行を区別する。
+#249の同期基準: develop `9979266b4e99e7d4dc46689dac1f61f33f09b88a`、main `041a58255f2f432b290bb6956333c064677d803e`。mainへ導入済みの配布cleanup（#219 / PR #248）とpromotion履歴照合（#250 / PR #253）を含む。#232の境界整理と前回同期#223 / PR #226は履歴として保持する。developへの反映と既定branchのschedule・trusted-mainでの実行を区別する。
 
 [arc42の実行・配置・横断観点](https://arc42.org/overview/)を既存入口へ対応させる。新CLI基盤・shared util・別repositoryは作らず、実行入口/判断/外部操作を呼出しで区別する。
 
