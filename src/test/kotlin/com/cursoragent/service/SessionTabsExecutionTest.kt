@@ -37,7 +37,7 @@ class SessionTabsExecutionTest {
             val preparation = gate.tryPrepare()!!
             val process = preparation.launchingProcess()
             val run = AgentRun(object : AgentProcessListener {
-                override fun onAssistantDelta(text: String) {
+                override fun onAssistantText(text: String) {
                     if (tabs.accepts(turn.token)) events.getOrPut(id) { mutableListOf() }.add(text)
                 }
                 override fun onCompleted(exitCode: Int) { tabs.finishTurn(turn.token) }
@@ -49,13 +49,13 @@ class SessionTabsExecutionTest {
         val (runA, prepA, processA) = start(a)
         val b = tabs.open().id
         val (runB, prepB, processB) = start(b)
-        runA.emit { it.onAssistantDelta("A while B selected") }
+        runA.emit { it.onAssistantText("A while B selected") }
         tabs.select(a)
-        runB.emit { it.onAssistantDelta("B while A selected") }
+        runB.emit { it.onAssistantText("B while A selected") }
         tabs.close(a)
         runA.detachListener()
         runA.stop()
-        runA.emit { it.onAssistantDelta("late A") }
+        runA.emit { it.onAssistantText("late A") }
         prepA.close()
         prepB.close()
         runB.complete(0)
