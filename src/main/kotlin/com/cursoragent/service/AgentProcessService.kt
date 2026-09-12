@@ -1,9 +1,11 @@
 package com.cursoragent.service
 
+import com.cursoragent.acp.AcpException
 import com.cursoragent.acp.AcpSession
 import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.settings.WorktreeMode
 import com.cursoragent.settings.detectAgentExecutable
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -57,10 +59,21 @@ class AgentProcessService(private val project: Project) : Disposable {
     fun closeSession(tabId: String) { acpSessions.remove(tabId)?.close() }
 
 
-    fun captureWorkspace(resumeId: String?): TurnWorkspace {
+    /** Early UI guidance; AcpSession still validates the same values at its execution boundary. */
+    fun settingsUnavailableReason(transport: AgentTransport, settings: TurnSettings, mode: WorktreeMode): String? {
+        if (transport == AgentTransport.PRINT) return null
+        return try {
+            AcpSession.validateSettings(settings, mode)
+            null
+        } catch (error: AcpException) {
+            error.message
+        }
+    }
+
+    fun captureWorkspace(resumeId: String?, mode: WorktreeMode): TurnWorkspace {
         return TurnWorkspace(
             project.basePath,
-            AgentSettingsState.getInstance().worktreeMode,
+            mode,
             resumeId,
             resumeId?.let(sessionTargets::find),
         )
