@@ -183,7 +183,7 @@ def cleanup_report(branch=None):
     branches = {b['name'] for b in pages('branches')}
     protected = {'main', 'master', 'develop', api('')['default_branch']}
     tags = {r['ref'].removeprefix('refs/tags/'): r['object']
-            for r in pages('git/matching-refs/tags/branch-zip-')}
+            for r in api('git/matching-refs/tags/branch-zip-')}
     candidates, kept = [], []
     for release in releases:
         tag = release['tag_name']
@@ -230,7 +230,7 @@ def cleanup(branch, sha, release_id):
         return
     tag_path = 'git/matching-refs/tags/' + expected['tag']
     tag_ref = 'refs/tags/' + expected['tag']
-    refs = [r for r in pages(tag_path) if r['ref'] == tag_ref]
+    refs = [r for r in api(tag_path) if r['ref'] == tag_ref]
     if len(refs) != 1 or current_head(branch) is not None:
         cleanup_note({**expected, 'result': 'held', 'next': 'branch recreated or tag changed; re-plan'})
         return
@@ -240,7 +240,7 @@ def cleanup(branch, sha, release_id):
     cleanup_note({**receipt, 'result': 'verified', 'next': 'delete release/assets, then unchanged tag'})
     api(f'releases/{release_id}', 'DELETE')
     remaining = pages('releases')
-    refs = [r for r in pages(tag_path) if r['ref'] == tag_ref]
+    refs = [r for r in api(tag_path) if r['ref'] == tag_ref]
     if (any(r['tag_name'] == expected['tag'] for r in remaining)
             or current_head(branch) is not None
             or (refs and (len(refs) != 1 or refs[0]['object'] != receipt['tag_object']))):
@@ -255,7 +255,7 @@ def cleanup(branch, sha, release_id):
                       'next': 'operator compares this receipt with fresh branch/ref APIs; tag-only is held on rerun'})
         raise
     if (any(r['tag_name'] == expected['tag'] for r in pages('releases'))
-            or any(r['ref'] == tag_ref for r in pages(tag_path))):
+            or any(r['ref'] == tag_ref for r in api(tag_path))):
         raise RuntimeError('Cleanup readback changed; inspect receipt and re-run dry-run')
     cleanup_note({**receipt, 'result': 'deleted', 'next': 'none'})
 

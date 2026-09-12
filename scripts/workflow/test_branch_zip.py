@@ -42,11 +42,13 @@ class BranchZipTest(unittest.TestCase):
         if method == 'GET':
             if path == '':
                 return {'default_branch': self.default_branch}
-            endpoint, query = path.split('?')
-            page = int(query.split('page=')[-1])
+            endpoint = path.split('?')[0]
             if endpoint.startswith('git/matching-refs/'):
+                # This API returns the complete matching set, ignoring page/per_page.
                 prefix = 'refs/' + endpoint.removeprefix('git/matching-refs/')
-                return copy.deepcopy([r for r in self.tags if r['ref'].startswith(prefix)][(page - 1) * 100:page * 100])
+                return copy.deepcopy([r for r in self.tags if r['ref'].startswith(prefix)])
+            _, query = path.split('?')
+            page = int(query.split('page=')[-1])
             rows = self.branches if endpoint == 'branches' else self.releases if endpoint == 'releases' else self.releases[0]['assets']
             return copy.deepcopy(rows[(page - 1) * 100:page * 100])
         if method == 'POST':
@@ -318,3 +320,12 @@ class BranchZipTest(unittest.TestCase):
         self.assertEqual(workflow.count('group: ${{ matrix.tag }}'), 2)
         self.assertIn("github.event_name != 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)", workflow)
         self.assertIn("if [ \"$APPLY\" != true ]; then candidates='[]'; fi", workflow)
+
+    def test_cleanup_reads_over_100_matching_refs_once_without_pagination(self):
+        self.tags = [{'ref': 'refs/tags/' + bz.tag_for(str(i)), 'object': {'sha': B}}
+                     for i in range(101)]
+        result = bz.cleanup_report()
+        self.assertEqual(result['candidates'], [])
+        self.assertEqual(len(result['kept']), 101)
+        self.assertEqual([p for m, p in self.operations if p.startswith('git/matching-refs/')],
+                         ['git/matching-refs/tags/branch-zip-'])
