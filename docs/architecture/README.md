@@ -31,12 +31,13 @@ flowchart LR
         STORE[設定・履歴metadata / Git snapshot]
         UI -->|固定turn / token| S
         S --> A
-        S --> P
+        P -->|StreamEvent変換結果| S
         UI <-->|EDT操作| API
         UI --> STORE
     end
     A <-->|stdio JSON-RPC| ACP[Cursor agent acp process]
-    P <-->|stream-json / process終了| PRINT[Cursor agent print process]
+    S <-->|OSProcessHandler / 起動・停止・終了| PRINT[Cursor agent print process]
+    PRINT -->|stdout stream-json| P
     ACP -->|Agent側tool操作| WS[workspace / subprocess]
     PRINT -->|即時編集・shell| WS
     STORE -->|snapshot・保護付き復元| WS
