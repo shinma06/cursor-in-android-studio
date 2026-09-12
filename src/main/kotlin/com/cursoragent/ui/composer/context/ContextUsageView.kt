@@ -142,7 +142,7 @@ class ContextUsageView {
     }
 }
 
-/** Keep the keyboard focus outline outside the glyph, without the selector's circular pill. */
+/** Share the hover background for keyboard focus, without an extra outline around the glyph. */
 internal open class TokenCountsButton : JButton() {
     init {
         isOpaque = false
@@ -157,7 +157,7 @@ internal open class TokenCountsButton : JButton() {
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val inset = JBUI.scale(1).toDouble()
             val arc = JBUI.scale(6).toDouble()
-            // Both shapes use width/2, height/2, including odd sizes and fractional device scales.
+            // Background and glyph share width/2, height/2 at odd sizes and fractional scales.
             val outline = RoundRectangle2D.Double(
                 inset, inset, (width - inset * 2).coerceAtLeast(0.0),
                 (height - inset * 2).coerceAtLeast(0.0), arc, arc,
@@ -165,11 +165,6 @@ internal open class TokenCountsButton : JButton() {
             if (model.isRollover || model.isPressed || hasFocus()) {
                 copy.color = AgentUiColors.userBubbleBackground
                 copy.fill(outline)
-            }
-            if (hasFocus() && isFocusPainted) {
-                copy.color = AgentUiColors.mutedText
-                copy.stroke = BasicStroke(JBUI.scale(1).toFloat())
-                copy.draw(outline)
             }
             icon?.let {
                 copy.translate((width - it.iconWidth) / 2.0, (height - it.iconHeight) / 2.0)

@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "issue": 215,
+  "gui_required": true,
+  "reason": "共通focus描画の製品変更。Dark/Light、通常/Compact、マウス・キー操作とIME/送信Stopの実機確認が必要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPluginとZIP CRC/SHA256",
+    "NaturalFocusPaintTest: 合成Light/Dark/寸法/scaleでfocus=hover、通常状態との差、Mode/ONOFF/Space/disabled維持",
+    "既存Composer/ModelOptionsPopup/SelectorPopup/PromptFocusTraversal/SelectorGeometry/ContextUsageの回帰",
+    "全hasFocus/drawRoundRect callerと変更外の送信Stop/IME/selection/所有経路を固定diffで照合",
+    "固定HEAD/base独立レビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "FOCUS-MODEL-MODE-OPTIONS",
+      "issue": 215,
+      "change": "共通SelectorのModel/Mode/option/戻る",
+      "preconditions": "#215を含むsource/Plugin ZIP SHA256/installed全JAR/起動ロード実体を固定。指定GUI担当のhost lease下、Dark/Light × 通常/Compactの4条件で全手順を実施し条件別に結果を記録。docs/development/natural-focus.md参照。",
+      "steps": [
+        "マウスでModel/Auto入口と親popupのModel / Auto行、Model一覧を開き、hover展開でも余分な明るい角丸枠がないことを確認。",
+        "Tab/Shift+TabでAgent/Plan/AskとModel、親popupのModel/optionへ移動し、枠なしの背景で対象が分かることを確認。固定色Modeも文字/icon/選択とfocusを判別できることを確認する。",
+        "既存Space/Enter/LEFT/UP/DOWNで展開・検索・選択・確定し、選択済みチェックを確認。optionの一覧と戻る行、Escapeでの取消、外側クリック/フォーカス移動での既存closeを確認。",
+        "printとACPの利用可能なモデル入口を管理fixtureで確認し、読み込み中/モデルなし/実行中のdisabled状態とアクセシブル名を維持することを確認する。"
+      ],
+      "expected": "独自focus枠なしで操作対象を識別でき、Mode/Modelの文字・icon・選択チェックと既存寸法/キー/hover/close動作を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。合成描画/既存テストを実機のDark/Light・Compact確認と混同しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。合成描画/既存テストを実機のDark/Light・Compact確認と混同しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、新しい固定buildで条件別に再確認。#188の既存passは変更しない。",
+      "next_action": "PMが固定候補とGUI担当を指定し、全3Case/4表示条件/マウス・キーの確認をQAへ双方向引継ぎ。main反映は別途確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/215",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/188#issuecomment-5643361691"
+      ]
+    },
+    {
+      "id": "FOCUS-OPTION-TOGGLES",
+      "issue": 215,
+      "change": "Thinking/Fast等toggleのfocusとON/OFF",
+      "preconditions": "#215を含むsource/Plugin ZIP SHA256/installed全JAR/起動ロード実体を固定。指定GUI担当のhost lease下、Dark/Light × 通常/Compactの4条件で全手順を実施し条件別に結果を記録。docs/development/natural-focus.md参照。",
+      "steps": [
+        "対応optionを持つfixtureモデルを選び、Thinking/Fast等のboolean toggleをマウスとTab/Shift+Tabで操作する。",
+        "ON/OFFの両方で通常/hover/focusの表示を確認し、明るい枠がなく、track背景変化でfocusを識別できることを確認する。",
+        "Spaceで切り替え、選択状態の色とつまみ位置が明確で、対応する既存モデルIDだけが選ばれることを確認。選択不可状態では操作されないことを確認する。"
+      ],
+      "expected": "focus識別とON/OFF識別が共存し、つまみ/文字/寸法・アクセシブル名・標準キー操作を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。合成描画/既存テストを実機のDark/Light・Compact確認と混同しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。合成描画/既存テストを実機のDark/Light・Compact確認と混同しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、新しい固定buildで条件別に再確認。#188の既存passは変更しない。",
+      "next_action": "PMが固定候補とGUI担当を指定し、全3Case/4表示条件/マウス・キーの確認をQAへ双方向引継ぎ。main反映は別途確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/215",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/188#issuecomment-5643361691"
+      ]
+    },
+    {
+      "id": "FOCUS-SEND-STOP-TOKENS",
+      "issue": 215,
+      "change": "送信/Stop、token開閉、入力focus",
+      "preconditions": "#215を含むsource/Plugin ZIP SHA256/installed全JAR/起動ロード実体を固定。指定GUI担当のhost lease下、Dark/Light × 通常/Compactの4条件で全手順を実施し条件別に結果を記録。docs/development/natural-focus.md参照。",
+      "steps": [
+        "入力欄からTab/Shift+Tabで送信・tokenボタンへ移動し、明るい枠なしで現在対象が識別できることを確認する。マウスhoverとボタン寸法/押下領域を確認する。",
+        "管理fixtureへの送信をEnter/ボタンSpaceで確認し、実行中のStopをボタンで操作する。入力/Modeを無効化する状態でもStopが使えることを確認。IME確定・日本語入力・入力カーソルに影響がないことを確認する。",
+        "tokenボタンで数値を開閉し、閉じるボタンのfocus表示とキー操作を確認。閉じると入口へfocusが戻り、再表示しても数値を勝手に消さないことを確認する。",
+        "token背景とdocument glyphが中央にあり、通常/hover/pressed/focusでずれないことを確認する。既存DPI/狭幅で文字や操作領域が欠けないことを確認する。"
+      ],
+      "expected": "送信/Stop/入力とtoken開閉の既存動作・数値・accessibleName・寸法を保持し、枠なしの背景でfocusを識別できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。合成描画/既存テストを実機のDark/Light・Compact確認と混同しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。合成描画/既存テストを実機のDark/Light・Compact確認と混同しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRへ記録し、新しい固定buildで条件別に再確認。#188の既存passは変更しない。",
+      "next_action": "PMが固定候補とGUI担当を指定し、全3Case/4表示条件/マウス・キーの確認をQAへ双方向引継ぎ。main反映は別途確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/215",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/188#issuecomment-5643361691"
+      ]
+    }
+  ]
+}
