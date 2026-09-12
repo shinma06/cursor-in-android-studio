@@ -7,9 +7,6 @@ import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.parser.taskKey
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
-import com.cursoragent.service.AgentProcessService
-import com.cursoragent.service.RestorePolicy
-import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.service.displayText
 import com.cursoragent.service.taskStatusText
@@ -24,15 +21,17 @@ import javax.swing.SwingUtilities
  * timeline/composer UI updates. Extracted from [AgentUiController] so the
  * controller stays focused on prompt assembly and high-level orchestration (#11).
  */
-class AgentTurnListenerFactory(
+internal class AgentTurnListenerFactory(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
     private val recorder: ConversationRecorder,
     private val onRunFinished: (successful: Boolean) -> Unit,
+    private val changes: ConversationChanges,
 ) {
     fun create(
         usageTicket: Long,
+        turnId: String,
         isCurrent: () -> Boolean,
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
@@ -69,6 +68,7 @@ class AgentTurnListenerFactory(
                         }
                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
                         is AgentEvent.Tool -> {
+                            changes.acp(turnId, event.state, restoreTarget())
                             val displayed = timeline.upsertStructuredTool(event.state) { diff ->
                                 DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
                             }
@@ -150,6 +150,7 @@ class AgentTurnListenerFactory(
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
                         val target = restoreTarget()
+                        changes.print(turnId, payload.callId, edit, target)
                         timeline.addFileEditCard(
                             callId = payload.callId,
                             details = edit,
@@ -162,19 +163,9 @@ class AgentTurnListenerFactory(
                                 )
                             },
                             onRevert = {
-                                val before = edit.beforeContent
-                                val after = edit.afterContent
-                                val reservation = project.getService(AgentProcessService::class.java).tryRestore()
-                                val result = if (reservation == null) {
-                                    RestoreResult(RestorePolicy.BUSY)
-                                } else {
-                                    reservation.use {
-                                        if (before == null || after == null) RestoreResult(RestorePolicy.RESTORE_FAILED)
-                                        else DiffViewerHelper.revertFileContentResult(project, edit.path, before, after, target)
-                                    }
+                                DiffViewerHelper.revertObservedEdit(project, edit.path, edit.beforeContent, edit.afterContent, target) {
+                                    timeline.showStatus("ファイルを編集前に戻しました")
                                 }
-                                if (result.restored) timeline.showStatus("ファイルを編集前に戻しました")
-                                else Messages.showErrorDialog(project, result.rejectionReason!!, PluginBrand.NAME)
                             },
                         )
                         return@update
