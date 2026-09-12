@@ -6,6 +6,8 @@
 
 [今回の確認一覧](current.md) は初期バッチの閲覧用です。初期一覧は PR #72/#74/#75/#77/#81/#82 の7ケースと、親#73に残るCUA操作成立の2ケースです。初期作成時の#39接続待ちはdevelopで解消済みです。現行の復元接続は[接続契約](../development/restore-target-integration.md)を参照し、固定候補のGUI受入は別に判断します。#80はprobe調査記録の整合を確認します。CUA全面操作は親#73の別Caseで、人間が直接ボタンを押せてもCUA受入passにはなりません。
 
+停止・配送・復元・要求返信の変更では [6条件とテストの証明範囲](lifecycle-contracts.md) の該当行をwriter/独立reviewerが確認します。
+
 ## 正本と結果の入力
 
 - `changes/issue-N.json`: 変更単位の必要Case・操作手順・期待結果・当初のGPT/人間状態・既存証拠の正本。PRの `Verification:` は自分のIssueファイルを指します。既存MV/runは詳細と履歴であり、新しい候補の結果を書き戻す先ではありません。
