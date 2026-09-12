@@ -92,6 +92,45 @@ def git_read(*args, cwd=None):
     return subprocess.check_output(['git', *args], cwd=cwd, text=True).strip()
 
 
+def tooling_path(path):
+    return path.startswith(TOOLING) or path in ('CLAUDE.md', 'AGENTS.md')
+
+
+def source_commits(source, base, git):
+    """Bind squash results or a tooling-only main sync to their actual merged DAG."""
+    merge = source['merge_commit_sha']
+    parents = git('rev-list', '--parents', '-n', '1', merge).split()[1:]
+    if len(parents) == 1:
+        return {merge}
+    if (len(parents) != 2 or parents != [source['base']['sha'], source['head']['sha']] or
+            field(source['body'], 'GUI') != 'not-required'):
+        raise ValueError('Sync merge must match the merged develop PR base/head and be tooling-only')
+    develop, head = parents
+    chain = git('rev-list', '--first-parent', f'{develop}..{head}').splitlines()
+    synced_main = False
+    for index, commit in enumerate(chain):
+        inputs = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
+        previous = chain[index + 1] if index + 1 < len(chain) else develop
+        if not inputs or len(inputs) > 2 or inputs[0] != previous:
+            raise ValueError('Sync history must return to the merged develop parent along first parents')
+        if len(inputs) == 2:
+            git('merge-base', '--is-ancestor', inputs[1], base)
+            synced_main = True
+        # Check each edge, so a product edit followed by a revert cannot disappear.
+        if any(not tooling_path(p) for p in git('diff', '--no-renames', '--name-only', inputs[0], commit).splitlines()):
+            raise ValueError('Product change in sync history, even if later reverted')
+    if not synced_main:
+        raise ValueError('Sync PR must actually merge an ancestor of the fixed main base')
+    for parent in parents:
+        if any(not tooling_path(p) for p in git('diff', '--no-renames', '--name-only', parent, merge).splitlines()):
+            raise ValueError('Product change in sync merge result')
+    covered = {merge, *chain}
+    actual = {merge, *git('rev-list', head, '--not', develop, base).splitlines()}
+    if covered != actual:
+        raise ValueError('Sync PR contains unexplained or already-main first-parent history')
+    return covered
+
+
 def verify_pr(pr, api, git=git_read):
     """api(path) uses the same repo; git sees fetched PR/candidate objects only as data."""
     issue, path, mode = metadata(pr)
@@ -109,7 +148,7 @@ def verify_pr(pr, api, git=git_read):
                     raise ValueError('Product failure needs an open dedicated fix Issue')
         return {'mode': mode, 'gui_complete': not gui, 'cases': len(data['cases'])}
     if mode == 'tooling':
-        if gui or not files or any(not (f.startswith(TOOLING) or f in ('CLAUDE.md', 'AGENTS.md')) for f in files):
+        if gui or not files or any(not tooling_path(f) for f in files):
             raise ValueError('Direct main tooling route is restricted to documented non-product paths')
         return {'mode': mode, 'gui_complete': True, 'cases': 0}
     promotion = json.loads(git('show', f'{head}:{PROMOTION}'))
@@ -144,24 +183,27 @@ def verify_pr(pr, api, git=git_read):
     changes = promotion.get('changes', [])
     if not isinstance(changes, list) or {x.get('commit') for x in changes} != set(commits) or len(changes) != len(commits):
         raise ValueError('Promotion must cover EVERY candidate commit absent from main exactly once')
-    required = {}
+    by_pr = {}
     for item in changes:
         number = item.get('pr')
         if type(number) is not int or number <= 0:
             raise ValueError('Each candidate commit needs its merged develop PR')
+        by_pr.setdefault(number, set()).add(item['commit'])
+    required = {}
+    for number, covered in by_pr.items():
         source = api(f'pulls/{number}')
         if (not source.get('merged') or source['base']['ref'] != 'develop' or
-                source['merge_commit_sha'] != item['commit'] or
+                source['merge_commit_sha'] not in covered or
+                source['base']['repo']['full_name'] != pr['base']['repo']['full_name'] or
                 source['head']['repo'] is None or source['head']['repo']['full_name'] != pr['base']['repo']['full_name']):
-            raise ValueError('Commit is not the identified same-repository develop squash merge')
-        # Merge commits can hide unaccounted ancestry. Each range commit must itself be a squash PR result.
-        if len(git('rev-list', '--parents', '-n', '1', item['commit']).split()) != 2:
-            raise ValueError('Develop must use squash merges; unexpected ancestry requires explicit repair')
+            raise ValueError('Commit is not the identified same-repository merged develop PR')
+        if covered != source_commits(source, base, git):
+            raise ValueError('Candidate commits do not exactly match their merged develop PR provenance')
         source_issue, source_path, source_mode = metadata(source)
         if source_mode != 'develop':
             raise ValueError('Missing develop acceptance provenance')
         source_gui = field(source['body'], 'GUI') == 'required'
-        change = validate_change(json.loads(git('show', f'{item["commit"]}:{source_path}')), source_issue, source_gui)
+        change = validate_change(json.loads(git('show', f'{source["merge_commit_sha"]}:{source_path}')), source_issue, source_gui)
         for case in change['cases']:
             key = f'{source_issue}:{case["id"]}'
             requirement = (case.get('required_execution'), case.get('artifact', 'plugin'))
@@ -170,7 +212,9 @@ def verify_pr(pr, api, git=git_read):
             required[key] = requirement
     results = promotion.get('results', {})
     if not isinstance(results, dict) or set(results) != set(required):
-        raise ValueError('Candidate results must match ALL required Cases, with no missing/extra entries')
+        raise ValueError('Candidate results must match ALL required Cases; missing=' +
+                         ','.join(sorted(set(required) - set(results))) + '; extra=' +
+                         ','.join(sorted(set(results) - set(required))))
     artifacts = dict(promotion.get('artifacts', {}))
     if promotion.get('artifact_sha256'):
         artifacts['plugin'] = promotion['artifact_sha256']

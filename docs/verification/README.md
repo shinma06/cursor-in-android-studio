@@ -30,10 +30,22 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。G
 2. PMはdevelopの候補40桁SHAを固定し、そのSHAからbuildします。developへの後続統合は継続できます。ZIPのSHA-256と実際にロードしたJARを照合します。probe等の別成果物は同じcandidateからbuildし、`artifacts.swing_probe`にそのhashを記録します。Caseの`artifact`（省略時plugin）ごとに一致検査します。candidateが現在のdevelopの祖先であることをgateが検査します。candidateより後の変更は今回のpromotionに含めず次バッチへ回します。無関係なSHAや候補の差し替えは受入に使えません。
 3. 専用promotion Issueと `codex/N-promotion` branch/worktreeを候補SHAから作成し、現在のmainを通常mergeします。`candidate`からの製品差分がゼロである必要があります。main先行toolingや前回QA記録が差分に残れば、1に戻してdevelopへ同期し直します。
 4. `docs/verification/changes/issue-N.json` をGUI不要の「確認結果の記録」として作成し、`docs/verification/promotion.json` を下記の形式で用意します。PR本文は `Integration: promotion`、`GUI: not-required`（結果記録自体の区分）、`Verification: docs/verification/changes/issue-N.json`。必須GUIは元develop PRのCaseから自動収集され、ここで不要と宣言しても免除されません。
-5. `changes` に `git rev-list <main SHA>..<candidate SHA>` の**全コミット**を1回ずつ登録します。各コミットは実際にmerge済みの同一repository develop PRのsquash結果でなければなりません。省略、未対応コミット、merge/rebase取り込み、別PRへの付け替えをgateが拒否します。選択的なmain統合は実装していません。通常は固定develop候補全体を確認します。
+5. `changes` に `git rev-list <main SHA>..<candidate SHA>` の**全コミット**を1回ずつ登録します。通常は各コミットを実際にmerge済みの同一repository develop PRのsquash結果へ対応付けます。既存の承認済みmain同期mergeは下記の厳密な履歴照合に限って内包commitも同じPRへ対応付けます。省略、未対応コミット、任意のmerge/rebase取り込み、別PRへの付け替えをgateが拒否します。選択的なmain統合は実装していません。通常は固定develop候補全体を確認します。
 6. `results` は全必要Caseを `Issue番号:Case ID` で列挙します。各Caseの操作後、実施者が実際の結果を入力します。失敗なら専用修正Issue/PRをdevelopへ入れ、新候補で全必要Caseを再確認します。
 7. テスト・独立レビュー・PR policy・Acceptance gateを通し、PM/coordinatorが**merge commit**で統合します。squashでは候補の祖先関係が失われるため禁止です。mainのstrict base、直前のcandidate再照合、head指定mergeを維持します。
 8. promotion Issueは全受入完了時にclose可能です。元の機能/QA Issueは残条件を個別に照合して更新し、まとめてcloseしません。次の区切りでは1のmain同期を先に行います。main/developをcleanupしません。
+
+### 既存main同期mergeの履歴照合（#250）
+
+通常のdevelop統合は引き続きsquashです。このvalidatorは過去に承認・mergeされた同期履歴を受け入れるもので、新しいmerge方法や保護設定の例外を許可しません。PR番号/SHAのallowlistは持ちません。
+
+- `changes` は引き続き `main..candidate` の全commitを一度ずつ列挙します。同期の外側mergeと内部first-parent commitにも実際の同期PR番号を指定します。mainに既にある祖先は追加しません。
+- 同期PRは同repoで実際にdevelopへmerge済み、GUI不要の受入JSONを持ち、外側mergeの2親がAPIのbase/head SHAと一致する必要があります。境界は実Gitの親から取得し、APIと不一致なら受け入れず再調査します。
+- 内部first-parent鎖はdevelop側の親まで戻り、内部mergeの第二親は固定main baseの祖先に限定します。少なくとも1回のmain mergeが必要です。root、3親以上、無関係なside branch、説明不能なcommitを拒否します。
+- 内部の各first-parent差分と外側mergeの両親との差分をtooling許可pathに限定します。renameは削除/追加に分けて検査し、製品変更後のRevertや製品ファイルのdocsへの移動も拒否します。
+- 各PRに割り当てたcommit集合と検証済みDAG範囲が完全一致しなければ拒否します。製品PRを同期PRへ付け替えられません。全PRのCase JSONはそのPRの固定merge SHAから読み、後のCase削除では必要集合を縮めません。
+
+#226の履歴では外側mergeと内部3commitを#226へ、他の製品/tooling commitをそれぞれのmerged PRへ対応付けます。実候補のGUI結果を登録しない診断はCase/証拠不足で拒否されることが正しく、履歴照合成功だけでpromotion合格にはしません。#250統合後、#249でmainをdevelopへ同期してから候補/全Caseを再収集します。
 
 ### promotion.jsonの形式
 
