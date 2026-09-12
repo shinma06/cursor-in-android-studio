@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "issue": 28,
+  "gui_required": true,
+  "reason": "設定画面と同梱ビルド識別resourceの変更。インストール済み実体との照合、表示/コピーは固定buildのGUIが必要。CLI/ZIP検証を実機表示のpassにしない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPluginとZIP CRC/SHA256/JAR内build identity照合",
+    "PluginDiagnosticsTestと既存AgentExecutablePathSelectionTest: 未特定/候補/無実行/コピー/設定維持",
+    "generateBuildIdentity: clean→dirty→cleanとGitなしの再生成・未知を実sourceで検証",
+    "固定HEAD/base独立レビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "DIAGNOSTICS-BUILD-IDENTITY",
+      "issue": 28,
+      "change": "インストール済み成果物のversion/buildID/IDE buildと未知表示",
+      "preconditions": "#28を含む固定source/Plugin ZIP SHA256/installed全JAR/起動ロード実体を記録。指定GUI担当がhost lease下で実施し、通常環境のCLI/認証を勝手に変更しない。docs/development/build-diagnostics.md参照。",
+      "steps": [
+        "指定担当が固定source SHA/ZIP SHA256/installed全JARと起動ロード実体、IDE buildを記録し、Settings → Tools → Cursor in Android Studioを開く。",
+        "プラグインversion・ビルドIDが同梱descriptor/resourceと一致し、IDE buildが実IDEと一致することを確認してQAへ記録する。",
+        "別commitのproject checkoutを開き、表示更新/設定再表示後もbuildIDがインストール済みPlugin由来であることを確認する。",
+        "担当が用意できる場合にdirty開発buildとGitなし/resourceなしbuildを別々に識別して試し、未特定表示を確認する。用意できない項目は未実施として記録する。",
+        "狭幅、Tab/Enter、設定を閉じて再表示した場合に診断情報が読み取れることを確認する。"
+      ],
+      "expected": "clean固定buildだけが同梱SHAを表示。dirty/no Git/不正resourceは未特定。画面の値をcheckout SHAや別ZIPから推定せず、version/IDE buildも実体と照合できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。固定buildと指定担当/leaseの準備後に確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。固定buildと指定担当/leaseの準備後に確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRに記録し、修正を含む新しい固定buildで再確認。",
+      "next_action": "PMが固定buildとGUI担当を指定し、version/buildID/IDE buildとCase結果をQAへ双方向引継ぎ。main反映は別途確認。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/28",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/107"
+      ]
+    },
+    {
+      "id": "DIAGNOSTICS-CLI-COPY",
+      "issue": 28,
+      "change": "CLI候補・未確認状態・安全な明示コピー",
+      "preconditions": "#28を含む固定source/Plugin ZIP SHA256/installed全JAR/起動ロード実体を記録。指定GUI担当がhost lease下で実施し、通常環境のCLI/認証を勝手に変更しない。docs/development/build-diagnostics.md参照。",
+      "steps": [
+        "適用済みCLI設定を自動/手動の管理fixtureで確認する。自動は既存固定候補かPATH未確認、手動は実行可能ファイルの確認のみと表示する。無効な手動設定時は未解決と表示し、起動方式を問わず自動へ戻ると誤表示しない。",
+        "CLI入力欄を未適用のまま編集し、診断が適用済み設定と明記されていることを確認。適用/reset/表示更新で整合し、自動設定を手動値へ勝手に保存しないことを確認する。",
+        "fixtureの起動記録を観察し、設定表示/更新/コピーでCLIを実行しないこと、CLI版・認証が未取得であることを確認する。",
+        "コピー操作前にローカルパス含有の案内を確認し、クリック後に安全なローカルtext領域へ貼り付ける。画面snapshotと一致し、account/認証情報/環境変数全体/会話本文を含まないことを確認。自動送信されないことを確認する。",
+        "設定を閉じて再表示し、標準clipboard以外の送信・監視がなく、不要な起動や保存変更がないことを確認する。"
+      ],
+      "expected": "CLIを実行せず、適用済み設定の候補と未知を正確に区別。コピーは表示済み項目だけを明示操作で行い、ローカルパスを含むことがわかる。未実行のCLI版/認証を成功扱いしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。固定buildと指定担当/leaseの準備後に確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI/install/restart未実施。固定buildと指定担当/leaseの準備後に確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不具合は専用修正Issue/PRに記録し、修正を含む新しい固定buildで再確認。",
+      "next_action": "PMが固定buildとGUI担当を指定し、version/buildID/IDE buildとCase結果をQAへ双方向引継ぎ。main反映は別途確認。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/28",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/107"
+      ]
+    }
+  ]
+}
