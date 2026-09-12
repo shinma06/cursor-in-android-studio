@@ -3,6 +3,11 @@
   "issue": 116,
   "gui_required": false,
   "reason": "print出力の調査文書と専用回帰のみ。製品コードとGUI結果を変更しない。固定buildでの表示Caseは既存QA #246へ具体化して引き継ぐ。",
-  "cli_checks": ["git diff --check", "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests", "公開仕様・既存fixture・実測・合成回帰と全文置換契約の独立照合"],
+  "cli_checks": [
+    "git diff --check",
+    "./gradlew test --tests *Issue116PrintContractTest --tests *TurnAssistantTextTest --tests *AgentTurnDispatchTest",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公開仕様・実wire projection・旧fixture・合成回帰・採否とGUI Case案の固定HEAD/base独立照合"
+  ],
   "cases": []
 }
