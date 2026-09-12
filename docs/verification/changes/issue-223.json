@@ -2,14 +2,15 @@
   "schema": 1,
   "issue": 223,
   "gui_required": false,
-  "reason": "main400f181とdevelop e786d197の内容と履歴同期。9競合は後続の受入済みdevelop文書/QA生成を保全。差分はIssue templateと運用受入記録だけで製品src/Gradle構成/GUI結果を変更しない。同期merge方法の例外は独立レビュー後に今回1PRだけユーザーへ確認し、承認前にはmergeしない。",
+  "reason": "main400f181とdevelop e786d197の内容と履歴同期。9競合は後続の受入済みdevelop文書/QA生成を保全。差分はIssue templateと運用受入記録だけで製品src/Gradle構成/GUI結果を変更しない。同期merge方法とdevelop ruleset22409298のallowed_merge_methodsだけを一時変更して復元する例外は独立レビュー後に今回1PRだけユーザーへ確認し、承認前にはmergeしない。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base e786d197b3edd44ae4488c7ec536f496b5552440 --run-tests",
     "固定main400f181とdevelop e786d197の両方がcandidateの祖先であり、9競合ファイルはdevelopの受入済み版を保持することを確認",
     "candidateとdevelopの製品src/Gradle差分なし、未解決index/競合markerなし。通常CIと固定HEAD/baseの独立レビュー",
     "自動mergeで重複したIssueフォームmanagement欄を既存1件へ戻し、全フォームのid重複なしを確認。mainとdevelopの同じ管理入力を二重追加しない",
-    "同じtreeでsquash相当の一親commitでは次のmerge-treeに競合が残り、二親同期commitでは競合なしを照合。恒久ルール/保護/enrollment/owner/heartbeatは変更しない",
+    "同じtreeでsquash相当の一親commitでは次のmerge-treeに競合が残り、二親同期commitでは競合なしを照合。恒久ルール・4必須checks/strict/review条件・削除/force-push禁止・bypassなし・enrollment/owner/heartbeatを保持",
     "ユーザーが承認した今回限定の同期方法で通常必須checksを満たして統合し、mainがdevelop祖先になったこととmain/developの再mergeに競合がないことをreadback",
+    "明示許可後のみruleset22409298のallowed_merge_methodsをsquashからsquash+mergeへ一時変更し、PR226の固定HEADだけを通常merge。設定preimage/他open develop PRなしを確認し、成功/例外時とも元payloadへ復元・全設定readback。他者の設定変更は上書きせず未復元として報告する",
     "元Issue/QA/Projectの状態と所有branch/worktree cleanupを読み戻す。mainの未反映QA生成・CONTRIBUTINGと固定GUI結果は未達として保持"
   ],
   "cases": []
