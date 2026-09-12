@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "issue": 300,
+  "gui_required": true,
+  "reason": "権限設定の共有範囲・適用時点・ACP候補案内とpermission応答scopeを固定buildで確認するため。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
+    "#97固定bb94abdef442c762439ab05dc389197f791ef980比較の独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "PERM-300-SCOPE",
+      "issue": 300,
+      "change": "P1: 共有保存値と適用時点",
+      "preconditions": "#97/#258/#24/#48祖先を含む#300固定source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject2つと制御ACP/print fixtureを使用。CLI/IDE版・transport・Light/Dark×通常/Compactを記録。",
+      "steps": [
+        "全project共有の操作の確認/実行範囲/作業場所のhelpを開き、保存値と進行中turnの実効値を区別できることを確認。開く/Escapeだけでは値が変わらない。",
+        "別tab/projectで3×3×2組合せを選ぶ。メニュー選択は即時保存され、Settings Cancelで既存選択は戻らない。Settings内のCLIパス/送信キー/通知はApply/Cancelで従来どおり制御される。",
+        "制御fixtureで送信準備/実行中に設定を変え、旧turnの固定snapshotと次回の値を照合。print引数は既存契約と一致し、標準/CLI既定の継承、deny例外、対応sandbox経路の説明をLight/Dark×通常/Compactで読めることを確認。"
+      ],
+      "expected": "メニューの保存範囲と適用時点が正しく伝わり、未観測の実効権限を保証しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全3Case/main未反映を双方向link/readbackして指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/300",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/297",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/298",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/302"
+      ]
+    },
+    {
+      "id": "PERM-300-ACP",
+      "issue": 300,
+      "change": "P2: 現PluginのACP設定案内",
+      "preconditions": "#97/#258/#24/#48祖先を含む#300固定source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject2つと制御ACP/print fixtureを使用。CLI/IDE版・transport・Light/Dark×通常/Compactを記録。",
+      "steps": [
+        "print側で各保存組合せを置き、初回送信前の接続方法ACP候補を開く。未対応組合せに案内が出て、明示選択前にはtransport/設定が変わらない。",
+        "ACP会話でpermission/sandbox/worktree候補を開く。各候補だけ変えた組合せの案内が既存service理由と一致する。標準/CLI既定/このproject以外の17組合せは既存早期・実行境界で拒否され、無断fallback/設定resetがない。",
+        "別tabのprint設定を保持したまま選択/取消・tab/transport切替・project closeを行う。古いtabや破棄済みviewへ理由が混入せず、未対応をCursor ACP全体の制限と言い切らない。"
+      ],
+      "expected": "選択前にPluginの確認済み組合せを判断でき、既存の実行時拒否と共有設定を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全3Case/main未反映を双方向link/readbackして指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/300",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/297",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/298",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/302"
+      ]
+    },
+    {
+      "id": "PERM-300-REQUEST",
+      "issue": 300,
+      "change": "P3: permission適用範囲と応答",
+      "preconditions": "#97/#258/#24/#48祖先を含む#300固定source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject2つと制御ACP/print fixtureを使用。CLI/IDE版・transport・Light/Dark×通常/Compactを記録。",
+      "steps": [
+        "制御ACP fixtureで4kindのpermissionとopaque ID/対象有・無を表示。「今後も」の適用範囲・有効期間は接続先依存でPlugin共有設定は不変と読めることを確認。未知kind・対象不明の許可は無効、拒否/取消は可能。",
+        "許可/拒否/取消を操作し、IDがそのまま1回だけ送られ、表示は回答送信でありtool成功・永続化成功とはならないことを確認。名前/titleにHTML風文字列があってもplain textで表示する。",
+        "Stop/close直前の回答、遅いクリック、二重クリック、送信失敗を制御する。取消/null失敗と各回答を区別し、遅着で成功へ変えず、共有値と既存Revert保護を維持する。実providerの新観測は146 owner/公開許可に従い、合成試験を代替passにしない。"
+      ],
+      "expected": "接続先が定めるscopeと回答送信を区別し、安全な拒否・取消・一回限りの回答を維持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全3Case/main未反映を双方向link/readbackして指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/300",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/297",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/298",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/302"
+      ]
+    }
+  ]
+}
