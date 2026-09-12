@@ -39,20 +39,6 @@ body:
     validations:
       required: true
   - type: textarea
-    id: management
-    attributes:
-      label: Project・到達目標・Relationship判定
-      description: 作成後にProject登録、Milestone、必要なnative親子/依存関係、ProjectのRelationship Status・Status/Priority表示を設定して確認する。本文の参照だけで設定済みとしない。
-      value: |
-        Project:
-        Milestone: （未決なら理由・判断担当・次の条件）
-        Parent / Sub-issue: （実際の分解がなければ不要）
-        blocked by / blocking: （開始・完了に必要な依存がなければ不要）
-        Relationship Status: Standalone / Has Relationship （未判定は空欄、架空の関係を作らない）
-        next: 作成後にmetadataを設定しreadback
-    validations:
-      required: true
-  - type: textarea
     id: tracking
     attributes:
       label: 状態・担当
