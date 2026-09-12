@@ -102,7 +102,6 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun useAcp() {
         acp = true
-        selection.selectedModel = ""
         modelSelector.waitForAcp()
     }
 
