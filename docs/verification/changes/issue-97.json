@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "issue": 97,
+  "gui_required": true,
+  "reason": "送信キー保存・旧設定移行、日本語IME・候補確定、実行中/終了競合とタブ別入力を固定buildで確認するため。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
+    "#258固定86934b13a81243b2772daf6a07f20dbf2ad6f95aとの差分の独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "KEYS-97-SETTINGS",
+      "issue": 97,
+      "change": "送信キー保存と旧設定移行（MV-010/016）",
+      "preconditions": "#258/#24/#48を含む#97固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/制御ACP fixtureを使用。macOSと他OSの修飾キーは各実環境で確認し、未実施OSをpassにしない。",
+      "steps": [
+        "旧設定XMLにsendKeyModeがないproject/環境で起動し、Enter送信・Shift+Enter改行が既定であることを確認する。",
+        "設定の送信方式をmacOS Cmd+Enter / 他OS Ctrl+EnterへApplyする。開いた複数会話でEnterは改行、指定修飾キー+Enterだけが送信になることを確認。Shift+Enterも送信しない。",
+        "設定Cancel/resetは保存値を変えず、再起動で選択値が維持されることを確認。既定に戻したときも正しいキーだけが送信し、tooltip/読み上げ名が一致する。"
+      ],
+      "expected": "旧設定は既定Enterのまま。両方式を保存でき、表示中/再表示した会話のキーと説明が最新値に一致する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/97",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/21",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/294"
+      ]
+    },
+    {
+      "id": "KEYS-97-IME",
+      "issue": 97,
+      "change": "日本語IMEとmention/slash確定（MV-010/011）",
+      "preconditions": "#258/#24/#48を含む#97固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/制御ACP fixtureを使用。macOSと他OSの修飾キーは各実環境で確認し、未実施OSをpassにしない。",
+      "steps": [
+        "両送信方式で日本語IMEの変換・確定・取消を行う。確定Enter直後に新たな変換を始め、遅い解除が誤送信を起こさないことを確認する。",
+        "@候補とACPの/候補を開き、検索欄で日本語を変換する。変換/確定Enter・Escape・上下が候補選択/取消/移動を誤実行しない。通常Enterは候補選択だけ、Escapeは候補取消だけで本文を送らない。",
+        "候補を選択/取消した直後、本文のfocusとcaretを確認。送信修飾キーを候補表示中に押しても本文を送らない。候補0件/遅い検索でも同じ。"
+      ],
+      "expected": "IME確定や候補確定を送信に使わず、正しい送信操作だけで1回送る。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/97",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/21",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/294"
+      ]
+    },
+    {
+      "id": "KEYS-97-DRAFT",
+      "issue": 97,
+      "change": "複数行貼付とタブ別draft/caret/focus（MV-010/011）",
+      "preconditions": "#258/#24/#48を含む#97固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/制御ACP fixtureを使用。macOSと他OSの修飾キーは各実環境で確認し、未実施OSをpassにしない。",
+      "steps": [
+        "A/B会話に異なる複数行本文・caret・明示context・slash選択を置き、タブを切り替える。設定Applyと再表示を挟んでもそれぞれ保持する。",
+        "複数行の日本語を貼り付け、元の改行/文字列/caretを確認。貼付だけで送信されず、Shift+Enterと標準Tab/Shift+Tabのfocus移動を維持する。",
+        "変換中のタブ切替・閉じる操作、ツールウィンドウ非表示/再表示、project closeを試す。残存購読や古いIME解除で新しい入力を妨げない。Light/Dark×通常/Compactと狭幅で操作する。"
+      ],
+      "expected": "キー設定だけで下書き・添付・caret・focusを変えず、非表示/破棄された入力を更新し続けない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/97",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/21",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/294"
+      ]
+    },
+    {
+      "id": "KEYS-97-RUNNING",
+      "issue": 97,
+      "change": "実行中Enter・Stop/終了競合と明示予約（MV-010）",
+      "preconditions": "#258/#24/#48を含む#97固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/制御ACP fixtureを使用。macOSと他OSの修飾キーは各実環境で確認し、未実施OSをpassにしない。",
+      "steps": [
+        "制御ACP fixtureで実行/Stop待ちを維持し、両方式の送信キーを新下書きに対して押す。送信・暗黙予約・Stopが起きないことをrequest数と予約一覧で確認する。",
+        "明示予約ボタンだけが1項目を追加することを確認する。StopはStopボタンのみ、停止中もdraftを維持し、遅い終端は元runだけを終了する。",
+        "送信キーと完了/失敗/Stop終端を近接させる。実行中に届いたキーで後から送信せず、終了後の新しい明示送信は1回だけになる。未送信失敗のdraft/停止queue回復も既存#258を保持する。"
+      ],
+      "expected": "実行中の入力は下書きであり、明示操作の境界とrun tokenを保持して重複・暗黙予約を防ぐ。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/97",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/21",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/294"
+      ]
+    }
+  ]
+}

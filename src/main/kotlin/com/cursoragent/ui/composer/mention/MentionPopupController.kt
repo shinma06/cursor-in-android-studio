@@ -9,33 +9,34 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.EditorTextField
+import com.cursoragent.ui.composer.GrowingPromptField
 import javax.swing.SwingUtilities
 
 /** Keep explicit context outside editable prompt text. A stale popup cannot replace newer input. */
 class MentionPopupController(
     private val project: Project,
-    private val field: EditorTextField,
+    private val field: GrowingPromptField,
     private val onAttach: (Mention) -> Unit,
 ) {
     private var popup: JBPopup? = null
+    val popupOpen: Boolean get() = popup?.isDisposed == false
 
     fun install() {
         field.addHierarchyListener { if (!field.isShowing) popup?.cancel() }
         field.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {
                 popup?.cancel()
-                if (event.newLength != 1 || event.newFragment.toString() != "@") return
+                if (field.isComposing || event.newLength != 1 || event.newFragment.toString() != "@") return
                 val stamp = field.document.modificationStamp
                 SwingUtilities.invokeLater {
-                    if (!project.isDisposed && field.isShowing && field.document.modificationStamp == stamp) showPopup(event.offset)
+                    if (!project.isDisposed && field.isShowing && !field.isComposing && field.document.modificationStamp == stamp) showPopup(event.offset)
                 }
             }
         })
     }
 
     fun showPopup(triggerOffset: Int? = null) {
-        if (project.isDisposed || !field.isShowing) return
+        if (project.isDisposed || !field.isShowing || field.isComposing) return
         popup?.cancel()
         val document = field.document
         val stamp = document.modificationStamp

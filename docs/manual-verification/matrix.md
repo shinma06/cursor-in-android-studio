@@ -159,3 +159,15 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | SKILLS-258-PICK | 候補検索・選択/取消/解除・IME | pending / pending |
 | SKILLS-258-SEND | 単発呼出しと予約snapshot | pending / pending |
 | SKILLS-258-LIFETIME | 全置換・不正/遅着・複数tab/破棄 | pending / pending |
+
+
+## Q. #97 送信キー設定（未確認）
+
+正本: [issue-97.json](../verification/changes/issue-97.json)。MV-010/011/016対応の新4CaseはGPT/human pending、main未反映。#258/#24/#48を含む固定buildで確認し、旧Case結果を流用しない。
+
+| Case | 確認対象 | GPT / 人間 |
+|---|---|---|
+| KEYS-97-SETTINGS | 送信キー保存・旧設定移行 | pending / pending |
+| KEYS-97-IME | 日本語IME・mention/slash確定 | pending / pending |
+| KEYS-97-DRAFT | 複数行貼付・tab別draft/caret/focus | pending / pending |
+| KEYS-97-RUNNING | 実行中Enter・Stop/終了競合・明示予約 | pending / pending |
