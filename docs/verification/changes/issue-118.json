@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 118,
+  "gui_required": false,
+  "reason": "Subagentの公開契約・合成CLI/ACP実測と入力/進捗UXを記録する調査。製品実装とGUI受入は別Issue。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公開契約・現行コード・合成定義・公開投影と未観測範囲の独立照合"
+  ],
+  "cases": []
+}
