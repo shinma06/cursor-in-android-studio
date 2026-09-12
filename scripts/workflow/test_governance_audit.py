@@ -1,5 +1,9 @@
 import json
 import unittest
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 from datetime import datetime, timezone
 from unittest.mock import patch
 
@@ -73,6 +77,34 @@ class GovernanceAuditTests(unittest.TestCase):
             self.assertEqual(195, result['last_audit']['issue'])
             self.assertEqual(10, result['merge_count_since_audit'])
             self.assertIn('10 meaningful merges reached', result['due_reasons'])
+
+    def test_four_entry_imports_have_no_external_side_effects(self):
+        # Fresh processes catch transitive imports too; -B prevents incidental pycache writes.
+        probe = r"""
+import sys, os, importlib
+sys.path.insert(0, sys.argv[1])
+def guard(event, args):
+    if event == 'open':
+        mode, flags = args[1:]
+        if (mode and any(c in mode for c in 'wax+')) or (flags and flags & (
+                os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND)):
+            raise RuntimeError('import write: ' + event)
+    if event.startswith(('subprocess.', 'os.exec', 'os.spawn')) or event in {
+            'socket.connect', 'socket.getaddrinfo', 'socket.sendto', 'socket.bind',
+            'os.mkdir', 'os.remove', 'os.rmdir', 'os.rename', 'os.link', 'os.symlink',
+            'os.chmod', 'os.chown', 'os.truncate', 'os.utime', 'os.system', 'os.fork',
+            'os.kill', 'os.killpg'}:
+        raise RuntimeError('import side effect: ' + event)
+sys.addaudithook(guard)
+importlib.import_module(sys.argv[2])
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            for module in ('governance_audit', 'agent_loop', 'qa_handoff', 'branch_zip'):
+                with self.subTest(module=module):
+                    result = subprocess.run(
+                        [sys.executable, '-B', '-c', probe, str(Path(__file__).resolve().parent), module],
+                        cwd=directory, capture_output=True, text=True, timeout=15)
+                    self.assertEqual(0, result.returncode, result.stderr)
 
     def test_cli_uses_read_only_paginated_endpoints_and_propagates_failure(self):
         with patch.object(g, 'GitHub') as cls, patch('builtins.print'):
