@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 249,
+  "gui_required": false,
+  "reason": "固定main041a582の配布cleanupとpromotion履歴照合をdevelopへ同期し、運用境界文書だけを更新する。製品src/build入力・既存GUI結果は変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests: 同期全差分の共通分類による必要チェック",
+    "固定main/develop両祖先、PR248/PR253全10ファイル保持、既存developの製品/GUI JSON不変をGit objectで照合",
+    "同一treeのmerge commitとsquashを使う隔離Git検証: mergeはmain祖先を保持、squashは保持せず拒否。#250 source_commitsで同期の全内部commit帰属を確認",
+    "cleanup入口/権限/共通tag排他/失敗時receiptと再確認を実source・Issue219の初回実記録へ照合"
+  ],
+  "cases": [],
+  "integration_note": "最終developに固定main祖先が必要。現rulesetのsquash限定をwriterは変更しない。今回PRだけのmerge commitと必要な一時設定/復元はPMが固定HEAD/独立レビュー/4 gates/並行PRを照合して判断する。統合後はQAへmain反映追跡を引き継ぐ。"
+}
