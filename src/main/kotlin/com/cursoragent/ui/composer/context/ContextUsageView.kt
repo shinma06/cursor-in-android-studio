@@ -33,7 +33,12 @@ class ContextUsageView {
         font = font.deriveFont(font.size2D * 0.9f)
         border = JBUI.Borders.empty(2, 0, 10, 0)
     }
-    private val emptyMessage = label("応答後に表示します").apply {
+    private val modelLabel = label("").apply {
+        putClientProperty("html.disable", true)
+        minimumSize = JBUI.emptySize()
+        border = JBUI.Borders.emptyBottom(4)
+    }
+    private val emptyMessage = label("まだ応答を開始していません").apply {
         border = JBUI.Borders.empty(8, 0, 2, 0)
     }
     private val counterRows = listOf("入力", "出力", "キャッシュ読み取り", "キャッシュ書き込み").mapIndexed { index, title ->
@@ -83,6 +88,7 @@ class ContextUsageView {
                 font = AgentUiMetrics.textFont().let { it.deriveFont(Font.BOLD, it.size2D * 1.08f) }
             }, close).apply { border = JBUI.Borders.empty() })
             add(status.apply { alignmentX = Component.LEFT_ALIGNMENT })
+            add(modelLabel.apply { alignmentX = Component.LEFT_ALIGNMENT })
             counterRows.forEachIndexed { index, row ->
                 if (index == 2) add(cacheDivider)
                 add(row)
@@ -97,11 +103,16 @@ class ContextUsageView {
         refresh()
     }
 
-    fun beginTurn(): Long = state.clear().also { refresh() }
+    fun beginTurn(model: String = ""): Long = state.begin(model).also { refresh() }
     fun reset() { state.clear(); refresh() }
     fun update(ticket: Long, usage: TokenUsage?) {
         if (state.accept(ticket, usage)) refresh()
     }
+
+    fun finish(ticket: Long, outcome: UsagePhase) {
+        if (state.finish(ticket, outcome)) refresh()
+    }
+    fun stop() { if (state.stop()) refresh() }
 
     private fun setExpanded(expanded: Boolean) {
         panel.isVisible = expanded
@@ -119,9 +130,25 @@ class ContextUsageView {
         }
         val hasCounters = values.any { it != null }
         cacheDivider.isVisible = values.take(2).any { it != null } && values.drop(2).any { it != null }
-        status.isVisible = hasCounters
+        status.text = when (state.phase) {
+            UsagePhase.NOT_STARTED -> "直近の応答"
+            UsagePhase.RUNNING -> "応答を準備・実行中"
+            UsagePhase.COMPLETED -> "完了した応答"
+            UsagePhase.STOPPED -> "停止した応答"
+            UsagePhase.FAILED -> "失敗した応答"
+        }
+        status.isVisible = state.phase != UsagePhase.NOT_STARTED
+        modelLabel.text = "送信時のモデル: ${state.model.ifEmpty { "接続先の既定" }}"
+        modelLabel.toolTipText = "送信時の選択です。Autoや既定から実際のモデルは推定しません。${state.model}"
+        modelLabel.isVisible = state.phase != UsagePhase.NOT_STARTED
+        emptyMessage.text = when (state.phase) {
+            UsagePhase.NOT_STARTED -> "まだ応答を開始していません"
+            UsagePhase.RUNNING -> "トークン数の報告待ちです"
+            UsagePhase.COMPLETED -> "この応答では情報未提供です"
+            UsagePhase.STOPPED, UsagePhase.FAILED -> "トークン数は未取得です"
+        }
         emptyMessage.isVisible = !hasCounters
-        status.toolTipText = "応答完了時に報告された値です。入力とキャッシュの重複関係は未確認のため合計しません。"
+        status.toolTipText = "この応答で受信した値です。入力とキャッシュの重複関係は未確認のため合計しません。"
         panel.revalidate()
         panel.repaint()
         panel.parent?.revalidate()

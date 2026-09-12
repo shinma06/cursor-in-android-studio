@@ -12,6 +12,7 @@ import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -69,6 +70,7 @@ class AgentTurnListenerFactory(
                     return
                 }
                 update {
+                    composer.contextUsage.finish(usageTicket, if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) UsagePhase.STOPPED else UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
@@ -78,6 +80,7 @@ class AgentTurnListenerFactory(
 
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
@@ -182,6 +185,7 @@ class AgentTurnListenerFactory(
 
             override fun onError(message: String) {
                 update {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     timeline.showError(message)
@@ -195,6 +199,7 @@ class AgentTurnListenerFactory(
 
             override fun onStopped() {
                 update(allowStopped = true) {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.STOPPED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     recorder.finish("stopped")
@@ -205,6 +210,7 @@ class AgentTurnListenerFactory(
 
             override fun onCompleted(exitCode: Int) {
                 update {
+                    composer.contextUsage.finish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     if (exitCode != 0) {
