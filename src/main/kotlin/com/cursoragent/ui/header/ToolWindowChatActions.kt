@@ -69,7 +69,7 @@ internal class ToolWindowChatActions(
         }),
         choice("作業場所", { settings.worktreeMode }, { settings.worktreeMode = it }, listOf(
             Option(WorktreeMode.DEFAULT, "このプロジェクト", "現在のプロジェクト内で作業します。"),
-            Option(WorktreeMode.ISOLATED, "分離した作業コピー", "元のプロジェクトと分けて編集します。分離先のチェックポイント復元は未対応です。"),
+            Option(WorktreeMode.ISOLATED, "分離した作業コピー", "元のプロジェクトと分けて編集します。このプラグインではチェックポイント復元とRevertは利用できません。"),
         ), help = ::sharedSettingsHelp, unavailableReason = { worktree ->
             acpReason(settings.permissionMode, settings.sandboxMode, worktree)
         }),
