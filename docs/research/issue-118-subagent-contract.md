@@ -3,7 +3,7 @@
 2026-09-12 / コード調査base `9979266b4e99e7d4dc46689dac1f61f33f09b88a`。
 統合・独立レビューの固定HEAD/baseはPRへ記録する。
 
-**採用候補は、既存tool行に確認済みの子task情報・成否・取得できた結果を結合する有限の表示機能。**
+**採用は、既存tool行に確認済みの子task情報・成否・取得できた結果を結合する有限の表示機能（#263）。**
 ACP1回/print2回で、前景子の完了とprint子再開時のエラーを採取した。
 ACPの`cursor/task`は今回ID付きrequestで届き、公式のnotification説明と異なる。
 再開成功、背景実行、親Stop時の子終了、完全な子transcriptは未確認。
@@ -98,7 +98,8 @@ IDEへのファイルリンクは検証済みlocationが返った場合に既存
 
 ## 引継ぎ・有限Case
 
-採用する専用機能IssueはPMが確定する。最初は確認済みmetadata/結果/子errorの表示と標準tool結合、
+採用先は[機能Issue #263](https://github.com/shinma06/cursor-in-android-studio/issues/263)。
+最初は確認済みmetadata/結果/子errorの表示と標準tool結合、
 #98共通折畳み・通知・状態を使う。一般Subagent管理、子spawn、再開ボタン、全文取得、背景監視基盤は作らない。
 #98全体を#118完了待ちにしない。製品共有writerは#44/#254の変更と順番を調整する。
 
@@ -122,7 +123,7 @@ IDEへのファイルリンクは検証済みlocationが返った場合に既存
 | printとACPの区別 | 公開投影とnotification/request差、custom/duration型差を記録 |
 | 子行/展開/状態/親Stop | 表示表とCase1〜4。製品実装/GUI passではない |
 | token/時間/全文 | 未取得と0の区別・非加算・提供結果のみ・未知link非生成 |
-| #98境界と実装分離 | 上記専用Issueへ有限採用、共有部品と未観測Caseを引継ぎ |
+| #98境界と実装分離 | #263へ有限採用、共有部品と未観測Caseを引継ぎ |
 
 追加の未観測: 全モデル/版、全subagent type・入れ子、多数子、background実行、Client成功応答、
 切断/失敗全種、子のusage内訳・完全transcript・再開成功。未観測は能力不存在とは判定しない。
