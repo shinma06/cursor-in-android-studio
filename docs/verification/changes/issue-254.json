@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "issue": 254,
+  "gui_required": true,
+  "reason": "print delta/flush修正後の表示・copy・保存本文一致と停止/別tab/ACP分離を固定buildで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *Issue116PrintContractTest --tests *Print*Test",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseでparser→service→guard→表示/copy/保存とACP非変更を独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "PRINT-DELTA-FLUSH",
+      "issue": 254,
+      "change": "print delta/flush修正後の表示・copy・保存本文一致と停止/別tab/ACP分離を固定buildで確認する。",
+      "preconditions": "指定GUI lease、#254を含む固定build/ZIP hash/loaded JAR、使い捨てproject。実測CLI 2026.09.10-fd3934aとPro/Teams、未知版fallback確認用fixture。#116の公開fixtureを使用し、新しい秘密を含むwire採取は行わない。",
+      "steps": [
+        "固定buildとCLI版/partial指定を記録し、複数tool前後の応答を実行。表示・Copy・保存JSON・再起動後の本文を照合する。",
+        "同文反復・短文・改行・日本語・emojiを含む応答を確認し、flush由来の二重化と欠落がないことを確認する。",
+        "Result-only、Resultなしerror/EOF、途中Stop、遅延event・旧token・別tabを使い捨てfixtureで確認する。本文を受信している場合はResultが上書きしないこと、未完を成功扱いしないことを確認する。",
+        "未知/旧CLIと版取得失敗では従来fallback、既知非partialでは完全message連結をfixtureで確認。ACP反復とmessage境界が維持されることを関連Caseと同じbuildで確認する。"
+      ],
+      "expected": "実測既知partialではdeltaだけを順に連結し正当な反復を保存。表示/copy/保存再表示が一致する。停止・旧turn・別tabに混入せず、ACPをprint正規化へ通さない。未知/旧版の完全互換は未保証として記録する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当がQA #246と関連print TEXT-CONTRACTS/HISTORY-RESTARTを固定候補で実施。develop統合後は本Case/main未反映もQAへ双方向引継ぎし、#246のblockedBy #254を解決する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "fixture・回帰テストと実IDEの表示/copy/再起動受入は別。指定GUI担当の固定build確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "fixture・回帰テストと実IDEの表示/copy/再起動受入は別。指定GUI担当の固定build確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/254",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/246",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/116"
+      ]
+    }
+  ]
+}
