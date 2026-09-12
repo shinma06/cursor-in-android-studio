@@ -107,9 +107,11 @@ Skills実行・IDEファイル/terminal操作・MCP利用そのものを本Plugi
 
 ## 機能Issueへの引継ぎとCase案
 
-PMが専用機能Issueを作成し、ACP通知のsession状態→候補検索→単発選択→送信/解除を初回範囲にする。
+採用実装先は[機能Issue #258](https://github.com/shinma06/cursor-in-android-studio/issues/258)。
+ACP通知のsession状態→候補検索→単発選択→送信/解除を初回範囲にする。
 source基盤は専用担当と調整。plugin install/marketplace、Custom Mode持続/解除の実装、#44の保存schema、
-#254の本文正規化は対象外。持続modeは将来の明示採用判断がある場合に別の契約調査へ分離する。
+#254の本文正規化は対象外。持続mode/終了と一般plugin導入の残条件は[#26](https://github.com/shinma06/cursor-in-android-studio/issues/26)の別採否へ残す。
+#24/#97のComposer・キー操作との境界は実装担当が照合し、PMが#44/#254後の同一writerへ順次割り当てる。
 
 調査変更はGUI不要で`issue-117.json`のcasesは空。機能Issueへ渡す以下のCase案は
 **GPT pending / human pending**であり、本調査のpassではない。
@@ -131,9 +133,13 @@ source基盤は専用担当と調整。plugin install/marketplace、Custom Mode�
 | harmless -p/日本語・空白/resume/Worktree/版 | 実測記録の4runとID/root/byte照合 |
 | 検索/説明/出所/選択取消/添付解除/IME | 入力UX表と固定build Case案 |
 | 単発とCustom Modeの分離 | 公開対象と未観測持続契約、別scope判断 |
-| 実装切出し | PMの専用機能Issueへ引継ぎ。install/marketplace除外 |
+| 実装切出し | 採用実装#258、残条件#26へ引継ぎ。install/marketplace除外 |
 
 未観測: plugin由来実skillの実ロード、user/全互換ディレクトリ/入れ子の優先順位、
 その他の不正定義、未知slashのengine挙動、動的候補削除/idle通知、複数添付、引数引用符/emoji、
 自動invoke、Custom Mode持続/解除、全CLI版/model、GUI/IME。未観測は不存在という結論ではない。
 固定入力のmarker一致は観測版・今回の環境に限り、chunk分割や将来の推論の完全再現を保証しない。
+
+検証: 文書内リンク・受入JSON・公開fixture定義と原本の一致を確認。共通Change Impactの
+workflow 158件 / loop 11件が成功し、製品変更がないためGradle/ZIPは対象外。
+独立レビューは固定HEAD/baseの公開資料・実装・実測要約を対象とし、非公開原本の確認はwriter実施と区別する。
