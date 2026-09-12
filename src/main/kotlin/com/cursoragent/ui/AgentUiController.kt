@@ -1,5 +1,8 @@
 package com.cursoragent.ui
 
+import com.cursoragent.history.Conversation
+import com.cursoragent.history.ConversationHistory
+import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.PluginBrand
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.AgentRun
@@ -11,7 +14,6 @@ import com.cursoragent.service.TurnSettings
 import com.cursoragent.session.SessionRunToken
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.settings.AgentSettingsState
-import com.cursoragent.settings.ChatHistoryState
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.timeline.ChatTimelinePanel
@@ -26,6 +28,8 @@ class AgentUiController(
     private val composer: ComposerPanel,
     private val sessions: SessionTabs,
     private val tabId: String,
+    private val restored: Conversation? = null,
+    private val legacyOnly: Boolean = false,
 ) {
     private var turnGeneration = 0L
     private var disposed = false
@@ -34,13 +38,28 @@ class AgentUiController(
     private var activeToken: SessionRunToken? = null
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
-    private val chatHistoryState = ChatHistoryState.getInstance(project)
+    private val history = project.getService(ConversationHistory::class.java)
+    private var saveRevision = 0L
+    var hasUnsavedBody = false
+        private set
+    private val recorder = ConversationRecorder(restored ?: Conversation(id = sessions.snapshot().tabs.first { it.id == tabId }.conversationId)) { value ->
+        val revision = ++saveRevision
+        hasUnsavedBody = true
+        timeline.setSaveStatus("保存中…")
+        history.save(value) { saved -> runOnEdt {
+            if (revision == saveRevision) {
+                hasUnsavedBody = !saved
+                if (!disposed) timeline.setSaveStatus(if (saved) "保存済み" else "保存できませんでした。上限（100会話・各8 MiB）と保存先の空き容量・権限を確認してください。")
+                else if (!saved && !project.isDisposed) com.cursoragent.notification.AgentNotificationService.notifyError(project, "閉じた会話の本文を保存できませんでした。保存先の容量・権限・保存上限を確認してください。")
+            }
+        } }
+    }
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
         timeline = timeline,
         composer = composer,
-        chatHistoryState = chatHistoryState,
+        recorder = recorder,
         onRunFinished = ::finishRun,
     )
     init {
@@ -73,6 +92,7 @@ class AgentUiController(
     }
 
     fun dispose() {
+        recorder.finish("interrupted")
         disposed = true
         modelLoad?.cancel(true)
         modelLoad = null
@@ -85,10 +105,14 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (disposed || userText.isBlank() || activeRun != null) return
+        if (disposed || legacyOnly || userText.isBlank() || activeRun != null) return
 
         val shared = AgentSettingsState.getInstance()
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return
+        if (restored != null && !restored.canResume(project.basePath, shared.worktreeMode)) {
+            timeline.showStatus("保存本文の閲覧のみです。この接続・作業場所からAgentを再開できないため、新しい会話を開始してください。")
+            return
+        }
         val settings = TurnSettings(
             shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode,
             shared.permissionMode, shared.sandboxMode,
@@ -102,11 +126,12 @@ class AgentUiController(
         sessions.updateComposer(tabId, settings.mode, settings.model, userText, userText.length)
         val sessionTurn = sessions.beginTurn(tabId) ?: return
         activeToken = sessionTurn.token
+        recorder.conversation = recorder.conversation.copy(transport = tab.transport)
+        recorder.begin(sessionTurn.token.turnId, userText)
         lateinit var run: AgentRun
         val turn = agentService.prepareTurn(workspace, settings) {
             val usageTicket = composer.contextUsage.beginTurn()
             turnListenerFactory.create(
-                userText,
                 usageTicket,
                 isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
                 onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
@@ -115,6 +140,7 @@ class AgentUiController(
             )
         }
         if (turn == null) {
+            recorder.finish("failed")
             sessions.finishTurn(sessionTurn.token)
             activeToken = null
             timeline.showStatus(RestorePolicy.BUSY)
@@ -144,6 +170,8 @@ class AgentUiController(
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 if (!run.isActive) return@executeOnPooledThread
+                val commandTarget = workspace.commandTarget
+                runOnEdt { if (!disposed && sessions.accepts(sessionTurn.token)) recorder.provenance(commandTarget.rootPath, workspace.mode) }
                 val target = workspace.restoreTarget
                 val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
                 val checkpointReason = if (checkpointId == null) {

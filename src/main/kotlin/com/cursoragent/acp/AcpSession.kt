@@ -62,6 +62,7 @@ internal class AcpSession(
             val root = turn.workspace.commandTarget.rootPath ?: throw AcpException("プロジェクトルートが取得できません")
             val connection = connect(root, turn.settings.executable, current)
             if (!turn.run.isActive) return
+            turn.run.emit { it.onSessionUpdated(sessionId, null) }
             configure(connection, current)
             if (!turn.run.isActive) return
             val promptParams = sessionParams().apply {
