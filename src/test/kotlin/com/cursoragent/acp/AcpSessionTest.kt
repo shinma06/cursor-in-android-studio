@@ -25,6 +25,8 @@ class AcpSessionTest {
         val session: AcpSession
         var worker: Thread? = null
         lateinit var run: AgentRun
+        lateinit var lastTurn: PreparedAgentTurn
+        val bindings = CopyOnWriteArrayList<String?>()
 
         init {
             Files.createDirectories(root)
@@ -42,6 +44,7 @@ class AcpSessionTest {
                     events += event
                     if (event !is AgentEvent.Configuration) received.countDown()
                 }
+                override fun onSessionUpdated(chatId: String?, model: String?) { bindings.add(chatId) }
                 override fun onCompleted(exitCode: Int) { outcomes += "completed:$exitCode" }
                 override fun onTurnOutcome(outcome: AgentTurnOutcome) {
                     if (outcome == AgentTurnOutcome.COMPLETED) onCompleted(0) else outcomes += "outcome:$outcome"
@@ -52,6 +55,7 @@ class AcpSessionTest {
             })
             val turn = PreparedAgentTurn(run, TurnWorkspace(root.toString(), WorktreeMode.DEFAULT, null), preparation,
                 TurnSettings("synthetic", model, mode, PermissionMode.ASK_EVERY_TIME, SandboxMode.DEFAULT))
+            lastTurn = turn
             worker = thread { preparation.use { session.send(prompt, turn, commandText, commandText?.substringBefore(' ')?.removePrefix("/")) } }
         }
 
@@ -316,6 +320,21 @@ class AcpSessionTest {
             assertFalse(h.wire().any { it.string("method") == "session/prompt" })
             assertTrue(h.outcomes.single().startsWith("error:"))
             assertFalse(h.gate.isUncertain)
+        }
+    }
+
+    @Test
+    fun `oversized command context is unsent with no chat binding or workspace uncertainty`() {
+        Harness(temp, "commands").use { h ->
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            awaitCondition { h.commands.last().containsCommand("Mixed-日本語") }
+            h.send(prompt = "x".repeat(AcpJsonRpc.MAX_FRAME_BYTES), commandText = "/Mixed-日本語 東京")
+            h.finish()
+            assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertFalse(h.lastTurn.promptDispatched)
+            assertTrue(h.bindings.isEmpty())
+            assertFalse(h.gate.isUncertain)
+            assertTrue(h.outcomes.single().startsWith("error:"))
         }
     }
 

@@ -11,6 +11,42 @@ import javax.swing.SwingUtilities
 
 class CommandPickerPanelTest {
     @Test
+    fun `failed catalog retry is enabled when initial unsent transport unlocks`() = SwingUtilities.invokeAndWait {
+        var retries = 0
+        val panel = CommandPickerPanel({}, {}, { retries++ })
+        val footer = panel.components.filterIsInstance<javax.swing.JPanel>().single()
+        val retry = footer.components.filterIsInstance<javax.swing.JButton>().single()
+        panel.update(CommandCatalog.Failed, false)
+        assertFalse(retry.isEnabled)
+        panel.update(CommandCatalog.Failed, true)
+        assertTrue(retry.isEnabled)
+        retry.doClick()
+        assertEquals(1, retries)
+        panel.update(CommandCatalog.Loading, true)
+        assertFalse(retry.isEnabled)
+        panel.update(CommandCatalog.Unavailable, true)
+        assertFalse(retry.isEnabled)
+    }
+
+    @Test
+    fun `old committed IME event cannot clear a new composition on the next event loop`() {
+        var choices = 0
+        lateinit var panel: CommandPickerPanel
+        SwingUtilities.invokeAndWait {
+            panel = CommandPickerPanel({ choices++ }, {}, {})
+            panel.update(CommandCatalog.Ready(listOf(AgentCommand("skill", "description"))), true)
+            for (committed in listOf(2, 0)) {
+                val event = InputMethodEvent(panel.search, InputMethodEvent.INPUT_METHOD_TEXT_CHANGED, AttributedString("日本").iterator, committed, null, null)
+                panel.search.inputMethodListeners.forEach { it.inputMethodTextChanged(event) }
+            }
+        }
+        SwingUtilities.invokeAndWait {
+            panel.search.actionMap.get("ENTER").actionPerformed(ActionEvent(panel, 0, ""))
+            assertEquals(0, choices)
+        }
+    }
+
+    @Test
     fun `search replacement empty failure and cancel do not invoke and selection keeps exact ID`() = SwingUtilities.invokeAndWait {
         val selected = mutableListOf<String>()
         var cancelled = false

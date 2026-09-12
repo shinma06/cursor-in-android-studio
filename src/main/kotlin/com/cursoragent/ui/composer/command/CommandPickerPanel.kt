@@ -45,6 +45,7 @@ internal class CommandPickerPanel(
     private val retryButton = JButton("再接続").apply { addActionListener { retry() } }
     private var catalog: CommandCatalog = CommandCatalog.Loading
     private var composing = false
+    private var imeRevision = 0L
 
     init {
         preferredSize = JBUI.size(460, 320)
@@ -68,10 +69,11 @@ internal class CommandPickerPanel(
         })
         search.addInputMethodListener(object : InputMethodListener {
             override fun inputMethodTextChanged(e: InputMethodEvent) {
+                val revision = ++imeRevision
                 composing = e.text?.let { it.endIndex - it.beginIndex > e.committedCharacterCount } == true
                 if (!composing) {
                     composing = true
-                    SwingUtilities.invokeLater { composing = false }
+                    SwingUtilities.invokeLater { if (revision == imeRevision) composing = false }
                 }
             }
             override fun caretPositionChanged(e: InputMethodEvent) = Unit

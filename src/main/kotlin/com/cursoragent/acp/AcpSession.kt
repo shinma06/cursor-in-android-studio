@@ -101,15 +101,19 @@ internal class AcpSession(
             }
             val response = synchronized(lock) {
                 if (!turn.run.isActive || closing || disconnected) return
-                if (commandText != null && (commandName == null || !commands.containsCommand(commandName))) {
-                    throw AcpException("選択したコマンドが接続先の候補からなくなりました。入力を確認してください。")
-                }
-                protocol.beginTurn()
-                processTree!!.sample()
-                current.promptSent = true
-                turn.promptDispatched = true
-                turn.run.emit { it.onSessionUpdated(sessionId, null) }
-                connection.request("session/prompt", promptParams) { result ->
+                connection.request("session/prompt", promptParams, onDispatch = {
+                    synchronized(lock) {
+                        if (!turn.run.isActive || closing || disconnected) throw AcpException("送信前に停止しました")
+                        if (commandText != null && (commandName == null || !commands.containsCommand(commandName))) {
+                            throw AcpException("選択したコマンドを確認できません")
+                        }
+                        protocol.beginTurn()
+                        processTree!!.sample()
+                        current.promptSent = true
+                        turn.promptDispatched = true
+                        turn.run.emit { it.onSessionUpdated(sessionId, null) }
+                    }
+                }) { result ->
                     val reason = result.asJsonObject.requiredString("stopReason")
                     val outcome = when (reason) {
                         "end_turn" -> AgentTurnOutcome.COMPLETED
@@ -242,7 +246,7 @@ internal class AcpSession(
             return
         }
         val current = active
-        if (current == null || current.terminal) {
+        if (current == null || current.terminal || !current.promptSent) {
             if (!closing && update.string("sessionUpdate") in setOf("tool_call", "tool_call_update")) {
                 onUncertain()
                 disconnect()

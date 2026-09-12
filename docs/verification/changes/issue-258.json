@@ -112,7 +112,7 @@
       "preconditions": "#24/#48依存を含む#258固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/Skills/制御ACP fixtureを使用。CLI版/transportとLight/Dark×通常/Compactを記録。",
       "steps": [
         "使い捨ての確認済みSkillsで日本語・先頭末尾/連続空白の引数を選択し、固定buildから送信する。先頭ACP text blockのslash/name/引数と、別text blockのIDE contextを照合する。合成wire確認と実Agent end_turn/結果確認を分けて記録する。",
-        "次メッセージへ選択が持続しないこと、送信前失敗/停止で未送信draftが戻ることを確認。新draftがある場合は上書きせず予約一覧で保持し、再送は手動であることを確認する。",
+        "次メッセージへ選択が持続しないこと、送信前失敗/停止で未送信draftが戻ることを確認。新draftがある場合は上書きせず予約一覧で保持し、再送は手動であることを確認する。 サイズ上限でwire未送信なら復元/再接続可能、write開始後の不確定な失敗は自動再送せず復元操作を拒否することを区別する。",
         "実行中に異なるcommand/contextを付けて2項目を予約し、別draftを編集、予約引数を編集・並べ替えする。各name/引数/明示snapshotが独立し、dispatch時点の自動context/参照内容は#24/#48契約を保つことを確認。候補削除時は停止し、未送信項目を保持する。"
       ],
       "expected": "name/引数は改変されず1メッセージだけに適用され、queueと別draftが混入しない。",

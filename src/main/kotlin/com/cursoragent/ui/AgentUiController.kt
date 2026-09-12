@@ -183,8 +183,8 @@ class AgentUiController(
         if (transport == AgentTransport.ACP) {
             modelLoad?.cancel(false)
             composer.useAcp()
-            refreshAcpConnection()
             timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
+            refreshAcpConnection()
         } else {
             commandConnection.clear()
             agentService.closeSession(tabId)
@@ -454,6 +454,7 @@ class AgentUiController(
         activeRun = null
         composer.setInputEnabled(true)
         composer.setRunning(false)
+        composer.commands.update(commandConnection.catalog, !transportState().second)
         refreshQueue()
         if (successful) scheduleNextQueuedPrompt()
     }
