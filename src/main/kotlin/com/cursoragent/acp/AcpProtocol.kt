@@ -190,3 +190,25 @@ internal class AcpConfiguration {
 
 internal fun JsonObject.requiredString(name: String): String = requireNotNull(string(name))
 internal fun JsonObject.array(name: String): JsonArray = requireNotNull(get(name)?.takeIf(JsonElement::isJsonArray)?.asJsonArray)
+
+/** An invalid replacement clears confidence in the entire list; never retain stale partial entries. */
+internal fun availableCommands(update: JsonObject): com.cursoragent.service.CommandCatalog = try {
+    val entries = update.array("availableCommands")
+    require(entries.size() <= 2_000)
+    val commands = entries.map { entry ->
+        val value = entry.asJsonObject
+        val name = value.requiredString("name")
+        // A command must be one slash token. Do not lowercase, trim, or invent a different ID.
+        require(name.isNotEmpty() && name.length <= 256 && !name.startsWith('/') && name.none { it.isWhitespace() || it.isISOControl() })
+        val description = value.requiredString("description")
+        require(description.length <= 16_384)
+        val input = value.get("input")
+        val hint = if (input == null || input.isJsonNull) null else input.asJsonObject.requiredString("hint")
+        require(hint == null || hint.length <= 4_096)
+        com.cursoragent.service.AgentCommand(name, description, hint)
+    }
+    require(commands.map { it.name }.toSet().size == commands.size)
+    com.cursoragent.service.CommandCatalog.Ready(commands)
+} catch (_: Exception) {
+    com.cursoragent.service.CommandCatalog.Invalid
+}
