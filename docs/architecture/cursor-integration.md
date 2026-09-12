@@ -55,8 +55,8 @@ Cursor Agent本体は可能な限りブラックボックスとして扱う。�
 
 現行の所有関係・送受信・停止・復元の詳細は [現行実装](current-implementation.md)、指示・命名の点検は [監査記録](../development/project-context-audit.md)を参照する。
 
-既定の互換経路は `agent -p --output-format stream-json` を使う方式B。developの#147では新規会話で明示選択できるACP接続を追加した。実装範囲は上記の現行実装、固定buildのGUI受入は未完了のQA #152を参照する。既存経路の即時編集と事後Diff/Revert、session ID・復元root・停止の安全性、未確認QAを保持し、ACP経路のpermissionを未検証のまま全書込みの事前承認保証へ読み替えない。
+本書は採用した方針の正本であり、実装状況は[現行実装](current-implementation.md)、既存機能の分類・契約判断は[#115](https://github.com/shinma06/cursor-in-android-studio/issues/115)、残る移行と受入は[#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)へ進む。print既定と#147の明示ACP接続を区別し、方針の採用や接続コードの統合をGUI合格としない。
 
-[#115](https://github.com/shinma06/cursor-in-android-studio/issues/115)で確定した初期の分類・移行契約を使い、[#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)で残る段階移行を追跡する。ACPを第一級に扱う方針は決定済みであり、各capabilityの利用可否と既存機能の移行手順は別途検証する。CLIでしか成立しない範囲は補助経路として残す。#66の命名保留とNew Agent表示は、有効な取得経路の検証が終わるまで継続する。
+既存の即時編集/事後Revert、session ID・復元root・停止の安全性を保持する。ACP permissionを未検証のまま全書込みの事前承認保証へ読み替えない。#66の命名保留とNew Agent表示は取得経路の検証まで継続する。旧方式B中心という判断は本方針でsuperseded、理由・適用条件・旧版への参照は[知識の正本](knowledge.md)へ。
 
 比較はJetBrains AI Assistant + Cursor ACPにIDE integration / IntelliJ MCP Server / 利用可能なMCP toolsを加えた構成で行う。公式の連携・MCP能力の記述だけで、特定Android Studio版での全機能利用成功を推定しない。[CursorのJetBrains連携](https://cursor.com/docs/integrations/jetbrains) / [IntelliJ MCP Server](https://www.jetbrains.com/help/idea/mcp-server.html)

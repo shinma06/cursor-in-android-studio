@@ -1,6 +1,6 @@
 # 現行実装の責務と境界
 
-2026-09-09 / #142。ソース基準は develop `71c316c9eba125f505759fb093edf445168bee48`、方針・運用文書は main `2c47f6249299852ddce3d9542ebbc2dc52fb5b92` を通常mergeして同期した。
+2026-09-12 / #228照合。ソース基準は develop `4d1514d8fa6c020d41ad9c0205b9ea24268bef57`。元の#142説明へ#147のACP接続が追加された後のコードを対象とする。設計方針は別文書、GUI/mainの結果は各QAが正本。更新時の根拠と履歴の扱いは[知識の正本](knowledge.md)。
 
 [Project Mission](../project-mission.md) / [ACP First](cursor-integration.md) が設計方針。本書は現在のprint経路と#147のACP接続を説明する。ACPの固定build GUI合格を意味しない。機能別のACP契約・移行設計は [#115](https://github.com/shinma06/cursor-in-android-studio/issues/115)、全体順序は [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)で扱う。
 
@@ -69,3 +69,22 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 観測は25 ms間隔の条件確認であり、短時間に生成・離脱した未観測子processまで保証するものではない。常駐childや任意のdetachを安全に許可したという契約はなく、該当用途は対象外。10秒の期限は「待てば安全」の判定ではなく、不確定へ移す期限。識別できないprocessを推測でkillしない。
 
 検証は [Case JSON](../verification/changes/issue-147.json) のT01〜04/07/10/14/16。`AcpJsonRpcTest`、`AcpProtocolTest`、`AcpSessionTest`、`AgentRequestCardTest`と既存print/tab/restoreテストを実行する。fake serverはテスト専用Python標準ライブラリで、実Cursor・認証・networkを使わない。#146の実wire公開artifactと固定候補のGUIは未完了として区別する。本文保存/旧履歴load/title、高度config、画像、Skills/task、Android/MCP公開は後続Issueの範囲を維持する。
+
+## 制約を検証する入口
+
+| 判断 | 実装 / 回帰確認 | 証明の限界 |
+| --- | --- | --- |
+| ACP接続実装とGUI受入 | [AcpSession](../../src/main/kotlin/com/cursoragent/acp/AcpSession.kt) / [AcpSessionTest](../../src/test/kotlin/com/cursoragent/acp/AcpSessionTest.kt) / [変更Case](../verification/changes/issue-147.json) / [QA #152](https://github.com/shinma06/cursor-in-android-studio/issues/152) | fake serverは合成契約。#146の公開承認待ちwireや固定build GUIを代替しない |
+| 取消と物理終了・復元排他 | [AgentRun](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt) / [WorkspaceOperationGateTest](../../src/test/kotlin/com/cursoragent/service/WorkspaceOperationGateTest.kt) / AcpSessionTest | 観測child外の任意detachまでは保証しない。不確定なら復元拒否 |
+| root/後続編集/未保存保護 | [RestoreTarget](../../src/main/kotlin/com/cursoragent/service/RestoreTarget.kt) / [FileRevertOperationTest](../../src/test/kotlin/com/cursoragent/service/FileRevertOperationTest.kt) / [RestorePolicyTest](../../src/test/kotlin/com/cursoragent/service/RestorePolicyTest.kt) | 来歴不明、ISOLATED、root外、after不一致、未保存内容は拒否。snapshotの未追跡本文制約は上記参照 |
+| 旧履歴の互換 | [ChatHistoryState](../../src/main/kotlin/com/cursoragent/settings/ChatHistoryState.kt) / [PastChatsCoordinator](../../src/main/kotlin/com/cursoragent/ui/PastChatsCoordinator.kt) / [#44](https://github.com/shinma06/cursor-in-android-studio/issues/44) | metadata保持は本文永続化やACP provider resumeの保証ではない。保存移行テストも未実装を成功扱いしない |
+| parser / 表示 | [print fixtureの出所](../../src/test/resources/stream-json-fixtures/README.md) / [AssistantChunkDeduperTest](../../src/test/kotlin/com/cursoragent/parser/AssistantChunkDeduperTest.kt) / [MarkdownRenderer](../../src/main/kotlin/com/cursoragent/ui/timeline/AssistantMessageBubble.kt) | completed採取とstarted推定、heuristicとACP deltaを区別。HTMLはescapeしraw実行しない |
+| optional Terminal | [plugin.xml](../../src/main/resources/META-INF/plugin.xml) / [TerminalOutputReader](../../src/main/kotlin/com/cursoragent/ui/composer/mention/TerminalOutputReader.kt) | Terminalなし/無効時に全Pluginをロード不能にせず、Exception/LinkageErrorを扱う。API読取りはEDT |
+
+実行コマンドは `python3 scripts/workflow/change_impact.py --run-tests`、Kotlin対象は `./gradlew test`。追加の横断対応表は#231の担当範囲であり、ここにCaseのpass状態を複製しない。
+
+## ビルドと実行環境
+
+[build.gradle.kts](../../build.gradle.kts)はIntelliJ Platformの`local(platformPath)`を利用し、[gradle.properties](../../gradle.properties)がローカルSDKを指定する。[CI](../../.github/workflows/ci.yml)はAndroid Studioを取得して同じpropertyへ渡す。JDK17+でGradle、JDK21 toolchainでKotlinを実行する。SDKは実際のpathとversion/codenameを照合し、値を変える際は[公式一覧](https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html)で対を確認する。
+
+`androidStudio()`のURL解決失敗とGradle9移行の旧調査は[固定版のCommands](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#commands)にある。この回避経路は現在のbuild/CIで確認できるが、旧plugin版での失敗を新版でも未修正と断定しない。変更時は現在の依存と解決結果を再検証する。標準buildPluginと配布物の識別は[ZIP配布](../development/plugin-zip-delivery.md)を正本とする。

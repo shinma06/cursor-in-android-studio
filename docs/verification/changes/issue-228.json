@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 228,
+  "gui_required": false,
+  "reason": "恒久指示・現行設計とIssue案内の知識整理のみ。製品コード・保存ID・承認条件・GUI結果は変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "変更repo内リンク実在、AGENTS symlink、git diff --check、Case JSON構文を確認",
+    "独立reviewerが入口からACP実装とGUI受入、復元不可条件、旧履歴互換の3問へ根拠付きで回答",
+    "3つの使い捨て記述例を採用条件で分類し、セッション報告と修正済み旧SHA指摘を恒久知識へ入れない",
+    "Issue #44/#141の本文はpreimage一致後に現行入口だけ整理し、既存受入/owner/履歴と更新後全文を照合"
+  ],
+  "cases": []
+}
