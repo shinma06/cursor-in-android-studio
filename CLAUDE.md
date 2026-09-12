@@ -17,6 +17,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## GitHub-first collaboration (2026-09-06, #31)
 
+[GitHub Work Management Rules](docs/development/work-management.md)に従い、Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは実際の依存/分解に使う。作成/triage時にProject登録・Milestone選定・関係判定・Status/Priority表示を確認する。Standaloneは正常であり、#1等へ分類目的で接続しない。
+
+[Git Governance Audit](docs/development/git-governance-audit.md)を開始・統合終了時の判断に適用する。主要Milestone/High Impact/構造問題と10 meaningful mergesを確認し、既存ルールの削除・統合・単純化を先に検討する。監査状態は各回の監査Issueを正本とし、毎PRの全体監査や二重台帳を追加しない。
+
 開発Agentの追加・委譲前に[Codex実行規約（#135の固定版）](https://github.com/shinma06/cursor-in-android-studio/blob/ffb63ab944f920a1d3a78a78e4eb46cd7bf0f9a0/docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
 
 **Apply this to every change request, even when the user says nothing about Git/GitHub.**
@@ -26,8 +30,8 @@ Every code, docs, or configuration task needs an existing/new Issue, an ownershi
 its own Issue-numbered branch and worktree, and a PR. Never commit or push directly to main.
 Read-only advice/review does not need a new Issue. Preserve unrelated local work.
 
-1. Read this file, requirements, Issue #1, target Issue/comments, and open PRs. Inspect status,
-   worktrees, fetch origin, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
+1. Read this file, requirements, the Project roadmap and relevant Milestone, target Issue/comments, and open PRs. Inspect status,
+   worktrees, run `git fetch --prune origin`, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
 2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
    and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
    in the workflow; no concurrent writers to the same worktree.
@@ -48,6 +52,8 @@ Read-only advice/review does not need a new Issue. Preserve unrelated local work
    Develop permits pending/blocked/failed GUI with complete Case/fix tracking. Main requires every
    required Case of the entire fixed candidate to pass on its identified build. See docs/verification/README.md. Never force push, bypass hooks or invent a GUI pass.
    Close Issues only when acceptance is complete; otherwise record blockers, next action and ownership.
+   Merge and cleanup are separate completion checks: verify remote/local/tracking refs and owned worktrees,
+   or record the retained resource, owner and retry trigger under [branch hygiene](docs/development/pr-automation.md#ブランチ残存の判定と完了確認).
 
 The [loop protocol](docs/loop-engineering/README.md) defines GUI cases and evidence;
 [the runbook](docs/loop-engineering/human-runbook.md) is the human entrypoint.
@@ -103,8 +109,9 @@ An Android Studio (IntelliJ Platform) client for Cursor Agent inside the IDE. Th
 is ACP First, with native IDE APIs, MCP and supplementary CLI paths as needed; see the mission and
 architecture documents above. Cursor Agent internals remain a black box, accessed through official interfaces.
 
-The current implementation uses `agent -p --output-format stream-json` subprocesses and a Swing/JBUI
-chat UI (方式B). This describes shipped code, not a prohibition on protocol/API integration.
+The default transport uses `agent -p --output-format stream-json` with a Swing/JBUI chat UI (方式B).
+Develop also has explicit ACP selection for new conversations (#147); fixed-build GUI acceptance
+remains in #152. See the [develop implementation record](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/architecture/current-implementation.md) for transport scope and limitations; main remains on print.
 `docs/cursor-agent-plugin-requirements.md` records detailed requirements and implementation status
 under the mission and ACP First policy. Read these before adding features.
 
@@ -133,6 +140,8 @@ F-60 image UI remains unimplemented. The 2026-09-04 absence of an image flag is 
 
 ## Commands
 
+[Change Impact](docs/development/change-impact.md)をCI・hook・自動進行役・ZIP生成で共通利用する。Knowledge/Metadataだけは重いコード検証を省略し、runtime/build/test/tooling・混在・unknownには必要な検証を残す。新しい入力/同梱resourceを追加したら分類も更新する。PR/独立review/Acceptance/GUI受入のgateは維持する。
+
 ```bash
 # Gradle itself needs JDK 17+; Kotlin compilation uses a JDK 21 toolchain
 # (auto-provisioned via the foojay-resolver plugin, independent of JAVA_HOME).
@@ -140,21 +149,13 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 
 ./gradlew buildPlugin   # produces build/distributions/cursor-in-android-studio-<version>.zip
 ./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
-./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin — run this before every push
+./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin
+python3 scripts/workflow/change_impact.py --run-tests  # selects required pre-push checks
 ```
 
-**This is enforced automatically, not just a convention**: any `./gradlew <task>` invocation configures
-`git config core.hooksPath .githooks` (see the top of `build.gradle.kts`), and `.githooks/pre-push`
-runs `./gradlew test` and blocks the push if it fails. This is deliberately git-level rather than a
-Claude-Code-specific hook, so it applies no matter which agent (or human) is pushing. Don't rely on
-it as your only check, though — run `./gradlew test` yourself before pushing so you find out about a
-failure before the hook does, and never reach for `git push --no-verify` to route around a real
-failure. Bypassing hooks is prohibited by the GitHub workflow.
+Gradleとbootstrapは `core.hooksPath .githooks` を設定する。pre-pushは最初にbranch/dirty/fast-forwardを検査し、共通Change Impactから必要なPython/Gradleテストを実行して失敗時にpushを拒否する。push前にも上記の共通コマンドで確認する。知識変更の安全なskipはhook迂回ではなく、`--no-verify`や保護無効化は禁止する。
 
-**Second, independent safety net: GitHub Actions CI** (`.github/workflows/ci.yml`) runs the test
-suite on every push/PR against `main`, so a `--no-verify` push (or any push from an environment
-where the local hook never got installed) still gets caught. It resolves the IntelliJ platform
-dependency differently than local dev does — worth knowing before touching either file:
+GitHub Actionsのrequired `test` jobも同じ分類を利用し、実行/skipの理由をsummaryへ記録する。通常の製品変更のJUnitは従来どおり実行し、知識だけならAndroid Studio取得まで省略する。必要時のSDK解決方法は次のとおり。
 
 - **Local dev** uses `local(providers.gradleProperty("platformPath"))` in `build.gradle.kts`,
   pointing at a real Android Studio install on the machine (`gradle.properties`).
@@ -433,13 +434,9 @@ input actions, transcript persistence, review/status/queue UX, and context contr
 #5 manual QA and #10 multimodal work rather than duplicating them. New execution-based verification
 is separate from the read-only UI evidence and requires an appropriate authorized test scope.
 
-The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines the full MVP/P2/P3 scope
-with feature IDs (F-01, F-02, ...); the live milestone tracker is **the tracking issue's own
-checklist and its child issues** (GitHub issue #1 — see "Multi-agent collaboration model" above),
-which is the up-to-date source for what's done. Deliberately not naming a specific issue-number
-range here: issue #1's checklist has drifted out of sync with a hardcoded range in this file at
-least once already (this file said "#1–#10" after #11/#12/#13 already existed) — read #1 itself
-rather than trusting a number written into this doc at some point in the past.
+The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines feature scope and IDs.
+Current progress lives in the Project, concrete Issue/PR/QA records and native Milestones;
+see [work management](docs/development/work-management.md). Issue #1 is historical, not the live tracker.
 
 Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
 mode control (F-20), the 3-way permission model (F-22/F-24 redesign: `PermissionMode`, a Stop

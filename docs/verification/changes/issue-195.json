@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 195,
+  "gui_required": false,
+  "reason": "GitHub管理体系の監査、運用文書とread-only status CLIのみ。製品runtime/GUI/保存形式を変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "./gradlew test",
+    "python3 scripts/workflow/governance_audit.py; GitHub全ページsnapshotと安全な差分readback",
+    "初回/9件/10件/監査reset/除外/途中監査/不正日時/API失敗とHard/Soft Triggerの机上照合; git diff --check"
+  ],
+  "cases": []
+}

@@ -1,11 +1,13 @@
 # ブランチごとの最新Plugin ZIP
 
-[GitHub Releases](https://github.com/shinma06/cursor-in-android-studio/releases) の **Plugin ZIP — ブランチ名** を開き、Assets の `cursor-in-android-studio-<HEADの40桁SHA>.zip` を取得する。
+[GitHub Releases](https://github.com/shinma06/cursor-in-android-studio/releases) の **Plugin ZIP — ブランチ名** を開き、Assets の `cursor-in-android-studio-<実buildの40桁SHA>.zip` を取得する。
 Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選択できる。GitHubが自動生成する **Source code (zip)** はソース一式であり、インストール用ではない。
 
 ## 保存と更新
 
-`push → HEADを取得 → buildPlugin → ブランチ専用ReleaseのZIP更新`
+`push / 定期確認 → 共通Change Impact → 必要な場合だけbuildPlugin → ブランチ専用ReleaseのZIP更新`
+
+[Change Impact](change-impact.md)で生成不要なら既存ZIPを保持する。知識だけの新規branchはReleaseを作らない。最後に実buildしたSHAと現branch HEADは異なり得るため、本文/asset名のSHAで対象を識別する。古いZIPを新SHAへ改名しない。
 
 - 生成はJetBrains Gradle Plugin標準の `buildPlugin`。元の出力は `build/distributions/<project名>-<version>.zip`。公開時は名前だけ変えてコピーし、内容は再圧縮・加工しない。旧ブランチのproject名もそのままビルドできる。
 - 1ブランチに可変prereleaseを1件。タグは `branch-zip-<UTF-8ブランチ名のSHA-256全64桁>`。`/`、日本語、大文字小文字の異なる名前でも分離する。人間はハッシュではなくReleaseのタイトルで選ぶ。
@@ -21,9 +23,9 @@ Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選�
 新workflowを持つすべてのブランチでpushに反応する。ブランチ名の固定フィルターはない。
 新workflowを持たない既存ブランチ、およびGITHUB_TOKEN経由のpush/mergeは、既定ブランチで毎時実行する**生存ブランチのHEADだけ**の確認で補完する。全commit走査やsource保存タグは廃止した。
 
-手動復旧: Actions → **Branch Plugin ZIP** → Run workflow。新workflowを含む既定ブランチを選ぶ。`branch` が空なら全生存ブランチ、入力すればその1本のHEADを確認する。新規/未公開/更新されたHEADだけをビルドする。
+手動復旧: Actions → **Branch Plugin ZIP** → Run workflow。新workflowを含む既定ブランチを選ぶ。`branch` が空なら全生存ブランチ、入力すればその1本のHEADを確認する。共通判定で必要なHEADをビルドする。`force_build`を有効にすれば、知識変更を含む現HEADのZIPも明示生成できる。
 
-CI待ち・ビルド失敗の間は新HEADのZIPは存在しない。Release本文のSHAとブランチHEADを照合し、失敗原因を直して再実行する。GitHubのscheduleは遅延し得るほか、公開repositoryでは60日無活動で停止するため必要なら再有効化する。公開済みZIPには影響しない。
+生成不要と判定したHEAD、CI待ち・ビルド失敗の間は新HEADのZIPは存在しない。Release本文のSHAとブランチHEADを照合し、失敗原因を直して再実行する。GitHubのscheduleは遅延し得るほか、公開repositoryでは60日無活動で停止するため必要なら再有効化する。公開済みZIPには影響しない。
 ブランチが256本を超えて同時に未公開の場合はActionsのmatrix制限で明示停止するので、手動でbranchを指定する。
 
 削除済みブランチのReleaseは残す。不要ならそのブランチのReleaseと対応する `branch-zip-...` タグだけをGitHubで削除する。生存ブランチのZIPを誤って消さないため、自動削除は追加しない。

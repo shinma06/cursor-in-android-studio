@@ -3,8 +3,8 @@
 - **文書バージョン**: v0.1(ドラフト)
 - **作成日**: 2026-09-03
 - **対象読者**: 実装者(自分)
-- **Assumed環境**: Kotlin 2.x / Android Studio (最新安定版) / IntelliJ Platform 2023.1+ 系API / cursor-agent CLI 2026年7月時点仕様
-- **現行実装**: 方式B(ネイティブUI方式) — `agent -p --output-format stream-json` をサブプロセス実行し、独自Swing/JBUI製チャットパネルに描画する
+- **ビルド設定（#142ソース照合）**: Kotlin 2.3.0 / IntelliJ Platform plugin 2.10.5 / sinceBuild 261。実際の対象IDEは `gradle.properties` / CI設定、CLI検証は各記録の版を参照し、「最新安定版」や過去の想定版で代用しない。
+- **現行実装**: 互換print（方式B）を既定とし、developでは新規会話にACPを明示選択できる（#147）。Swing/JBUIの表示・transport別の実装範囲と未達GUI受入は[developの固定実装記録](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/architecture/current-implementation.md)を参照する。
 
 **最上位方針（2026-09-09 / #134）**: [Project Mission](project-mission.md)と[ACP First](architecture/cursor-integration.md)を優先する。方式Bは現在の実装記録であり、新規連携はACPを第一級に扱い、IDE API / MCP / 補助CLIを組み合わせる。以下の機能別実装状況や過去検証は、この方針変更だけで実装済み・合格へ変更しない。
 
@@ -53,7 +53,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 | 用語 | 定義 |
 |---|---|
-| Agent | `cursor-agent` CLIが提供する自律的コーディングエージェント機能 |
+| Agent | Cursor Agent本体。Pluginは公式interfaceを使うIDE client。mainはprint、developは明示ACP選択も持ち、設計方針はACP First |
 | ツールウィンドウ | IntelliJ Platformの画面端に配置されるパネル(Terminal, Logcatと同種) |
 | チェックポイント | Agentによる編集前のコード状態スナップショット。ネイティブCursorではロールバック可能 |
 | `@メンション` | チャット入力中に`@`でファイル/フォルダ/コンテキストを注入する記法 |

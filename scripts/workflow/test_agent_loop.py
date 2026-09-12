@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 import agent_loop as al
+from change_impact import classify
 from agent_policy import binding, eligible, gui_pass, in_scope, next_action, update_parent, validate_review
 from agent_worker import worker_environment, run_worker
 
@@ -228,6 +229,8 @@ class LoopTests(unittest.TestCase):
             if args[:2] == ('rev-parse', 'origin/codex/35-test'): return self.fetched_head
             return ''
         self.git = patch.object(al, 'git', side_effect=git); self.git.start(); self.addCleanup(self.git.stop)
+        impact = patch.object(al, 'git_impact', return_value=classify([], reason='fixture unknown'))
+        self.impact = impact.start(); self.addCleanup(impact.stop)
         self.run = patch.object(al.subprocess, 'run', return_value=Mock(returncode=0)); self.run.start(); self.addCleanup(self.run.stop)
         self.worker = Mock(side_effect=lambda role, path, packet, out, **kw: dict(report(head=packet['head']), base=packet['base']))
         self.loop = al.Loop(self.gh, self.tmp.name, self.worker)
@@ -244,6 +247,17 @@ class LoopTests(unittest.TestCase):
              'branch': 'codex/35-test', 'source': str(self.checkout), 'scope': ['src/'],
              'close_issue': True, 'gui_required': False, 'writer_stopped': True}
         self.gh.comment(36, al.pack(al.HANDOFF, h))
+
+    def test_knowledge_publish_uses_shared_impact_without_gradle(self):
+        self.impact.return_value = classify([('docs/design.md', ('100644',))])
+        state = {'review': report(), 'binding': {'head': HEAD}}
+        with patch.object(al, 'command', return_value='') as commands:
+            al.Loop.test_and_push(self.loop, pr_data(), self.checkout, state)
+        commands.assert_not_called()
+        self.impact.assert_called_once_with(BASE, HEAD, cwd=self.checkout)
+        self.assertEqual(state['phase'], 'queued')
+        self.assertNotIn('review', state)
+        self.assertTrue(any(c.args[:2] == ('push', 'origin') for c in al.git.call_args_list))
 
     def prepare_issue_guard_review(self, target):
         # Keep each race scenario independent, including its saved controller state.
@@ -440,10 +454,21 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(self.gh.merges, 1)
         self.assertEqual(self.gh.issues[35]['state'], 'closed')
         self.assertEqual(self.gh.issues[1]['body'], '- [x] #35 task')
+        _, state, _, _ = self.loop.load(36)
+        self.assertIn('PM: reconcile parent roadmap and Project registration/status for origin and QA', state['next'])
         self.loop.cleanup.assert_called_once()
         self.loop.tick(36)
         self.assertEqual(self.gh.merges, 1)
         self.loop.cleanup.assert_called_once()
+
+    def test_standalone_issue_closes_without_parent_update(self):
+        h, _, _, _ = self.loop.load(36)
+        h['parent'] = None
+        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.loop.tick(36)
+        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.gh.issues[35]['state'], 'closed')
+        self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
 
     def test_crash_after_merge_resumes_cleanup_only(self):
         self.loop.tick(36); self.gh.fail_after_merge = True

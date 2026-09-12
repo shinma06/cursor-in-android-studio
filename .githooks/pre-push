@@ -12,6 +12,12 @@ if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then
   JAVA_HOME="$(/usr/libexec/java_home -v 17)"
   export JAVA_HOME
 fi
-python3 -m unittest discover -s scripts/workflow -p 'test_*.py'
-python3 -m unittest discover -s scripts/loop -p 'test_*.py'
-./gradlew test --console=plain
+if [ -f scripts/workflow/change_impact.py ]; then
+  python3 scripts/workflow/change_impact.py --run-tests
+else
+  # A trusted hook can guard an older enrolled branch without the classifier.
+  echo 'Change Impact: unknown (legacy branch); run full tests'
+  python3 -m unittest discover -s scripts/workflow -p 'test_*.py'
+  python3 -m unittest discover -s scripts/loop -p 'test_*.py'
+  ./gradlew test --console=plain
+fi
