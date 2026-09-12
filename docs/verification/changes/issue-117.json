@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "issue": 117,
+  "gui_required": false,
+  "reason": "Skillsの契約/実測/入力UXを記録する調査のみ。製品実装とGUI観察は別Issue/固定build Caseへ引き継ぐ。",
+  "cli_checks": ["git diff --check", "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests", "公開仕様・既存実装・隔離fixture・採否の固定HEAD/base独立照合"],
+  "cases": []
+}
