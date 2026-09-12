@@ -37,8 +37,9 @@ data class PromptContextSnapshot(
     fun selectionBlocks(automatic: EditorContext?, fileContents: Map<String, String>): List<String> {
         val explicit = selections.filter { selection -> fileContents[selection.path]?.let(selection::coveredBy) != true }
         val autoSelection = automatic?.selection?.takeIf { automaticEnabled && fileContents[it.path]?.let(it::coveredBy) != true }
-            ?.takeUnless { candidate -> explicit.any { it.key == candidate.key } }
-        return (explicit + listOfNotNull(autoSelection)).map(SelectionContext::block)
+            ?.takeUnless { candidate -> explicit.any { it.key == candidate.key && it.text == candidate.text } }
+        return explicit.map { "Explicit selection snapshot:\n${it.block()}" } +
+            listOfNotNull(autoSelection?.let { "Automatic selection at turn start:\n${it.block()}" })
     }
 }
 

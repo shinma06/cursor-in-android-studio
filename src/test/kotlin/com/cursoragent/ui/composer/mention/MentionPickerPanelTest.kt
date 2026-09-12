@@ -6,6 +6,25 @@ import javax.swing.SwingUtilities
 
 class MentionPickerPanelTest {
     @Test
+    fun `keyboard movement keeps distant selected candidates in view`() = SwingUtilities.invokeAndWait {
+        val panel = MentionPickerPanel({}, {})
+        panel.list.fixedCellHeight = 20
+        panel.loaded((0 until 500).map { Mention(MentionKind.FILE, "file-$it.kt", "file-$it.kt") })
+        panel.setSize(420, 280)
+        panel.doLayout()
+        val scroll = panel.components.filterIsInstance<javax.swing.JScrollPane>().single()
+        scroll.doLayout()
+        panel.list.setSize(scroll.viewport.width, 10_000)
+        repeat(100) { panel.search.actionMap.get("DOWN").actionPerformed(null) }
+        assertEquals(100, panel.list.selectedIndex)
+        assertTrue(scroll.viewport.viewPosition.y > 0)
+        assertTrue(panel.list.visibleRect.contains(panel.list.getCellBounds(100, 100)))
+        repeat(100) { panel.search.actionMap.get("UP").actionPerformed(null) }
+        assertEquals(0, panel.list.selectedIndex)
+        assertEquals(0, scroll.viewport.viewPosition.y)
+    }
+
+    @Test
     fun `search reaches matching files beyond the initial display cap`() {
         val all = (0 until 1_200).map { Mention(MentionKind.FILE, "file-$it.kt", "file-$it.kt") }
         val initial = MentionCandidateSearch("")

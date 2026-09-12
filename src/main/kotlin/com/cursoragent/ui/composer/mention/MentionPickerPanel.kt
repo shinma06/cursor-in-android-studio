@@ -64,8 +64,18 @@ internal class MentionPickerPanel(private val choose: (Mention) -> Unit, private
             bind(target, "ENTER") { if (!composing) list.selectedValue?.let(choose) }
             bind(target, "ESCAPE") { if (!composing) cancel() }
         }
-        bind(search, "DOWN") { if (!model.isEmpty) list.selectedIndex = (list.selectedIndex + 1).coerceAtMost(model.size - 1) }
-        bind(search, "UP") { if (!model.isEmpty) list.selectedIndex = (list.selectedIndex - 1).coerceAtLeast(0) }
+        bind(search, "DOWN") {
+            if (!model.isEmpty) {
+                list.selectedIndex = (list.selectedIndex + 1).coerceAtMost(model.size - 1)
+                list.ensureIndexIsVisible(list.selectedIndex)
+            }
+        }
+        bind(search, "UP") {
+            if (!model.isEmpty) {
+                list.selectedIndex = (list.selectedIndex - 1).coerceAtLeast(0)
+                list.ensureIndexIsVisible(list.selectedIndex)
+            }
+        }
     }
 
     private fun queryChanged() { status = "候補を読み込み中…"; filter(); onQuery(search.text.trim()) }

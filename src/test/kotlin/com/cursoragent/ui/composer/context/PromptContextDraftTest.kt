@@ -10,6 +10,17 @@ class PromptContextDraftTest {
         SelectionContext("file:///project/A.kt", "A.kt", 0, 3, 1, 1, text, stamp)
 
     @Test
+    fun `queued explicit old and current automatic new are both kept for the same range`() {
+        val draft = PromptContextDraft()
+        draft.add(selection())
+        val queued = draft.snapshot()
+        val current = selection("new", 2)
+        val automatic = EditorContext(current.fileUrl, current.path, current)
+        assertEquals(listOf("Explicit selection snapshot:\n${selection().block()}", "Automatic selection at turn start:\n${current.block()}"), queued.selectionBlocks(automatic, emptyMap()))
+        assertEquals(listOf("Explicit selection snapshot:\n${selection().block()}"), queued.selectionBlocks(automatic, mapOf("A.kt" to "new")))
+    }
+
+    @Test
     fun `changed selection prevents a new snapshot but an accepted queue item stays frozen`() {
         val draft = PromptContextDraft()
         draft.add(selection())
@@ -55,9 +66,9 @@ class PromptContextDraftTest {
         val draft = PromptContextDraft()
         draft.add(selection())
         val automatic = EditorContext(selection().fileUrl, "A.kt", selection())
-        assertEquals(listOf(selection().block()), draft.snapshot().selectionBlocks(automatic, emptyMap()))
+        assertEquals(listOf("Explicit selection snapshot:\n${selection().block()}"), draft.snapshot().selectionBlocks(automatic, emptyMap()))
         assertTrue(draft.snapshot().selectionBlocks(automatic, mapOf("A.kt" to "old")).isEmpty())
-        assertEquals(listOf(selection().block()), draft.snapshot().selectionBlocks(automatic, mapOf("A.kt" to "new")))
+        assertEquals(listOf("Explicit selection snapshot:\n${selection().block()}"), draft.snapshot().selectionBlocks(automatic, mapOf("A.kt" to "new")))
         draft.clearExplicit()
         draft.automaticEnabled = false
         assertTrue(draft.snapshot().selectionBlocks(automatic, emptyMap()).isEmpty())
