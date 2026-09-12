@@ -52,15 +52,16 @@ class MessageTextPane : JEditorPane() {
                 }
             }
             override fun getViewFactory(): ViewFactory = factory
-        }.apply {
-            // Do not add display rules to HTMLEditorKit's shared default stylesheet.
-            styleSheet = StyleSheet().apply {
-                addStyleSheet(styleSheet)
+            // HTMLEditorKit.setStyleSheet replaces the AppContext default. Override the
+            // getter instead, so each kit owns its rules without changing the shared root.
+            private val messageStyles = StyleSheet().apply {
+                addStyleSheet(super.getStyleSheet())
                 addRule("body { margin: 0; }")
                 addRule("p { margin-top: 0; margin-bottom: 8px; }")
                 addRule("ul, ol { margin-left: 18px; margin-top: 4px; margin-bottom: 8px; }")
                 addRule("pre { margin: 6px 0; }")
             }
+            override fun getStyleSheet(): StyleSheet = messageStyles
         }
         putClientProperty(HONOR_DISPLAY_PROPERTIES, true)
         isEditable = false

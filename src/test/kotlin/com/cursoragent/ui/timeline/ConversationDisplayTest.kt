@@ -12,6 +12,18 @@ import org.junit.jupiter.api.Test
 
 class ConversationDisplayTest {
     @Test
+    fun `creating messages never replaces or grows the shared HTML stylesheet`() = SwingUtilities.invokeAndWait {
+        val shared = javax.swing.text.html.HTMLEditorKit().styleSheet
+        val parents = shared.styleSheets?.toList().orEmpty()
+        val panes = (1..3).map { MessageTextPane() }
+        assertSame(shared, javax.swing.text.html.HTMLEditorKit().styleSheet)
+        assertEquals(parents, shared.styleSheets?.toList().orEmpty())
+        val local = panes.map { (it.editorKit as javax.swing.text.html.HTMLEditorKit).styleSheet }
+        assertEquals(3, local.toSet().size)
+        local.forEach { assertEquals(listOf(shared), it.styleSheets.toList()) }
+    }
+
+    @Test
     fun `wrapping long code retains document whitespace selection and raw copy`() = SwingUtilities.invokeAndWait {
         val raw = "本文\n\n```kotlin\n\tval 日本語 = \"${"abcdefgh".repeat(30)}\"  \n    second()\n```"
         val copies = mutableListOf<String>()
