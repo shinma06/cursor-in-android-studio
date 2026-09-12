@@ -38,19 +38,19 @@ internal fun pluginDiagnosticsText(
         else -> commit
     }
     val manual = configuredPath.takeIf { it.isNotBlank() }
-    // Match the existing launcher's manual override condition; fixed lookup is shared.
+    // A bad explicit path is unresolved: print may fall back, while ACP passes it through.
     val manualUsable = manual != null && File(manual).canExecute()
-    val selected = if (manualUsable) manual else detectedPath
+    val selected = manual ?: detectedPath
     val candidate = when {
         selected == null -> "未解決（実行時にPATHからagentを検索。未確認）"
         !File(selected).isAbsolute -> "${diagnosticLine(selected)}（相対パス。解決先・起動は未確認）"
-        !File(selected).isFile || !File(selected).canExecute() -> "${diagnosticLine(selected)}（実行可能ファイルを確認できません）"
+        !File(selected).isFile || !File(selected).canExecute() -> "未解決: ${diagnosticLine(selected)}（実行可能ファイルを確認できません）"
         else -> "${diagnosticLine(selected)}（ファイル確認のみ。CLI起動は未確認）"
     }
     val mode = when {
         manual == null -> "自動探索（空欄設定）"
         manualUsable -> "手動指定: ${diagnosticLine(manual)}"
-        else -> "手動指定を利用できません: ${diagnosticLine(manual)}。既存の自動探索へ戻ります"
+        else -> "手動指定を利用できません: ${diagnosticLine(manual)}。起動前に設定を確認してください"
     }
     return """
         ${PluginBrand.NAME}
