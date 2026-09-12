@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "issue": 263,
+  "gui_required": true,
+  "reason": "TASK-RESULT-CORRELATION / TASK-FAILURE-STOP / TASK-SAFE-RESTOREを固定IDEで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *Task*Test --tests *AcpSessionTest --tests *AcpProtocolTest --tests *AgentRunTest --tests *PromptQueueTest --tests *PrintRecordingDispatchTest",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューで子の所属・成否・request/notification・保存/終端保護を照合"
+  ],
+  "cases": [
+    {
+      "id": "TASK-RESULT-CORRELATION",
+      "issue": 263,
+      "change": "子Taskの同一行更新と詳細",
+      "preconditions": "指定GUI担当がleaseを取得し、#263を含む固定候補のHEAD/ZIP hash/loaded JAR/CLI版/transportを照合する。使い捨てprojectと公開可能な合成子・隔離serverのみを使い、固定契約#118を参照する。",
+      "steps": [
+        "PRINT/ACPで公開可能な合成子Taskを一つ実行し、開始・進行・完了が親会話の同じ1行を更新することを確認する。途中と完了後に詳細を開閉する。",
+        "合成serverでcursor/taskのrequest/notification、順序逆転、重複、未知ID、別session、前turn ID再利用を送る。架空の行や成功応答がなく、requestは未対応エラー、notificationは返信なしを確認する。",
+        "名前・要約・モデル・要求ID/再開ID/結果ID/用途未確認ID、所要時間0/未取得/不正値を確認する。結果本文なし、未知custom型、長文の表示上限と日本語・狭幅を確認する。",
+        "詳細を開いたまま更新し、開閉状態・親timeline内の位置・既存差分操作が保たれることを確認する。別タブへ切り替えても元Taskの所属が変わらないことを確認する。"
+      ],
+      "expected": "開始/完了/補足で同じ行を更新し、確認できた情報だけを表示する。IDの用途・未知値を推定せず、通常のツール詳細と操作を保持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/263",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/118"
+      ]
+    },
+    {
+      "id": "TASK-FAILURE-STOP",
+      "issue": 263,
+      "change": "子の失敗と親の終端を分離",
+      "preconditions": "指定GUI担当がleaseを取得し、#263を含む固定候補のHEAD/ZIP hash/loaded JAR/CLI版/transportを照合する。使い捨てprojectと公開可能な合成子・隔離serverのみを使い、固定契約#118を参照する。",
+      "steps": [
+        "合成fixtureで子result.errorと親success/exit0を併存させ、子は失敗のまま、親の実結果は維持されることを確認する。provider拒否を故意に繰り返さない。",
+        "子の開始後に親をStop/close/失敗させ、子の終了根拠がない場合は「終了を確認できません」と表示する。completed/failedの子の結果は親終端で上書きしない。",
+        "背景開始を示すisBackground=trueの合成成功を表示し、子の終了は未確認と表示する。親Stopだけを子の物理停止のpassにしない。",
+        "別run・別タブ・終了後の遅着を合成serverで送る。別タブへの混入・通知重複・自動再送・推定usage/親子時間加算がないこと、既存ACP不確定終了時の復元禁止が保たれることを確認する。"
+      ],
+      "expected": "子失敗を親成功で上書きしない。Stopと子終了を分け、未知/遅着を誤成功へ補わず、親の実終端と復元保護を保持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/263",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/118"
+      ]
+    },
+    {
+      "id": "TASK-SAFE-RESTORE",
+      "issue": 263,
+      "change": "Task結果と保存要約の境界",
+      "preconditions": "指定GUI担当がleaseを取得し、#263を含む固定候補のHEAD/ZIP hash/loaded JAR/CLI版/transportを照合する。使い捨てprojectと公開可能な合成子・隔離serverのみを使い、固定契約#118を参照する。",
+      "steps": [
+        "公開可能な合成Task指示・結果・エラー・IDを用意し、実行時の詳細表示を確認する。HTML風文字列や画像Markdownは文字として読み取れ、通信・実行・自動Openしないことを確認する。",
+        "会話を保存して再表示し、Taskは安全なカテゴリと状態の要約だけとなり、指示/名前/任意エラー/結果全文/IDが無条件に保存されていないことを確認する。保存内容は合成fixtureだけで照合する。",
+        "IDE再起動後の復元で子再実行・再開要求が発生しないことを確認する。親の原文本文と#254の本文配送、#48の親終端に基づくキュー継続が維持されることを確認する。"
+      ],
+      "expected": "表示用の有限Task情報と保存要約を分離し、復元は静止表示だけとする。raw Taskの無条件保存・再実行なし。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/263",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/118"
+      ]
+    }
+  ]
+}

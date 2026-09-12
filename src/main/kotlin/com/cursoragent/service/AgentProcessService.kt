@@ -1,5 +1,7 @@
 package com.cursoragent.service
 
+import com.cursoragent.parser.belongsToPrintSession
+
 import com.cursoragent.acp.AcpException
 import com.cursoragent.acp.AcpSession
 import com.cursoragent.parser.PrintAssistantText
@@ -193,9 +195,9 @@ class AgentProcessService(private val project: Project) : Disposable {
 
                         is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
 
-                        is StreamEvent.ToolCallStarted -> listener.onToolCallStarted(event.payload)
+                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallStarted(event.payload)
 
-                        is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
+                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallCompleted(event.payload)
 
                         is StreamEvent.Result -> {
                             listener.onTokenUsage(event.usage)

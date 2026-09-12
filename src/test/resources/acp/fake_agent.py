@@ -73,6 +73,25 @@ for line in sys.stdin:
             if child is not None:
                 threading.Thread(target=child.wait, daemon=True).start()
             update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "running"})
+        elif scenario.startswith("task-"):
+            # Synthetic adaptation of #118's public projection; requests remain unsupported.
+            send({"method": "cursor/task", "params": {"toolCallId": "missing", "model": "ignore-before-tool"}})
+            update(sessionUpdate="tool_call", toolCallId="task-one", kind="other", status="pending", rawInput={"_toolName": "task", "description": "synthetic child", "subagentType": {"custom": {"name": "reader"}}})
+            update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
+            if scenario != "task-stop":
+                update(sessionUpdate="tool_call_update", toolCallId="task-one", status="failed" if scenario == "task-failed" else "completed", rawOutput={"durationMs": 12, "isBackground": False})
+                send({"method": "cursor/task", "params": {"sessionId": "foreign-session", "toolCallId": "task-one", "agentId": "foreign"}})
+                send({"method": "cursor/task", "params": {"toolCallId": "unknown", "agentId": "unknown"}})
+                send({"method": "cursor/task", "params": {"agentId": "missing-id"}})
+                metadata = {"toolCallId": "task-one", "agentId": "reported-child", "model": "default", "durationMs": "12"}
+                if scenario == "task-notify":
+                    send({"method": "cursor/task", "params": metadata})
+                    send({"method": "cursor/task", "params": metadata})
+                    response(prompt_id, {"stopReason": "end_turn"})
+                    send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-terminal"}})
+                else:
+                    pending = 7001
+                    send({"id": pending, "method": "cursor/task", "params": metadata})
         elif scenario in ("permission", "unknown"):
             pending = 0
             params = {"sessionId": "session-one", "toolCall": {"toolCallId": "opaque\ncall", "title": "Synthetic", "rawInput": {"command": "synthetic-command"}}, "options": [{"optionId": "allow", "name": "Allow", "kind": "allow_once"}, {"optionId": "reject", "name": "Reject", "kind": "reject_once"}]}
@@ -84,7 +103,11 @@ for line in sys.stdin:
     elif method == "session/cancel":
         response(prompt_id, {"stopReason": "cancelled"})
         (root / "cancel-response").touch()
+        if scenario == "task-stop":
+            send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-stop"}})
     elif "method" not in request and request.get("id") == pending:
-        if scenario == "unknown":
+        if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard"):
             assert request["error"]["code"] == -32601
         response(prompt_id, {"stopReason": scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn"})
+        if scenario == "task-late-standard":
+            update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")

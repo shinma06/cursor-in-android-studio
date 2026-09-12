@@ -1,15 +1,17 @@
 package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
+import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.ParsedToolCall
+import com.cursoragent.parser.taskKey
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.RestorePolicy
 import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
-import com.cursoragent.history.ConversationRecorder
+import com.cursoragent.service.taskStatusText
 import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
@@ -43,6 +45,16 @@ class AgentTurnListenerFactory(
             { timeline.finalizeAssistantMessage(); recorder.newAssistant() },
         )
 
+        fun updateTask(payload: ParsedToolCall): Boolean {
+            val task = payload.task ?: return false
+            val displayed = timeline.upsertTask(task, payload.parentSessionId)
+            recorder.tool(payload.taskKey(), taskSavedSummary(displayed))
+            return true
+        }
+        fun finishTasks() {
+            timeline.finishTasks().forEach { (id, tool) -> recorder.tool(id, taskSavedSummary(tool)) }
+        }
+
         return object : AgentProcessListener {
             override fun onStructuredEvent(event: AgentEvent) {
                 update {
@@ -50,10 +62,11 @@ class AgentTurnListenerFactory(
                         is AgentEvent.Text -> assistantText.acpDelta(event)
                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
                         is AgentEvent.Tool -> {
-                            recorder.tool(event.state.id, "ツール: ${safeToolKind(event.state.kind)} (${safeToolStatus(event.state.status)})")
-                            timeline.upsertStructuredTool(event.state) { diff ->
+                            val displayed = timeline.upsertStructuredTool(event.state) { diff ->
                                 DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
                             }
+                            recorder.tool(displayed.id, if (displayed.task != null) taskSavedSummary(displayed)
+                                else "ツール: ${safeToolKind(displayed.kind)} (${safeToolStatus(displayed.status)})")
                         }
                         is AgentEvent.Input -> timeline.addInputRequest(event.request)
                         is AgentEvent.Plan -> timeline.showPlan(event.entries)
@@ -69,6 +82,7 @@ class AgentTurnListenerFactory(
                 }
                 update {
                     timeline.finalizeAssistantMessage()
+                    finishTasks()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
                     onRunFinished(false)
@@ -78,6 +92,7 @@ class AgentTurnListenerFactory(
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
                     timeline.finalizeAssistantMessage()
+                    finishTasks()
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
                     timeline.showError(message)
@@ -112,6 +127,7 @@ class AgentTurnListenerFactory(
 
             override fun onToolCallStarted(payload: ParsedToolCall) {
                 update {
+                    if (updateTask(payload)) return@update
                     timeline.showStatus(payload.summary)
                     recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（実行中）")
                     timeline.addToolCallStarted(payload)
@@ -121,6 +137,7 @@ class AgentTurnListenerFactory(
 
             override fun onToolCallCompleted(payload: ParsedToolCall) {
                 update {
+                    if (updateTask(payload)) return@update
                     timeline.clearStatus()
                     recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（完了）")
                     val edit = payload.fileEdit
@@ -183,6 +200,7 @@ class AgentTurnListenerFactory(
                 update {
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
+                    finishTasks()
                     timeline.showError(message)
                     recorder.error("このターンでエラーが発生しました。")
                     recorder.finish("failed")
@@ -196,6 +214,7 @@ class AgentTurnListenerFactory(
                 update(allowStopped = true) {
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
+                    finishTasks()
                     recorder.finish("stopped")
                     timeline.showStatus("停止しました")
                     onRunFinished(false)
@@ -206,6 +225,7 @@ class AgentTurnListenerFactory(
                 update {
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
+                    finishTasks()
                     if (exitCode != 0) {
                         timeline.showError("Agent exited with code $exitCode")
                     }
@@ -275,3 +295,6 @@ internal fun safeToolStatus(status: String?): String = when (status) {
     "pending" -> "待機"
     else -> "実行中"
 }
+
+internal fun taskSavedSummary(tool: com.cursoragent.service.AgentTool): String =
+    "ツール: 子Task (${taskStatusText(tool.status, tool.task?.isBackground)})"
