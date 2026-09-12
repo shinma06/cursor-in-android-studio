@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 232,
+  "gui_required": false,
+  "reason": "既存tooling/CI/build/配布の実装を維持。非実行文書と既存Pythonテストへimport隔離確認だけを追加する。製品source/build入力/保存IDを変えない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_governance_audit.py（4入口fresh processの副作用拒否、既存read-only CLI失敗を含む）",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests（既存4経路fake/temp Gitと分類境界）",
+    "相対リンク/実在テスト名/Case JSON/diff check、固定HEAD/base独立レビュー",
+    "Gradle/ZIP不要: テスト・知識・Caseのみ。実build/GUI成功としない。"
+  ],
+  "cases": []
+}

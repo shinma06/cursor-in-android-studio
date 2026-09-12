@@ -62,6 +62,8 @@ skip時はReleaseやassetを変更せず、古いZIPへ新HEADの名前を付け
 
 新workflowを含むbranchのCI/hook/push配布から適用される。既定branchのscheduleとtrusted-main coordinatorはmain上のコードを使うため、develop統合だけでは全経路の切替完了ではない。main反映と旧branchでのsafe fallbackはQAへ明記する。旧branchにclassifierがないhookでは従来の全テストを行い、存在しない検証をskip成功としない。既存enrollment/owner/PAUSED heartbeatを自動変更しない。
 
+新しい入口/import/依存や分類対象を追加する際は、[4実行経路の副作用・配置境界](tooling-boundaries.md)も既存PRレビューで確認する。
+
 ## Governance Auditと検証
 
 [Git Governance Audit](git-governance-audit.md)では実tree/消費側に対するallowlist、古いpath、新runtime resource、条件の重複、不要な重い実行、required checkとskipの一致を確認する。今回の導入はHigh Impactとして#198で7領域への影響を照合する。skip率や待ち時間の削減率は実測するまで断定しない。
