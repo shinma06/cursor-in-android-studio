@@ -1,50 +1,36 @@
 package com.cursoragent.ui
 
+import com.cursoragent.ui.composer.context.EditorContextReader
+import com.cursoragent.ui.composer.context.PromptContextSnapshot
+import com.cursoragent.ui.composer.mention.MentionKind
 import com.cursoragent.ui.composer.mention.MentionResolver
-import com.intellij.openapi.fileEditor.FileEditorManager
+import com.cursoragent.ui.composer.mention.contextMentions
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.vfs.VfsUtil
 
-/**
- * Assembles the prompt string sent to the CLI: active-file context, @mention
- * expansions, then the user's raw input. Split from [AgentUiController] (#11).
- */
+/** Snapshot explicit attachments with their owning request; resolve references when that turn starts. */
 class PromptContextBuilder(
     private val project: Project,
     private val mentionResolver: MentionResolver,
 ) {
-    /** VFS reads and terminal output (the Terminal API needs the EDT too) — call on the EDT before starting a background thread. */
-    fun buildEdtContext(userText: String): String? {
-        val parts = listOfNotNull(
-            buildActiveFileContext(),
-            mentionResolver.buildFileAndFolderContext(userText),
-        )
-        return parts.joinToString("\n\n").takeIf { it.isNotBlank() }
+    /** Editor/VFS/Terminal reads run on EDT. Queued snapshots do not read another draft's chips. */
+    fun buildEdtContext(userText: String, snapshot: PromptContextSnapshot? = null): String? {
+        val context = snapshot ?: PromptContextSnapshot(emptyList(), emptyList(), true)
+        val automatic = if (context.automaticEnabled) EditorContextReader.current(project) else null
+        val mentions = contextMentions(userText, context.mentions)
+        val fullFiles = mentions.filter { it.kind == MentionKind.FILE }.map { it.insertToken.removePrefix("./") }.toSet()
+        val selections = context.selectionBlocks(automatic, fullFiles)
+        val activeFile = automatic?.takeUnless { it.path in fullFiles || context.selections.any { selection -> selection.fileUrl == it.fileUrl } }
+            ?.let { "Active file: ${it.path}" }
+        return (listOfNotNull(activeFile, mentionResolver.buildFileAndFolderContext(userText, context.mentions)) + selections)
+            .joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 
-    /** Spawns `git` — call off the EDT. */
-    fun buildBackgroundContext(userText: String): String? =
-        mentionResolver.buildShellBackedContext(userText)
+    /** Git-backed references are resolved off EDT; explicit attachment identities stay fixed. */
+    fun buildBackgroundContext(userText: String, snapshot: PromptContextSnapshot? = null): String? =
+        mentionResolver.buildShellBackedContext(userText, snapshot?.mentions.orEmpty())
 
     fun assemble(fullContext: String?, userText: String): String = buildString {
         if (!fullContext.isNullOrBlank()) append(fullContext).append("\n\n")
         append(userText)
-    }
-
-    private fun buildActiveFileContext(): String? {
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return null
-        val file = FileEditorManager.getInstance(project).selectedFiles.firstOrNull() ?: return null
-
-        val selectedText = editor.selectionModel.selectedText?.trim().orEmpty()
-        val projectDir = project.guessProjectDir()
-        val relativePath = projectDir?.let { VfsUtil.getRelativePath(file, it) } ?: file.path
-
-        return buildString {
-            append("Active file: $relativePath")
-            if (selectedText.isNotEmpty()) {
-                append("\nSelection:\n```\n$selectedText\n```")
-            }
-        }
     }
 }

@@ -12,3 +12,19 @@ data class Mention(
     val displayLabel: String,
     val insertToken: String,
 )
+
+/** Typed attachments preserve paths containing spaces; legacy text mentions remain best effort. */
+internal fun contextMentions(prompt: String, explicit: List<Mention>): List<Mention> {
+    val legacy = MentionTokenExtractor.extractTokens(prompt).map { token ->
+        val kind = when (token) {
+            "git-diff" -> MentionKind.GIT_DIFF
+            "branch" -> MentionKind.BRANCH
+            "terminal" -> MentionKind.TERMINAL
+            "docs" -> MentionKind.DOCS
+            "web" -> MentionKind.WEB
+            else -> if (token.endsWith('/')) MentionKind.FOLDER else MentionKind.FILE
+        }
+        Mention(kind, token, token)
+    }
+    return (explicit + legacy).distinctBy { it.kind to it.insertToken.removePrefix("./") }
+}
