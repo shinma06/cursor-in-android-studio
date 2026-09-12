@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "date": "2026-09-12",
+  "base": "9979266b4e99e7d4dc46689dac1f61f33f09b88a",
+  "queue_head": "dd655160e136a44250f990932a3fe77d686f951f",
+  "cli_version": "2026.09.10-fd3934a",
+  "schema_commit": "bcb9d7ea13adc0b47e906c82f3d692d495a6fa34",
+  "schemas": {
+    "schema.json": {
+      "sha256": "caf62ff962ada396878372ced11efb2c6764e59d90919a38583c319948931a42",
+      "prompt_request_properties": [
+        "sessionId",
+        "prompt",
+        "_meta"
+      ],
+      "prompt_capability_properties": [
+        "image",
+        "audio",
+        "embeddedContext",
+        "_meta"
+      ],
+      "session_notification_properties": [
+        "sessionId",
+        "update",
+        "_meta"
+      ],
+      "goal_word_definition_names": [
+        "PlanEntry",
+        "PlanEntryPriority",
+        "Plan"
+      ]
+    },
+    "schema.unstable.json": {
+      "sha256": "bf7d01218c4fc330b4f08840bda168dca5525951cdaf2dc32e58b9a5b4a8eb75",
+      "prompt_request_properties": [
+        "sessionId",
+        "prompt",
+        "_meta"
+      ],
+      "prompt_capability_properties": [
+        "image",
+        "audio",
+        "embeddedContext",
+        "_meta"
+      ],
+      "session_notification_properties": [
+        "sessionId",
+        "update",
+        "_meta"
+      ],
+      "goal_word_definition_names": [
+        "PlanEntry",
+        "PlanEntryPriority",
+        "Plan"
+      ]
+    }
+  },
+  "help": {
+    "top_level_sha256": "be0388f7e15063e8c147ea5759e789a7f2ac87f95727dd596e1d8253e32b378b",
+    "acp_sha256": "9b55e20ac13686f2854b5fa7da3fd03a007be1b3c5cc9ba434f53596c45993af",
+    "explicit_midturn_input_options": [],
+    "acp_option_names": [
+      "--help"
+    ],
+    "not_proof_of_global_unsupported": true
+  },
+  "catalog": {
+    "agent_capabilities": {
+      "loadSession": true,
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "promptCapabilities": {
+        "audio": false,
+        "embeddedContext": false,
+        "image": true
+      },
+      "sessionCapabilities": {
+        "list": {}
+      }
+    },
+    "command_count": 23,
+    "goal_command": {
+      "name": "goal",
+      "description": "Set a goal that Cursor will pursue to completion. (builtin skill)"
+    },
+    "btw_advertised": false,
+    "side_advertised": false,
+    "prompt_requests": 0
+  },
+  "synthetic_prompt": "/goal この合成検査の唯一の目標は 2+3 を計算して FIVE_278 だけを返すことです。返答したら目標は完了です。ツール、ファイル、外部データ、委譲、繰返し実行を使わないでください。",
+  "model_id": "composer-2.5[fast=true]",
+  "mode": "ask",
+  "acp": {
+    "prompt_requests": 1,
+    "answer": "FIVE_278",
+    "stopReason": "end_turn",
+    "update_counts": {
+      "available_commands_update": 1,
+      "current_mode_update": 1,
+      "session_info_update": 1,
+      "agent_thought_chunk": 14,
+      "agent_message_chunk": 3
+    },
+    "client_callback_requests": 0,
+    "goal_state_event_observed": false
+  },
+  "print": {
+    "prompt_requests": 1,
+    "exit": 0,
+    "is_error": false,
+    "answer": "FIVE_278",
+    "event_counts": {
+      "system": 1,
+      "user": 1,
+      "thinking": 10,
+      "assistant": 3,
+      "result": 1
+    },
+    "goal_state_event_observed": false
+  },
+  "stderr_bytes": 0,
+  "workspace_file_count_after": 0,
+  "evidence_scope": "Author observed raw; public allowlist projection. No independent raw replay or proof of durable goal lifecycle.",
+  "not_executed": [
+    "simultaneous ACP prompts",
+    "print stdin mid-turn injection",
+    "interactive TTY steering/btw",
+    "Cloud API",
+    "goal pause/resume/idle persistence",
+    "session cancellation initial-wire probe"
+  ]
+}
