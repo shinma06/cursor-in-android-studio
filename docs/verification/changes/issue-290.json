@@ -6,6 +6,7 @@
   "cli_checks": [
     "git diff --check",
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "docs/research/issue-290-rich-tool-results.md のオフライン再現手順: Issue290ContractCheck 4件",
     "公開schema/fixture・基準parser/renderer・型別採否の固定独立照合"
   ],
   "cases": []
