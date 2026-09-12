@@ -44,7 +44,7 @@ base同期は通常merge → [共通Change Impact](change-impact.md)の必要テ
 
 - develop: 必要Case JSONと次の操作、製品failなら修正Issueが必須。GUI passは要求せずsquash merge。
 - main tooling: GUI不要の理由/CLI検証、許可されたtoolingパスだけ。
-- main promotion: `main..candidate` の全commitがmerge済みdevelop squash PRへ対応し、各PRの固定merge SHAに保存された全Caseが同じ候補/buildでpass。候補後の差分は2つの許可JSONだけ。merge commit専用。
+- main promotion: `main..candidate` の全commitをmerge済みdevelop PRへ完全一意に対応付ける。通常はsquash結果、既存main同期mergeは[厳密なDAG照合](../verification/README.md#既存main同期mergeの履歴照合250)を通す。各PRの固定merge SHAに保存された全Caseが同じ候補/buildでpass。候補後の差分は2つの許可JSONだけ。merge commit専用。
 
 [確認結果の入力と候補固定](../verification/README.md)を参照してください。1 Caseだけのpassは全候補の合格ではありません。
 GUI lease付きの旧 `gui` 証拠登録は旧記録/互換用途に残しますが、promotionは候補の`promotion.results`を使用し、PR HEADの再GUIを要求しません。
