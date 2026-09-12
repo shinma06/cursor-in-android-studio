@@ -40,7 +40,7 @@ ACPはmodel config初期値、printはinit Auto、task modelはdefault。実際�
 | 親子の成否 | 子result.errorがあっても、親は文章で報告しresult.success/is_error=false/exit0 | 親exit0だけで子成功・全子成功と判定すること |
 
 print初回の**args.agentIdとsuccess.agentIdは別値**。前者を保存済みresume IDへ流用しない。
-top-level call_idとtool_call.toolCallIdも別値。transport内の対応キーを維持し、
+top-level call_idとtool_call.toolCallIdは今回一致した。transport内の対応キーを維持し、
 ACP toolCallId・print call_id・親sessionId・返された子agentIdを1つのIDへ統合しない。
 再開拒否を回避する言換え・別model・追加実行は行わず、今回の3実行で採取を止めた。
 
@@ -127,3 +127,6 @@ IDEへのファイルリンクは検証済みlocationが返った場合に既存
 追加の未観測: 全モデル/版、全subagent type・入れ子、多数子、background実行、Client成功応答、
 切断/失敗全種、子のusage内訳・完全transcript・再開成功。未観測は能力不存在とは判定しない。
 親#25の固定scopeに従い、未確認理由と次の証拠を明示して製品受入から分離する。
+
+検証: 公開JSONの構文、定義hash、相対リンク、原本からの投影値/ID対応を照合。
+共通Change Impactはworkflow158件/loop11件成功、製品変更がないためGradle/ZIPは対象外。

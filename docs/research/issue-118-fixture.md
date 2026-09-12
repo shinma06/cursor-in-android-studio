@@ -120,7 +120,7 @@ requestの元idは非null整数で、公開時だけ7001へ一対一置換した
 
 初回63 events、再開53 events。各runともtaskToolCall started/completedが1対。
 トップのcall_idで対になり、親session_idは両run同一。元tool_call.toolCallIdも対内同一だが
-call_idとは別の値なので代用しない。時刻/model_call_id/生成prompt/description等は省略。
+今回call_idとも一致した。時刻/model_call_id/生成prompt/description等は省略。
 子の内部readToolCall・段階的本文streamはこの親streamには出なかった。
 
 ```json
