@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "issue": 231,
+  "gui_required": true,
+  "reason": "UI bridgeのguardを同ファイル内のinternal関数へ抽出。EDTでの既存判定を保持し直接回帰テストする。",
+  "cli_checks": [
+    "./gradlew test --tests *AgentTurnDispatchTest（実Swing EDT/合成callback）",
+    "一時guard故障のtargeted red→復元green。意図故障はcommitしない。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin（製品source変更。起動/インストールは行わない）",
+    "既存JUnit source検出の維持、repo相対リンク/JSON/diff check、固定HEAD/base独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "LIFECYCLE-EDT",
+      "issue": 231,
+      "change": "queued EDTの所有tab/旧token/停止・破棄の再判定",
+      "preconditions": "#231を含む固定候補SHA/ZIP hash/loaded JARとCLI版を照合。指定GUI lease担当が使い捨てfixtureで実施。既存SESSION-TABS-RUNS/ACP-STREAMの配送手順を再利用。ACPのwire確認は#146公開待ちを保持。",
+      "steps": [
+        "A/Bの2tabを開き、A応答中にBを選択してAへ届くことを確認する。Aを閉じた後の遅着、Stop直前に届いたchunk、同tabの次turn開始後の旧chunkを管理fixtureで試す。",
+        "Stop表示が一度だけ完了し、旧tab/次turnの本文が遅着で変わらないことを確認する。project close/disposeも確認する。"
+      ],
+      "expected": "有効なA応答は選択Bへ流れずAへ届く。EDT queueに残った旧token/破棄済み/停止後の通常chunkは表示しない。Stop終端表示は許可し、disposed/旧tokenの終端は拒否する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が既存関連Caseと同じ固定候補で実施し、未確認をpassにせず結果をQAへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実配送guardのJUnitを追加。実IDE/実Cursorの固定build GUIは未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実配送guardのJUnitを追加。実IDE/実Cursorの固定build GUIは未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/231",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+      ]
+    }
+  ]
+}

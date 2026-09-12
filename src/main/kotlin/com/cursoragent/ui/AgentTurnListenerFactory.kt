@@ -38,9 +38,7 @@ class AgentTurnListenerFactory(
         restoreTarget: () -> RestoreTarget,
     ): AgentProcessListener {
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
-            runOnEdt {
-                if (!project.isDisposed && isCurrent() && (allowStopped || !isStopped())) block()
-            }
+            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
         }
         var assistantStarted = false
         val assistantDeduper = AssistantChunkDeduper()
@@ -225,8 +223,16 @@ class AgentTurnListenerFactory(
             }
         }
     }
+}
 
-    private fun runOnEdt(block: () -> Unit) {
-        if (SwingUtilities.isEventDispatchThread()) block() else SwingUtilities.invokeLater(block)
-    }
+/** Recheck ownership when the queued callback runs, including callbacks queued before Stop/close. */
+internal fun updateCurrentTurnOnEdt(
+    isDisposed: () -> Boolean,
+    isCurrent: () -> Boolean,
+    isStopped: () -> Boolean,
+    allowStopped: Boolean = false,
+    block: () -> Unit,
+) {
+    val update = { if (!isDisposed() && isCurrent() && (allowStopped || !isStopped())) block() }
+    if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
 }

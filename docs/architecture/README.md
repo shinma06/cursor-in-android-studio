@@ -11,7 +11,7 @@
 | プロジェクト / GitHub | 依頼・受入 → Issue・依存・進行案内 | Issue writerが受入、PMが順序と派生表示を照合 | [作業管理](../development/work-management.md)、[終了時同期](../development/github-projects.md#issue終了時の整合確認)。Project=案内、Milestone=到達目標、native関係=実依存/分解 |
 | 知識 / `CLAUDE.md`・`docs/` | 検証可能な根拠 → 方針・現行設計・判断 | 該当設計のwriter、別sessionが根拠と適用範囲をレビュー | [Mission](../project-mission.md)が目的、[ACP First](cursor-integration.md)が方針、[現行実装](current-implementation.md)が実装説明。経緯はIssue/PR、版付き実測はresearch/Case。昇格・履歴の扱いは[知識の正本](knowledge.md) |
 | 製品 / `src/main/` | 入力・IDE context・Agent event → 表示・IDE操作・保存metadata | タブcontroller、project service、通信sessionがそれぞれの寿命を所有 | 下図と[現行実装](current-implementation.md)。token/EDT/復元・保存互換テストと変更Case |
-| テスト / `src/test/`・`scripts/*/test_*.py` | 合成入力・採取fixture・固定build → 限定した証拠 | writerが適切な層を選択、独立reviewerが実経路と限界を確認、指定GUI担当が実観察 | [検証手順](../verification/README.md)。単体=状態、契約=parser/fake ACP、結合=service/listener接続、GUI=IDE操作と実Agent。#231が6安全条件との対応を所有 |
+| テスト / `src/test/`・`scripts/*/test_*.py` | 合成入力・採取fixture・固定build → 限定した証拠 | writerが適切な層を選択、独立reviewerが実経路と限界を確認、指定GUI担当が実観察 | [検証手順](../verification/README.md)。単体=状態、契約=parser/fake ACP、結合=service/listener接続、GUI=IDE操作と実Agent。[6安全条件の対応](../verification/lifecycle-contracts.md) |
 | 開発運用 / `scripts/workflow/` | Issue/PR・trusted base・private登録 → 判定・GitHub更新 | PM/coordinatorがclaimと固定SHAを照合、独立sessionがレビュー | [PR自動進行](../development/pr-automation.md)、[GUI lease](../development/gui-coordination.md)。公開metadataとprivate registryを分離し、失敗は停止・再試行へ |
 | ビルド・配布 / Gradle・`.github/workflows/` | source/SDK/依存 → Plugin ZIP | Gradleが生成、CIが検証、配布scriptがbranchとbuild SHAを照合 | [Change Impact](../development/change-impact.md)、[ZIP配布](../development/plugin-zip-delivery.md)。source HEAD、ZIPのbuild SHA、実ロードbuildは別々に確認 |
 
