@@ -119,7 +119,7 @@ metadataの欠損だけでは旧メッセージと最終flushを完全に識別�
 
 最小範囲は`StreamJsonParser/StreamEvent`での情報保持 → `AgentProcessService`の配送 →
 print本文正規化。現`TurnAssistantText`の全文出力と#44の保存/ID基盤へ二重正規化を加えない。
-#230を差戻したり#44にwire調査を担わせたりしない。今回の具体不具合の専用IssueはPMが分離する。
+#230を差戻したり#44にwire調査を担わせたりしない。今回の具体不具合は[修正 #254](https://github.com/shinma06/cursor-in-android-studio/issues/254)へ分離した。
 既存検索は`dedup`、`stream-json`、`文字 欠落`をopen/allで確認し、#116/#246等以外に同じ実wire
 欠落・重複を修正する専用Issueは見つからなかった（検索範囲内の結果）。
 
@@ -145,5 +145,13 @@ print本文正規化。現`TurnAssistantText`の全文出力と#44の保存/ID�
 未観測: Auto内部model、全CLI版/全model、実wireのnull/不正metadata・訂正再送・result-only/error-result、
 断片的なOS read境界、固定build GUI。未観測条件を作るための追加推論は行わない。
 
-次の有効な順序は、PMによる修正Issue/共有境界の確定 → metadata対応と再生正常化 → #246の固定build確認。
+次の有効な順序は、PMによる#254と#44の共有境界の確定 → #254のmetadata対応と再生正常化 → #246の固定build確認。
 #117/#118/#10/#149等の独立調査を#116全体へ依存させない。
+
+## 検証結果
+
+追加5 testsと既存本文/EDT配送の限定実行が成功。共通Change ImpactはTEST/TOOLING/KNOWLEDGEを選び、
+全JUnit 214件・workflow 158件・loop 11件が成功（failure/error/skipなし）。製品変更がないためZIP生成は不要と判定。
+JSON schema、projection許可フィールド、相対リンクと`git diff --check`を照合した。
+独立レビューとdevelop統合の最新結果は[PR #252](https://github.com/shinma06/cursor-in-android-studio/pull/252)を正本とする。
+#254の修正完了は#116調査成果の統合条件ではなく、製品表示の完了条件として追跡する。
