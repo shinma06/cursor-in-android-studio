@@ -163,7 +163,7 @@ internal open class TokenCountsButton : JButton() {
                 (height - inset * 2).coerceAtLeast(0.0), arc, arc,
             )
             if (model.isRollover || model.isPressed || hasFocus()) {
-                copy.color = AgentUiColors.userBubbleBackground
+                copy.color = JBUI.CurrentTheme.ActionButton.pressedBackground()
                 copy.fill(outline)
             }
             icon?.let {

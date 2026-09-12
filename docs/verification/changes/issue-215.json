@@ -6,7 +6,7 @@
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
     "./gradlew buildPluginとZIP CRC/SHA256",
-    "NaturalFocusPaintTest: 合成Light/Dark/寸法/scaleでfocus=hover、通常状態との差、Mode/ONOFF/Space/disabled維持",
+    "NaturalFocusPaintTest: 合成Light/Dark/寸法/scaleでfocus=hover、通常状態との差、composer背景合成後のコントラスト下限、Mode/ONOFF/Space/disabled維持",
     "既存Composer/ModelOptionsPopup/SelectorPopup/PromptFocusTraversal/SelectorGeometry/ContextUsageの回帰",
     "全hasFocus/drawRoundRect callerと変更外の送信Stop/IME/selection/所有経路を固定diffで照合",
     "固定HEAD/base独立レビュー、git diff --check"

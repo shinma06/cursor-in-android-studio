@@ -8,9 +8,9 @@
 
 | 描画の正本 | 全利用箇所 | 修正 |
 | --- | --- | --- |
-| SelectorButton | ModeSelectorのAgent/Plan/Ask、ModelSelectorのprint/ACP入口、ModelOptionsPopupPanelのModel/Auto・option・戻る行、Composerの送信/Stop、トークン数パネルの閉じる | focus strokeを削除。既存userBubbleBackgroundによるhover/focusをpillColorより優先し、固定色Modeでも操作対象を識別する。Modeのcaption/icon/foregroundと通常時のpillColorは維持 |
+| SelectorButton | ModeSelectorのAgent/Plan/Ask、ModelSelectorのprint/ACP入口、ModelOptionsPopupPanelのModel/Auto・option・戻る行、Composerの送信/Stop、トークン数パネルの閉じる | focus strokeを削除。通常のボタンはIDE標準ActionButton.pressedBackgroundでhover/focusを示す。固定色Modeは既存userBubbleBackgroundをpillColorより優先して操作対象を識別する。Modeのcaption/icon/foregroundと通常時のpillColorは維持 |
 | ModelPopupPanel内AutoToggle | ModelOptionsPopupPanelのThinking/Fast等のboolean option | focus strokeを削除。hover/focus時だけ既存trackとuserBubbleBackgroundを混ぜる。ON/OFFのtrack色の差、白いつまみと位置、寸法は維持 |
-| ContextUsageView内TokenCountsButton | Composerのトークン数を開閉するボタン | focus strokeのみ削除。既存hover/pressed/focusの背景と、中央に置くdocument glyphを維持 |
+| ContextUsageView内TokenCountsButton | Composerのトークン数を開閉するボタン | focus strokeを削除。hover/pressed/focusはIDE標準ActionButton.pressedBackgroundを用い、中央に置くdocument glyphを維持 |
 
 AgentUiColors.RoundedBorderは常設surface境界、SessionTabStripのround rectangleはアイコンの図形で、focus枠ではないため変更しない。標準リストの選択背景/チェック、hover時の子popup展開、入力カーソル、検索欄やIME、その他の装飾は対象外。新しい色体系・共通描画基盤・依存は追加しない。
 
@@ -22,7 +22,7 @@ JButton/JToggleButtonの既存focusable、InputMap/ActionMap、action listener�
 
 ## CLI検証の範囲
 
-NaturalFocusPaintTestはEDT上の画像描画と一時的なFocusManagerで、独自枠のないfocus/hover一致、通常状態との違い、Modeの識別/寸法、toggleのON/OFFの違い、標準Space actionとdisabled時の無反応を検証する。JBColorのLight/Dark、サイズ28/32、device scale1/1.25/1.5/2を合成確認し、終了時にtheme/focus managerを戻す。これは実IDEテーマ/Compact/OS focusのGUI観察ではない。
+NaturalFocusPaintTestはEDT上の画像描画と一時的なFocusManagerで、独自枠のないfocus/hover一致、通常状態との違い、Modeの識別/寸法、toggleのON/OFFの違い、標準Space actionとdisabled時の無反応を検証する。JBColorのLight/Dark、サイズ28/32、device scale1/1.25/1.5/2を合成確認し、終了時にtheme/UIManager/focus managerを戻す。無地のSelectorとtokenはcomposer背景へ合成し、対象SDKのLight/Dark標準pressed背景（alpha含む）で通常時とのコントラスト比が1.25以上になる回帰チェックも行う。この値は旧Dark背景差約1.024への後戻りを検出する下限であり、アクセシビリティ適合の判定ではない。これは実IDEテーマ/Compact/OS focusのGUI観察ではない。
 
 既存SelectorGeometryTest、ComposerControlsTest、ModelOptionsPopupPanelTest、SelectorPopupControllerTest、PromptFocusTraversalTest、ContextUsageTest等を実行する。tokenの中央配置、popup選択/取消/所有解放、入力と選択の既存契約を保持する。送信/Stopのcall siteはbyte不変を照合し、実機操作はCaseに残す。
 

@@ -2,10 +2,13 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.AgentSettingsState
+import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.composer.context.TokenCountsButton
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.awt.Color
 import java.awt.Component
 import java.awt.DefaultKeyboardFocusManager
 import java.awt.KeyboardFocusManager
@@ -15,12 +18,14 @@ import javax.swing.AbstractButton
 import javax.swing.JComponent
 import javax.swing.KeyStroke
 import javax.swing.SwingUtilities
+import javax.swing.UIManager
 import kotlin.math.ceil
 
 class NaturalFocusPaintTest {
     private fun withFocus(test: ((Component?) -> Unit) -> Unit) = SwingUtilities.invokeAndWait {
         val previousManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
         val previousDark = !JBColor.isBright()
+        val previousPressedBackground = UIManager.get("ActionButton.pressedBackground")
         var owner: Component? = null
         KeyboardFocusManager.setCurrentKeyboardFocusManager(object : DefaultKeyboardFocusManager() {
             override fun getFocusOwner(): Component? = owner
@@ -30,13 +35,28 @@ class NaturalFocusPaintTest {
         } finally {
             KeyboardFocusManager.setCurrentKeyboardFocusManager(previousManager)
             JBColor.setDark(previousDark)
+            if (previousPressedBackground == null) {
+                UIManager.getDefaults().remove("ActionButton.pressedBackground")
+            } else {
+                UIManager.put("ActionButton.pressedBackground", previousPressedBackground)
+            }
         }
     }
 
-    private fun pixels(button: AbstractButton, scale: Double = 1.0): IntArray {
+    private fun theme(dark: Boolean) {
+        JBColor.setDark(dark)
+        // Target SDK expUI themes: pressedBackground is #FFFFFF26 / #0000001D.
+        UIManager.put("ActionButton.pressedBackground", if (dark) Color(255, 255, 255, 0x26) else Color(0, 0, 0, 0x1D))
+    }
+
+    private fun pixels(button: AbstractButton, scale: Double = 1.0, background: Color? = null): IntArray {
         val image = BufferedImage(ceil(button.width * scale).toInt(), ceil(button.height * scale).toInt(), BufferedImage.TYPE_INT_ARGB)
         val graphics = image.createGraphics()
         try {
+            if (background != null) {
+                graphics.color = background
+                graphics.fillRect(0, 0, image.width, image.height)
+            }
             graphics.scale(scale, scale)
             button.paint(graphics)
         } finally {
@@ -48,7 +68,7 @@ class NaturalFocusPaintTest {
     @Test
     fun `focus shares hover paint without an extra frame and keeps toggle states distinct`() = withFocus { focus ->
         for (dark in listOf(false, true)) {
-            JBColor.setDark(dark)
+            theme(dark)
             for (height in listOf(28, 32)) for (scale in listOf(1.0, 1.25, 1.5, 2.0)) {
                 val selector = SelectorButton().apply { setSize(96, height) }
                 val counts = TokenCountsButton().apply { setSize(height, height) }
@@ -84,7 +104,7 @@ class NaturalFocusPaintTest {
     @Test
     fun `mode pills retain selection identity while keyboard focus becomes visible`() = withFocus { focus ->
         for (dark in listOf(false, true)) {
-            JBColor.setDark(dark)
+            theme(dark)
             val settings = AgentSettingsState()
             val mode = ModeSelector(settings)
             for (value in AgentMode.entries) {
@@ -108,6 +128,27 @@ class NaturalFocusPaintTest {
                 assertSame(icon, mode.icon)
                 assertEquals(accessibleName, mode.accessibleContext.accessibleName)
                 assertEquals(preferred, mode.preferredSize)
+            }
+        }
+    }
+
+    @Test
+    fun `plain controls remain distinguishable when focus is composited onto composer background`() = withFocus { focus ->
+        for (dark in listOf(false, true)) {
+            theme(dark)
+            for (button in listOf(SelectorButton(), TokenCountsButton())) {
+                button.setSize(28, 28)
+                focus(null)
+                val normal = pixels(button, background = AgentUiColors.composerBackground)
+                focus(button)
+                val focused = pixels(button, background = AgentUiColors.composerBackground)
+                val center = button.width * (button.height / 2) + button.width / 2
+                val contrast = ColorUtil.calculateContrastRatio(Color(normal[center]), Color(focused[center]))
+                // Regression floor for the existing IDE fill, not an accessibility conformance claim.
+                assertTrue(contrast >= 1.25, "Focus disappears into parent: dark=$dark contrast=$contrast")
+                focus(null)
+                button.model.isRollover = true
+                assertArrayEquals(focused, pixels(button, background = AgentUiColors.composerBackground))
             }
         }
     }
