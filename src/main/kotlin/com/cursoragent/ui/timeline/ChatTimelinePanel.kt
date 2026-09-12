@@ -68,6 +68,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     var isActiveTab: Boolean = true
+    private var readingHistory = false
 
     private var currentAssistantBubble: AssistantMessageBubble? = null
     private var currentStatusRow: StatusMessageRow? = null
@@ -84,6 +85,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     fun addUserMessage(text: String): UserMessageBubble {
+        readingHistory = false
         structuredTools.clear()
         planRow = null
         hideEmptyState()
@@ -232,9 +234,27 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         }
     }
 
+    /** Resolve the hit against the current snapshot; never infer a different row after a stale hit. */
+    fun scrollToHistoryMatch(conversation: com.cursoragent.history.Conversation, messageId: String, query: String): Boolean {
+        val bodies = conversation.turns.flatMap { it.messages }.filter { it.role == "user" || it.role == "assistant" }
+        val index = bodies.indexOfFirst { it.id == messageId && it.text.contains(query, ignoreCase = true) }
+        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble }
+        if (index < 0 || rows.size != bodies.size) {
+            setSaveStatus("検索後に本文が変わりました。履歴を開き直して検索してください。")
+            return false
+        }
+        val row = rows[index]
+        if (!isActiveTab || row.parent !== messagesPanel) return false
+        readingHistory = true
+        messagesPanel.scrollRectToVisible(row.bounds)
+        row.isFocusable = true
+        row.requestFocusInWindow()
+        return true
+    }
+
     private fun scrollToBottom() {
         SwingUtilities.invokeLater {
-            if (!isActiveTab) return@invokeLater
+            if (!isActiveTab || readingHistory) return@invokeLater
             val bar = scrollPane.verticalScrollBar
             bar.value = bar.maximum
         }

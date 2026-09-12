@@ -41,6 +41,7 @@ internal class ToolWindowChatActions(
     onEditorSettings: () -> Unit,
     onIconVisibilityChanged: () -> Unit,
     onBrowser: () -> Unit,
+    onExport: () -> Unit = {},
 ) {
     val titleActions = listOf(
         action("新規チャット", "新しいタブでチャットを開始します。", AllIcons.General.Add, toolbarVisible = { settings.showNewChatIcon }) { onNewChat() },
@@ -48,6 +49,7 @@ internal class ToolWindowChatActions(
     )
 
     val gearActions = DefaultActionGroup(titleActions + listOf(
+        action("会話を書き出す…", "選択中の会話の現在までの本文をMarkdownへ保存します。") { onExport() },
         action("開いているチャット…", "このウィンドウの会話タブを検索して切り替えます。", perform = onOpenedChats),
         action("すべてのチャットを閉じる…", "会話本文・下書きの消失と実行停止を確認してから、チャットだけを閉じます。") { onCloseAllChats() },
         action("ブラウザーを開く…", "IDE内でURLを入力して手動で閲覧します。Agentによる操作・会話への共有は未接続です。") { onBrowser() },

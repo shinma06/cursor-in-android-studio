@@ -54,3 +54,5 @@ ACP標準の[session/loadとsession/resume](https://agentclientprotocol.com/prot
 Case正本は[issue-44.json](../verification/changes/issue-44.json)。移行・破損・容量/書込み失敗・ID/順序・未完turn・PRINT/ACP非互換はConversationStoreTestとConversationResumeRootTest、イベント/Stop guardは既存dispatch/text/tab回帰と組み合わせる。実IDE再起動は同じ固定buildを指定GUI lease担当が確認し、未観察はpendingでQAへ引き継ぐ。
 
 #45/#47/#48へConversation/SavedTurn/ChatMessageと独立IDを渡す。共有controller/listener/ComposerはEngineer Bが直列writer、scripts/workflowはEngineer A、#116は研究担当。次回の保存型/ID/配置/イベント境界変更時はwriterと独立reviewerが旧XML/v1 fixture、失敗隔離、秘密の保存範囲、再実行禁止を既存レビューで確認する。運用効果は次回の実変更まで未測定。High Impact監査はPMの#251へ統合する。
+
+#45の保存会話検索/Markdown出力は[検索・出力契約](conversation-search-export.md)を参照。v1と元入力/安全tool要約の保存範囲を再利用し、原文を再正規化しない。

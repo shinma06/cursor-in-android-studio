@@ -74,15 +74,23 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        onExport = { TranscriptExport(project).export(selectedView?.controller?.conversationSnapshot()) },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
-        onChatResumed = { conversation, legacyId ->
+        onChatResumed = { conversation, legacyId, match, query ->
             if (conversation != null) {
                 sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
             } else {
                 sessions.open(legacyId)
             }
             showSelected(conversation, legacyId != null)
+            if (match != null) {
+                val view = selectedView
+                javax.swing.SwingUtilities.invokeLater {
+                    val current = view?.controller?.conversationSnapshot()
+                    if (current != null) view.timeline.scrollToHistoryMatch(current, match.messageId, query)
+                }
+            }
         },
         isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
     )
