@@ -19,7 +19,7 @@
         "タブ1つで固定UIとの間に余白を作る。固定UI左に隔線がないことを確認する。幅を狭めてタブがちょうど接する/途中で切れると隔線が出ることを確認する。",
         "固定UIに接するタブを選択/非選択に切り替え、スクロール終端と途中でも隔線が表示されることを確認する。",
         "タブ追加/削除/並べ替え、resize、固定アイコンの表示/非表示で境界を往復する。余白が戻ったら隔線が消え、各Action・横スクロール・hover/close・隠す/再表示が動くことを確認する。",
-        "通常4操作の固定幅108 logical pxとネイティブbuttonの縦寸法38 logical pxが維持され、選択タブの下辺とチャットの継ぎ目が同色であることを確認する。"
+        "通常4操作の固定幅108 logical pxと対象IDEのネイティブbutton縦寸法を維持する。AI-261.26222.65.2614.16204760 / IDE scale 1.0 / Zoom100% / Compact OFFではminimum22×34とInsets(1,2,1,2)からbutton26×36、toolbar108×36となる。選択タブの下辺とチャットの継ぎ目が同色であることも確認する。"
       ],
       "expected": "余白・非選択タブ・固定UIは同じタブエリア背景。選択タブはIDE ToolWindow背景と同色。固定UI左の隔線はタブが接する/被る場合だけ表示され、選択状態には依存しない。既存操作と寸法を維持する。",
       "history": [],
@@ -31,7 +31,9 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/189",
         "https://github.com/shinma06/cursor-in-android-studio/issues/185",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/188"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/188",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/210",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/191#issuecomment-5643240089"
       ],
       "gpt": {
         "actor": "gpt",
