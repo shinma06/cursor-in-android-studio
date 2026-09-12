@@ -74,6 +74,8 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
+        onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId ->

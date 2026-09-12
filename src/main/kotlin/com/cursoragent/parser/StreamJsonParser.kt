@@ -88,6 +88,8 @@ class StreamJsonParser(
                     result = json.get("result")?.asString,
                     isError = json.get("is_error")?.asBoolean == true,
                     usage = TokenUsage.parse(json.get("usage")),
+                    requestId = parsePrintRequestId(json.get("request_id")),
+                    subtype = json.get("subtype")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString,
                 )
             }
 
@@ -162,7 +164,19 @@ sealed interface StreamEvent {
         val result: String?,
         val isError: Boolean,
         val usage: TokenUsage? = null,
+        val requestId: String? = null,
+        val subtype: String? = null,
     ) : StreamEvent
 
     data class Unknown(val type: String, val trimmed: String) : StreamEvent
+}
+
+/** Keep opaque provider IDs byte-for-byte; a bad optional field must not discard the Result. */
+internal fun parsePrintRequestId(value: com.google.gson.JsonElement?): String? {
+    if (value == null || !value.isJsonPrimitive || !value.asJsonPrimitive.isString) return null
+    val id = value.asString
+    return id.takeIf {
+        it.isNotEmpty() && it.length <= 1024 && !it.first().isWhitespace() && !it.last().isWhitespace() &&
+            it.none(Char::isISOControl) && Charsets.UTF_8.newEncoder().canEncode(it) && it.toByteArray(Charsets.UTF_8).size <= 1024
+    }
 }
