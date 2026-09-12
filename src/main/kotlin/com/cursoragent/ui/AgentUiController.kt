@@ -127,9 +127,11 @@ class AgentUiController(
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
         timeline = timeline,
-        composer = composer,
+        onUsage = composer.contextUsage::update,
+        onConfiguration = composer::showAcpConfiguration,
         recorder = recorder,
         changes = changes,
+        beforeRevert = ::pauseQueue,
         onRunFinished = ::finishRun,
     )
     init {
@@ -179,6 +181,7 @@ class AgentUiController(
 
     fun showChanges() {
         if (disposed || project.isDisposed) return
+        pauseQueue()
         changesDialog?.let { it.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE); changesDialog = null; return }
         val snapshot = changes.snapshot()
         val generation = turnGeneration
@@ -190,11 +193,14 @@ class AgentUiController(
             onDiff = { file -> if (!disposed && !project.isDisposed && file.canShowDiff) {
                 DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
             } },
-            onRevert = { file -> if (!disposed && !project.isDisposed && file.revertRejection == null) {
-                DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
-                    timeline.showStatus("ファイルを編集前に戻しました")
+            onRevert = { file ->
+                pauseQueue()
+                if (!disposed && !project.isDisposed && file.revertRejection == null) {
+                    DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
+                        timeline.showStatus("ファイルを編集前に戻しました")
+                    }
                 }
-            } },
+            },
             onConversation = { if (!disposed && !project.isDisposed) onShowConversation() },
         )
         changesDialog = dialog

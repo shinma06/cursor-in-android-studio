@@ -10,7 +10,6 @@ import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.service.displayText
 import com.cursoragent.service.taskStatusText
-import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -24,10 +23,12 @@ import javax.swing.SwingUtilities
 internal class AgentTurnListenerFactory(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
-    private val composer: ComposerPanel,
+    private val onUsage: (Long, com.cursoragent.parser.TokenUsage?) -> Unit,
+    private val onConfiguration: (AgentEvent.Configuration) -> Unit,
     private val recorder: ConversationRecorder,
     private val onRunFinished: (successful: Boolean) -> Unit,
     private val changes: ConversationChanges,
+    private val beforeRevert: () -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -77,7 +78,7 @@ internal class AgentTurnListenerFactory(
                         }
                         is AgentEvent.Input -> timeline.addInputRequest(event.request)
                         is AgentEvent.Plan -> timeline.showPlan(event.entries)
-                        is AgentEvent.Configuration -> composer.showAcpConfiguration(event)
+                        is AgentEvent.Configuration -> onConfiguration(event)
                     }
                 }
             }
@@ -112,7 +113,7 @@ internal class AgentTurnListenerFactory(
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
-                update { composer.contextUsage.update(usageTicket, usage) }
+                update { onUsage(usageTicket, usage) }
             }
 
             override fun onResultFallback(text: String) {
@@ -163,6 +164,7 @@ internal class AgentTurnListenerFactory(
                                 )
                             },
                             onRevert = {
+                                beforeRevert()
                                 DiffViewerHelper.revertObservedEdit(project, edit.path, edit.beforeContent, edit.afterContent, target) {
                                     timeline.showStatus("ファイルを編集前に戻しました")
                                 }

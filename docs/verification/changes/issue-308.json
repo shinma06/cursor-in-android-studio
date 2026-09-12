@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "issue": 308,
+  "gui_required": true,
+  "reason": "QUEUE-REVIEW-PAUSE / QUEUE-REVERT-GUARDS / QUEUE-CHANGE-TURNSの組合せを固定IDEで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *QueuedRevertDispatchTest --tests *ConversationChangesTest --tests *PromptQueueTest --tests *FileRevertOperationTest --tests *PrintRecordingDispatchTest",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューでController/Factoryの全入口と依存mergeを確認"
+  ],
+  "cases": [
+    {
+      "id": "QUEUE-REVIEW-PAUSE",
+      "issue": 308,
+      "change": "変更確認・取消で予約送信を停止",
+      "preconditions": "指定GUI担当がleaseを取得し、#308と依存#47/#48/#296を含む固定候補のHEAD/ZIP hash/loaded JARを照合する。使い捨てprojectと公開可能な合成fixtureを使う。",
+      "steps": [
+        "固定候補で使い捨てprojectのprint会話を実行し、明示contextを含む追加入力を2件予約する。別タブでも独立した実行を始める。",
+        "親終了直後の次予約配送前に変更一覧を開く。予約が停止表示となり次の送信が始まらず、別タブの実行と未登録draft・予約内容/contextが保たれることを確認する。",
+        "一覧を閉じる/会話へ戻る/同じ一覧ボタンで閉じる操作後も自動再開しないことを確認する。checkpointの確認で取消した場合も同様に確認する。",
+        "予約一覧から明示的に再開し、現在の先頭entryだけが一度送られることを確認する。古い配送ticketを復活させず、タブ切替/Stop/close後の遅着を拒否する。"
+      ],
+      "expected": "各確認入口で対象会話の予約をpauseし、取消後も停止を保つ。別タブ・予約本文・context・未登録draftは保持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/308",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/47",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/48"
+      ]
+    },
+    {
+      "id": "QUEUE-REVERT-GUARDS",
+      "issue": 308,
+      "change": "一覧・カードRevertと既存復元保護",
+      "preconditions": "指定GUI担当がleaseを取得し、#308と依存#47/#48/#296を含む固定候補のHEAD/ZIP hash/loaded JARを照合する。使い捨てprojectと公開可能な合成fixtureを使う。",
+      "steps": [
+        "printの既知before/after編集と次の予約を用意し、一覧RevertとカードRevertをそれぞれ操作する。復元予約より先にqueue停止となることを確認する。",
+        "実行中/復元予約中、現在afterの後続変更、未保存内容、root移動、root外、ISOLATED、古い一覧snapshotを用意し、既存の拒否が維持されることを確認する。",
+        "拒否・busy・取消後に予約が自動再開しないこと、確認できる正しいbefore/afterだけが復元されることを確認する。",
+        "ACPは差分閲覧のみ、履歴再表示のカードから復元しないことを確認する。"
+      ],
+      "expected": "予約停止を復元承認と扱わず、既存gate・root・after・未保存・来歴の検査を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/308",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/47",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/48"
+      ]
+    },
+    {
+      "id": "QUEUE-CHANGE-TURNS",
+      "issue": 308,
+      "change": "手動・予約送信の実turn別変更集約",
+      "preconditions": "指定GUI担当がleaseを取得し、#308と依存#47/#48/#296を含む固定候補のHEAD/ZIP hash/loaded JARを照合する。使い捨てprojectと公開可能な合成fixtureを使う。",
+      "steps": [
+        "同じ会話で手動送信→予約送信の順に編集を発生させる。会話全体/各ターンの一覧で両方の編集が分離・集約されることを確認する。",
+        "providerがcall IDを再利用する合成fixtureでも実turn IDで別記録になることを確認する。printの最終本文が保存されてから成功時だけ次予約が始まることを確認する。",
+        "親失敗/Stop/不確定終了で次予約が始まらず、Task終了表示・ACP非テキストの順序/保存・明示contextを損なわないことを確認する。"
+      ],
+      "expected": "共通startPromptを通る手動/予約の実turn IDを保持し、成功終端とtoken終了後の配送を守る。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/308",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/47",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/48"
+      ]
+    }
+  ]
+}
