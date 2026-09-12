@@ -40,22 +40,13 @@ class AgentTurnListenerFactory(
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
         }
-        var assistantStarted = false
-        val assistantDeduper = AssistantChunkDeduper()
-        val structuredText = StringBuilder()
+        val assistantText = TurnAssistantText(timeline::setAssistantText, timeline::finalizeAssistantMessage)
 
         return object : AgentProcessListener {
             override fun onStructuredEvent(event: AgentEvent) {
                 update {
                     when (event) {
-                        is AgentEvent.Text -> {
-                            if (event.startsMessage) {
-                                structuredText.clear()
-                                timeline.finalizeAssistantMessage()
-                            }
-                            structuredText.append(event.text)
-                            timeline.setAssistantText(structuredText.toString())
-                        }
+                        is AgentEvent.Text -> assistantText.acpDelta(event)
                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
                         is AgentEvent.Tool -> timeline.upsertStructuredTool(event.state) { diff ->
                             DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
@@ -88,14 +79,7 @@ class AgentTurnListenerFactory(
             }
 
             override fun onAssistantDelta(text: String) {
-                update {
-                    val full = assistantDeduper.dedupe(text) ?: return@update
-                    if (!assistantStarted) {
-                        timeline.ensureAssistantBubble()
-                        assistantStarted = true
-                    }
-                    timeline.setAssistantText(full)
-                }
+                update { assistantText.printDelta(text) }
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -103,11 +87,7 @@ class AgentTurnListenerFactory(
             }
 
             override fun onResultFallback(text: String) {
-                update {
-                    if (assistantStarted) return@update
-                    timeline.setAssistantText(text)
-                    assistantStarted = true
-                }
+                update { assistantText.printFallback(text) }
             }
 
             override fun onThinking(text: String) {
@@ -235,4 +215,35 @@ internal fun updateCurrentTurnOnEdt(
 ) {
     val update = { if (!isDisposed() && isCurrent() && (allowStopped || !isStopped())) block() }
     if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
+}
+
+/** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+internal class TurnAssistantText(
+    private val replaceText: (String) -> Unit,
+    private val startMessage: () -> Unit,
+) {
+    private val printDeduper = AssistantChunkDeduper()
+    private var printStarted = false
+    private val acpText = StringBuilder()
+
+    fun printDelta(text: String) {
+        val full = printDeduper.dedupe(text) ?: return
+        printStarted = true
+        replaceText(full)
+    }
+
+    fun printFallback(text: String) {
+        if (printStarted) return
+        replaceText(text)
+        printStarted = true
+    }
+
+    fun acpDelta(event: AgentEvent.Text) {
+        if (event.startsMessage) {
+            acpText.clear()
+            startMessage()
+        }
+        acpText.append(event.text)
+        replaceText(acpText.toString())
+    }
 }

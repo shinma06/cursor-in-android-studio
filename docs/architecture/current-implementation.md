@@ -90,3 +90,5 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 `androidStudio()`のURL解決失敗とGradle9移行の旧調査は[固定版のCommands](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#commands)にある。この回避経路は現在のbuild/CIで確認できるが、旧plugin版での失敗を新版でも未修正と断定しない。変更時は現在の依存と解決結果を再検証する。標準buildPluginと配布物の識別は[ZIP配布](../development/plugin-zip-delivery.md)を正本とする。
 
 送信前の設定利用可否と実行境界のvalidation、同一snapshotの捕捉/受け渡しは [設定検証の境界](settings-boundary.md)を参照。設定/準備変更のwriterと独立reviewerが早期拒否位置と通信側防御を照合する。
+
+print/ACPの本文・思考・tool・要求返答・終端・usageと、全文置換/メッセージ境界の分離理由は [UIイベント契約](event-contracts.md)を参照。イベント変更のwriterと独立reviewerがwire/表示/未知処理と実経路テストを照合する。
