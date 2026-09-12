@@ -130,338 +130,39 @@ remains in #152. See the current implementation document for transport scope and
 `docs/cursor-agent-plugin-requirements.md` records detailed requirements and implementation status
 under the mission and ACP First policy. Read these before adding features.
 
-## Current blocker (check this before picking a task)
+## 開発・検証の入口
 
-The verification account used for the **original M0 spike** was Cursor **Free tier**, which hit
-`resource_exhausted` on chat turns. That blocker is **resolved for Teams-plan sessions** — verified
-2026-09-04 with `~/.local/bin/agent` logged in as a Teams account: plain chat, file edits, and
-shell tool calls all succeed and produce rich `tool_call` events (`readToolCall`/`editToolCall`/
-`shellToolCall` with `subtype` `started`/`completed`).
+[全体設計](docs/architecture/README.md)から担当境界を確認し、[現行実装](docs/architecture/current-implementation.md)を読んで変更する。設計判断と履歴を整理するときは[知識の正本](docs/architecture/knowledge.md)を使う。旧checkout由来の指摘は最新baseと照合し、修正済みなら撤回する。
 
-**2026-09-06**: the primary maintainer's own account moved off Free tier to a **Cursor Pro**
-subscription, independent of the Teams-plan finding above. Going forward, day-to-day development
-and verification on this repo happens on **Pro or Teams plan** accounts — Free tier is no longer
-in the loop for anyone actively working on this project, so don't design around or re-verify the
-Free-tier `resource_exhausted` limitation unless someone specifically reintroduces a Free-tier
-account into testing.
-
-**Critical CLI behavior for M4 design (verified live):** in headless subprocess mode, file edits
-are **applied immediately by the CLI even without `--force`** (`permissionMode: default`). The
-plugin cannot intercept writes before they happen — F-30/F-31 are implemented as **post-hoc diff
-view + Revert** (restore `beforeFullFileContent` from the completed `editToolCall` event, or use
-checkpoints), not pre-apply approval gating.
-
-F-60 image UI remains unimplemented. The 2026-09-04 absence of an image flag is historical; the current documented headless path-reference route needs a live spike in #10 (see the capability matrix).
-
-## Commands
-
-[Change Impact](docs/development/change-impact.md)をCI・hook・自動進行役・ZIP生成で共通利用する。Knowledge/Metadataだけは重いコード検証を省略し、runtime/build/test/tooling・混在・unknownには必要な検証を残す。新しい入力/同梱resourceを追加したら分類も更新する。PR/独立review/Acceptance/GUI受入のgateは維持する。
+[Change Impact](docs/development/change-impact.md)をCI・hook・coordinator・ZIP生成で共通利用する。push前は `python3 scripts/workflow/change_impact.py --run-tests`。混在/unknownの検証、明示buildとGUI、独立review/Acceptance gateは維持し、`--no-verify`・保護無効化を使わない。
 
 ```bash
-# Gradle itself needs JDK 17+; Kotlin compilation uses a JDK 21 toolchain
-# (auto-provisioned via the foojay-resolver plugin, independent of JAVA_HOME).
 export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
-
-./gradlew buildPlugin   # produces build/distributions/cursor-in-android-studio-<version>.zip
-./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
-./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin
-python3 scripts/workflow/change_impact.py --run-tests  # selects required pre-push checks
+python3 scripts/workflow/change_impact.py --run-tests
+./gradlew test          # 製品・Kotlinテスト変更のJUnit
+./gradlew buildPlugin   # 標準Plugin ZIPの明示生成
+./gradlew runIde        # GUI leaseが必要
 ```
 
-Gradleとbootstrapは `core.hooksPath .githooks` を設定する。pre-pushは最初にbranch/dirty/fast-forwardを検査し、共通Change Impactから必要なPython/Gradleテストを実行して失敗時にpushを拒否する。push前にも上記の共通コマンドで確認する。知識変更の安全なskipはhook迂回ではなく、`--no-verify`や保護無効化は禁止する。
+Gradle自体はJDK17+、KotlinはJDK21 toolchain。`gradle.properties`の`platformPath`にローカルAndroid StudioのContentsを指定する。CIは取得したSDKのpathを同じ`local()`へ渡す。SDK取得/ZIPの詳細と過去の回避理由は[現行実装のビルド](docs/architecture/current-implementation.md#ビルドと実行環境)。bootstrap/Gradleが `.githooks` を設定し、pre-pushはbranch/dirty/fast-forward保護後に共通分類のテストを実行する。
 
-GitHub Actionsのrequired `test` jobも同じ分類を利用し、実行/skipの理由をsummaryへ記録する。通常の製品変更のJUnitは従来どおり実行し、知識だけならAndroid Studio取得まで省略する。必要時のSDK解決方法は次のとおり。
+開発・検証はPro/Teamsを使う。Free tierの旧resource_exhaustedを通常作業のblockerとして再採用せず、Freeが明示的に再導入された場合だけ再評価する。インストールはSettings → Plugins → ⚙ → Install Plugin from Disk、ZIP選択後restart。[配布ZIPとbuildの識別](docs/development/plugin-zip-delivery.md)とGUI leaseに従う。
 
-- **Local dev** uses `local(providers.gradleProperty("platformPath"))` in `build.gradle.kts`,
-  pointing at a real Android Studio install on the machine (`gradle.properties`).
-- **CI** downloads Android Studio directly in a workflow step (cached by version+codename) and
-  passes the extracted path in as `-PplatformPath`, reusing that exact same `local()` code path
-  rather than a separate resolution mechanism.
-- **Why not the plugin's own `androidStudio()` dependency helper**, which exists for exactly this
-  case: it constructs a broken download URL as of `org.jetbrains.intellij.platform` v2.10.5.
-  Verified by hand — the real artifact (`android-studio-<codename>-linux.tar.gz`) exists and
-  downloads fine over plain HTTP at
-  `https://redirector.gvt1.com/edgedl/android/studio/ide-zips/<version>/android-studio-<codename>-linux.tar.gz`
-  (codename, e.g. `quail3-patch1`, not the version string, in the filename — full list at
-  https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html), but Gradle's own
-  resolution 404s on it regardless of version tried, with or without a `google()` repository added.
-  Upgrading the plugin past 2.10.5 to check for a fix wasn't attempted beyond 2.18.1, which requires
-  Gradle 9 (this project is on 8.13) — a bigger, separate migration, not attempted here. If a future
-  change wants to revisit `androidStudio()` instead of the direct-download workaround, that Gradle
-  9 migration is the prerequisite, not just a version bump in `plugins {}`.
-- If `ci.yml`'s `ANDROID_STUDIO_VERSION`/`ANDROID_STUDIO_CODENAME` ever need to move to a newer
-  release, look both values up together from the releases-list page above — the codename doesn't
-  follow an obvious pattern from the version number alone (e.g. version `2026.1.4.7`'s codename is
-  `quail4`, not `quail4-patch1`, while `2026.1.3.8`'s is `quail3-patch1`).
+## 変更時に保持する制約
 
-**Correction (2026-09, found by an onboarding dry-run — see GitHub issue #13)**: this section used
-to say no test source set exists. That was true when it was written but has been stale since M1
-(commit `f60c7f6`) added `src/test/kotlin` and JUnit5 wiring in `build.gradle.kts`. There is now a
-real test suite (`GitSnapshotStoreTest`, `MarkdownRendererTest`, `MentionTokenExtractorTest`,
-`ModelListParserTest`, `AssistantChunkDeduperTest`, `AgentSettingsStateTest`) — run `./gradlew test`
-and keep it green. There is still no lint/static-analysis task configured. If you're reading a
-stale copy of this file (cached context, an old checkout), don't trust either claim — run
-`./gradlew test` yourself to check, and if this note itself looks wrong, the code is more likely to
-be right than a doc that says "don't assume X exists."
+- tab UUID / chat ID / run token / provider session / OS processは別の寿命。所有タブへ配送し、EDT上でtoken/generation/disposeを再照合する。Stopはそのrunだけ、`killActiveProcess()`は全run cleanup用。
+- editor/VFS/Terminal APIの取得はEDT、Git/checkpoint/process起動は背景へ分ける。Stop後の遅い起動も破棄する。Terminalはoptional登録とLinkageErrorの防御を保持する。
+- printのResultとACP prompt終端を物理終了と同一視しない。準備/実行と復元を排他にし、ACPの不確定終了はproject寿命中の復元を拒否する。ISOLATED/由来不明root、root外、後続編集、未保存内容を推測で復元しない。
+- 現printは標準permissionでも即時編集が起こる。Diff/Revertは事後操作。ACPのpermissionを全書込みの事前承認保証にせず、来歴のないACP差分へRevertを追加しない。
+- printのdeduperは全文置換を返すheuristic。ACPの正当な反復deltaへ流用しない。不正/未知wireを防御的に扱い、採取済みcompletedと推定startedを同じ証拠強度にしない。
+- ACPは新規会話の初回送信前だけ選択可。固定settingsを使い、非対応設定を無視しない。要求への一度だけの返答、取消/拒否/切断を保持し、失敗promptを自動再送しない。
+- 保存XML/enumと既定`PermissionMode.ASK_EVERY_TIME`、Plugin ID、内部tool-window/notification IDを維持。print履歴はmetadataのみ、開いたviewはメモリ内。本文永続化は#44、ACPの旧print ID互換は未保証。本文表示・provider再開・Revert可否は別判定。
+- モデルは実CLI/provider IDを保持し、未知alias/Context容量を推測で発明しない。`New Agent`と#66の命名取得待ちを維持する。画像/Skills/subagentsは公式能力、UI実装、live受入を分ける。
+- Markdownのraw HTMLをそのまま描画しない。秘密・raw error・非公開wireを公開ログや恒久指示へ移さない。#146の公開承認待ちとownerを維持する。
+- Case JSONは受入/証拠の正本。旧MV/run・過去buildのpass・合成テスト成功を新しい固定buildのGUI passにしない。未確認main/GUIは既存QAへ引き継ぐ。
 
-`gradle.properties` sets `platformPath`, which must point at a local Android Studio install
-(`.../Android Studio.app/Contents`) for `buildPlugin`/`runIde` to resolve the platform SDK. This
-is machine-specific; see the two example paths already commented in that file (brew cask default
-vs. Caskroom versioned path).
+制約の理由・実source/test・未知範囲は[現行実装](docs/architecture/current-implementation.md)へ。恒久知識へ入れるのは将来の判断に必要で、適用範囲と第三者が追える根拠/限界があるものだけ。セッションの作業順・修正報告はIssue/PRに記録する。
 
-Manual install (no auto-update channel): Settings → Plugins → ⚙ → Install Plugin from Disk →
-select the built zip → restart IDE.
+## 履歴の参照
 
-## Architecture（2026-09-09 / #142・#147）
-
-設計方針は [ACP First](docs/architecture/cursor-integration.md)、現在のソースの責務・送受信・停止・復元は
-[現行実装](docs/architecture/current-implementation.md) を参照する。#147でACPの明示選択を追加した。既定は互換printを維持し、ACPの固定build GUI受入は別途追跡する。
-
-- `AgentToolWindowRootPanel` → tab別`AgentUiController` → project共通`AgentProcessService`。
-  `SessionTabs`のtab UUID、会話chat ID、ターンrun tokenを分け、複数タブの`AgentRun`を同時に管理する。
-  別タブへの送信で既存processをkillしない。選択タブではなくtokenの所有viewへ配送する。
-- `prepareTurn`でrun/準備予約とworkspace/settingsを固定。EDTのeditor/VFS contextと、背景のGit/checkpoint/CLI起動を分ける。
-  `AgentRun`は準備を含む要求の寿命であり、会話全体やOS processと同一ではない。
-- ACPはタブごとの`AcpSession`がresident接続/provider sessionを所有。text delta・tool partial・permission/質問/Planをtyped eventで配送し、print parser/deduperへ通さない。
-  新規会話の初回送信前だけtransportを選べる。既存print chat IDの流用や、失敗promptの自動再送はしない。
-- 現行printの`StreamJsonParser`/`ToolCallPayloadParser`は不正/未知JSONを防御的に処理。
-  `AgentTurnListenerFactory`はEDT上でtoken/generation/disposeを再照合。`Result`だけでprocess終了と判断しない。
-- 通常Stopはそのrunのみ停止し、`onStopped`表示後にtokenを終了。close/disposeはtoken無効化・detach・停止。
-  `killActiveProcess()`は全runのcleanup用。printの復元予約は物理process終了まで保持する。ACPはprompt終端と観測した子processの終了まで保持し、不確定ならproject寿命中の復元を拒否する。
-- `WorkspaceOperationGate`は複数準備を許可し、準備/実行と復元を排他にする。ISOLATED/未知resume/root不明を復元しない。
-  古いafter・未保存変更・root外を拒否する。過去の「ISOLATEDでもproject rootへ戻す」問題には現在この保護がある。
-- `AssistantChunkDeduper`は全文を返し、timelineは置換する。増分/累積混在の実測はあるがheuristic全体の正しさの証明ではない。
-  started tool payloadは捕捉済みcompleted fixtureと同じ検証強度ではない。cardはcall IDでstarted/completedを置換する。
-- `ChatHistoryState`はmetadataのみ、開いたtab viewはメモリ内。再起動後の本文復元、ACP session IDとの互換性は未実装/未検証。
-  `PermissionMode.ASK_EVERY_TIME`既定値と保存enum/IDを維持する。現行printでは追加flagなしでも即時編集が起こる。
-
-以下の検証・レビュー履歴は記載日時・経路の記録。現在の責務は上記とソースを優先し、当時の未実装/制約を新規設計へ転用しない。
-
-## Verified CLI behavior (from a live spike, 2026-09)
-
-`docs/cursor-agent-plugin-requirements.md` §13 lists several `[要検証]` unknowns about the real
-`cursor-agent` CLI. These are now confirmed against a live install (`agent --version` →
-`2026.09.02-c22c1a3`):
-
-- **`--trust` is required on every invocation.** A workspace the CLI hasn't seen before blocks on
-  an interactive "Workspace Trust Required" prompt with no TTY to answer it, so any subprocess run
-  (like this plugin's) fails outright unless `--trust`/`--yolo`/`-f` is passed. `AgentProcessService
-  .buildCommandLine` now always passes `--trust` unconditionally — opening the project in the IDE
-  is already the user's trust decision, independent of `permissionMode` (which still separately
-  controls `--auto-review`/`--force`, i.e. how much tool-call approval is auto-granted).
-- **`agent ls` / `agent resume` (past-session picker) are Ink-based interactive TUIs that require
-  raw-mode TTY** — they hard-fail (`Raw mode is not supported`) when run through a plain
-  subprocess pipe like `OSProcessHandler`/`GeneralCommandLine`. F-50 (past chats list) cannot shell
-  out to these; it must track `chatId`s itself (plugin-side persistent state), which is what's
-  planned.
-- **`agent mcp` has real subcommands**: `list`, `list-tools <id>`, `enable <id>`, `disable <id>`,
-  `login <id>`. F-71 (MCP enable/disable) doesn't need to hand-edit `.cursor/mcp.json` — shell out
-  to `agent mcp enable`/`disable` instead.
-- **Confirmed `system`/`init` event fields**: `type`, `subtype`, `apiKeySource`, `cwd`,
-  `session_id`, `model`, `permissionMode` — matches what `StreamJsonParser.SessionInit` already
-  reads. Additional event `type`s observed and currently (harmlessly) falling into
-  `StreamEvent.Unknown`: `"user"` (echoes the sent prompt back), `"connection"` (subtype
-  `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
-  telemetry, safe to keep ignoring.
-- **CLI flags verified 2026-09-04**: `--sandbox enabled|disabled`, `-w/--worktree` (no `--image` in `--help`).
-- **Historical scope decision (2026-09-04; updated #114)**: non-TTY transcript retrieval for F-17 remains unverified. F-60 now has a documented path-reference route; lack of `--image` in help is not proof of no image support. Neither feature UI is implemented.
-- **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
-  incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
-  with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
-  includes `beforeFullFileContent`, `afterFullFileContent`, `diffString`, line counts. Completed
-  `shellToolCall` includes `stdout`/`stderr`/`interleavedOutput`/`exitCode`. File writes happen
-  immediately in headless mode even with default permission mode (no `--force`).
-  **Caveat**: only the `completed` shape was actually captured in a live fixture
-  (`src/test/resources/stream-json-fixtures/`); `ToolCallPayloadParser`'s handling of the
-  `started` subtype (reading `args.path`/`args.command`) is inferred from that, not
-  independently confirmed against a captured `started` event — don't treat it as equally
-  verified until one is captured.
-
-## 2026-09 foundation review
-
-Before building further, the pre-existing codebase (the original `6b6eb2f` commit, before any of
-this work) got a dedicated architecture review, and the requirements doc got a comprehensive
-web-research pass against Cursor's actual current Agent panel/CLI capabilities — see GitHub issue
-#2 for the full findings. Highlights:
-
-- **Fixed**: `AgentProcessService.sendPrompt` didn't catch `OSProcessHandler` construction failures
-  (e.g. the `agent` executable missing entirely) — this threw a raw platform exception instead of
-  going through the plugin's own error UI. Now wrapped, routes to `listener.onError`.
-- **Fixed**: process start + checkpoint snapshot + `@git-diff` resolution used to run synchronously
-  on the EDT (`sendPrompt`, `CheckpointService`, `MentionResolver`). All of that is now on a pooled
-  thread; `MentionResolver` is split into `buildFileAndFolderContext` (EDT-safe VFS reads) and
-  `buildShellBackedContext` (spawns `git`, call off-EDT) for this reason — don't merge them back
-  without keeping that split.
-- **Fixed**: deprecated `project.baseDir` replaced with `project.basePath`/`guessProjectDir(project)`
-  throughout.
-- **Fixed**: no way to cancel a hung/long-running turn — `ComposerPanel`'s send button now doubles
-  as a Stop button while a turn is running (`setRunning`/`onStop`), calling
-  `AgentProcessService.killActiveProcess()`.
-- **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
-  heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
-  overstated this as "observed" behavior; see that class's doc comment.
-- **Known backlog, not yet addressed**: further `AgentUiController` decomposition is largely done —
-  `AgentTurnListenerFactory`, `PromptContextBuilder`, and `PastChatsCoordinator` now own the per-turn
-  listener, prompt assembly, and past-chats popup (#11, 2026-09). Settings page and tool-window-close
-  cleanup are done.
-  F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
-  F-52 worktree: basic `-w` toggle (`WorktreeMode.ISOLATED`); changes land under `~/.cursor/worktrees/`.
-  **Known gap**: `CheckpointService`/`GitSnapshotStore` (F-40–44) is hard-wired to `project.basePath`
-  and has no awareness of `WorktreeMode.ISOLATED` — when it's on, the CLI's edits land in the
-  isolated worktree, not `project.basePath`, so checkpoint rollback silently stops matching what
-  the agent actually changed. Not yet fixed; needs either disabling checkpoint rollback while
-  isolated-worktree mode is active, or pointing `GitSnapshotStore` at the worktree path.
-- **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
-  see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
-  `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
-  open questions) and what got corrected (F-60 image-attach support is contradicted between the CLI
-  changelog and the parameters reference — don't assume a flag name until verified live; F-22's old
-  binary force framing undersold the real approval model, now F-24).
-
-## 2026-09 PR #18 review pass
-
-PR #18 (the M4/M5/M9/backlog consolidation described below) got a multi-angle code review before
-merge (4 finder passes + manual verification), which found and fixed several real bugs on paths it
-added — all fixed on top of the original PR before it landed on `main`:
-
-- `AssistantChunkDeduper` returning a fragment for the "cumulative resend" case while the caller
-  appended it — garbled/duplicated the assistant bubble. Fixed by making `dedupe()` always return
-  the full text and the caller always replace (`setAssistantText`), not append. See that class's
-  entry in "Architecture" above.
-- `ChatTimelinePanel` never reconciling a tool call's `started` row with its `completed` card —
-  every tool call left a permanent duplicate row. Fixed via `activeToolCallRows` (keyed by
-  `callId`). See that class's entry in "Architecture" above.
-- `ToolCallPayloadParser` doing an unguarded JSON cast that could throw and abort parsing of the
-  rest of an output chunk — violated the parser package's own defensive-parsing rule. Fixed with
-  `runCatching`, plus a second safety net around `mapEvent()` in `StreamJsonParser.parseLine`.
-- `DiffViewerHelper.revertFileContent` clobbering the file unconditionally — reverting a stale
-  `FileEditCard` (the file changed again since, by a later agent edit or the user) silently
-  discarded that newer content. Fixed: it now refuses (returns `false`) unless the file's current
-  content still matches what that specific edit produced.
-- `plugin.xml` declaring `org.jetbrains.plugins.terminal` as a required dependency — disabling the
-  bundled Terminal plugin would fail the *entire* Cursor Agent plugin to load over one `@terminal`
-  mention feature. Fixed: `optional="true"` + `cursor-agent-terminal.xml`, and
-  `TerminalOutputReader` now also catches `LinkageError` (a disabled/absent Terminal plugin throws
-  that, not a plain `Exception`, when its classes are referenced).
-- `@terminal` mention resolution ran on the background prompt-assembly thread and blocked it on
-  `invokeAndWait` back onto the EDT (the Terminal API needs the EDT) — reintroducing the EDT
-  dependency `MentionResolver`'s file/folder-vs-git split exists to avoid. Fixed by moving
-  `@terminal` into `buildFileAndFolderContext` (the EDT-run half) instead of
-  `buildShellBackedContext` (the background half, now git-only).
-- `AgentNotificationService`'s tool-call notification text claimed "approval may be required,"
-  contradicting this same PR's own finding that the headless CLI applies edits immediately.
-  Reworded (code and Settings page checkbox label).
-
-Not fixed in this pass (documented instead, since each needs a larger design call, not a
-mechanical fix): the `WorktreeMode.ISOLATED`/`CheckpointService` mismatch (see "Known gap" above);
-tool-call notifications still fire once per call with no debouncing; `ToolCallPayloadParser`'s
-`started`-subtype field reads are still unverified against a captured live event (see "Verified
-CLI behavior" above). `./gradlew test` was green throughout (40 tests after this pass, 3 new:
-`StreamJsonParserTest`'s malformed-input case, two `ToolCallPayloadParserTest` defensive-parsing
-cases).
-
-## Implementation history vs. requirements doc
-
-**#27 model option grouping (2026-09-06):** The composer model trigger opens Thinking/Fast/Context/Effort controls and a Model picker. `ModelFamilies` groups recognized trailing alias tokens, retains exact CLI IDs, keeps ambiguous aliases separate, and exposes only transitions compatible with other known options. The family picker searches all variant labels/IDs while showing one row per family. Context choices require multiple explicit capacities from the CLI list; no 300K/other overrides are invented from the screenshot or generic bracket syntax. The current live catalog mostly exposes 1M only. Nested choices use pages in one popup for focus/cancel consistency. MV-044 tracks actual GUI acceptance.
-
-**#19 static UI parity (2026-09-06):** conversation rows now use natural heights and viewport-width wrapping, full-width rounded user cards and unframed assistant text. Composer is a unified rounded surface with button-backed mode/model choosers; model labels/IDs are available in tooltips. `MessageTextPane` caches measured height by width/content/font. This changes the UI only; CLI permissions and rollback semantics are unchanged. Identified-build GUI acceptance is tracked as MV-038 in [the run](docs/loop-engineering/runs/2026-09-06-ui-parity.md); do not infer that all #19/#21/#27 acceptance is complete.
-
-**#27 composer enhancement (2026-09-06):** Model popup has a visible name/ID search field,
-current-selection check, and Auto toggle (collapse manual choices while on; restore the last manual
-model while the selector instance lives). Model trigger uses natural width and clips only when the
-row is narrow, preserving full label/ID in its tooltip. Agent/Plan/Ask have icons and colored pills.
-Input grows to 12 visual lines, then scrolls vertically, and uses the user-requested placeholder
-`Plan, Build, / for skills, @ for context`. Debug/Multitask, Add Models management, and skill execution
-are not added by this appearance change. MV-039 tracks identified-build GUI acceptance.
-A compact UI follow-up uses the IDE label font at 92%, smaller composer spacing/icons, and
-geometric centered chevrons. Selector hit widths come from the painted content, bypassing IDE
-button delegate minimum widths. Final `2fe07ae` is installed; compact geometry and input growth
-were observed, but popup/margin-click GUI QA is blocked by CUA. [MV-041 run](docs/loop-engineering/runs/2026-09-06-compact-ui.md)
-tracks this sizing follow-up independently of MV-039.
-The next follow-up uses remaining settings-row width for Japanese current values, renames session
-summarize/MCP settings actions, and opens mode/model popups above a visible trigger. A shared
-controller handles same-trigger toggling, external-focus dismissal and model-popup resizing; Agent
-has a distinct gray pill. Final `b264791` is installed; Agent background was observed, but settings
-values/popup interactions remain CUA-blocked. [MV-042 run](docs/loop-engineering/runs/2026-09-06-popup-ui.md)
-tracks this follow-up.
-
-**#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
-always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
-sandbox and worktree current values, summarize/MCP/settings actions, and `ImmediateEditNotice`.
-The same Japanese explanation appears in Settings. It explains immediate edits and post-edit Revert.
-The visible Agent/Plan/Ask/model labels and the specified placeholder are retained. Linked Settings
-and MCP dialog labels are Japanese. MV-040 supersedes the former always-visible-notice criterion.
-Permission values/defaults and CLI arguments are unchanged. MV-040 passed on installed `054e2ba`
-([run](docs/loop-engineering/runs/2026-09-06-japanese-options.md)); this does not resolve the
-isolated-worktree/checkpoint mismatch or complete #20.
-
-**UI parity follow-up (2026-09-05; no feature implementation):** the read-only Cursor UI survey is
-[`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).
-The ordered gap plan and acceptance criteria are in
-[`docs/plans/cursor-agent-ui-gap-plan.md`](docs/plans/cursor-agent-ui-gap-plan.md), tracked by
-[issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) under #1.
-The subsequent [Android Studio UI follow-up](docs/research/android-studio-ui-followup-2026-09-05.md)
-confirmed settings navigation and limited display states on an installed `0.1.0-SNAPSHOT`; its
-source SHA is unknown. Model readability (#27) and build/CLI diagnostics (#28) were added.
-Input/menu interactions remain unverified due to UI-tool capture failures; do not mark existing QA passed.
-These are proposed changes, not implemented features. Cursor UI shows four Run Mode options;
-this does not prove matching headless CLI behavior or invalidate the immediate-write finding above.
-That was the 2026-09-05 ordering. Current work follows #141 and the ACP contract audit in #115;
-the dated gap plan does not override ACP First or the current restore protections. Keep existing
-#5 manual QA and #10 multimodal work rather than duplicating them. New execution-based verification
-is separate from the read-only UI evidence and requires an appropriate authorized test scope.
-
-The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines feature scope and IDs.
-Current progress lives in the Project, concrete Issue/PR/QA records and native Milestones;
-see [work management](docs/development/work-management.md). Issue #1 is historical, not the live tracker.
-
-Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
-mode control (F-20), the 3-way permission model (F-22/F-24 redesign: `PermissionMode`, a Stop
-button on the composer while a turn is running), workspace pinning (F-51), Markdown rendering for assistant
-messages (`AssistantMessageBubble`/`MarkdownRenderer`, commonmark-based, HTML-inline/HTML-block
-nodes rendered as escaped text rather than passed through raw — see that file's doc comment for
-why), the git-stash-create-based checkpoint/rollback system (F-40–44: `CheckpointService` +
-`GitSnapshotStore` + `CheckpointHistoryState`, rollback icon on `UserMessageBubble`), `@mention`
-context injection for files/folders/git-diff/docs/web hints (F-10–12, F-14: `ComposerPanel`'s
-`EditorTextField` + `MentionPopupController` + `MentionResolver`), context compression (F-06: an
-overflow-menu item that just sends `/summarize`), dynamic model selection (F-21:
-`AgentProcessService.listModels()` + `ModelListParser`, loaded async on tool-window open), and MCP
-server listing/enable/disable (F-70/F-71: `McpServersDialog`, `agent mcp list/enable/disable`).
-
-**Important finding that unblocked F-21/F-70/F-71**: `--list-models` and `agent mcp list/enable/
-disable` are local metadata operations, not chat turns — they don't consume the same
-per-conversation quota `sendPrompt` does, confirmed by running them successfully while the Free-tier
-account used for the M0 spike was still hitting `resource_exhausted` on actual prompts. They run
-synchronously via `ExecUtil.execAndGetOutput` (`AgentProcessService.runAgentCommandSync`), not
-through the streaming `OSProcessHandler` path `sendPrompt` uses.
-
-Past-chats tracking (F-50) is also implemented: `ChatHistoryState` records `(chatId,
-firstPromptPreview, lastUpdatedMs)` on every turn (since `agent ls`/`agent resume` need a raw TTY
-and can't be shelled out to — see the "Verified CLI behavior" section), and `AgentHeaderBar`'s
-history button opens a popup to resume one. Resuming only continues the *session* for the next
-turn. Plugin-side transcript persistence is still pending in #44; the previous statement that
-replay was a permanent CLI limitation is withdrawn. The print transport's transcript contract is
-unverified. The 2026-09-08 ACP probe returned an empty project-filtered session list, not transcript
-or title data; see the latest matrix and #115/#66. Develop #65 preserves live tab views in memory,
-which is distinct from restoring message bodies after restarting the IDE.
-
-**Implemented (2026-09, M4/M5)**: tool-call timeline cards (F-32: read/edit/shell started +
-completed), file-edit cards with IDE Diff Viewer + Revert (F-30/F-31 as post-hoc model — CLI
-auto-applies edits in headless mode), `ToolCallPayloadParser` + stream-json fixtures from live CLI.
-F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
-
-**Implemented (2026-09, M9/backlog)**: desktop notifications on turn complete/tool-call start
-(`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor in Android Studio**), F-13
-`@terminal` mention (`TerminalOutputReader` via Reworked Terminal API), F-16 `@branch` mention
-(`BranchDiffBuilder`), settings page for `agentExecutablePath` and notification prefs
-(`AgentSettingsConfigurable`), tool-window-close process cleanup (`Disposer` on tool window
-`Content`).
-
-**F-13 (`@Terminal` mention)**: implemented via `TerminalToolWindowTabsManager` +
-`TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
-returns a helpful placeholder if none is available.
-
-**GUI verification (Computer Use first, human fallback)**: use the Case JSON and fixed-candidate
-results under [docs/verification](docs/verification/README.md). The old manual-verification matrix
-and runs are historical evidence; do not rewrite them or generated current.md as new results.
-The #29 loop infrastructure does not complete the pending product QA in #5/#19–#28.
+旧spike・foundation review・PR #18・UI調整の全文は[変更前の固定版](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md)に保持する。現在の説明を上書きする指示ではない。段落群ごとの維持/移動/置換理由とsuperseded判断は[知識の正本](docs/architecture/knowledge.md)から追える。新しい履歴の複製ファイルは作らない。
