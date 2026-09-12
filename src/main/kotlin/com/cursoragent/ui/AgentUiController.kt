@@ -36,6 +36,12 @@ class AgentUiController(
     private var activeRun: AgentRun? = null
     private var modelLoad: java.util.concurrent.Future<*>? = null
     private var activeToken: SessionRunToken? = null
+    private var releaseUnsentTransport: (() -> Unit)? = null
+    private var recoverUnsentCommand: (() -> Unit)? = null
+    private val commandConnection = com.cursoragent.ui.composer.command.AcpCommandConnection()
+    private val commandSettingsWatch = javax.swing.Timer(400) {
+        if (composer.isShowing) refreshAcpConnection()
+    }
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val history = project.getService(ConversationHistory::class.java)
@@ -67,7 +73,12 @@ class AgentUiController(
             timeline.showStatus(error.message ?: "追加したcontextを確認してください。")
             return
         }
-        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context)) {
+        val command = composer.commands.selectedName
+        if (command != null && !composer.commands.canInvoke(command)) {
+            timeline.showStatus("選択したコマンドを確認できません。候補から再選択してください。")
+            return
+        }
+        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context, command)) {
             composer.clearInput()
             refreshQueue()
         }
@@ -120,6 +131,39 @@ class AgentUiController(
     init {
         checkpointService.pruneExpired()
         loadModels()
+        composer.commands.onRetry = { refreshAcpConnection(force = true) }
+        composer.addHierarchyListener {
+            if (composer.isShowing && !disposed) { refreshAcpConnection(); commandSettingsWatch.start() }
+            else commandSettingsWatch.stop()
+        }
+    }
+
+    /** Only an unsent draft may replace its metadata connection. No provider prompt is sent here. */
+    private fun refreshAcpConnection(force: Boolean = false) {
+        if (disposed || project.isDisposed || legacyOnly || restored != null) return
+        val (transport, locked) = transportState()
+        if (transport != AgentTransport.ACP) return
+        if (locked) { composer.commands.update(commandConnection.catalog, false); return }
+        val shared = AgentSettingsState.getInstance()
+        val key = com.cursoragent.ui.composer.command.AcpCommandKey(project.basePath, shared.agentExecutablePath, shared.permissionMode, shared.sandboxMode, shared.worktreeMode)
+        val generation = commandConnection.replace(key, force) ?: return
+        agentService.closeSession(tabId)
+        val settings = TurnSettings(shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode, shared.permissionMode, shared.sandboxMode)
+        val reason = agentService.settingsUnavailableReason(AgentTransport.ACP, settings, shared.worktreeMode)
+        if (reason != null || project.basePath == null) {
+            commandConnection.update(generation, com.cursoragent.service.CommandCatalog.Failed)
+            composer.commands.update(commandConnection.catalog, true)
+            timeline.showStatus(reason ?: "プロジェクトルートが取得できません。")
+            return
+        }
+        composer.commands.update(commandConnection.catalog, true)
+        agentService.prepareAcpCommands(tabId, project.basePath!!, shared.agentExecutablePath) { state ->
+            runOnEdt {
+                if (!disposed && !project.isDisposed && transportState().first == AgentTransport.ACP && commandConnection.update(generation, state)) {
+                    composer.commands.update(state, !transportState().second)
+                }
+            }
+        }
     }
 
     private fun loadModels() {
@@ -139,8 +183,12 @@ class AgentUiController(
         if (transport == AgentTransport.ACP) {
             modelLoad?.cancel(false)
             composer.useAcp()
+            refreshAcpConnection()
             timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
         } else {
+            commandConnection.clear()
+            agentService.closeSession(tabId)
+            composer.commands.update(commandConnection.catalog, false)
             composer.usePrint()
             loadModels()
         }
@@ -149,6 +197,9 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        commandConnection.clear()
+        commandSettingsWatch.stop()
+        composer.commands.close()
         queue.clear()
         queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
         queueDialog = null
@@ -181,13 +232,20 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (activeRun != null || userText.isBlank()) return
+        if (activeRun != null || userText.isBlank() && composer.commands.selectedName == null) return
         pauseQueue()
         startPrompt(userText)
     }
 
-    private fun startPrompt(userText: String, queued: QueuedPrompt? = null): Boolean {
-        if (disposed || project.isDisposed || legacyOnly || userText.isBlank() || activeRun != null) return false
+    private fun startPrompt(arguments: String, queued: QueuedPrompt? = null): Boolean {
+        val command = if (queued == null) composer.commands.selectedName else queued.command
+        if (disposed || project.isDisposed || legacyOnly || arguments.isBlank() && command == null || activeRun != null) return false
+        refreshAcpConnection()
+        if (command != null && !composer.commands.canInvoke(command)) {
+            timeline.showStatus("選択したコマンドを確認できません。候補から再選択してください。予約は一時停止します。")
+            return false
+        }
+        val userText = com.cursoragent.service.commandPrompt(command, arguments)
 
         val shared = AgentSettingsState.getInstance()
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return false
@@ -240,6 +298,7 @@ class AgentUiController(
         }
         if (turn == null) {
             recorder.finish("failed")
+            if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
             sessions.finishTurn(sessionTurn.token)
             activeToken = null
             timeline.showStatus(preparationFailure)
@@ -247,9 +306,31 @@ class AgentUiController(
         }
         run = turn.run
         activeRun = run
+        if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) {
+            releaseUnsentTransport = { if (!turn.promptDispatched) sessions.abortUnsentAcpTurn(sessionTurn.token) }
+        }
         turnGeneration = generation
         if (queued == null) composer.clearInput()
         else sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, composer.inputArea.text, composer.inputArea.editor?.caretModel?.offset ?: 0)
+        if (command != null) {
+            val emptyStamp = composer.inputArea.document.modificationStamp
+            recoverUnsentCommand = {
+                if (!turn.promptDispatched) {
+                    if (queued != null) SwingUtilities.invokeLater {
+                        if (!disposed && !project.isDisposed) { queue.restoreUnsent(queued); refreshQueue() }
+                    }
+                    else if (composer.inputArea.document.modificationStamp == emptyStamp && composer.commands.selectedName == null && !composer.promptContext.draft.hasExplicit) {
+                        composer.inputArea.text = arguments
+                        composer.commands.restoreSelection(command)
+                        context.selections.forEach(composer.promptContext::addSelection)
+                        context.mentions.forEach(composer.promptContext::addMention)
+                    } else {
+                        queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command))
+                        timeline.showStatus("送信前に失敗した入力を予約一覧へ保持しました。内容を確認してから再開してください。")
+                    }
+                }
+            }
+        }
         composer.setInputEnabled(true)
         composer.setRunning(true)
 
@@ -302,7 +383,10 @@ class AgentUiController(
                     check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
                         "準備中に作業場所が変わったため会話を再開しません。"
                     }
-                    agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
+                    agentService.sendPrompt(
+                        if (command != null) fullContext.orEmpty() else fullPrompt,
+                        turn, tabId, sessionTurn.transport, commandText = userText.takeIf { command != null }, commandName = command,
+                    )
                 } catch (error: Exception) {
                     run.reportError("送信の準備に失敗しました: ${error.message}")
                     run.complete(-1)
@@ -360,6 +444,10 @@ class AgentUiController(
     }
 
     private fun finishRun(successful: Boolean) {
+        if (!successful) releaseUnsentTransport?.invoke()
+        releaseUnsentTransport = null
+        if (!successful) recoverUnsentCommand?.invoke()
+        recoverUnsentCommand = null
         if (!successful) queue.pause()
         activeToken?.let(sessions::finishTurn)
         activeToken = null

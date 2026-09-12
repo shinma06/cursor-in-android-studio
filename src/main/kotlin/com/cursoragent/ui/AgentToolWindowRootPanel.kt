@@ -156,7 +156,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     private fun closeTabs(ids: List<String>, confirmed: Boolean = false) {
         if (disposed || project.isDisposed) return
         ids.forEach { views[it]?.controller?.pauseQueue() }
-        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit) } == true }) {
+        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit || it.composer.commands.selectedName != null) } == true }) {
             if (Messages.showYesNoDialog(project, "未保存の本文・下書き・予約した入力、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
         }
         sessions.closeAll(ids).forEach { tab ->

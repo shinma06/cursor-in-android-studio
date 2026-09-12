@@ -32,6 +32,34 @@ class PromptQueueTest {
     }
 
     @Test
+    fun `unsent command recovery retains identity and context and requires explicit queue resume`() {
+        val queue = PromptQueue("conversation")
+        val context = com.cursoragent.ui.composer.context.PromptContextSnapshot(emptyList(), emptyList(), false)
+        queue.add("東京  alpha", AgentMode.AGENT, "model", context, "command")
+        val saved = queue.snapshot().single()
+        queue.remove(saved.id)
+        queue.restoreUnsent(saved)
+        queue.restoreUnsent(saved)
+        assertEquals(listOf(saved), queue.snapshot())
+        assertNull(queue.next())
+        queue.resume()
+        assertEquals(saved, queue.next())
+    }
+
+    @Test
+    fun `command identity and raw arguments belong to each queued snapshot through edit and reorder`() {
+        val queue = PromptQueue("conversation")
+        assertTrue(queue.add(" 東京  alpha beta ", AgentMode.AGENT, "", command = "Mixed-日本語"))
+        assertTrue(queue.add("", AgentMode.AGENT, "", command = "second"))
+        val first = queue.snapshot().first()
+        queue.move(first.id, 1)
+        queue.edit(first.id, " 大阪  beta ")
+        assertEquals("Mixed-日本語", queue.snapshot().last().command)
+        assertEquals("/Mixed-日本語  大阪  beta ", com.cursoragent.service.commandPrompt(queue.snapshot().last().command, queue.snapshot().last().text))
+        assertEquals("/second", com.cursoragent.service.commandPrompt(queue.snapshot().first().command, queue.snapshot().first().text))
+    }
+
+    @Test
     fun `only explicitly registered immutable prompts are sent in order with their chosen mode and model`() {
         val queue = PromptQueue("conversation")
         assertFalse(queue.add(" ", AgentMode.AGENT, ""))

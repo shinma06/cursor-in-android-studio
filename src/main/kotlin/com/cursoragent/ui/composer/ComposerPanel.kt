@@ -29,6 +29,8 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     val inputArea = GrowingPromptField(project)
 
+    val commands = com.cursoragent.ui.composer.command.CommandInputPanel(project, inputArea)
+
     val promptContext = com.cursoragent.ui.composer.context.PromptContextPanel(project)
     private val mentionPopupController = MentionPopupController(project, inputArea, promptContext::addMention)
 
@@ -49,7 +51,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     private val enqueueButton = javax.swing.JButton("予約に追加").apply {
         isVisible = false
         toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
-        addActionListener { if (isRunning && inputArea.isEnabled) inputText().takeIf { it.isNotBlank() }?.let(onEnqueue) }
+        addActionListener { if (isRunning && inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen) inputText().takeIf { it.isNotBlank() || commands.selectedName != null }?.let(onEnqueue) }
     }
     private val queueButton = javax.swing.JButton().apply {
         isVisible = false
@@ -96,7 +98,11 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         })
         mentionPopupController.install()
         promptContext.onAddMention = { mentionPopupController.showPopup() }
-        inputWrapper.add(promptContext, BorderLayout.NORTH)
+        inputWrapper.add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(commands, BorderLayout.NORTH)
+            add(promptContext, BorderLayout.CENTER)
+        }, BorderLayout.NORTH)
 
         object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) = submit()
@@ -169,14 +175,15 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     fun clearInput() {
         inputArea.text = ""
         promptContext.clearExplicit()
+        commands.clearSelection()
     }
 
-    fun inputText(): String = inputArea.text.trim()
+    fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (isRunning) return
+        if (isRunning || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen) return
         val text = inputText()
-        if (text.isNotEmpty()) {
+        if (text.isNotEmpty() || commands.selectedName != null) {
             onSend(text)
         }
     }

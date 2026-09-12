@@ -11,6 +11,7 @@ internal data class QueuedPrompt(
     val mode: AgentMode,
     val model: String,
     val context: PromptContextSnapshot? = null,
+    val command: String? = null,
 )
 
 internal data class QueueDispatch(val generation: Long, val revision: Long, val prompt: QueuedPrompt)
@@ -24,12 +25,17 @@ internal class PromptQueue(val conversationId: String) {
     val size get() = entries.size
     fun snapshot(): List<QueuedPrompt> = entries.toList()
 
-    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null): Boolean {
-        if (text.isBlank()) return false
+    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null, command: String? = null): Boolean {
+        if (text.isBlank() && command == null) return false
         if (entries.isEmpty()) paused = false
         revision++
-        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context))
+        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context, command = command))
         return true
+    }
+
+    fun restoreUnsent(entry: QueuedPrompt) {
+        if (entries.none { it.id == entry.id }) entries.add(0, entry)
+        pause()
     }
 
     fun pause() { revision++; paused = true }
@@ -46,7 +52,7 @@ internal class PromptQueue(val conversationId: String) {
     fun remove(id: String) { if (entries.removeIf { it.id == id }) revision++ }
     fun edit(id: String, text: String): Boolean {
         val index = entries.indexOfFirst { it.id == id }
-        if (index < 0 || text.isBlank()) return false
+        if (index < 0 || text.isBlank() && entries[index].command == null) return false
         pause()
         entries[index] = entries[index].copy(text = text)
         return true
