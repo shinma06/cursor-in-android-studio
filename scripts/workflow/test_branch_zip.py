@@ -215,7 +215,8 @@ class BranchZipTest(unittest.TestCase):
         for changes in ({'draft': True}, {'immutable': True}, {'prerelease': False},
                         {'name': 'formal release'}, {'tag_name': 'branch-zip-unmanaged'},
                         {'body': bz.marker('other', B)}, {'body': bz.marker(self.branch, B) * 2},
-                        {'assets': []}):
+                        {'assets': []}, {'body': bz.marker(self.branch, None)},
+                        {'body': bz.marker(self.branch, 'invalid')}):
             with self.subTest(changes=changes):
                 self.old_release()
                 self.releases[0].update(changes)

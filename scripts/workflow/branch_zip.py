@@ -166,10 +166,11 @@ def cleanup_identity(release):
             return None
         data = json.loads(markers[0])
         branch = data['branch']
+        sha = published_sha(branch, release)
         if (not isinstance(branch, str) or not branch or release['tag_name'] != tag_for(branch)
                 or release.get('name') != f'Plugin ZIP — {branch}'
                 or release.get('prerelease') is not True or release.get('immutable')
-                or published_sha(branch, release) != data['sha']):
+                or not sha or sha != data['sha']):
             return None
         return {'branch': branch, 'sha': data['sha'], 'tag': release['tag_name'],
                 'release_id': release['id']}
