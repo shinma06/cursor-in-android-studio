@@ -8,7 +8,10 @@ import java.util.UUID
 
 fun newHistoryId(): String = UUID.randomUUID().toString()
 
-data class ChatMessage(val id: String = newHistoryId(), val role: String, val text: String)
+data class ChatMessage(
+    val id: String = newHistoryId(), val role: String, val text: String,
+    val presentation: String? = null,
+)
 data class SavedTurn(
     val id: String = newHistoryId(),
     val state: String = "running",
@@ -55,6 +58,10 @@ class ConversationRecorder(var conversation: Conversation, private val save: (Co
     fun assistant(text: String) {
         val id = assistantId ?: newHistoryId().also { assistantId = it }
         message(ChatMessage(id, "assistant", text))
+    }
+    fun assistantContent(text: String) {
+        assistantId = null
+        message(ChatMessage(role = "assistant", text = text, presentation = "acp_content"))
     }
     fun tool(key: String, summary: String) {
         val id = tools.getOrPut(key) { newHistoryId() }

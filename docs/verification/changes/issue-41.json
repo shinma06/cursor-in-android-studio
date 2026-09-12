@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "issue": 41,
+  "gui_required": true,
+  "reason": "応答単位の原文コピーをIDE clipboard・狭幅・キーボード・複数タブで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *AssistantMessageCopyTest --tests *MessageTextPaneTest",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューで原文・clipboard失敗・配送/復元経路を照合"
+  ],
+  "cases": [
+    {
+      "id": "RESPONSE-RAW-COPY",
+      "issue": 41,
+      "change": "応答単位のMarkdown原文コピーと途中更新・操作結果",
+      "preconditions": "指定GUI担当がleaseを取得し、#41を含む固定候補のbuild/ZIP hash/loaded JARを照合する。使い捨てprojectと公開可能なMarkdown fixtureを使う。",
+      "steps": [
+        "PRINT/ACPそれぞれで見出し、箇条書き、コードフェンス、空行、末尾空白、HTML風文字列と日本語を含む応答を生成する。コピー後にプレーンテキストへ貼り、対応する受信済み全文fixtureと文字列を照合する。",
+        "本文が空の間はコピー無効を確認。生成途中でコピーし、続きの配送で表示が「コピー」へ戻ることを確認。完了後にもコピーし、その時点の全文だけであることを確認する。",
+        "本文がある応答をStop/失敗/中断させ、残った本文がコピーできることを確認する。次の応答と別タブを生成した後、元応答をコピーして対象が変わらないことを確認。保存履歴の再表示でも確認する。",
+        "狭いpanel（200px相当を含む）で長文を表示し、ボタンが本文を覆わず到達できることを確認。Tab/Shift+Tabでボタンへ移動してSpace/Enterでコピーし、会話が送信されないことを確認する。",
+        "コピー成功の「コピー済み」を確認。隔離したclipboard失敗fixtureでは「コピー失敗」と再試行を確認し、成功後に表示が回復することを確認する。OS失敗を用意できない場合は当該項目をpendingで保持する。"
+      ],
+      "expected": "表示HTMLではなく選んだ応答の最新Markdown原文をコピー。空文字はclipboardを変更しない。成功/失敗を区別し再試行可能。生成中の更新・別タブ・後続応答で対象が入れ替わらない。本文の折返しとキーボード操作を保つ。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "原文/更新/失敗/レイアウトの自動テストと、実IDE clipboard・キーボード・生成中の観察は別。指定担当の固定buildでのGUI確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "原文/更新/失敗/レイアウトの自動テストと、実IDE clipboard・キーボード・生成中の観察は別。指定担当の固定buildでのGUI確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/41"
+      ]
+    }
+  ]
+}
