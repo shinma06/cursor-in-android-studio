@@ -8,10 +8,10 @@
 
 | 経路 / 入口・入力 | 判断・出力 / 副作用の開始点 | 失敗時と実行主体 |
 | --- | --- | --- |
-| 読取監査 / [governance_audit.py](../../scripts/workflow/governance_audit.py) main。GitHubの全page Issues/PRs/Milestones | GitHub.pagesのGET→latest_audit/status→JSON。完了監査の署名marker/ownerと時刻を検証。importするGitHub/OWNER/REPOはagent_loopから再利用。CLI実行はgh subprocessの読取を伴うがIssue/registry更新なし | API失敗/不正baselineは例外で未確認。人間/PMがHigh Impactを判断する。importだけならghもLoopも呼ばない |
+| 読取監査 / [governance_audit.py](../../scripts/workflow/governance_audit.py) main。GitHubの全page Issues/PRs/Milestones | GitHub.pagesのGET→latest_audit/status→JSON。完了監査の識別marker・Issue投稿ownerと時刻を検証。importするGitHub/OWNER/REPOはagent_loopから再利用。CLI実行はgh subprocessの読取を伴うがIssue/registry更新なし | API失敗/不正baselineは例外で未確認。人間/PMがHigh Impactを判断する。importだけならghもLoopも呼ばない |
 | PR受入/merge / [agent_loop.py](../../scripts/workflow/agent_loop.py) enroll/tick。固定PR/Issue/Case、HEAD/base、停止したwriterのopaque登録 | Loop生成でgit common-dir読取・local storage作成。enrollでprivate registryと公開handoff登録。tickはagent_policy/verification/Change Impactを使い、限定review/fix、選択テスト・通常push・独立承認binding・最新CI/受入→GitHub merge→cleanup | trusted-main coordinatorが1tickずつ所有。変更HEAD/base/受入で承認失効。失敗はbounded retry/blocked、private診断を公開しない。merge済み再開はcleanupへ。writer停止なし/他担当branchを採用しない |
 | QA引継ぎ / [qa_handoff.py](../../scripts/workflow/qa_handoff.py) handoff。確認済みdevelop merge、元Issue、固定Case JSON | metadata/validate_change→既存QA marker検索→必要時作成→Milestone/native親子・全Case・main tracking・[qa_document](../../scripts/workflow/qa_document.py)手順書・両端linkのreadback。関数自身は元Issueをcloseしない | coordinatorだけが引継ぎ成功後の最新受入を再確認してclose/cleanup。通信応答消失はmarkerで再利用、重複/closed QA/人間改変/リンク不一致なら元Issueを開いたまま保持。Project終了時照合はPMが別途行う |
-| ZIP生成/配布 / [branch-zip.yml](../../.github/workflows/branch-zip.yml)→[branch_zip.py](../../scripts/workflow/branch_zip.py) plan/build/publish。live branch HEAD、実build済みSHA、標準ZIP | planはGitHub GET＋Git差分のChange Impactでmatrixを作る。GITHUB_STEP_SUMMARY指定時のみplan結果をfile追記。buildは固定matrix.shaをcheckoutしGradle ZIP生成/一時artifact転送。publishだけcontents:writeで最新HEAD・digest/size確認後Releaseを更新 | publisherはplanと同じworkflow revision、build sourceと分離。branch移動/削除なら公開をskip。新asset upload→metadata更新→旧asset削除の順。upload失敗は旧ZIPを保持し再試行。tagは配布識別子でsource SHAの証拠ではない。削除branchの残存Release自動cleanupは#219延期中 |
+| ZIP生成/配布 / [branch-zip.yml](../../.github/workflows/branch-zip.yml)→[branch_zip.py](../../scripts/workflow/branch_zip.py) plan/build/publish。live branch HEAD、実build済みSHA、標準ZIP | planはGitHub GET＋Git差分のChange Impactでmatrixを作る。GITHUB_STEP_SUMMARY指定時のみplan結果をfile追記。buildは固定matrix.shaをcheckoutしGradle ZIP生成/一時artifact転送。publishだけcontents:writeで最新HEADを確認。新uploadは応答のdigest/sizeを照合し、同SHAの既存uploaded・size>0 assetは再照合せず再利用してReleaseを更新 | publisherはplanと同じworkflow revision、build sourceと分離。branch移動/削除なら公開をskip。新asset upload→metadata更新→旧asset削除の順。upload失敗は旧ZIPを保持し再試行。tagは配布識別子でsource SHAの証拠ではない。削除branchの残存Release自動cleanupは#219延期中 |
 
 GitHub公開状態はIssue/PR/Case/Release。host/source・privateログ・worker PIDはlocal registry側で、公開handoffはopaque ID。既存enrollment/owner/PAUSED heartbeatをこの整理で変更しない。Astraが主担当なら子Agent生成は禁止で、既存独立top-level sessionのレビューなど[実行規約](codex-execution-policy.md)内の手段を使う。`run_worker`をimportできることは実行許可ではない。
 
@@ -35,7 +35,7 @@ pre-push、CI、coordinatorの検証、branch ZIP planは同じclassifierを呼�
 
 ローカルはgradle.propertiesのplatformPathで実Android Studio SDKを指定する。CI/ZIP runnerはworkflowに固定されたversion/codenameを取得/cacheし、`-PplatformPath`として同じGradle local()経路へ渡す。Kotlin/JDKやSDKの新仕様をこの文書で推定せず、実build/公式release資料の照合は既存[現行実装](../architecture/current-implementation.md)と配布手順から行う。
 
-ZIPはsource SHAで命名して標準生成物をそのまま転送する。Release本文のsource/asset hashと実際にロードしたJARは別々に照合する。Knowledge skip時の古い正常ZIPを新HEADの成果物へ改名しない。今回の変更はテストと非実行文書/Case JSONのみで、build入力・製品resource・配布経路を変えないため新ZIP生成は不要。#231で生成したZIPを#232の実buildと呼ばない。
+ZIPはsource SHAで命名して標準生成物をそのまま転送する。Release本文はsource SHA・asset名・markerを記録し、hashは含まない。新upload応答のasset API digest/size照合と、同SHA既存assetの再利用（内容の再照合なし）、実際にロードしたJARの確認は別である。Knowledge skip時の古い正常ZIPを新HEADの成果物へ改名しない。今回の変更はテストと非実行文書/Case JSONのみで、build入力・製品resource・配布経路を変えないため新ZIP生成は不要。#231で生成したZIPを#232の実buildと呼ばない。
 
 ## 隔離確認と次回レビュー
 
