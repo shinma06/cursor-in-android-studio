@@ -6,28 +6,35 @@ import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.RoundedSurface
 import com.cursoragent.ui.composer.mention.MentionPopupController
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.util.messages.MessageBusConnection
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.JPanel
-import javax.swing.KeyStroke
 
 class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
+    var onEnqueue: (String) -> Unit = {}
+    var onShowQueue: () -> Unit = {}
     var isRunning = false
         private set
     private var acp = false
+    private val sendShortcut = PromptSendShortcut(::submit)
+    private var settingsConnection: MessageBusConnection? = null
+    private var sendLabel = "送信（Enter）"
 
     val contextUsage = com.cursoragent.ui.composer.context.ContextUsageView()
 
     val inputArea = GrowingPromptField(project)
 
-    private val mentionPopupController = MentionPopupController(project, inputArea)
+    val commands = com.cursoragent.ui.composer.command.CommandInputPanel(project, inputArea)
+
+    val promptContext = com.cursoragent.ui.composer.context.PromptContextPanel(project)
+    private val mentionPopupController = MentionPopupController(project, inputArea, promptContext::addMention)
 
     private val sendButton = SelectorButton().apply {
         text = "↑"
@@ -43,6 +50,25 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         accessibleContext.accessibleName = "送信（Enter）"
     }
 
+    private val enqueueButton = javax.swing.JButton("予約に追加").apply {
+        isVisible = false
+        toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
+        addActionListener { if (isRunning && inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen) inputText().takeIf { it.isNotBlank() || commands.selectedName != null }?.let(onEnqueue) }
+    }
+    private val queueButton = javax.swing.JButton().apply {
+        isVisible = false
+        toolTipText = "予約を一時停止して一覧・編集・削除・順序を確認します。"
+        addActionListener { onShowQueue() }
+    }
+
+    fun showQueueState(count: Int, paused: Boolean) {
+        queueButton.text = "予約 $count 件" + if (paused) "（停止中）" else ""
+        queueButton.isVisible = count > 0
+        accessoryPanel.isVisible = isRunning || count > 0
+        revalidate()
+        repaint()
+    }
+
     // Detached selector state: application settings supply defaults only for a new tab.
     val selection = AgentSettingsState().apply {
         val defaults = AgentSettingsState.getInstance()
@@ -52,7 +78,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     val modeSelector = ModeSelector(selection)
     val modelSelector = ModelSelector(selection)
 
-    /** Reserved for diff review bar etc. */
+    /** Transient queue actions live above the input to preserve the compact selector row. */
     val accessoryPanel = JPanel(BorderLayout()).apply {
         isVisible = false
         isOpaque = false
@@ -67,11 +93,20 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
             add(inputArea, BorderLayout.CENTER)
         }
 
+        accessoryPanel.add(JPanel(FlowLayout(FlowLayout.RIGHT, JBUI.scale(4), 0)).apply {
+            isOpaque = false
+            add(queueButton)
+            add(enqueueButton)
+        })
         mentionPopupController.install()
+        promptContext.onAddMention = { mentionPopupController.showPopup() }
+        inputWrapper.add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(commands, BorderLayout.NORTH)
+            add(promptContext, BorderLayout.CENTER)
+        }, BorderLayout.NORTH)
 
-        object : AnAction() {
-            override fun actionPerformed(e: AnActionEvent) = submit()
-        }.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0)), inputArea)
+        refreshSendShortcut()
 
         sendButton.addActionListener { if (isRunning) onStop() else submit() }
 
@@ -100,6 +135,33 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         add(inputWrapper, BorderLayout.CENTER)
     }
 
+    override fun addNotify() {
+        super.addNotify()
+        settingsConnection?.disconnect()
+        settingsConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            it.subscribe(AgentSettingsState.SEND_KEY_CHANGED, Runnable { refreshSendShortcut() })
+        }
+        refreshSendShortcut()
+    }
+
+    override fun removeNotify() {
+        settingsConnection?.disconnect()
+        settingsConnection = null
+        super.removeNotify()
+    }
+
+    private fun refreshSendShortcut() {
+        val mode = AgentSettingsState.getInstance().sendKeyMode
+        sendShortcut.install(inputArea, mode, SystemInfo.isMac)
+        sendLabel = "送信（${mode.keyLabel(SystemInfo.isMac)}）"
+        updateSendLabel()
+    }
+
+    private fun updateSendLabel() {
+        sendButton.toolTipText = if (isRunning) "停止" else sendLabel
+        sendButton.accessibleContext.accessibleName = sendButton.toolTipText
+    }
+
     fun useAcp() {
         acp = true
         selection.selectedModel = ""
@@ -125,26 +187,29 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun setRunning(running: Boolean) {
         isRunning = running
+        enqueueButton.isVisible = running
+        accessoryPanel.isVisible = running || queueButton.isVisible
         if (acp) {
             modeSelector.isEnabled = !running
             modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
         }
         sendButton.text = if (running) "" else "↑"
         sendButton.icon = if (running) StopIcon else null
-        sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
-        sendButton.accessibleContext.accessibleName = sendButton.toolTipText
+        updateSendLabel()
     }
 
     fun clearInput() {
         inputArea.text = ""
+        promptContext.clearExplicit()
+        commands.clearSelection()
     }
 
-    fun inputText(): String = inputArea.text.trim()
+    fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (isRunning) return
+        if (isRunning || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
         val text = inputText()
-        if (text.isNotEmpty()) {
+        if (text.isNotEmpty() || commands.selectedName != null) {
             onSend(text)
         }
     }

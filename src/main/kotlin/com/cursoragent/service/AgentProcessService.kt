@@ -59,6 +59,29 @@ class AgentProcessService(private val project: Project) : Disposable {
     fun closeSession(tabId: String) { acpSessions.remove(tabId)?.close() }
 
 
+    private fun acpSession(tabId: String): AcpSession = acpSessions.getOrPut(tabId) {
+        AcpSession(
+            launch = { root, executable ->
+                GeneralCommandLine(executable.ifBlank { resolveAgentExecutable("") }, "acp")
+                    .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
+            },
+            onUncertain = operations::markUncertain,
+        )
+    }
+
+    /** Capture session ownership before scheduling, so a late task cannot recreate a closed tab. */
+    @Synchronized
+    fun prepareAcpCommands(tabId: String, root: String, executable: String, onCommands: (CommandCatalog) -> Unit) {
+        if (disposed) return
+        val session = acpSession(tabId)
+        session.observeCommands(onCommands)
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            val canonicalRoot = runCatching { RestoreTarget.capture(root, WorktreeMode.DEFAULT).rootPath }.getOrNull()
+            if (canonicalRoot == null) onCommands(CommandCatalog.Failed)
+            else session.prepare(canonicalRoot, executable)
+        }
+    }
+
     /** Early UI guidance; AcpSession still validates the same values at its execution boundary. */
     fun settingsUnavailableReason(transport: AgentTransport, settings: TurnSettings, mode: WorktreeMode): String? {
         if (transport == AgentTransport.PRINT) return null
@@ -95,21 +118,13 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
     }
 
-    fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT) {
+    fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT, commandText: String? = null, commandName: String? = null) {
         if (transport == AgentTransport.ACP) {
             val session = synchronized(this) {
                 if (disposed || !turn.run.isActive) return
-                acpSessions.getOrPut(requireNotNull(tabId)) {
-                    AcpSession(
-                        launch = { root, executable ->
-                            GeneralCommandLine(executable.ifBlank { resolveAgentExecutable("") }, "acp")
-                                .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
-                        },
-                        onUncertain = operations::markUncertain,
-                    )
-                }
+                acpSession(requireNotNull(tabId))
             }
-            session.send(prompt, turn)
+            session.send(prompt, turn, commandText, commandName)
             return
         }
         val run = turn.run
