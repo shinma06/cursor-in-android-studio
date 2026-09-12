@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 227,
+  "gui_required": false,
+  "reason": "全体設計の入口と既存README/PRレビュー案内のみ。製品src、実行入口、build、保存型、GUI挙動を変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "git diff --check と変更Markdownのrepo内リンク実在確認",
+    "固定HEAD/baseを独立sessionで照合し、文書変更と製品変更について入口から更新先・担当境界・必要検証を特定する",
+    "Project概要は既存PM整合コメントを再利用し最新表示を正本と照合。詳細状態の重複を参照に置換してreadbackする"
+  ],
+  "cases": []
+}
