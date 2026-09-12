@@ -6,7 +6,7 @@
   "cli_checks": [
     "git diff --check",
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "固定IDE/plugin descriptor/class署名と一次資料・未達Caseの独立照合"
+    "固定SDK descriptor/class署名・掲載probeのcompile-only確認、および一次資料/未達Caseの独立照合"
   ],
   "cases": []
 }
