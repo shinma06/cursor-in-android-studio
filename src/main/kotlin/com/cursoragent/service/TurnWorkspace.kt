@@ -36,7 +36,10 @@ class PreparedAgentTurn(
     val workspace: TurnWorkspace,
     val preparation: WorkspaceOperationGate.Preparation,
     val settings: TurnSettings,
-)
+) {
+    @Volatile var promptDispatched = false
+        internal set
+}
 
 /** Immutable execution settings captured before asynchronous prompt preparation. */
 data class TurnSettings(

@@ -12,6 +12,7 @@ import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -27,7 +28,7 @@ class AgentTurnListenerFactory(
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
     private val recorder: ConversationRecorder,
-    private val onRunFinished: () -> Unit,
+    private val onRunFinished: (successful: Boolean) -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -69,20 +70,22 @@ class AgentTurnListenerFactory(
                     return
                 }
                 update {
+                    composer.contextUsage.finish(usageTicket, if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) UsagePhase.STOPPED else UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
                     timeline.showError(message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -182,6 +185,7 @@ class AgentTurnListenerFactory(
 
             override fun onError(message: String) {
                 update {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     timeline.showError(message)
@@ -189,22 +193,24 @@ class AgentTurnListenerFactory(
                     recorder.finish("failed")
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
-                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished()
+                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished(false)
                 }
             }
 
             override fun onStopped() {
                 update(allowStopped = true) {
+                    composer.contextUsage.finish(usageTicket, UsagePhase.STOPPED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     recorder.finish("stopped")
                     timeline.showStatus("停止しました")
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
             override fun onCompleted(exitCode: Int) {
                 update {
+                    composer.contextUsage.finish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     if (exitCode != 0) {
@@ -213,7 +219,7 @@ class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
-                    onRunFinished()
+                    onRunFinished(exitCode == 0)
                 }
             }
         }

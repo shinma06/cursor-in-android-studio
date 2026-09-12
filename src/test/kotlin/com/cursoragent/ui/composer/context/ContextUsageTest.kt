@@ -56,9 +56,9 @@ class ContextUsageTest {
     @Test
     fun `new turn or session rejects delayed counters from previous generation`() {
         val state = ContextUsageState()
-        val old = state.clear()
+        val old = state.begin()
         assertTrue(state.accept(old, usage))
-        val current = state.clear()
+        val current = state.begin()
         assertNull(state.usage)
         assertFalse(state.accept(old, usage))
         assertTrue(state.accept(current, usage.copy(inputTokens = 0)))
@@ -101,7 +101,7 @@ class ContextUsageTest {
                 (if (it is JLabel) listOf(it.text) else emptyList()) +
                     (if (it is Container) visibleTexts(it) else emptyList())
             }
-            assertTrue(visibleTexts(view.panel).contains("応答後に表示します"))
+            assertTrue(visibleTexts(view.panel).contains("まだ応答を開始していません"))
             val ticket = view.beginTurn()
             view.update(ticket, usage)
             assertTrue(visibleTexts(view.panel).contains("21,022"))
@@ -111,7 +111,7 @@ class ContextUsageTest {
             assertFalse(partial.any { it in listOf("入力", "キャッシュ読み取り", "キャッシュ書き込み", "21,022", "取得不可", "使用率・残量", "種別別内訳") })
             view.reset()
             val reset = visibleTexts(view.panel)
-            assertTrue(reset.contains("応答後に表示します"))
+            assertTrue(reset.contains("まだ応答を開始していません"))
             assertFalse(reset.contains("出力"))
             assertFalse(reset.contains("0"))
         }
