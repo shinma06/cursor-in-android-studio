@@ -34,8 +34,9 @@ class PromptContextPanelTest {
         } as Project
         val panel = PromptContextPanel(project)
         val emptyHeight = panel.preferredSize.height
+        val longPath = "long/".repeat(40) + "same-line-日本語.kt"
         repeat(40) { index ->
-            panel.addSelection(SelectionContext("file:///A$index.kt", "A$index.kt", 0, 1, 1, 1, "x", 1))
+            panel.addSelection(SelectionContext("file:///$longPath", longPath, index, index + 1, 1, 1, "x", 1))
         }
         val scroll = panel.components.filterIsInstance<JScrollPane>().single()
         assertTrue(scroll.preferredSize.height <= JBUI.scale(120))
@@ -43,7 +44,7 @@ class PromptContextPanelTest {
         val host = JPanel(BorderLayout()).apply {
             add(timeline, BorderLayout.CENTER)
             add(panel, BorderLayout.SOUTH)
-            setSize(500, 600)
+            setSize(280, 600)
         }
         fun layout(container: Container) {
             container.doLayout()
@@ -58,7 +59,17 @@ class PromptContextPanelTest {
         }
         assertEquals(40, replacements.map { it.accessibleContext.accessibleName }.distinct().size)
         replacements.forEachIndexed { index, button ->
-            assertTrue(button.accessibleContext.accessibleName.contains("A$index.kt"))
+            assertTrue(button.accessibleContext.accessibleName.contains(longPath))
+            assertTrue(button.accessibleContext.accessibleName.contains("${index}–${index + 1}"))
+        }
+        assertEquals(scroll.viewport.extentSize.width, rows.width)
+        assertFalse(scroll.horizontalScrollBar.isVisible)
+        for (row in rows.components) {
+            val actions = (row as JPanel).components.filterIsInstance<JPanel>().single().components
+            for (button in actions.filterIsInstance<JButton>()) {
+                val bounds = SwingUtilities.convertRectangle(button, Rectangle(button.size), rows)
+                assertTrue(bounds.x >= 0 && bounds.x + bounds.width <= rows.width)
+            }
         }
         val originalFocus = KeyboardFocusManager.getCurrentKeyboardFocusManager()
         val focusManager = FocusManager()
