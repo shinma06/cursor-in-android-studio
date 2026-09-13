@@ -10,6 +10,7 @@ import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.service.displayText
 import com.cursoragent.service.taskStatusText
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -29,6 +30,7 @@ internal class AgentTurnListenerFactory(
     private val onRunFinished: (successful: Boolean) -> Unit,
     private val changes: ConversationChanges,
     private val beforeRevert: () -> Unit,
+    private val onUsageFinished: (Long, UsagePhase) -> Unit = { _, _ -> },
 ) {
     fun create(
         usageTicket: Long,
@@ -37,6 +39,7 @@ internal class AgentTurnListenerFactory(
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
+        onPrintRequestId: (com.cursoragent.service.PrintRequestId) -> Unit = {},
     ): AgentProcessListener {
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
@@ -89,6 +92,7 @@ internal class AgentTurnListenerFactory(
                     return
                 }
                 update {
+                    onUsageFinished(usageTicket, if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) UsagePhase.STOPPED else UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     finishTasks()
                     recorder.finish(outcome.name.lowercase())
@@ -99,6 +103,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
+                    onUsageFinished(usageTicket, UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     finishTasks()
                     recorder.error("接続の終了を確認できませんでした。")
@@ -198,6 +203,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onError(message: String) {
                 update {
+                    onUsageFinished(usageTicket, UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
@@ -212,6 +218,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onStopped() {
                 update(allowStopped = true) {
+                    onUsageFinished(usageTicket, UsagePhase.STOPPED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
@@ -221,8 +228,13 @@ internal class AgentTurnListenerFactory(
                 }
             }
 
-            override fun onCompleted(exitCode: Int) {
+            override fun onCompleted(exitCode: Int) = completed(exitCode, null)
+
+            override fun onPrintCompleted(requestId: com.cursoragent.service.PrintRequestId) = completed(0, requestId)
+
+            private fun completed(exitCode: Int, requestId: com.cursoragent.service.PrintRequestId?) {
                 update {
+                    onUsageFinished(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
@@ -232,6 +244,7 @@ internal class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
+                    if (requestId != null) onPrintRequestId(requestId)
                     onRunFinished(exitCode == 0)
                 }
             }

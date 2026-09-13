@@ -3,6 +3,7 @@ package com.cursoragent.ui.composer
 import com.cursoragent.service.ModelOption
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.AgentUiMetrics
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
@@ -195,6 +196,7 @@ internal class ModelPopupPanel(
 
 internal class AutoToggle : JToggleButton() {
     init {
+        isRolloverEnabled = true
         isOpaque = false
         isContentAreaFilled = false
         isBorderPainted = false
@@ -208,16 +210,15 @@ internal class AutoToggle : JToggleButton() {
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val h = JBUI.scale(20)
             val y = (height - h) / 2
-            copy.color = if (isSelected) JBColor(Color(0x288750), Color(0x3CA36C)) else AgentUiColors.bubbleBorder
+            val track = if (isSelected) JBColor(Color(0x288750), Color(0x3CA36C)) else AgentUiColors.bubbleBorder
+            copy.color = if (isEnabled && (model.isRollover || hasFocus())) {
+                ColorUtil.mix(track, AgentUiColors.userBubbleBackground, 0.35)
+            } else track
             copy.fillRoundRect(0, y, width, h, h, h)
             copy.color = Color.WHITE
             val diameter = h - JBUI.scale(4)
             val x = if (isSelected) width - diameter - JBUI.scale(2) else JBUI.scale(2)
             copy.fillOval(x, y + JBUI.scale(2), diameter, diameter)
-            if (hasFocus()) {
-                copy.color = foreground
-                copy.drawRoundRect(0, y, width - 1, h, h, h)
-            }
         } finally {
             copy.dispose()
         }
