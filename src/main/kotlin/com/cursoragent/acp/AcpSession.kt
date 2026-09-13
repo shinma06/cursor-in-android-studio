@@ -6,6 +6,7 @@ import com.cursoragent.service.AgentInputRequest
 import com.cursoragent.service.AgentTurnOutcome
 import com.cursoragent.service.PreparedAgentTurn
 import com.cursoragent.service.TurnSettings
+import com.cursoragent.service.containsCommand
 import com.cursoragent.settings.PermissionMode
 import com.cursoragent.settings.SandboxMode
 import com.cursoragent.settings.WorktreeMode
@@ -23,6 +24,33 @@ internal class AcpSession(
     private val cancelTimeoutSeconds: Long = 10,
 ) : AutoCloseable {
     private val lock = Any()
+    private val connectionLock = Any()
+    @Volatile private var commands: com.cursoragent.service.CommandCatalog = com.cursoragent.service.CommandCatalog.Loading
+    @Volatile private var commandListener: (com.cursoragent.service.CommandCatalog) -> Unit = {}
+
+    fun observeCommands(listener: (com.cursoragent.service.CommandCatalog) -> Unit) {
+        synchronized(lock) { commandListener = listener; listener(commands) }
+    }
+
+    private fun publishCommands(value: com.cursoragent.service.CommandCatalog) {
+        synchronized(lock) {
+            if (closing) return
+            commands = value
+            commandListener(value)
+        }
+    }
+
+    /** Metadata connection only: no turn, prompt, inference, checkpoint, or transport lock. */
+    fun prepare(root: String, executable: String) {
+        try {
+            connect(root, executable) { !closing && !disconnected }
+        } catch (_: Exception) {
+            publishCommands(com.cursoragent.service.CommandCatalog.Failed)
+            disconnect()
+            stopProcess()
+        }
+    }
+
     private val protocol = AcpProtocol()
     private val configuration = AcpConfiguration()
     private val requests = ConcurrentHashMap.newKeySet<AgentInputRequest>()
@@ -45,7 +73,7 @@ internal class AcpSession(
     }
 
     /** No retry or cross-transport fallback. Preparation's project reservation spans this entire call. */
-    fun send(prompt: String, turn: PreparedAgentTurn) {
+    fun send(prompt: String, turn: PreparedAgentTurn, commandText: String? = null, commandName: String? = null) {
         val current = Active(turn)
         synchronized(lock) {
             if (closing || disconnected || active != null) {
@@ -60,20 +88,32 @@ internal class AcpSession(
             validateSettings(turn.settings, turn.workspace.mode)
             if (!turn.run.isActive) return
             val root = turn.workspace.commandTarget.rootPath ?: throw AcpException("プロジェクトルートが取得できません")
-            val connection = connect(root, turn.settings.executable, current)
+            val connection = connect(root, turn.settings.executable) { turn.run.isActive }
             if (!turn.run.isActive) return
-            turn.run.emit { it.onSessionUpdated(sessionId, null) }
             configure(connection, current)
             if (!turn.run.isActive) return
             val promptParams = sessionParams().apply {
-                add("prompt", JsonArray().apply { add(jsonObject("type" to "text", "text" to prompt)) })
+                add("prompt", JsonArray().apply {
+                    // ACP recognizes the command prefix. Context is a separate content block, not an argument rewrite.
+                    if (commandText != null) add(jsonObject("type" to "text", "text" to commandText))
+                    if (commandText == null || prompt.isNotEmpty()) add(jsonObject("type" to "text", "text" to prompt))
+                })
             }
             val response = synchronized(lock) {
                 if (!turn.run.isActive || closing || disconnected) return
-                protocol.beginTurn()
-                processTree!!.sample()
-                current.promptSent = true
-                connection.request("session/prompt", promptParams) { result ->
+                connection.request("session/prompt", promptParams, onDispatch = {
+                    synchronized(lock) {
+                        if (!turn.run.isActive || closing || disconnected) throw AcpException("送信前に停止しました")
+                        if (commandText != null && (commandName == null || !commands.containsCommand(commandName))) {
+                            throw AcpException("選択したコマンドを確認できません")
+                        }
+                        protocol.beginTurn()
+                        processTree!!.sample()
+                        current.promptSent = true
+                        turn.promptDispatched = true
+                        turn.run.emit { it.onSessionUpdated(sessionId, null) }
+                    }
+                }) { result ->
                     val reason = result.asJsonObject.requiredString("stopReason")
                     val outcome = when (reason) {
                         "end_turn" -> AgentTurnOutcome.COMPLETED
@@ -121,7 +161,8 @@ internal class AcpSession(
         }
     }
 
-    private fun connect(root: String, executable: String, current: Active): AcpJsonRpc {
+    private fun connect(root: String, executable: String, isActive: () -> Boolean): AcpJsonRpc = synchronized(connectionLock) {
+        if (closing || disconnected || !isActive()) throw AcpException("ACP接続の準備を停止しました")
         rpc?.let {
             if (connectionRoot != root || connectionExecutable != executable || it.isClosed) {
                 throw AcpException("ACP接続後に作業場所または実行ファイルが変わりました。新しい会話を開始してください。")
@@ -133,9 +174,10 @@ internal class AcpSession(
         val child = launch(root, executable)
         process = child
         processTree = AcpProcessTree(child)
-        if (closing || !current.turn.run.isActive) throw AcpException("ACP接続の準備を停止しました")
+        if (closing || !isActive()) throw AcpException("ACP接続の準備を停止しました")
         val connection = AcpJsonRpc(child.inputStream, child.outputStream, ::notification, ::request, onClosed = {
             disconnected = true
+            publishCommands(com.cursoragent.service.CommandCatalog.Failed)
             active?.takeIf { it.promptSent && !it.quiescent }?.let(::uncertain)
             // Closing pipes/process happens off the reader and never on EDT.
             thread(name = "Cursor ACP cleanup", isDaemon = true) { stopProcess() }
@@ -159,12 +201,13 @@ internal class AcpSession(
             require(version?.isJsonPrimitive == true && version.asJsonPrimitive.isNumber &&
                 version.asBigDecimal.compareTo(java.math.BigDecimal.ONE) == 0)
         }.get(20, TimeUnit.SECONDS)
-        if (!current.turn.run.isActive) throw AcpException("ACP接続の準備を停止しました")
+        if (!isActive()) throw AcpException("ACP接続の準備を停止しました")
         // P0: existing CLI authentication works; never launch an interactive login flow here.
         connection.request("session/new", jsonObject("cwd" to root).apply { add("mcpServers", JsonArray()) }) { result ->
             val body = result.asJsonObject
             sessionId = body.requiredString("sessionId").also { require(it.isNotEmpty()) }
             configuration.replace(body)
+            publishCommands(com.cursoragent.service.CommandCatalog.Awaiting)
         }.get(20, TimeUnit.SECONDS)
         return connection
     }
@@ -191,15 +234,23 @@ internal class AcpSession(
     }
 
     private fun notification(method: String, params: JsonObject) {
-        if (method != "session/update" || params.string("sessionId") != sessionId) return
+        if (method == "cursor/task") {
+            observeTask(params)
+            return
+        }
+        if (closing || disconnected || method != "session/update" || params.string("sessionId") != sessionId) return
         val update = params.getAsJsonObject("update")
+        if (update.string("sessionUpdate") == "available_commands_update") {
+            publishCommands(availableCommands(update))
+            return
+        }
         if (update.string("sessionUpdate") == "config_option_update") {
             configuration.replace(update)
             active?.turn?.run?.emit { it.onStructuredEvent(configuration.state()) }
             return
         }
         val current = active
-        if (current == null || current.terminal) {
+        if (current == null || current.terminal || !current.promptSent) {
             if (!closing && update.string("sessionUpdate") in setOf("tool_call", "tool_call_update")) {
                 onUncertain()
                 disconnect()
@@ -211,6 +262,10 @@ internal class AcpSession(
     }
 
     private fun request(wire: AcpJsonRpc.Request, method: String, params: JsonObject) {
+        if (method == "cursor/task") {
+            try { observeTask(params) } finally { wire.reject() }
+            return
+        }
         val current = active
         if (current == null || !current.promptSent || params.has("sessionId") && params.string("sessionId") != sessionId) {
             wire.reject(-32602, "No active session prompt")
@@ -241,6 +296,17 @@ internal class AcpSession(
         // Stop may have arrived after validation and before insertion.
         if (!current.turn.run.isActive || closing) pending.answer(AgentAnswer.Cancel)
         else current.turn.run.emit { it.onStructuredEvent(AgentEvent.Input(pending)) }
+    }
+
+    private fun observeTask(params: JsonObject) {
+        val delivery = synchronized(lock) {
+            val current = active ?: return
+            if (closing || disconnected || current.terminal || !current.promptSent || current.turn.run.wasStopped ||
+                params.has("sessionId") && params.string("sessionId") != sessionId) return
+            val event = protocol.taskMetadata(params) ?: return
+            current to event
+        }
+        delivery.first.turn.run.emit { it.onStructuredEvent(delivery.second) }
     }
 
     private fun cancel(current: Active) {
@@ -291,7 +357,7 @@ internal class AcpSession(
     }
 
     override fun close() {
-        closing = true
+        synchronized(lock) { closing = true; commandListener = {} }
         val current = active
         if (current != null) current.turn.run.stop()
         else {

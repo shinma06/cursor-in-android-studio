@@ -42,7 +42,10 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
             turn.messages.forEach { message ->
                 when (message.role) {
                     "user" -> addUserMessage(message.text)
-                    "assistant" -> { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    "assistant" -> {
+                        if (message.presentation == "acp_content") addAssistantContent(message.text)
+                        else { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    }
                     "tool" -> addToolCallSummary(null, message.text)
                     "error" -> showError(message.text)
                 }
@@ -76,6 +79,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
      * matching `completed` event can replace it in place instead of leaving a stale duplicate. */
     private val activeToolCallRows = mutableMapOf<String, Component>()
     private val structuredTools = mutableMapOf<String, Component>()
+    private val taskCards = linkedMapOf<Pair<String?, String>, TaskToolCard>()
     private var planRow: Component? = null
 
     init {
@@ -85,6 +89,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     fun addUserMessage(text: String): UserMessageBubble {
         structuredTools.clear()
+        taskCards.clear()
         planRow = null
         hideEmptyState()
         val bubble = UserMessageBubble(text)
@@ -104,6 +109,13 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun setAssistantText(text: String) {
         ensureAssistantBubble().setContent(text)
         scrollToBottom()
+    }
+
+    fun addAssistantContent(text: String) {
+        finalizeAssistantMessage()
+        clearStatus()
+        hideEmptyState()
+        addRow(AssistantContentRow(text))
     }
 
     fun finalizeAssistantMessage() {
@@ -174,11 +186,43 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         scrollToBottom()
     }
 
-    fun upsertStructuredTool(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit) {
+    fun upsertStructuredTool(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit): AgentTool {
+        if (tool.task != null) return upsertTask(tool, viewDiff = viewDiff)
         clearStatus()
         hideEmptyState()
         val card = StructuredToolCard(tool, viewDiff)
         replaceRow(structuredTools.put(tool.id, card), card)
+        return tool
+    }
+
+    fun upsertTask(
+        tool: AgentTool,
+        parentSessionId: String? = null,
+        viewDiff: (AgentToolContent.Diff) -> Unit = {},
+    ): AgentTool {
+        clearStatus()
+        hideEmptyState()
+        val key = parentSessionId to tool.id
+        val old = taskCards[key]
+        if (old != null) {
+            old.update(tool)
+            revalidate()
+            repaint()
+            return old.tool
+        }
+        val card = TaskToolCard(tool, viewDiff)
+        taskCards[key] = card
+        // A standard ACP row can precede cursor/task metadata for the same ID.
+        replaceRow(if (parentSessionId == null) structuredTools.remove(tool.id) else activeToolCallRows.remove(tool.id), card)
+        return card.tool
+    }
+
+    /** Parent termination is not evidence that an unfinished child has stopped or succeeded. */
+    fun finishTasks(): List<Pair<String, AgentTool>> = taskCards.mapNotNull { (key, card) ->
+        if (card.tool.status in setOf("completed", "failed")) return@mapNotNull null
+        card.update(card.tool.copy(status = "unconfirmed"))
+        val (parent, id) = key
+        (if (parent == null) id else "${parent.length}:$parent$id") to card.tool
     }
 
     fun addInputRequest(request: AgentInputRequest) {

@@ -10,6 +10,30 @@ import com.google.gson.JsonParser
 class StreamJsonParser(
     private val onEvent: (StreamEvent) -> Unit,
 ) {
+    private val pendingLine = StringBuilder()
+
+    /** Process output notifications may split a JSON line, including inside a string. */
+    fun parseChunk(chunk: String) {
+        var start = 0
+        chunk.forEachIndexed { index, char ->
+            if (char == '\n') {
+                pendingLine.append(chunk, start, index)
+                val line = pendingLine.toString()
+                pendingLine.setLength(0)
+                parseLine(line)
+                start = index + 1
+            }
+        }
+        pendingLine.append(chunk, start, chunk.length)
+    }
+
+    /** Deliver a complete final JSON value even when the producer omitted its newline. */
+    fun finish() {
+        val line = pendingLine.toString()
+        pendingLine.setLength(0)
+        parseLine(line)
+    }
+
     fun parseLine(line: String) {
         val trimmed = line.trim()
         if (trimmed.isEmpty()) return
@@ -36,7 +60,7 @@ class StreamJsonParser(
             }
 
             "assistant" -> {
-                StreamEvent.AssistantDelta(extractAssistantText(json))
+                StreamEvent.AssistantDelta(extractAssistantText(json), assistantKind(json))
             }
 
             "thinking" -> {
@@ -68,6 +92,22 @@ class StreamJsonParser(
             }
 
             else -> StreamEvent.Unknown(type, json.toString())
+        }
+    }
+
+    private fun assistantKind(json: JsonObject): PrintAssistantKind {
+        val timestamp = json.get("timestamp_ms")
+        val call = json.get("model_call_id")
+        if (timestamp == null && call == null) return PrintAssistantKind.FINAL_FLUSH
+        val validTimestamp = runCatching {
+            timestamp != null && timestamp.isJsonPrimitive && timestamp.asJsonPrimitive.isNumber &&
+                timestamp.asBigDecimal.toBigIntegerExact().signum() >= 0
+        }.getOrDefault(false)
+        val validCall = call != null && call.isJsonPrimitive && call.asJsonPrimitive.isString && call.asString.isNotBlank()
+        return when {
+            validTimestamp && call == null -> PrintAssistantKind.DELTA
+            validTimestamp && validCall -> PrintAssistantKind.TOOL_FLUSH
+            else -> PrintAssistantKind.UNRECOGNIZED
         }
     }
 
@@ -111,7 +151,7 @@ class StreamJsonParser(
 
 sealed interface StreamEvent {
     data class SessionInit(val sessionId: String?, val model: String?) : StreamEvent
-    data class AssistantDelta(val text: String) : StreamEvent
+    data class AssistantDelta(val text: String, val kind: PrintAssistantKind = PrintAssistantKind.UNRECOGNIZED) : StreamEvent
     data class ThinkingDelta(val text: String) : StreamEvent
     data class ToolCall(val toolName: String) : StreamEvent
     data class ToolCallStarted(val payload: ParsedToolCall) : StreamEvent
