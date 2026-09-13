@@ -5,8 +5,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import java.io.ByteArrayInputStream
+import java.io.IOException
 import java.nio.file.Path
-import java.util.Properties
 import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -29,10 +30,39 @@ class PluginDiagnosticsTest {
             assertTrue(report(commit, state).contains("ビルドID: 未特定"))
             assertFalse(report(commit, state).contains("ビルドID: ${"a".repeat(40)}"))
         }
-        val packaged = Properties().apply {
-            PluginDiagnosticsTest::class.java.getResourceAsStream("/cursor-agent-build.properties").use { load(requireNotNull(it)) }
+        val packaged = readBuildIdentity {
+            PluginDiagnosticsTest::class.java.getResourceAsStream("/cursor-agent-build.properties")
         }
         assertTrue(packaged.getProperty("source.state") in setOf("clean", "dirty", "unknown"))
+    }
+
+    @Test
+    fun `identity is published only after complete parsing and closes its resource`() {
+        val valid = "source.commit=${"a".repeat(40)}\nsource.state=clean\n"
+        for (content in listOf(valid, valid + "broken=\\uQQQQ\n")) {
+            var closed = false
+            val identity = readBuildIdentity {
+                object : ByteArrayInputStream(content.toByteArray()) {
+                    override fun close() { closed = true; super.close() }
+                }
+            }
+            assertTrue(closed)
+            if (content == valid) {
+                assertEquals("a".repeat(40), identity.getProperty("source.commit"))
+                assertEquals("clean", identity.getProperty("source.state"))
+            } else {
+                assertTrue(identity.isEmpty())
+                val text = report(identity.getProperty("source.commit"), identity.getProperty("source.state"))
+                assertTrue(text.contains("ビルドID: 未特定"))
+            }
+        }
+        assertTrue(readBuildIdentity { null }.isEmpty())
+        assertTrue(readBuildIdentity { throw IOException("unreadable") }.isEmpty())
+        assertTrue(readBuildIdentity {
+            object : ByteArrayInputStream(valid.toByteArray()) {
+                override fun close() { throw IOException("close failed") }
+            }
+        }.isEmpty())
     }
 
     @Test

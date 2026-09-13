@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "issue": 332,
+  "gui_required": false,
+  "reason": "既存診断UIとCopy接続を変えず、同梱propertiesの読込全体が成功した時だけ識別値を採用する。production loaderと表示formatterを使う回帰で欠落・取得/解析/close失敗を検証でき、実GUIの新規操作はない。元QA326の固定build受入はpendingを維持する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base 3c152be4e3829fa6c4d6c9403205e96ff43eec5a --run-tests",
+    "PluginDiagnosticsTest: 正常resource、部分clean値の後の不正Unicode escape、欠落、取得例外、close例外をproduction loaderで確認。失敗は全項目空と未特定表示、stream解放、既存Copy snapshot/CLI非実行を保持。"
+  ],
+  "cases": []
+}
