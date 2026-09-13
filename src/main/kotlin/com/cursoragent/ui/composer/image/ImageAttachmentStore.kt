@@ -59,7 +59,7 @@ internal class ImageAttachmentStore(
         check(!closed && stored in images) { "画像を再添付してください。" }
         require(Files.isRegularFile(stored.path, NOFOLLOW_LINKS)) { "添付画像を確認できません。再添付してください。" }
         val bytes = try {
-            Files.newInputStream(stored.path).use { it.readNBytes(ImageInput.MAX_PNG_BYTES + 1) }
+            Files.newInputStream(stored.path, NOFOLLOW_LINKS).use { it.readNBytes(ImageInput.MAX_PNG_BYTES + 1) }
         } catch (_: Exception) { throw ImageInputException("添付画像を読み取れません。再添付してください。") }
         check(bytes.size <= ImageInput.MAX_PNG_BYTES && digest(bytes) == stored.digest) { "添付画像が変わっています。再添付してください。" }
         return bytes
@@ -115,7 +115,7 @@ internal class ImageAttachmentStore(
     companion object {
         private const val PREFIX = "cursor-agent-image-"
         private const val MARKER = "owner.json"
-        private val pngName = Regex("[a-f0-9-]{36}\\.png")
+        private val pngName = Regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\\.png")
         private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
         private fun privatePermissions(path: Path, permissions: String) {
             if (Files.getFileStore(path).supportsFileAttributeView("posix")) Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(permissions))
@@ -134,7 +134,10 @@ internal class ImageAttachmentStore(
                         val marker = directory.resolve(MARKER)
                         require(Files.isRegularFile(marker, NOFOLLOW_LINKS) && Files.size(marker) <= 1024)
                         val data = Gson().fromJson(Files.readString(marker), JsonObject::class.java)
-                        require(data.get("schema").asString == "1")
+                        require(data.keySet() == setOf("schema", "owner", "pid", "started"))
+                        require(data.get("schema").isJsonPrimitive && data.get("schema").asJsonPrimitive.isNumber && data.get("schema").asString == "1")
+                        require(data.get("pid").isJsonPrimitive && data.get("pid").asJsonPrimitive.isNumber)
+                        require(listOf("owner", "started").all { data.get(it).isJsonPrimitive && data.get(it).asJsonPrimitive.isString })
                         val owner = UUID.fromString(data.get("owner").asString).toString()
                         require(directory.fileName.toString() == PREFIX + owner)
                         val started = data.get("started").asString
