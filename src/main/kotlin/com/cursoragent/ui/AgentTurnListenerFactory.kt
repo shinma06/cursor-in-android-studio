@@ -166,7 +166,9 @@ internal class AgentTurnListenerFactory(
 
             override fun onToolCall(toolName: String) {
                 update {
-                    toolStarted()
+                    // Legacy and malformed typed events do not establish a start or completion.
+                    activity(RunPhase.RUNNING)
+                    timeline.addToolCallSummary(null, "ツール情報（状態未取得）: $toolName")
                 }
             }
 

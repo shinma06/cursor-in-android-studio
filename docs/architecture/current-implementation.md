@@ -57,7 +57,7 @@ Stopはそのタブのrunへ停止要求を出す。通常Stopでは先にtoken�
 
 ## 実行状態・経過時間・ツール詳細・通知（#98）
 
-各会話の上部に準備中→実行中/考え中/ツール実行中→完了/停止/失敗と、送信準備を含むターン全体の経過時間を表示する。`RunStatusPanel`はEDT上の会話所有で単調時計を使い、終端で時間を固定し、Controller破棄でtimerを止める。printのprocess構築後とACPのprompt dispatchを`onStarted`で反映し、Thought受信だけを考え中とする。最後の活動イベントを表示するもので、思考時間・並列tool数・推測した承認待ち・再接続状態を作らない。実際の質問/permissionカードは独立して表示する。
+各会話の上部に準備中→実行中/考え中/ツール実行中→完了/停止/失敗と、送信準備を含むターン全体の経過時間を表示する。`RunStatusPanel`はEDT上の会話所有で単調時計を使い、終端で時間を固定し、Controller破棄でtimerを止める。printのprocess構築後とACPのprompt dispatchを`onStarted`で反映し、Thought受信だけを考え中とする。最後の活動イベントを表示するもので、思考時間・並列tool数・推測した承認待ち・再接続状態を作らない。実際の質問/permissionカードは独立して表示する。旧形式・未知subtype・typed解析失敗のgeneric tool情報は、提供された名前をliteralな会話内カードへ残し「状態未取得」と表示する。開始の根拠にはせず、開始通知も出さない。
 
 Stop直後は終了が未確認なら「停止を確認中」を保ち、物理終了/ACP終端の既存判定で停止または失敗へ進む。`AgentRun`とFactoryのEDT token/generation/dispose再照合を維持し、古いcallbackは新turnの時間や通知を更新しない。経過時間はproviderの計測値ではなく、履歴復元では再計測しない。
 

@@ -60,7 +60,7 @@
       "preconditions": "指定GUI担当がleaseを取得し、#98と公開依存#308/#289を含む固定HEAD/ZIP SHA256/loaded JARを照合する。使い捨てprojectと公開合成fixtureを用い、実provider確認は別記録・許可範囲で行う。通常設定の開始状態を記録し終了後に戻す。",
       "steps": [
         "MV-029: printの長いshell stdout/stderr・空結果・非zero結果を用意する。概要と完了/失敗を残して詳細が閉じていること、TabとSpace/Enterで開閉し元の改行・先頭/末尾空白・最終出力を読めることを確認する。",
-        "同一call IDのstarted/completed/重複completed/遅いstartedを順に流す。同じ行と開閉状態を保持して完了をstartedへ戻さず、次turnで同じIDを使っても以前の行を置換しないことを確認する。",
+        "旧形式nameだけ・未知subtypeのtoolを流し、名前がliteral表示で残り「状態未取得」となり開始通知が出ないことを確認する。同一call IDのstarted/completed/重複completed/遅いstartedを順に流す。同じ行と開閉状態を保持して完了をstartedへ戻さず、次turnで同じIDを使っても以前の行を置換しないことを確認する。",
         "ACP toolのpending/in_progress/completed/failed/未知状態・内容未提供・長い本文・非テキスト要約・Diffを更新する。開いた詳細の状態と内容順を保ち、raw HTMLを解釈せず、差分ボタンは正しいpathを開くことを確認する。",
         "子Taskの既存状態/結果と詳細、print編集カードのDiff/Revert、ACP質問/permissionを操作する。要求controlsは折畳みで隠れず、Revert前のqueue停止と来歴/root/after/未保存保護を保持することを確認する。"
       ],

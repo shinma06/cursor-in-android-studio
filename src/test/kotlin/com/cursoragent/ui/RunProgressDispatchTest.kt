@@ -2,6 +2,9 @@ package com.cursoragent.ui
 
 import com.cursoragent.history.Conversation
 import com.cursoragent.history.ConversationRecorder
+import com.cursoragent.parser.ParsedToolCall
+import com.cursoragent.parser.StreamJsonParser
+import com.cursoragent.parser.StreamEvent
 import com.cursoragent.service.*
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.ui.timeline.ChatTimelinePanel
@@ -76,8 +79,8 @@ class RunProgressDispatchTest {
                 onPrintRequestId = { assertTrue(sessions.accepts(other)); notices.add("request:${it.value}") })
             runA = AgentRun(listenerA)
             runB = AgentRun(listenerB)
-            runA.emit { it.onStarted(); it.onThinking("observed"); it.onToolCall("first"); it.onToolCall("second") }
-            runB.emit { it.onStarted(); it.onToolCall("foreground") }
+            runA.emit { it.onStarted(); it.onThinking("observed"); it.onToolCallStarted(ParsedToolCall("a", "started", "read", "first")); it.onToolCallStarted(ParsedToolCall("b", "started", "read", "second")) }
+            runB.emit { it.onStarted(); it.onToolCallStarted(ParsedToolCall("c", "started", "read", "foreground")) }
             assertEquals(listOf("start:${first.turnId}"), notices)
             assertEquals(RunPhase.TOOL, firstTimeline.runStatus.phase)
             // The event is queued before Stop, but executes after it on the EDT.
@@ -126,4 +129,30 @@ class RunProgressDispatchTest {
             timeline.runStatus.dispose()
         }
     }
+
+    @Test fun `legacy and unknown tool states retain literal names without inventing started notifications`() = SwingUtilities.invokeAndWait {
+        val timeline = ChatTimelinePanel().apply { isActiveTab = false; runStatus.begin() }
+        val notices = mutableListOf<String>()
+        val project = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(Project::class.java)) { _, method, _ ->
+            if (method.name == "isDisposed") false else error("Unexpected Project access")
+        } as Project
+        val listener = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, ConversationRecorder(Conversation()) {},
+            {}, ConversationChanges("one"), {}, onToolNotice = notices::add, onTerminalNotice = { _, _ -> },
+        ).create(1, "one", { true }, { false }, { true }, { RestoreTarget.UNKNOWN })
+        val parser = StreamJsonParser { event ->
+            if (event is StreamEvent.ToolCall) listener.onToolCall(event.toolName)
+        }
+        parser.parseLine("""{"type":"tool_call","name":"syntheticLegacyRead"}""")
+        parser.parseLine("""{"type":"tool_call","subtype":"unknown","name":"<html>literal"}""")
+        fun descendants(value: java.awt.Component): List<java.awt.Component> = listOf(value) +
+            if (value is java.awt.Container) value.components.flatMap(::descendants) else emptyList()
+        val labels = descendants(timeline).filterIsInstance<javax.swing.JLabel>()
+        assertTrue(labels.any { it.text == "ツール情報（状態未取得）: syntheticLegacyRead" })
+        val literal = labels.single { it.text == "ツール情報（状態未取得）: <html>literal" }
+        assertEquals(true, literal.getClientProperty("html.disable"))
+        assertEquals(RunPhase.RUNNING, timeline.runStatus.phase)
+        assertTrue(notices.isEmpty())
+        timeline.runStatus.dispose()
+    }
+
 }
