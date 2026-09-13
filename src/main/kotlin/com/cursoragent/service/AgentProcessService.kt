@@ -162,6 +162,11 @@ class AgentProcessService(private val project: Project) : Disposable {
             val parser = StreamJsonParser { event ->
                 run.emit { listener ->
                     when (event) {
+                        StreamEvent.OutputLimitExceeded -> {
+                            run.reportError("CLIの出力が1行の受信上限を超えたため停止しました。")
+                            handler.destroyProcess()
+                        }
+
                         is StreamEvent.SessionInit -> {
                             if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
