@@ -9,7 +9,7 @@ description: Begin or resume an Issue-scoped code, docs, or configuration change
 
 開始できる状態は、対象Issue/コメント・関連PR・Project/対象Milestone・依存と受入が分かり、他writerと競合しないこと。Issue検索後、owner、scope、base SHA、依存、独立reviewer、GUI要否、次操作をclaimしreadbackする。未解放claimは時間で失効しない。Project/label/native関係は[Work Management](../../../docs/development/work-management.md)に従い、Standaloneに架空の親を付けない。
 
-作業場所はstatus/worktreesと`git fetch --prune origin`後のbaseを照合した専用Issue branch/worktree。通常はorigin/develop、GUI不要main toolingはworkflowの条件で選ぶ。初期upstreamを解除し`bash scripts/workflow/bootstrap.sh`を実行する。再開時は既存owner/source/実行handleを先に照合し、別worktreeへの作り直しやenrolled branchへの並行編集をしない。
+作業場所はstatus/worktreesと`git fetch --prune origin`後のbaseを照合した専用Issue branch/worktree。通常はorigin/develop、GUI不要main toolingはworkflowの条件で選ぶ。初期upstreamを解除し`bash scripts/workflow/bootstrap.sh`を実行する。再開時は既存owner/source/実行handleを先に照合する。同一ownerの継続では既存worktreeを使い、照合前に作り直さない。担当交代は[中断・再開](../../../docs/development/github-workflow.md#中断再開)に従い、旧writer停止とclaim解放または明示再割当を確認して新claim・新ownerの専用worktreeへ進む。旧ownerのディレクトリは共有しない。enrolled branchへの並行編集とowner/sourceの自動変更は禁止し、既存登録の扱いは[PR automation](../../../docs/development/pr-automation.md)に従う。
 
 `docs/verification/changes/issue-N.json`に受入全体のCase（日本語手順/期待結果、GPT/human状態、修正/再確認）を記録する。GUI不要なら理由と必要CLI検証を記載する。最初の意味あるpushでIntegration/Verification付きDraft PRを作り、実装・検証を続ける。GUIは指定operator/leaseが必要、未観察をpassにしない。
 
