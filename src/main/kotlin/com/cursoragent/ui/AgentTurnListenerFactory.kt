@@ -2,7 +2,6 @@ package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
-import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
@@ -12,6 +11,7 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
 /**
@@ -35,8 +35,11 @@ internal class AgentTurnListenerFactory(
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
     ): AgentProcessListener {
-        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        val updates = TurnEdtUpdates { allowStopped, block ->
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
+        }
+        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+            updates.update(allowStopped, block)
         }
         val assistantText = TurnAssistantText(
             { text -> timeline.setAssistantText(text); recorder.assistant(text) },
@@ -86,8 +89,8 @@ internal class AgentTurnListenerFactory(
                 }
             }
 
-            override fun onAssistantDelta(text: String) {
-                update { assistantText.printDelta(text) }
+            override fun onAssistantText(text: String) {
+                updates.print(text, assistantText::printText)
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -211,6 +214,35 @@ internal class AgentTurnListenerFactory(
     }
 }
 
+/** Coalesce only adjacent print replacements; other events keep their ordering and ownership checks. */
+internal class TurnEdtUpdates(private val enqueue: (Boolean, () -> Unit) -> Unit) {
+    private var pendingPrint: AtomicReference<String>? = null
+
+    @Synchronized
+    fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        pendingPrint = null
+        enqueue(allowStopped, block)
+    }
+
+    @Synchronized
+    fun print(text: String, consume: (String) -> Unit) {
+        if (text.isEmpty()) return
+        pendingPrint?.let {
+            it.set(text)
+            return
+        }
+        val batch = AtomicReference(text)
+        pendingPrint = batch
+        enqueue(false) {
+            val latest = synchronized(this) {
+                if (pendingPrint === batch) pendingPrint = null
+                batch.get()
+            }
+            consume(latest)
+        }
+    }
+}
+
 /** Recheck ownership when the queued callback runs, including callbacks queued before Stop/close. */
 internal fun updateCurrentTurnOnEdt(
     isDisposed: () -> Boolean,
@@ -223,17 +255,16 @@ internal fun updateCurrentTurnOnEdt(
     if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
 }
 
-/** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+/** Per-turn text only. Both outputs replace the bubble; print is already normalized by the service. */
 internal class TurnAssistantText(
     private val replaceText: (String) -> Unit,
     private val startMessage: () -> Unit,
 ) {
-    private val printDeduper = AssistantChunkDeduper()
     private var printStarted = false
     private val acpText = StringBuilder()
 
-    fun printDelta(text: String) {
-        val full = printDeduper.dedupe(text) ?: return
+    fun printText(full: String) {
+        if (full.isEmpty()) return
         printStarted = true
         replaceText(full)
     }

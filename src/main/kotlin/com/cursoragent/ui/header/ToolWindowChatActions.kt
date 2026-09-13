@@ -41,6 +41,7 @@ internal class ToolWindowChatActions(
     onEditorSettings: () -> Unit,
     onIconVisibilityChanged: () -> Unit,
     onBrowser: () -> Unit,
+    onExport: () -> Unit = {},
     onChanges: () -> Unit = {},
 ) {
     val titleActions = listOf(
@@ -49,6 +50,7 @@ internal class ToolWindowChatActions(
     )
 
     val gearActions = DefaultActionGroup(titleActions + listOf(
+        action("会話を書き出す…", "選択中の会話の現在までの本文をMarkdownへ保存します。") { onExport() },
         action("ファイルの変更…", "選択中の会話で受信した差分を、会話全体・ターンごとに確認します。") { onChanges() },
         action("開いているチャット…", "このウィンドウの会話タブを検索して切り替えます。", perform = onOpenedChats),
         action("すべてのチャットを閉じる…", "会話本文・下書きの消失と実行停止を確認してから、チャットだけを閉じます。") { onCloseAllChats() },
