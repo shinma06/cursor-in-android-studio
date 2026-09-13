@@ -76,6 +76,75 @@ class AcpSessionTest {
     }
 
     @Test
+    fun `Task reopened before parent end_turn cannot bypass unfinished tool and restore guards`() {
+        Harness(temp, "task-reopened").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertNull(h.gate.tryRestore())
+            assertEquals("in_progress", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
+    fun `late standard Task activity still marks the workspace uncertain and rejects restore`() {
+        Harness(temp, "task-late-standard").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertNull(h.gate.tryRestore())
+            assertEquals("completed", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
+    fun `task request metadata keeps unsupported reply once and cannot change failed status`() {
+        for (scenario in listOf("task-request", "task-failed")) Harness(temp.resolve(scenario), scenario).use { h ->
+            h.send()
+            h.finish()
+            val tools = h.events.filterIsInstance<AgentEvent.Tool>().map { it.state }
+            assertEquals(4, tools.size)
+            assertEquals("reported-child", tools.last().task!!.reportedAgentId)
+            assertEquals(if (scenario == "task-failed") "failed" else "completed", tools.last().status)
+            assertEquals(1, tools.map { it.id }.distinct().size)
+            val responses = h.wire().filter { !it.has("method") && it["id"]?.asInt == 7001 }
+            assertEquals(1, responses.size)
+            assertEquals(-32601, responses.single().getAsJsonObject("error")["code"].asInt)
+            assertFalse(responses.single().has("result"))
+            assertEquals(listOf("completed:0"), h.outcomes)
+        }
+    }
+
+    @Test
+    fun `task notifications have no reply ignore foreign unknown and terminal metadata and reset on next turn`() {
+        Harness(temp, "task-notify").use { h ->
+            repeat(2) {
+                h.send()
+                h.finish()
+            }
+            val tools = h.events.filterIsInstance<AgentEvent.Tool>().map { it.state }
+            assertEquals(8, tools.size)
+            assertEquals(2, tools.count { it.status == "pending" && it.task!!.reportedAgentId == null })
+            assertTrue(tools.mapNotNull { it.task?.reportedAgentId }.all { it == "reported-child" })
+            assertTrue(h.wire().none { !it.has("method") })
+            assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
+        }
+    }
+
+    @Test
+    fun `task metadata after Stop is not delivered and cancellation keeps actual parent outcome`() {
+        Harness(temp, "task-stop").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            h.run.stop()
+            h.finish()
+            assertTrue(h.events.filterIsInstance<AgentEvent.Tool>().all { it.state.task?.reportedAgentId == null })
+            assertEquals(listOf("stopped"), h.outcomes)
+            h.gate.tryRestore()!!.close()
+        }
+    }
+
+    @Test
     fun `two turns reuse session and preserve repeated text and confirmed settings while idle allows restore`() {
         Harness(temp, "normal").use { h ->
             h.send(mode = AgentMode.ASK)
@@ -335,6 +404,28 @@ class AcpSessionTest {
             assertTrue(h.bindings.isEmpty())
             assertFalse(h.gate.isUncertain)
             assertTrue(h.outcomes.single().startsWith("error:"))
+        }
+    }
+
+    @Test
+    fun `nontext siblings survive malformed input while foreign terminal and stopped content are gated`() {
+        Harness(temp.resolve("normal"), "content-normal").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            assertEquals(listOf("before", "after"), h.events.filterIsInstance<AgentEvent.Text>().map { it.text })
+            val media = h.events.filterIsInstance<AgentEvent.Content>().single().summary
+            assertTrue(media.details.contains("image/png"))
+            assertEquals(2, h.events.filterIsInstance<AgentEvent.Tool>().single().state.content.size)
+            h.gate.tryRestore()!!.close()
+        }
+        Harness(temp.resolve("stop"), "content-stop").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            h.run.stop()
+            h.finish()
+            assertEquals(listOf("stopped"), h.outcomes)
+            assertTrue(h.events.filterIsInstance<AgentEvent.Content>().none { it.summary.details.contains("after-stop") })
         }
     }
 

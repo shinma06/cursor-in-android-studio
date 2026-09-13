@@ -234,6 +234,10 @@ internal class AcpSession(
     }
 
     private fun notification(method: String, params: JsonObject) {
+        if (method == "cursor/task") {
+            observeTask(params)
+            return
+        }
         if (closing || disconnected || method != "session/update" || params.string("sessionId") != sessionId) return
         val update = params.getAsJsonObject("update")
         if (update.string("sessionUpdate") == "available_commands_update") {
@@ -258,6 +262,10 @@ internal class AcpSession(
     }
 
     private fun request(wire: AcpJsonRpc.Request, method: String, params: JsonObject) {
+        if (method == "cursor/task") {
+            try { observeTask(params) } finally { wire.reject() }
+            return
+        }
         val current = active
         if (current == null || !current.promptSent || params.has("sessionId") && params.string("sessionId") != sessionId) {
             wire.reject(-32602, "No active session prompt")
@@ -288,6 +296,17 @@ internal class AcpSession(
         // Stop may have arrived after validation and before insertion.
         if (!current.turn.run.isActive || closing) pending.answer(AgentAnswer.Cancel)
         else current.turn.run.emit { it.onStructuredEvent(AgentEvent.Input(pending)) }
+    }
+
+    private fun observeTask(params: JsonObject) {
+        val delivery = synchronized(lock) {
+            val current = active ?: return
+            if (closing || disconnected || current.terminal || !current.promptSent || current.turn.run.wasStopped ||
+                params.has("sessionId") && params.string("sessionId") != sessionId) return
+            val event = protocol.taskMetadata(params) ?: return
+            current to event
+        }
+        delivery.first.turn.run.emit { it.onStructuredEvent(delivery.second) }
     }
 
     private fun cancel(current: Active) {
