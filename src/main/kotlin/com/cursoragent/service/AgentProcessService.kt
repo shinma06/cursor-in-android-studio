@@ -28,6 +28,8 @@ import java.nio.charset.StandardCharsets
 data class ModelOption(val id: String, val label: String)
 
 interface AgentProcessListener {
+    /** Print process constructed, or ACP prompt dispatch observed; preparation has ended. */
+    fun onStarted() {}
     fun onStructuredEvent(event: AgentEvent) {}
     fun onTurnOutcome(outcome: AgentTurnOutcome) {
         if (outcome == AgentTurnOutcome.COMPLETED) onCompleted(0) else onError(outcome.message)
@@ -250,6 +252,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             })
 
             run.attachProcess(handler::destroyProcess) { handler.isProcessTerminated }
+            run.emit { it.onStarted() }
             handler.startNotify()
         } catch (error: Exception) {
             // A constructed process may already be writing even if listener setup/startNotify fails.

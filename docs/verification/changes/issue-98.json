@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "issue": 98,
+  "gui_required": true,
+  "reason": "RUN-STATE-TIME / RUN-TOOL-DETAILS / RUN-NOTICE-OWNERSHIPとMV-001/002/015/020/029の固定IDE確認が必要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin",
+    "固定独立レビューで依存merge解消・実起動/dispatch・Factory/Controller・timer/通知寿命・ツール更新と既存Request ID/usage/queue/Revertを照合"
+  ],
+  "cases": [
+    {
+      "id": "RUN-STATE-TIME",
+      "issue": 98,
+      "change": "実eventと全turn経過時間（MV-001/002/015/020）",
+      "preconditions": "指定GUI担当がleaseを取得し、#98と公開依存#308/#289を含む固定HEAD/ZIP SHA256/loaded JARを照合する。使い捨てprojectと公開合成fixtureを用い、実provider確認は別記録・許可範囲で行う。通常設定の開始状態を記録し終了後に戻す。",
+      "steps": [
+        "MV-001: 固定fixtureで正常printを送り、準備中からprocess起動後の実行中、受信thinking、tool開始、assistant本文、実exit0後の完了を確認する。経過表示を別時計と比べ、準備時間を含み終端後に増えないことを確認する。Resultだけ受けてprocessが残るholdでは完了にしない。",
+        "MV-002: 正常ACPの初回接続/設定中は準備中、prompt dispatch後に実行中になることを確認する。再利用する2ターン目の時間が0から始まり、Thoughtがないと考え中を生成せず、提供された質問/permission/Planを操作できることを確認する。",
+        "MV-015: 準備中/実行中でStopし、未終了なら停止を確認中、終了後は停止の説明と固定経過時間になることを確認する。適用済み編集と途中本文は保持し、非zero/error終了やACP不確定終了と区別する。",
+        "MV-020: 2会話で並行実行し、一方だけStop/closeする。もう一方の本文・timer・Request ID・usageを保持する。終了直前Stopと直後の次turn/queue配送で旧callbackが状態や時間を上書きしないことを確認する。厳密に再現できない内部窓は未観測として残す。"
+      ],
+      "expected": "最後の実活動eventと所有turnの経過時間を表示し、終端/破棄後のtimerと古い配送を停止する。未提供思考時間/承認待ち/再接続を発明しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildへ追跡する。",
+      "next_action": "指定GUI担当が同じ固定候補で実施し、未実施/未観測はpending、実施不能はblocked、製品不一致はfailとして記録する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/98"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成回帰成功は実IDEの表示・通知・timer・操作の観測を代替しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成回帰成功は実IDEの表示・通知・timer・操作の観測を代替しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "RUN-TOOL-DETAILS",
+      "issue": 98,
+      "change": "詳細開閉・同一call更新・長い結果（MV-029）",
+      "preconditions": "指定GUI担当がleaseを取得し、#98と公開依存#308/#289を含む固定HEAD/ZIP SHA256/loaded JARを照合する。使い捨てprojectと公開合成fixtureを用い、実provider確認は別記録・許可範囲で行う。通常設定の開始状態を記録し終了後に戻す。",
+      "steps": [
+        "MV-029: printの長いshell stdout/stderr・空結果・非zero結果を用意する。概要と完了/失敗を残して詳細が閉じていること、TabとSpace/Enterで開閉し元の改行・先頭/末尾空白・最終出力を読めることを確認する。",
+        "同一call IDのstarted/completed/重複completed/遅いstartedを順に流す。同じ行と開閉状態を保持して完了をstartedへ戻さず、次turnで同じIDを使っても以前の行を置換しないことを確認する。",
+        "ACP toolのpending/in_progress/completed/failed/未知状態・内容未提供・長い本文・非テキスト要約・Diffを更新する。開いた詳細の状態と内容順を保ち、raw HTMLを解釈せず、差分ボタンは正しいpathを開くことを確認する。",
+        "子Taskの既存状態/結果と詳細、print編集カードのDiff/Revert、ACP質問/permissionを操作する。要求controlsは折畳みで隠れず、Revert前のqueue停止と来歴/root/after/未保存保護を保持することを確認する。"
+      ],
+      "expected": "詳細は操作時だけ展開し、最新の内容を損失なく確認できる。同じprint callを一行へ集約し、別turn・子Task・要求・復元保護を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildへ追跡する。",
+      "next_action": "指定GUI担当が同じ固定候補で実施し、未実施/未観測はpending、実施不能はblocked、製品不一致はfailとして記録する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/98"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成回帰成功は実IDEの表示・通知・timer・操作の観測を代替しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成回帰成功は実IDEの表示・通知・timer・操作の観測を代替しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "RUN-NOTICE-OWNERSHIP",
+      "issue": 98,
+      "change": "背景通知の集約とエラー導線（MV-001/002/015/020）",
+      "preconditions": "指定GUI担当がleaseを取得し、#98と公開依存#308/#289を含む固定HEAD/ZIP SHA256/loaded JARを照合する。使い捨てprojectと公開合成fixtureを用い、実provider確認は別記録・許可範囲で行う。通常設定の開始状態を記録し終了後に戻す。",
+      "steps": [
+        "通知をONにして、前景と背景の2会話で複数toolを開始する。前景開始を通知せず、背景turnの初回だけ通知し、背景の別turn開始はprojectの古い開始通知を置き換えることを確認する。",
+        "旧turnを終了/Stop/closeし、新しい別turnの開始通知が消えないことを確認する。各turnの完了・失敗・停止は独立した日本語通知となり、開始通知の集約に消されないことを確認する。",
+        "背景tabで起動失敗/応答エラー/ACP不確定終了を発生させる。重複modalが出ず、失敗通知の「会話を開く」で元tabの詳細へ戻れることを確認する。閉じたtabの通知を押しても再作成しないことを確認する。",
+        "設定で通知をOFFにし、同じ失敗でも会話内の詳細が残ることを確認する。設定・認証など別の既存dialogは従来どおりで、実行中tabとprojectの終了後に開始通知やtimerが再発しないことを確認する。"
+      ],
+      "expected": "開始通知だけを抑制し、別turnの終端や失敗への導線を失わない。通知設定と閉じたtabの寿命を守り、同一turnのエラーmodal重複を解消する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildへ追跡する。",
+      "next_action": "指定GUI担当が同じ固定候補で実施し、未実施/未観測はpending、実施不能はblocked、製品不一致はfailとして記録する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/98"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成回帰成功は実IDEの表示・通知・timer・操作の観測を代替しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成回帰成功は実IDEの表示・通知・timer・操作の観測を代替しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

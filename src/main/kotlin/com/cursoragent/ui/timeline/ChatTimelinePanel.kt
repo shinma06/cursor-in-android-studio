@@ -29,6 +29,8 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         border = JBUI.Borders.empty(6, 12, 12, 12)
     }
 
+    internal val runStatus = RunStatusPanel()
+
     private val saveStatus = javax.swing.JLabel().apply { border = JBUI.Borders.empty(2, 12) }
     fun setSaveStatus(text: String) {
         saveStatus.text = text
@@ -75,9 +77,9 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     private var currentAssistantBubble: AssistantMessageBubble? = null
     private var currentStatusRow: StatusMessageRow? = null
 
-    /** Tracks the still-in-progress row for a `started` tool call, keyed by call id, so the
-     * matching `completed` event can replace it in place instead of leaving a stale duplicate. */
-    private val activeToolCallRows = mutableMapOf<String, Component>()
+    /** Keep each print call in place through updates; IDs are scoped to the current turn. */
+    private val completedPrintTools = mutableSetOf<String>()
+    private val printToolRows = mutableMapOf<String, Component>()
     private val structuredTools = mutableMapOf<String, Component>()
     private val taskCards = linkedMapOf<Pair<String?, String>, TaskToolCard>()
     private var planRow: Component? = null
@@ -85,10 +87,13 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     init {
         isOpaque = false
         add(emptyState, BorderLayout.CENTER)
+        add(runStatus, BorderLayout.NORTH)
     }
 
     fun addUserMessage(text: String): UserMessageBubble {
         structuredTools.clear()
+        printToolRows.clear()
+        completedPrintTools.clear()
         taskCards.clear()
         planRow = null
         hideEmptyState()
@@ -145,17 +150,17 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun showError(text: String) {
         clearStatus()
         hideEmptyState()
-        addRow(StatusMessageRow("Error: $text"))
+        addRow(StatusMessageRow("エラー: $text"))
         scrollToBottom()
     }
+
+    internal fun hasCompletedPrintTool(callId: String): Boolean = callId in completedPrintTools
 
     fun addToolCallStarted(payload: ParsedToolCall) {
         clearStatus()
         hideEmptyState()
-        removeActiveRow(payload.callId)
-        val row = ToolCallBubble(payload.summary)
-        addRow(row)
-        activeToolCallRows[payload.callId] = row
+        if (payload.callId in completedPrintTools) return
+        putPrintRow(payload.callId, ToolCallBubble("ツール開始: ${payload.summary}"), completed = false)
         scrollToBottom()
     }
 
@@ -166,23 +171,21 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         onRevert: () -> Unit,
     ) {
         hideEmptyState()
-        removeActiveRow(callId)
-        addRow(FileEditCard(details, onViewDiff, onRevert))
+        putPrintRow(callId, FileEditCard(details, onViewDiff, onRevert))
         scrollToBottom()
     }
 
     fun addShellResultCard(payload: ParsedToolCall) {
         val result = payload.shellResult ?: return
         hideEmptyState()
-        removeActiveRow(payload.callId)
-        addRow(ToolCallBubble.forShell(payload.summary, result))
+        putPrintRow(payload.callId, ToolCallBubble.forShell(payload.summary, result))
         scrollToBottom()
     }
 
     fun addToolCallSummary(callId: String?, summary: String) {
         hideEmptyState()
-        callId?.let { removeActiveRow(it) }
-        addRow(ToolCallBubble(summary))
+        val row = ToolCallBubble(summary)
+        if (callId == null) addRow(row) else putPrintRow(callId, row)
         scrollToBottom()
     }
 
@@ -190,7 +193,8 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         if (tool.task != null) return upsertTask(tool, viewDiff = viewDiff)
         clearStatus()
         hideEmptyState()
-        val card = StructuredToolCard(tool, viewDiff)
+        val expanded = (structuredTools[tool.id] as? StructuredToolCard)?.expanded ?: false
+        val card = StructuredToolCard(tool, viewDiff, expanded)
         replaceRow(structuredTools.put(tool.id, card), card)
         return tool
     }
@@ -213,7 +217,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         val card = TaskToolCard(tool, viewDiff)
         taskCards[key] = card
         // A standard ACP row can precede cursor/task metadata for the same ID.
-        replaceRow(if (parentSessionId == null) structuredTools.remove(tool.id) else activeToolCallRows.remove(tool.id), card)
+        replaceRow(if (parentSessionId == null) structuredTools.remove(tool.id) else printToolRows.remove(tool.id), card)
         return card.tool
     }
 
@@ -247,9 +251,11 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         }
     }
 
-    /** Removes the still-in-progress row for [callId] (if any) — a `completed` event replaces it. */
-    private fun removeActiveRow(callId: String) {
-        activeToolCallRows.remove(callId)?.let { removeRow(it) }
+    private fun putPrintRow(callId: String, row: Component, completed: Boolean = true) {
+        val old = printToolRows.put(callId, row)
+        if (row is ToolCallBubble && old is ToolCallBubble) row.expanded = old.expanded
+        if (completed) completedPrintTools.add(callId)
+        replaceRow(old, row)
     }
 
     private fun addRow(component: Component) {
