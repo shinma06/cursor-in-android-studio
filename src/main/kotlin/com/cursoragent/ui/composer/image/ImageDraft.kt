@@ -17,6 +17,7 @@ internal class ImageDraft(
 ) : AutoCloseable {
     private var generation = 0L
     private var closed = false
+    val hasUnsent: Boolean get() = importing || attachment != null
     var importing = false
         private set
     var attachment: ImageAttachment? = null

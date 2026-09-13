@@ -48,6 +48,27 @@ class ImageDraftTest {
     }
 
     @Test
+    fun `image-only and pending drafts require explicit discard until removed`() {
+        ImageAttachmentStore(parent).use { store ->
+            val worker = Tasks()
+            val ui = Tasks()
+            val draft = ImageDraft(worker, { ui.execute(it) }, { store }, {})
+            assertFalse(draft.hasUnsent)
+            draft.import(::image)
+            assertTrue(draft.hasUnsent) // Closing before worker/delivery must ask, too.
+            worker.drain()
+            assertTrue(draft.hasUnsent)
+            ui.drain()
+            assertTrue(draft.hasUnsent)
+            draft.clear() // Explicit removal allows closing the otherwise empty draft.
+            assertFalse(draft.hasUnsent)
+            worker.drain()
+            assertEquals(0, count())
+            draft.close()
+        }
+    }
+
+    @Test
     fun `pending and attached images reject replacement while an independent queue lease survives removal`() {
         ImageAttachmentStore(parent).use { store ->
             val worker = Tasks()
