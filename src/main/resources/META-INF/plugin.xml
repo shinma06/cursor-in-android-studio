@@ -39,4 +39,10 @@
         <projectService serviceImplementation="com.cursoragent.settings.ChatHistoryState"/>
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
+    <actions>
+        <action id="CursorAgent.AddSelectionToChat" class="com.cursoragent.actions.AddSelectionToChatAction"
+                text="Add to Chat (Cursor)" description="選択したコードを現在のチャットへ明示contextとして追加します。">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
