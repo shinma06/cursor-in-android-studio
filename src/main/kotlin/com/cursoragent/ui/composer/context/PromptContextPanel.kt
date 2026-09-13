@@ -4,8 +4,10 @@ import com.cursoragent.ui.composer.mention.Mention
 import com.cursoragent.ui.composer.mention.contextDescription
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.BoxLayout
 import javax.swing.JButton
@@ -24,6 +26,16 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
         addActionListener { automatic?.let { preview(it.selection?.block() ?: "Active file: ${it.path}") } }
     }
     private val rows = JPanel().apply { isOpaque = false; layout = BoxLayout(this, BoxLayout.Y_AXIS) }
+    private val attachments = object : JBScrollPane(rows) {
+        override fun getPreferredSize(): Dimension = super.getPreferredSize().apply {
+            height = height.coerceAtMost(JBUI.scale(120))
+        }
+    }.apply {
+        isOpaque = false
+        viewport.isOpaque = false
+        border = JBUI.Borders.empty()
+        isVisible = false
+    }
     private val refreshTimer = Timer(350) { refreshAutomatic() }
 
     init {
@@ -50,7 +62,7 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
                 })
             }, BorderLayout.SOUTH)
         }, BorderLayout.NORTH)
-        add(rows, BorderLayout.CENTER)
+        add(attachments, BorderLayout.CENTER)
         addHierarchyListener {
             if (isShowing && !project.isDisposed) { refreshAutomatic(); refreshTimer.start() } else refreshTimer.stop()
         }
@@ -102,6 +114,7 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
                 draft.removeMention(mention); render()
             }))
         }
+        attachments.isVisible = rows.componentCount > 0
         revalidate()
         repaint()
     }
@@ -117,6 +130,7 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
             add(JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 isOpaque = false
                 if (replace != null) add(JButton("変更").apply {
+                    getAccessibleContext().accessibleName = "$label を変更"
                     toolTipText = "現在のエディター選択へ置き換えます。"
                     addActionListener { replace() }
                 })

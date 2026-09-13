@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "issue": 343,
+  "gui_required": true,
+  "reason": "添付行のスクロール・入力欄との配置とスクリーンリーダー操作を固定buildで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "MentionResolverTestとPromptContextPanelTestで実resolverのmissing扱い、40行レイアウト、scroll、accessible name、空欄高さを回帰確認",
+    "git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "CTX-343-ATTACHMENTS",
+      "issue": 343,
+      "change": "未解決legacy参照の省略、多数添付の高さ制限と変更ボタンの読み上げ",
+      "preconditions": "修正343を含む固定候補・ZIP SHA-256・ロードJARを照合。指定GUI担当のleaseと使い捨てプロジェクト、送信promptを記録できる制御fixtureを使う。",
+      "steps": [
+        "存在しない名前を使って「Why does @Composable recompose? @missing/」を手入力して送信し、不要なfile/folder unavailable文がpromptに追加されないことを確認。次に明示追加したfile/folderを送信前に消し、取得不能の文が残ることを確認する。",
+        "40件の異なる選択と空白/日本語/長名の参照を追加する。狭幅/広幅・Dark/Light・通常/Compactで添付領域が一定高さに収まり、スクロールして最後の添付のpreview/変更/削除を操作でき、入力欄・送信/Stop・timelineが使えることを確認する。",
+        "スクリーンリーダーで複数選択の変更ボタンを順に確認し、対象path/行範囲を識別できることを確認する。全添付を削除して空のスクロール領域が残らないことを確認する。"
+      ],
+      "expected": "通常の@wordで誤った参照エラーを添付せず、明示参照の欠落は表示する。多数添付でも入力領域を占有せず、全行を操作し各変更対象を読み上げで識別できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致を専用修正で追跡し、新固定buildで本CaseとQA341の該当Caseを再確認する。",
+      "next_action": "PMが修正343を含む固定候補を用意し、QA341と修正QAで本Caseを確認。GUI/main未確認をpendingとして維持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/343",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/282",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/341"
+      ]
+    }
+  ]
+}
