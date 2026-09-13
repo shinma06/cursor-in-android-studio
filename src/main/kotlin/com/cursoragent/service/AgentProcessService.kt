@@ -1,13 +1,17 @@
 package com.cursoragent.service
 
+import com.cursoragent.parser.belongsToPrintSession
+
 import com.cursoragent.acp.AcpException
 import com.cursoragent.acp.AcpSession
+import com.cursoragent.parser.PrintAssistantText
 import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.WorktreeMode
 import com.cursoragent.settings.detectAgentExecutable
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
@@ -24,13 +28,15 @@ import java.nio.charset.StandardCharsets
 data class ModelOption(val id: String, val label: String)
 
 interface AgentProcessListener {
+    /** Print process constructed, or ACP prompt dispatch observed; preparation has ended. */
+    fun onStarted() {}
     fun onStructuredEvent(event: AgentEvent) {}
     fun onTurnOutcome(outcome: AgentTurnOutcome) {
         if (outcome == AgentTurnOutcome.COMPLETED) onCompleted(0) else onError(outcome.message)
     }
     fun onUncertain(message: String) { onError(message) }
     fun onUserMessage(prompt: String) {}
-    fun onAssistantDelta(text: String) {}
+    fun onAssistantText(text: String) {}
     fun onResultFallback(text: String) {}
     fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {}
     fun onThinking(text: String) {}
@@ -40,6 +46,8 @@ interface AgentProcessListener {
     fun onSessionUpdated(chatId: String?, model: String?) {}
     fun onError(message: String) {}
     fun onCompleted(exitCode: Int) {}
+    /** Successful print Result plus actual exit 0, after AgentRun has rejected Stop/errors. */
+    fun onPrintCompleted(requestId: PrintRequestId) { onCompleted(0) }
     fun onStopped() {}
 }
 
@@ -51,6 +59,24 @@ class AgentProcessService(private val project: Project) : Disposable {
     @Volatile private var disposed = false
     private val sessionTargets = SessionWorkspaceHistory()
     private val operations = WorkspaceOperationGate()
+    internal val imageWorker = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+        Thread(task, "Cursor image snapshots").apply { isDaemon = true }
+    }
+    private var images: com.cursoragent.ui.composer.image.ImageAttachmentStore? = null
+    init {
+        imageWorker.execute {
+            runCatching { com.cursoragent.ui.composer.image.ImageAttachmentStore.recoverStopped() }
+                .onSuccess { reasons -> reasons.forEach { LOG.warn(it) } }
+                .onFailure { LOG.warn("前回の添付一時データの確認に失敗したため保持しました。") }
+        }
+    }
+    /** Called only on imageWorker; recovery never runs on the UI thread. */
+    internal fun imageStore(): com.cursoragent.ui.composer.image.ImageAttachmentStore = images ?: run {
+        com.cursoragent.ui.composer.image.ImageAttachmentStore(onRetained = { LOG.warn(it) }).also { images = it }
+    }
+    internal fun releaseImage(image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment) {
+        runCatching { imageWorker.execute { runCatching { image.close() }.onFailure { LOG.warn("添付一時データの解放に失敗しました。") } } }
+    }
     private val acpSessions = mutableMapOf<String, AcpSession>()
 
     fun restoreUnavailableReason(): String = if (operations.isUncertain) AcpSession.UNCERTAIN_MESSAGE else RestorePolicy.BUSY
@@ -58,6 +84,30 @@ class AgentProcessService(private val project: Project) : Disposable {
     @Synchronized
     fun closeSession(tabId: String) { acpSessions.remove(tabId)?.close() }
 
+
+    private fun acpSession(tabId: String): AcpSession = acpSessions.getOrPut(tabId) {
+        AcpSession(
+            launch = { root, executable ->
+                GeneralCommandLine(executable.ifBlank { resolveAgentExecutable("") }, "acp")
+                    .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
+            },
+            onUncertain = operations::markUncertain,
+        )
+    }
+
+    /** Capture session ownership before scheduling, so a late task cannot recreate a closed tab. */
+    @Synchronized
+    fun prepareAcpCommands(tabId: String, root: String, executable: String, onImageSupport: (Boolean?) -> Unit = {}, onCommands: (CommandCatalog) -> Unit) {
+        if (disposed) return
+        val session = acpSession(tabId)
+        session.observeCommands(onCommands)
+        session.observeImageSupport(onImageSupport)
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            val canonicalRoot = runCatching { RestoreTarget.capture(root, WorktreeMode.DEFAULT).rootPath }.getOrNull()
+            if (canonicalRoot == null) onCommands(CommandCatalog.Failed)
+            else session.prepare(canonicalRoot, executable)
+        }
+    }
 
     /** Early UI guidance; AcpSession still validates the same values at its execution boundary. */
     fun settingsUnavailableReason(transport: AgentTransport, settings: TurnSettings, mode: WorktreeMode): String? {
@@ -95,21 +145,19 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
     }
 
-    fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT) {
+    internal fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT, commandText: String? = null, commandName: String? = null,
+        image: com.cursoragent.ui.composer.image.ValidatedImage? = null) {
+        if (image != null && transport != AgentTransport.ACP) {
+            turn.run.reportError("画像の送信には画像対応を確認できるACP接続が必要です。")
+            turn.run.complete(-1)
+            return
+        }
         if (transport == AgentTransport.ACP) {
             val session = synchronized(this) {
                 if (disposed || !turn.run.isActive) return
-                acpSessions.getOrPut(requireNotNull(tabId)) {
-                    AcpSession(
-                        launch = { root, executable ->
-                            GeneralCommandLine(executable.ifBlank { resolveAgentExecutable("") }, "acp")
-                                .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
-                        },
-                        onUncertain = operations::markUncertain,
-                    )
-                }
+                acpSession(requireNotNull(tabId))
             }
-            session.send(prompt, turn)
+            session.send(prompt, turn, commandText, commandName, image)
             return
         }
         val run = turn.run
@@ -130,6 +178,14 @@ class AgentProcessService(private val project: Project) : Disposable {
         run.emit { it.onUserMessage(prompt) }
 
         val commandLine = buildCommandLine(prompt, turn.workspace, settings)
+        val printText = PrintAssistantText(
+            probePrintVersion(commandLine, run),
+            commandLine.parametersList.hasParameter("--stream-partial-output"),
+        )
+        if (!run.isActive) {
+            run.complete(0)
+            return
+        }
         LOG.info("Starting print agent")
 
         val processReservation = turn.preparation.launchingProcess()
@@ -149,17 +205,19 @@ class AgentProcessService(private val project: Project) : Disposable {
 
         try {
             var chatId = turn.workspace.resumeId
+            val requestId = PrintRequestIdCandidate(chatId)
             val parser = StreamJsonParser { event ->
                 run.emit { listener ->
                     when (event) {
                         is StreamEvent.SessionInit -> {
+                            requestId.session(event.sessionId)
                             if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                         }
 
                         is StreamEvent.AssistantDelta -> {
-                            if (event.text.isNotEmpty()) listener.onAssistantDelta(event.text)
+                            printText.accept(event)?.let(listener::onAssistantText)
                         }
 
                         is StreamEvent.ThinkingDelta -> {
@@ -168,11 +226,12 @@ class AgentProcessService(private val project: Project) : Disposable {
 
                         is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
 
-                        is StreamEvent.ToolCallStarted -> listener.onToolCallStarted(event.payload)
+                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallStarted(event.payload)
 
-                        is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
+                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallCompleted(event.payload)
 
                         is StreamEvent.Result -> {
+                            requestId.accept(event)
                             listener.onTokenUsage(event.usage)
                             if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
@@ -197,7 +256,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                     when (outputType) {
                         ProcessOutputTypes.STDOUT -> {
-                            event.text.lineSequence().forEach(parser::parseLine)
+                            parser.parseChunk(event.text)
                         }
 
                         ProcessOutputTypes.STDERR -> {
@@ -209,7 +268,8 @@ class AgentProcessService(private val project: Project) : Disposable {
                 override fun processTerminated(event: ProcessEvent) {
                     runs.remove(run)
                     try {
-                        run.complete(event.exitCode, stderr.toString().trim())
+                        parser.finish()
+                        run.complete(event.exitCode, stderr.toString().trim(), printRequestId = requestId.completed(event.exitCode))
                     } finally {
                         processReservation.close()
                     }
@@ -217,6 +277,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             })
 
             run.attachProcess(handler::destroyProcess) { handler.isProcessTerminated }
+            run.emit { it.onStarted() }
             handler.startNotify()
         } catch (error: Exception) {
             // A constructed process may already be writing even if listener setup/startNotify fails.
@@ -285,6 +346,8 @@ class AgentProcessService(private val project: Project) : Disposable {
         killActiveProcess()
         acpSessions.values.forEach { it.close() }
         acpSessions.clear()
+        imageWorker.execute { runCatching { images?.close() }; images = null }
+        imageWorker.shutdown()
     }
 
     private fun buildCommandLine(
@@ -323,3 +386,16 @@ class AgentProcessService(private val project: Project) : Disposable {
         return detectAgentExecutable() ?: "agent"
     }
 }
+
+/** Probe the frozen invocation, never current global settings; cancellation also owns this subprocess. */
+internal fun probePrintVersion(command: GeneralCommandLine, run: AgentRun): String? = runCatching {
+    if (!run.isActive) return null
+    val probe = GeneralCommandLine(command.exePath, "--version")
+        .withWorkDirectory(command.workDirectory)
+        .withCharset(StandardCharsets.UTF_8)
+        .withEnvironment(command.environment)
+    val handler = CapturingProcessHandler(probe)
+    run.attachCancellation { handler.destroyProcess() }
+    val output = handler.runProcess(3000)
+    output.stdout.trim().takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
+}.getOrNull()

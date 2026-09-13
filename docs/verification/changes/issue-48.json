@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "issue": 48,
+  "gui_required": true,
+  "reason": "明示予約の順次送信、編集/削除/順序、設定context時点とStop/失敗/選択移動/close競合を確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューで実run終端・queue世代・会話所有・保存不変を照合"
+  ],
+  "cases": [
+    {
+      "id": "QUEUE-ORDER",
+      "issue": 48,
+      "change": "明示予約・順次送信・編集・context",
+      "preconditions": "同じ#48固定候補buildと非秘密・使い捨てproject/fixture。指定GUI担当がhost leaseを取得して操作する。",
+      "steps": [
+        "指定GUI leaseで同じ固定build/ZIP hash/loaded JAR・CLI版を記録し、使い捨てprojectのprintとACPで数秒以上続くturnを実行する。",
+        "実行中に未登録下書きを入力してEnterを押し、予約されず下書きが残ることを確認。次に「予約に追加」で2件登録し、一覧で本文保存/キャンセル・削除・上下移動、元のmode/model表示を確認する。",
+        "一覧を一時停止のまま閉じ、完了後も送信されないことを確認してから明示的に予約送信を再開する。送信順と同じprovider/Conversation、新しいturn IDを確認する。",
+        "登録後にmode/model、選択ファイル・選択範囲・permission/sandbox/worktree設定を変え、mode/modelは登録時、context/実行設定は次turn開始時のsnapshotであることを確認する。ACP非対応設定は失敗/pauseを表示する。",
+        "未登録下書き・caretを残して連続予約を送り、本文が消えず勝手に送られないことを確認する。狭いpanel、IME、日本語入力、キーボードで一覧/編集/再開へ到達できることを確認する。"
+      ],
+      "expected": "明示登録だけが同会話へ1件ずつ送られる。未登録draftを保持し、編集キャンセルは元entryのまま。登録設定と送信contextの時点が表示どおりである。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "単体/契約テストと実IDE・実Agent受入を分ける。指定GUI担当による固定buildでの確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "単体/契約テストと実IDE・実Agent受入を分ける。指定GUI担当による固定buildでの確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/48"
+      ]
+    },
+    {
+      "id": "QUEUE-CANCEL",
+      "issue": 48,
+      "change": "Stop・失敗・選択移動・closeの競合",
+      "preconditions": "同じ#48固定候補buildと非秘密・使い捨てproject/fixture。指定GUI担当がhost leaseを取得して操作する。",
+      "steps": [
+        "複数tabで並行runと予約を作り、片方のStopを押す。残予約は停止中になり、別tabの実runは止まらないことを確認する。",
+        "print Resultのみ/0exit+error/非0exit、ACP end_turn/refusal/max_tokens/max_turn_requests/cancelled/uncertainを使い捨てfixtureで確認し、成功終端だけが次の予約へ進むことを確認する。",
+        "成功callbackから次のEDT配送までにStop→再開・別tab切替・NewChat・履歴を開く・編集/削除/並べ替え・close確認を行い、古いticketから送信されないことを確認する。戻ったtabは明示再開まで停止中。",
+        "予約の準備/CLI起動を失敗させ、本文と失敗を表示し残りがpauseされ、自動retryや別provider新規会話への流入がないことを確認する。provider ID欠落でも予約を保持してpauseする。",
+        "単独/bulk closeの予約消失確認をキャンセルし保持を確認した後、確定してclose/IDE終了する。履歴再表示・再起動で未送信予約が自動再送されず、送信済み本文は通常の保存turnとして残ることを確認する。"
+      ],
+      "expected": "同tab単一run/別tab並行を維持。Stop・エラー・選択移動・close・dispose後に無断配送/再試行が起こらない。消失する未送信予約をclose確認に含める。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "単体/契約テストと実IDE・実Agent受入を分ける。指定GUI担当による固定buildでの確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "単体/契約テストと実IDE・実Agent受入を分ける。指定GUI担当による固定buildでの確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/48"
+      ]
+    }
+  ]
+}

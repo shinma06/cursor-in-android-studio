@@ -1,10 +1,16 @@
 package com.cursoragent.acp
 
+import com.cursoragent.parser.objectValue
+import com.cursoragent.parser.taskId
+import com.cursoragent.parser.taskString
+import com.cursoragent.parser.withTaskInput
+import com.cursoragent.parser.withTaskMetadata
+import com.cursoragent.parser.withTaskOutput
 import com.cursoragent.service.AgentAnswer
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentInput
+import com.cursoragent.service.AgentTask
 import com.cursoragent.service.AgentTool
-import com.cursoragent.service.AgentToolContent
 import com.cursoragent.service.ModelOption
 import com.cursoragent.service.PermissionOption
 import com.cursoragent.service.Question
@@ -16,15 +22,22 @@ import com.google.gson.JsonObject
 /** Cursor v1 boundary: opaque IDs and partial tool updates never pass through the print parser. */
 internal class AcpProtocol {
     private val tools = linkedMapOf<String, AgentTool>()
+    private val retiredToolIds = mutableSetOf<String>()
+    private var metadataCorrelationExhausted = false
     private var payloadSize = 0
+    private var contents = AcpContent()
     private var messageId: String? = null
     private var interrupted = true
 
     fun interruptMessage() { interrupted = true }
 
     fun beginTurn() {
+        // cursor/task lacks a turn ID: reused IDs cannot distinguish this turn from delayed metadata.
+        if (retiredToolIds.size + tools.size <= 4_096 && !metadataCorrelationExhausted) retiredToolIds.addAll(tools.keys)
+        else { metadataCorrelationExhausted = true; retiredToolIds.clear() }
         tools.clear()
         payloadSize = 0
+        contents = AcpContent()
         interrupted = true
     }
 
@@ -35,9 +48,9 @@ internal class AcpProtocol {
         acceptPayload(update)
         return when (update.string("sessionUpdate")) {
             "agent_message_chunk", "agent_thought_chunk" -> {
-                val content = update.getAsJsonObject("content")
-                if (content.string("type") == "text") {
-                    val text = content.requiredString("text")
+                val content = update["content"]?.takeIf { it.isJsonObject }?.asJsonObject
+                val text = content?.get("text")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+                if (content?.string("type") == "text" && text != null) {
                     if (update.string("sessionUpdate") == "agent_message_chunk") {
                         val id = update.string("messageId")
                         val boundary = interrupted || messageId != id
@@ -45,7 +58,12 @@ internal class AcpProtocol {
                         interrupted = false
                         AgentEvent.Text(text, id, boundary)
                     } else { interrupted = true; AgentEvent.Thought(text) }
-                } else null // Image/audio input and richer output are separate acceptance scopes.
+                } else {
+                    interrupted = true
+                    if (update.string("sessionUpdate") == "agent_message_chunk")
+                        contents.assistant(update["content"])?.let(AgentEvent::Content)
+                    else null // Thoughts are transient, never persisted as assistant content.
+                }
             }
             "tool_call", "tool_call_update" -> {
                 interrupted = true
@@ -64,6 +82,26 @@ internal class AcpProtocol {
             }
             else -> null
         }
+    }
+
+    /** Supplement an existing tool in this turn only; never create a row or a client task. */
+    fun taskMetadata(params: JsonObject): AgentEvent.Tool? {
+        acceptPayload(params)
+        val id = params.taskId("toolCallId") ?: return null
+        if (metadataCorrelationExhausted || id in retiredToolIds) return null
+        val old = tools[id] ?: return null
+        if (old.task == null && old.kind != "other") return null
+        val next = old.copy(task = (old.task ?: AgentTask()).withTaskMetadata(params))
+        tools[id] = next
+        return AgentEvent.Tool(next)
+    }
+
+    private fun task(update: JsonObject, old: AgentTask?): AgentTask? {
+        val input = update.objectValue("rawInput")
+        var value = old ?: if (input?.taskString("_toolName") == "task") AgentTask() else return null
+        if (update.has("rawInput")) value = value.withTaskInput(input)
+        if (update.has("rawOutput")) value = value.withTaskOutput(update.objectValue("rawOutput"))
+        return value
     }
 
     fun input(method: String, params: JsonObject): AgentInput? {
@@ -110,26 +148,23 @@ internal class AcpProtocol {
         require(payloadSize <= 4 * 1024 * 1024) { "ACP turn payload limit" }
     }
 
-    private fun tool(update: JsonObject, old: AgentTool): AgentTool = old.copy(
-        command = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("command") ?: old.command,
-        path = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("path") ?: old.path,
-        title = update.string("title") ?: old.title,
-        kind = update.string("kind") ?: old.kind,
-        status = update.string("status") ?: old.status,
-        content = if (update["content"]?.isJsonArray == true) update.array("content").map { item ->
-            val data = item.asJsonObject
-            when (data.string("type")) {
-                "content" -> {
-                    val content = data.getAsJsonObject("content")
-                    if (content.string("type") == "text") AgentToolContent.Text(content.requiredString("text"))
-                    else AgentToolContent.Unsupported(content.string("type") ?: "unknown")
-                }
-                "diff" -> AgentToolContent.Diff(data.requiredString("path"), data.string("oldText"), data.requiredString("newText"))
-                else -> AgentToolContent.Unsupported(data.string("type") ?: "unknown")
-            }
-        } else old.content,
-        locations = if (update["locations"]?.isJsonArray == true) update.array("locations").map { it.asJsonObject.requiredString("path") } else old.locations,
-    )
+    private fun tool(update: JsonObject, old: AgentTool): AgentTool {
+        val task = task(update, old.task)
+        val locations = if (update.has("locations")) contents.locations(update["locations"])
+            else old.locations to old.locationsNotice
+        return old.copy(
+            command = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("command") ?: old.command,
+            path = update["rawInput"]?.takeIf { it.isJsonObject }?.asJsonObject?.string("path") ?: old.path,
+            title = update.string("title") ?: old.title,
+            kind = update.string("kind") ?: old.kind,
+            // Quiescence uses the latest wire state, never the presentation's retained result.
+            status = update.string("status") ?: old.status,
+            task = task,
+            content = if (update.has("content")) contents.tool(update["content"]) else old.content,
+            locations = locations.first,
+            locationsNotice = locations.second,
+        )
+    }
 }
 
 internal fun answerJson(answer: AgentAnswer): JsonObject {
@@ -190,3 +225,25 @@ internal class AcpConfiguration {
 
 internal fun JsonObject.requiredString(name: String): String = requireNotNull(string(name))
 internal fun JsonObject.array(name: String): JsonArray = requireNotNull(get(name)?.takeIf(JsonElement::isJsonArray)?.asJsonArray)
+
+/** An invalid replacement clears confidence in the entire list; never retain stale partial entries. */
+internal fun availableCommands(update: JsonObject): com.cursoragent.service.CommandCatalog = try {
+    val entries = update.array("availableCommands")
+    require(entries.size() <= 2_000)
+    val commands = entries.map { entry ->
+        val value = entry.asJsonObject
+        val name = value.requiredString("name")
+        // A command must be one slash token. Do not lowercase, trim, or invent a different ID.
+        require(name.isNotEmpty() && name.length <= 256 && !name.startsWith('/') && name.none { it.isWhitespace() || it.isISOControl() })
+        val description = value.requiredString("description")
+        require(description.length <= 16_384)
+        val input = value.get("input")
+        val hint = if (input == null || input.isJsonNull) null else input.asJsonObject.requiredString("hint")
+        require(hint == null || hint.length <= 4_096)
+        com.cursoragent.service.AgentCommand(name, description, hint)
+    }
+    require(commands.map { it.name }.toSet().size == commands.size)
+    com.cursoragent.service.CommandCatalog.Ready(commands)
+} catch (_: Exception) {
+    com.cursoragent.service.CommandCatalog.Invalid
+}
