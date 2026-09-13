@@ -141,7 +141,7 @@ def main():
     else:
         root, run = control_root(args.directory)
         result = {'run': run, 'state': json.loads((root / 'state.json').read_text()) if (root / 'state.json').exists() else None,
-                  'recent_events': [json.loads(line) for line in (root / 'events.jsonl').read_text().splitlines()[-30:]] if (root / 'events.jsonl').exists() else []
+                  'recent_events': [json.loads(line) for line in (root / 'events.jsonl').read_text().splitlines()[-30:]] if (root / 'events.jsonl').exists() else []}
     print(json.dumps(result, indent=2))
 
 
