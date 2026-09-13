@@ -7,7 +7,6 @@ import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.history.ConversationRecorder
-import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -22,10 +21,12 @@ import javax.swing.SwingUtilities
 internal class AgentTurnListenerFactory(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
-    private val composer: ComposerPanel,
+    private val onUsage: (Long, com.cursoragent.parser.TokenUsage?) -> Unit,
+    private val onConfiguration: (AgentEvent.Configuration) -> Unit,
     private val recorder: ConversationRecorder,
-    private val onRunFinished: () -> Unit,
+    private val onRunFinished: (successful: Boolean) -> Unit,
     private val changes: ConversationChanges,
+    private val beforeRevert: () -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -61,7 +62,7 @@ internal class AgentTurnListenerFactory(
                         }
                         is AgentEvent.Input -> timeline.addInputRequest(event.request)
                         is AgentEvent.Plan -> timeline.showPlan(event.entries)
-                        is AgentEvent.Configuration -> composer.showAcpConfiguration(event)
+                        is AgentEvent.Configuration -> onConfiguration(event)
                     }
                 }
             }
@@ -75,7 +76,7 @@ internal class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -85,7 +86,7 @@ internal class AgentTurnListenerFactory(
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
                     timeline.showError(message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -94,7 +95,7 @@ internal class AgentTurnListenerFactory(
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
-                update { composer.contextUsage.update(usageTicket, usage) }
+                update { onUsage(usageTicket, usage) }
             }
 
             override fun onResultFallback(text: String) {
@@ -143,6 +144,7 @@ internal class AgentTurnListenerFactory(
                                 )
                             },
                             onRevert = {
+                                beforeRevert()
                                 DiffViewerHelper.revertObservedEdit(project, edit.path, edit.beforeContent, edit.afterContent, target) {
                                     timeline.showStatus("ファイルを編集前に戻しました")
                                 }
@@ -183,7 +185,7 @@ internal class AgentTurnListenerFactory(
                     recorder.finish("failed")
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
-                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished()
+                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished(false)
                 }
             }
 
@@ -193,7 +195,7 @@ internal class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     recorder.finish("stopped")
                     timeline.showStatus("停止しました")
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -207,7 +209,7 @@ internal class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
-                    onRunFinished()
+                    onRunFinished(exitCode == 0)
                 }
             }
         }
