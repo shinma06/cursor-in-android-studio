@@ -1,0 +1,7 @@
+{
+  "issue": 313,
+  "title": "GUI競合Caseの限定保留と解放を検証buildへ接続する",
+  "gui_required": false,
+  "gui_reason": "通常製品ソースは変更せず、別の検証buildを生成する固定patch・test sourceの制御部品・CLI手順を追加する非GUI準備。既存CTX-24-LIFETIME、SETTINGS-BOUNDARY、LIFECYCLE-EDTの実GUIと最終候補受入は未実施のまま保持する。",
+  "cases": []
+}
