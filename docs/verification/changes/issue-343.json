@@ -5,7 +5,7 @@
   "reason": "添付行のスクロール・入力欄との配置とスクリーンリーダー操作を固定buildで確認する。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "MentionResolverTestとPromptContextPanelTestで実resolverのmissing扱い、40行レイアウト、scroll、accessible name、空欄高さを回帰確認",
+    "MentionResolverTestとPromptContextPanelTestで実resolverのmissing扱い、40行レイアウト、各添付buttonへのfocusからscroll、accessible name、空欄高さを回帰確認",
     "git diff --check"
   ],
   "cases": [
@@ -16,7 +16,7 @@
       "preconditions": "修正343を含む固定候補・ZIP SHA-256・ロードJARを照合。指定GUI担当のleaseと使い捨てプロジェクト、送信promptを記録できる制御fixtureを使う。",
       "steps": [
         "存在しない名前を使って「Why does @Composable recompose? @missing/」を手入力して送信し、不要なfile/folder unavailable文がpromptに追加されないことを確認。次に明示追加したfile/folderを送信前に消し、取得不能の文が残ることを確認する。",
-        "40件の異なる選択と空白/日本語/長名の参照を追加する。狭幅/広幅・Dark/Light・通常/Compactで添付領域が一定高さに収まり、スクロールして最後の添付のpreview/変更/削除を操作でき、入力欄・送信/Stop・timelineが使えることを確認する。",
+        "40件の異なる選択と空白/日本語/長名の参照を追加する。狭幅/広幅・Dark/Light・通常/Compactで添付領域が一定高さに収まり、Tab/Shift+Tabで画面外のpreview/変更/削除へ移動すると対象が自動表示され、スクロールして最後の添付を操作でき、入力欄・送信/Stop・timelineが使えることを確認する。",
         "スクリーンリーダーで複数選択の変更ボタンを順に確認し、対象path/行範囲を識別できることを確認する。全添付を削除して空のスクロール領域が残らないことを確認する。"
       ],
       "expected": "通常の@wordで誤った参照エラーを添付せず、明示参照の欠落は表示する。多数添付でも入力領域を占有せず、全行を操作し各変更対象を読み上げで識別できる。",

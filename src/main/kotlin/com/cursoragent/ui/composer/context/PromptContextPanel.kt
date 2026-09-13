@@ -9,6 +9,9 @@ import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
+import java.awt.Rectangle
+import java.awt.event.FocusAdapter
+import java.awt.event.FocusEvent
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.JCheckBox
@@ -122,24 +125,30 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
     private fun row(label: String, content: String, remove: () -> Unit, replace: (() -> Unit)? = null) =
         JPanel(BorderLayout(4, 0)).apply {
             isOpaque = false
-            add(JButton(label).apply {
+            add(attachmentButton(label).apply {
                 horizontalAlignment = JButton.LEFT
                 toolTipText = label
                 addActionListener { preview(content) }
             }, BorderLayout.CENTER)
             add(JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 isOpaque = false
-                if (replace != null) add(JButton("変更").apply {
+                if (replace != null) add(attachmentButton("変更").apply {
                     getAccessibleContext().accessibleName = "$label を変更"
                     toolTipText = "現在のエディター選択へ置き換えます。"
                     addActionListener { replace() }
                 })
-                add(JButton("×").apply {
+                add(attachmentButton("×").apply {
                     getAccessibleContext().accessibleName = "$label を削除"
                     addActionListener { remove() }
                 })
             }, BorderLayout.EAST)
         }
+
+    private fun attachmentButton(label: String) = JButton(label).apply {
+        addFocusListener(object : FocusAdapter() {
+            override fun focusGained(event: FocusEvent) = scrollRectToVisible(Rectangle(size))
+        })
+    }
 
     private fun preview(content: String) = Messages.showInfoMessage(
         project, content.take(2_000) + if (content.length > 2_000) "\n（previewは先頭2,000文字）" else "", "送信するcontext",
