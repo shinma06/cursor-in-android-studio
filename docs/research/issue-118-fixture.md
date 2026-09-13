@@ -2,7 +2,8 @@
 
 2026-09-12 / CLI `2026.09.10-fd3934a` / ACP1 turn + print2 run。
 これは実測wireの**allowlist投影**であり、生wire全文・合成server応答ではない。
-writerが原本との一致をassertした。独立Reviewerの原本閲覧を意味しない。
+writerが選択値の原本照合をassertした。公開用の省略・ID置換・注釈・伏字は下記に明示する。
+独立Reviewerの原本閲覧を意味しない。
 
 ## 固定入力
 
@@ -45,6 +46,8 @@ Agentの内部読み取り実行をClient提供fs/MCP経由だと解釈しない
 
 受信53 frames。順序は標準tool pending→in_progress→completed→ID付きcursor/task request→
 採取clientの-32601応答→親の本文完了/end_turn。下記最後の要素だけ送信応答、残りは受信。
+最初の3要素は`session/update`の`params.update`だけを抜き出したもの。
+後ろのrequest/responseと含めて、配列全体をJSON-RPC frame列として再生しない。
 requestの元idは非null整数で、公開時だけ7001へ一対一置換した。tool/agent IDも一定の別名へ置換。
 生session/request IDs、prompt、他候補一覧、思考、usage、rootは省略。省略と元からの欠損を混同しない。
 `cursor/task`の元paramsにはpromptがあるが、sessionId/status/result/tokenはなかった。
@@ -122,6 +125,8 @@ requestの元idは非null整数で、公開時だけ7001へ一対一置換した
 トップのcall_idで対になり、親session_idは両run同一。元tool_call.toolCallIdも対内同一だが
 今回call_idとも一致した。時刻/model_call_id/生成prompt/description等は省略。
 子の内部readToolCall・段階的本文streamはこの親streamには出なかった。
+`run`は読者向けに加えたwire外の注釈で、print eventとして再生するときは取り除く。
+`tool_call`とその中の`taskToolCall`の階層を保ち、原文エラーは`<redacted provider error>`へ伏せる。
 
 ```json
 [
@@ -131,20 +136,23 @@ requestの元idは非null整数で、公開時だけ7001へ一対一置換した
     "subtype": "started",
     "call_id": "print-call-1",
     "session_id": "print-parent-1",
-    "taskToolCall": {
-      "args": {
-        "subagentType": {
-          "custom": {
-            "name": "issue118-reader"
-          }
-        },
-        "model": "default",
-        "mode": "TASK_MODE_UNSPECIFIED",
-        "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
-        "machine": {
-          "sameMachine": {}
-        },
-        "agentId": "print-argument-agent-1"
+    "tool_call": {
+      "toolCallId": "print-call-1",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-argument-agent-1"
+        }
       }
     }
   },
@@ -154,34 +162,37 @@ requestの元idは非null整数で、公開時だけ7001へ一対一置換した
     "subtype": "completed",
     "call_id": "print-call-1",
     "session_id": "print-parent-1",
-    "taskToolCall": {
-      "args": {
-        "subagentType": {
-          "custom": {
-            "name": "issue118-reader"
-          }
-        },
-        "model": "default",
-        "mode": "TASK_MODE_UNSPECIFIED",
-        "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
-        "machine": {
-          "sameMachine": {}
-        },
-        "agentId": "print-argument-agent-1"
-      },
-      "result": {
-        "success": {
-          "conversationSteps": [
-            {
-              "assistantMessage": {
-                "text": "契約どおり `fixture.txt` だけ読みます。I118_CHILD|I118_FIXTURE_ALPHA"
-              }
+    "tool_call": {
+      "toolCallId": "print-call-1",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
             }
-          ],
-          "agentId": "print-child-1",
-          "isBackground": false,
-          "durationMs": "8376",
-          "backgroundReason": "SUBAGENT_BACKGROUND_REASON_UNSPECIFIED"
+          },
+          "model": "default",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-argument-agent-1"
+        },
+        "result": {
+          "success": {
+            "conversationSteps": [
+              {
+                "assistantMessage": {
+                  "text": "契約どおり `fixture.txt` だけ読みます。I118_CHILD|I118_FIXTURE_ALPHA"
+                }
+              }
+            ],
+            "agentId": "print-child-1",
+            "isBackground": false,
+            "durationMs": "8376",
+            "backgroundReason": "SUBAGENT_BACKGROUND_REASON_UNSPECIFIED"
+          }
         }
       }
     }
@@ -192,21 +203,24 @@ requestの元idは非null整数で、公開時だけ7001へ一対一置換した
     "subtype": "started",
     "call_id": "print-call-2",
     "session_id": "print-parent-1",
-    "taskToolCall": {
-      "args": {
-        "subagentType": {
-          "custom": {
-            "name": "issue118-reader"
-          }
-        },
-        "model": "default",
-        "resume": "print-child-1",
-        "mode": "TASK_MODE_UNSPECIFIED",
-        "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
-        "machine": {
-          "sameMachine": {}
-        },
-        "agentId": "print-child-1"
+    "tool_call": {
+      "toolCallId": "print-call-2",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "resume": "print-child-1",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-child-1"
+        }
       }
     }
   },
@@ -216,25 +230,28 @@ requestの元idは非null整数で、公開時だけ7001へ一対一置換した
     "subtype": "completed",
     "call_id": "print-call-2",
     "session_id": "print-parent-1",
-    "taskToolCall": {
-      "args": {
-        "subagentType": {
-          "custom": {
-            "name": "issue118-reader"
+    "tool_call": {
+      "toolCallId": "print-call-2",
+      "taskToolCall": {
+        "args": {
+          "subagentType": {
+            "custom": {
+              "name": "issue118-reader"
+            }
+          },
+          "model": "default",
+          "resume": "print-child-1",
+          "mode": "TASK_MODE_UNSPECIFIED",
+          "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
+          "machine": {
+            "sameMachine": {}
+          },
+          "agentId": "print-child-1"
+        },
+        "result": {
+          "error": {
+            "error": "<redacted provider error>"
           }
-        },
-        "model": "default",
-        "resume": "print-child-1",
-        "mode": "TASK_MODE_UNSPECIFIED",
-        "environment": "SUBAGENT_EXECUTION_ENVIRONMENT_UNSPECIFIED",
-        "machine": {
-          "sameMachine": {}
-        },
-        "agentId": "print-child-1"
-      },
-      "result": {
-        "error": {
-          "error": "Request blocked We are unable to complete this request because it was blocked under the model provider's usage guidelines. Try a less sensitive prompt."
         }
       }
     }
@@ -259,7 +276,11 @@ Resume exactly the completed issue118-reader subagent with agent ID <returned-ag
 writerのassertで同一tool ID、順序、request ID型と対応応答、終端、marker、
 print引数ID/結果IDの相違と再開IDの一致、親session一致、子errorと親successの併存、
 durationMsのACP整数/print文字列、stderr空、合成Git rootのcleanを照合した。
-公開投影は全欄を原本から選択し、上記ID以外の掲載値は変更していない。
+公開JSONは原本の全envelopeではなく、掲載する値と階層を選んだ投影である。
+加工は、記載した項目の省略、IDの一対一別名化、ACP標準toolの`params.update`抽出、
+printの`run`注釈追加、providerエラー文字列の伏字化。`tool_call.toolCallId`は
+本文に記録済みの`call_id`との一致を同じ公開別名で示す。加工後JSONの逐語一致や追加の原本閲覧を主張しない。
+その他の掲載値・型・対応・順序は維持し、伏字の文言をprovider分類や再開成功の根拠にしない。
 rawの認証情報・個人名・root・思考・全候補を公開しない。#146原本は参照していない。
 
 readonly frontmatterは公開設定を使用した事実であり、全書込み防止の侵入テストではない。
