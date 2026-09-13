@@ -53,7 +53,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         onTransport = { selectedView?.controller?.selectTransport(it) },
         onSummarize = { selectedView?.controller?.sendPrompt("/summarize") },
         onNewChat = { open() },
-        onHistory = { event -> history.showPopup(event) },
+        onHistory = { event -> selectedView?.controller?.pauseQueue(); history.showPopup(event) },
         onMcp = { McpServersDialog(project).show() },
         onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
         onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
@@ -74,8 +74,27 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        onExport = { TranscriptExport(project).export(selectedView?.controller?.conversationSnapshot()) },
+        onChanges = { selectedView?.controller?.showChanges() },
     )
-    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this, ::open)
+    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
+        onChatResumed = { conversation, legacyId, match, query ->
+            if (conversation != null) {
+                sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
+            } else {
+                sessions.open(legacyId)
+            }
+            showSelected(conversation, legacyId != null)
+            if (match != null) {
+                val view = selectedView
+                javax.swing.SwingUtilities.invokeLater {
+                    val current = view?.controller?.conversationSnapshot()
+                    if (current != null) view.timeline.scrollToHistoryMatch(current, match.messageId, query)
+                }
+            }
+        },
+        isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
+    )
 
     init {
         border = JBUI.Borders.empty()
@@ -88,6 +107,17 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
         showSelected()
+    }
+
+    fun selectionContextTarget(): ((com.cursoragent.ui.composer.context.SelectionContext) -> Unit)? {
+        val id = sessions.snapshot().selectedId
+        val owner = selectedView ?: return null
+        return { selection ->
+            if (!disposed && !project.isDisposed && views[id] === owner) {
+                owner.composer.promptContext.addSelection(selection)
+                owner.composer.inputArea.requestFocusInWindow()
+            }
+        }
     }
 
     internal fun installHeaderToolbar(toolbar: JComponent) {
@@ -118,21 +148,26 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
 
     private fun confirmCloseAllChats() {
         if (disposed || project.isDisposed) return
+        views.values.forEach { it.controller.pauseQueue() }
         confirmCloseChats(sessions.snapshot(), confirm = { count, running ->
             Messages.showYesNoDialog(
                 project,
                 "このウィンドウのチャット $count 件を閉じます。\n" +
                     "実行中: $running 件（この確認を開いた時点）。閉じる時点で実行中の処理は停止します。\n\n" +
-                    "このプラグインでは会話本文と未送信の下書きを保存していないため、閉じると復元できません。\n" +
+                    "保存済みの本文は履歴から表示できます。未送信の下書き・予約した入力・保存に失敗した本文は閉じると失われます。\n" +
                     "ファイルエディター・別プロジェクトのチャット・履歴一覧のデータは削除しません。",
                 "すべてのチャットを閉じる",
                 "すべて閉じる", "キャンセル", Messages.getWarningIcon(),
             ) == Messages.YES
-        }, close = ::closeTabs)
+        }, close = { closeTabs(it, confirmed = true) })
     }
 
-    private fun closeTabs(ids: List<String>) {
+    private fun closeTabs(ids: List<String>, confirmed: Boolean = false) {
         if (disposed || project.isDisposed) return
+        ids.forEach { views[it]?.controller?.pauseQueue() }
+        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit) } == true }) {
+            if (Messages.showYesNoDialog(project, "未保存の本文・下書き・予約した入力、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
+        }
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
                 view.controller.dispose()
@@ -148,17 +183,25 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         showSelected()
     }
 
-    private fun showSelected() {
+    private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
         if (disposed) return
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
             val composer = ComposerPanel(project)
-            val controller = AgentUiController(project, timeline, composer, sessions, tab.id)
+            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly,
+                onShowConversation = { if (!disposed && sessions.select(tab.id)) showSelected() },
+            )
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
-            if (tab.chatId != null) {
-                timeline.showStatus("過去の会話本文は保存されていません。次の送信からこのセッションを再開します。")
+            composer.onEnqueue = controller::enqueuePrompt
+            composer.onShowQueue = controller::showQueue
+            if (saved != null) {
+                timeline.restore(saved)
+                controller.showResumeAvailability()
+            } else if (legacyOnly) {
+                timeline.showStatus("本文は未保存です。作業場所の来歴を確認できないため、新しい会話を開始してください。")
+                composer.setInputEnabled(false)
             }
             val panel = JPanel(BorderLayout()).apply {
                 isOpaque = false
@@ -168,7 +211,10 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
             cards.add(panel, tab.id)
             TabView(panel, composer, timeline, controller)
         }
-        views.forEach { (id, other) -> other.timeline.isActiveTab = id == tab.id }
+        views.forEach { (id, other) ->
+            other.timeline.isActiveTab = id == tab.id
+            if (id != tab.id) other.controller.pauseQueue()
+        }
         (cards.layout as CardLayout).show(cards, tab.id)
         refreshStrip()
         view.composer.inputArea.requestFocusInWindow()

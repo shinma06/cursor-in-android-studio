@@ -29,6 +29,36 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         border = JBUI.Borders.empty(6, 12, 12, 12)
     }
 
+    private val saveStatus = javax.swing.JLabel().apply { border = JBUI.Borders.empty(2, 12) }
+    fun setSaveStatus(text: String) {
+        saveStatus.text = text
+        saveStatus.toolTipText = "元入力と本文・ツール状態を保存します。注入context・未送信の下書きは保存しません。"
+        add(saveStatus, BorderLayout.SOUTH)
+        revalidate()
+    }
+
+    fun restore(conversation: com.cursoragent.history.Conversation) {
+        conversation.turns.forEach { turn ->
+            turn.messages.forEach { message ->
+                when (message.role) {
+                    "user" -> addUserMessage(message.text)
+                    "assistant" -> { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    "tool" -> addToolCallSummary(null, message.text)
+                    "error" -> showError(message.text)
+                }
+            }
+            if (turn.state != "completed") addToolCallSummary(null, "ターン状態: " + when (turn.state) {
+                "running", "interrupted" -> "中断（自動再送しません）"
+                "stopped", "cancelled" -> "停止"
+                "failed" -> "失敗"
+                "refused" -> "拒否"
+                else -> "上限到達"
+            })
+        }
+        finalizeAssistantMessage()
+        setSaveStatus("保存本文を表示中（過去のRevert・承認は再実行しません）")
+    }
+
     private val emptyState = EmptyStatePanel()
     private val scrollPane = JBScrollPane(messagesPanel).apply {
         border = JBUI.Borders.empty()
@@ -38,6 +68,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     var isActiveTab: Boolean = true
+    private var readingHistory = false
 
     private var currentAssistantBubble: AssistantMessageBubble? = null
     private var currentStatusRow: StatusMessageRow? = null
@@ -54,6 +85,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     fun addUserMessage(text: String): UserMessageBubble {
+        readingHistory = false
         structuredTools.clear()
         planRow = null
         hideEmptyState()
@@ -202,9 +234,27 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         }
     }
 
+    /** Resolve the hit against the current snapshot; never infer a different row after a stale hit. */
+    fun scrollToHistoryMatch(conversation: com.cursoragent.history.Conversation, messageId: String, query: String): Boolean {
+        val bodies = conversation.turns.flatMap { it.messages }.filter { it.role == "user" || it.role == "assistant" }
+        val index = bodies.indexOfFirst { it.id == messageId && it.text.contains(query, ignoreCase = true) }
+        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble }
+        if (index < 0 || rows.size != bodies.size) {
+            setSaveStatus("検索後に本文が変わりました。履歴を開き直して検索してください。")
+            return false
+        }
+        val row = rows[index]
+        if (!isActiveTab || row.parent !== messagesPanel) return false
+        readingHistory = true
+        messagesPanel.scrollRectToVisible(row.bounds)
+        row.isFocusable = true
+        row.requestFocusInWindow()
+        return true
+    }
+
     private fun scrollToBottom() {
         SwingUtilities.invokeLater {
-            if (!isActiveTab) return@invokeLater
+            if (!isActiveTab || readingHistory) return@invokeLater
             val bar = scrollPane.verticalScrollBar
             bar.value = bar.maximum
         }
