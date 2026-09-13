@@ -16,6 +16,14 @@ internal data class AcpCommandKey(
 
 /** Owned on EDT by one tab. Each replacement invalidates all callbacks from its old connection. */
 internal class AcpCommandConnection {
+    var imageSupported: Boolean? = null
+        private set
+    fun updateImageSupport(ticket: Long, value: Boolean?): Boolean {
+        if (ticket != generation || key == null) return false
+        imageSupported = value
+        return true
+    }
+    val revision: Long get() = generation
     private var generation = 0L
     private var key: AcpCommandKey? = null
     var catalog: CommandCatalog = CommandCatalog.Unavailable
@@ -24,6 +32,7 @@ internal class AcpCommandConnection {
     fun replace(next: AcpCommandKey, force: Boolean = false): Long? {
         if (!force && key == next) return null
         key = next
+        imageSupported = null
         catalog = CommandCatalog.Loading
         return ++generation
     }
@@ -34,5 +43,5 @@ internal class AcpCommandConnection {
         return true
     }
 
-    fun clear() { ++generation; key = null; catalog = CommandCatalog.Unavailable }
+    fun clear() { imageSupported = null; ++generation; key = null; catalog = CommandCatalog.Unavailable }
 }

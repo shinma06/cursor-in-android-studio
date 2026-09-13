@@ -59,6 +59,24 @@ class AgentProcessService(private val project: Project) : Disposable {
     @Volatile private var disposed = false
     private val sessionTargets = SessionWorkspaceHistory()
     private val operations = WorkspaceOperationGate()
+    internal val imageWorker = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+        Thread(task, "Cursor image snapshots").apply { isDaemon = true }
+    }
+    private var images: com.cursoragent.ui.composer.image.ImageAttachmentStore? = null
+    init {
+        imageWorker.execute {
+            runCatching { com.cursoragent.ui.composer.image.ImageAttachmentStore.recoverStopped() }
+                .onSuccess { reasons -> reasons.forEach { LOG.warn(it) } }
+                .onFailure { LOG.warn("前回の添付一時データの確認に失敗したため保持しました。") }
+        }
+    }
+    /** Called only on imageWorker; recovery never runs on the UI thread. */
+    internal fun imageStore(): com.cursoragent.ui.composer.image.ImageAttachmentStore = images ?: run {
+        com.cursoragent.ui.composer.image.ImageAttachmentStore(onRetained = { LOG.warn(it) }).also { images = it }
+    }
+    internal fun releaseImage(image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment) {
+        runCatching { imageWorker.execute { runCatching { image.close() }.onFailure { LOG.warn("添付一時データの解放に失敗しました。") } } }
+    }
     private val acpSessions = mutableMapOf<String, AcpSession>()
 
     fun restoreUnavailableReason(): String = if (operations.isUncertain) AcpSession.UNCERTAIN_MESSAGE else RestorePolicy.BUSY
@@ -79,10 +97,11 @@ class AgentProcessService(private val project: Project) : Disposable {
 
     /** Capture session ownership before scheduling, so a late task cannot recreate a closed tab. */
     @Synchronized
-    fun prepareAcpCommands(tabId: String, root: String, executable: String, onCommands: (CommandCatalog) -> Unit) {
+    fun prepareAcpCommands(tabId: String, root: String, executable: String, onImageSupport: (Boolean?) -> Unit = {}, onCommands: (CommandCatalog) -> Unit) {
         if (disposed) return
         val session = acpSession(tabId)
         session.observeCommands(onCommands)
+        session.observeImageSupport(onImageSupport)
         com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
             val canonicalRoot = runCatching { RestoreTarget.capture(root, WorktreeMode.DEFAULT).rootPath }.getOrNull()
             if (canonicalRoot == null) onCommands(CommandCatalog.Failed)
@@ -126,13 +145,19 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
     }
 
-    fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT, commandText: String? = null, commandName: String? = null) {
+    internal fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT, commandText: String? = null, commandName: String? = null,
+        image: com.cursoragent.ui.composer.image.ValidatedImage? = null) {
+        if (image != null && transport != AgentTransport.ACP) {
+            turn.run.reportError("画像の送信には画像対応を確認できるACP接続が必要です。")
+            turn.run.complete(-1)
+            return
+        }
         if (transport == AgentTransport.ACP) {
             val session = synchronized(this) {
                 if (disposed || !turn.run.isActive) return
                 acpSession(requireNotNull(tabId))
             }
-            session.send(prompt, turn, commandText, commandName)
+            session.send(prompt, turn, commandText, commandName, image)
             return
         }
         val run = turn.run
@@ -321,6 +346,8 @@ class AgentProcessService(private val project: Project) : Disposable {
         killActiveProcess()
         acpSessions.values.forEach { it.close() }
         acpSessions.clear()
+        imageWorker.execute { runCatching { images?.close() }; images = null }
+        imageWorker.shutdown()
     }
 
     private fun buildCommandLine(

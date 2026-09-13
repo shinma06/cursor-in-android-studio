@@ -84,7 +84,7 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 
 観測は25 ms間隔の条件確認であり、短時間に生成・離脱した未観測子processまで保証するものではない。常駐childや任意のdetachを安全に許可したという契約はなく、該当用途は対象外。10秒の期限は「待てば安全」の判定ではなく、不確定へ移す期限。識別できないprocessを推測でkillしない。
 
-検証は [Case JSON](../verification/changes/issue-147.json) のT01〜04/07/10/14/16。`AcpJsonRpcTest`、`AcpProtocolTest`、`AcpSessionTest`、`AgentRequestCardTest`と既存print/tab/restoreテストを実行する。fake serverはテスト専用Python標準ライブラリで、実Cursor・認証・networkを使わない。#146の実wire公開artifactと固定候補のGUIは未完了として区別する。外部providerの旧履歴load/title、高度config、画像、Skills/task、Android/MCP公開は後続Issueの範囲を維持する。
+検証は [Case JSON](../verification/changes/issue-147.json) のT01〜04/07/10/14/16。`AcpJsonRpcTest`、`AcpProtocolTest`、`AcpSessionTest`、`AgentRequestCardTest`と既存print/tab/restoreテストを実行する。fake serverはテスト専用Python標準ライブラリで、実Cursor・認証・networkを使わない。#146の実wire公開artifactと固定候補のGUIは未完了として区別する。外部providerの旧履歴load/title、高度config、Android/MCP公開は後続Issueの範囲を維持する。画像入力は[ACP画像添付](../development/image-attachment.md)の1枚/snapshot/予約/失敗保持を接続し、実GUI I1–I8は未完了。画像等の受信内容表示とは分ける。
 
 ## 制約を検証する入口
 

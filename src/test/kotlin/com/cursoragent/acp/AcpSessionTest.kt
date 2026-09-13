@@ -21,6 +21,7 @@ class AcpSessionTest {
         val events = CopyOnWriteArrayList<AgentEvent>()
         val outcomes = CopyOnWriteArrayList<String>()
         val commands = CopyOnWriteArrayList<CommandCatalog>()
+        val imageSupport = CopyOnWriteArrayList<Boolean?>()
         val received = CountDownLatch(1)
         val session: AcpSession
         var worker: Thread? = null
@@ -36,9 +37,11 @@ class AcpSessionTest {
             session = AcpSession({ _, _ -> ProcessBuilder("python3", server.toString(), scenario, root.toString())
                 .directory(root.toFile()).start().also(processes::add) }, gate::markUncertain, 2)
             session.observeCommands { commands.add(it) }
+            session.observeImageSupport { imageSupport.add(it) }
         }
 
-        fun send(model: String = "", mode: AgentMode = AgentMode.AGENT, prompt: String = "synthetic prompt", commandText: String? = null) {
+        fun send(model: String = "", mode: AgentMode = AgentMode.AGENT, prompt: String = "synthetic prompt", commandText: String? = null,
+            image: com.cursoragent.ui.composer.image.ValidatedImage? = null) {
             val preparation = gate.tryPrepare()!!
             run = AgentRun(object : AgentProcessListener {
                 override fun onStarted() { starts.incrementAndGet() }
@@ -58,7 +61,7 @@ class AcpSessionTest {
             val turn = PreparedAgentTurn(run, TurnWorkspace(root.toString(), WorktreeMode.DEFAULT, null), preparation,
                 TurnSettings("synthetic", model, mode, PermissionMode.ASK_EVERY_TIME, SandboxMode.DEFAULT))
             lastTurn = turn
-            worker = thread { preparation.use { session.send(prompt, turn, commandText, commandText?.substringBefore(' ')?.removePrefix("/")) } }
+            worker = thread { preparation.use { session.send(prompt, turn, commandText, commandText?.substringBefore(' ')?.removePrefix("/"), image) } }
         }
 
         fun finish() {
@@ -74,6 +77,36 @@ class AcpSessionTest {
                 if (!it.waitFor(5, TimeUnit.SECONDS)) it.destroyForcibly().waitFor(5, TimeUnit.SECONDS)
             }
             worker?.join(8000)
+        }
+    }
+
+    @Test
+    fun `only literal advertised true permits image blocks and rejection preserves the connection`() {
+        val image = com.cursoragent.ui.composer.image.ImageInput.clipboard(java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB))
+        for (scenario in listOf("image-true", "image-false", "image-string", "normal")) {
+            Harness(temp.resolve(scenario), scenario).use { h ->
+                h.send(prompt = "", model = "small", image = image)
+                h.finish()
+                val prompts = h.wire().filter { it.string("method") == "session/prompt" }
+                assertEquals(scenario == "image-true", h.imageSupport.last())
+                if (scenario == "image-true") {
+                    val content = prompts.single().getAsJsonObject("params").getAsJsonArray("prompt").single().asJsonObject
+                    assertEquals("image", content.string("type"))
+                    assertEquals("image/png", content.string("mimeType"))
+                    assertFalse(content.has("uri"))
+                    assertArrayEquals(image.bytes(), java.util.Base64.getDecoder().decode(content.string("data")))
+                    assertEquals(listOf("completed:0"), h.outcomes)
+                } else {
+                    assertTrue(prompts.isEmpty())
+                    assertFalse(h.lastTurn.promptDispatched)
+                    assertTrue(h.outcomes.single().startsWith("error:"))
+                    assertFalse(h.gate.isUncertain)
+                }
+                h.send(prompt = "ordinary text")
+                h.finish()
+                assertEquals("completed:0", h.outcomes.last())
+                assertEquals(1, h.processes.size)
+            }
         }
     }
 
@@ -398,7 +431,7 @@ class AcpSessionTest {
     }
 
     @Test
-    fun `oversized command context is unsent with no chat binding or workspace uncertainty`() {
+    fun `oversized command context is unsent and a smaller prompt reuses the same connection`() {
         Harness(temp, "commands").use { h ->
             h.session.prepare(h.root.toRealPath().toString(), "synthetic")
             awaitCondition { h.commands.last().containsCommand("Mixed-日本語") }
@@ -410,6 +443,13 @@ class AcpSessionTest {
             assertTrue(h.bindings.isEmpty())
             assertFalse(h.gate.isUncertain)
             assertTrue(h.outcomes.single().startsWith("error:"))
+            assertTrue(h.processes.single().isAlive)
+            h.send(prompt = "smaller context", commandText = "/Mixed-日本語 東京")
+            h.finish()
+            assertEquals("completed:0", h.outcomes.last())
+            assertEquals(1, h.processes.size)
+            assertEquals(1, h.wire().count { it.string("method") == "initialize" })
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
         }
     }
 

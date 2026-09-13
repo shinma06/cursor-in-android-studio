@@ -1,0 +1,371 @@
+{
+  "schema": 1,
+  "issue": 277,
+  "gui_required": true,
+  "reason": "OS clipboard/D&D、画像previewと予約/失敗保持・能力/所有寿命を固定buildの実GUIで確認するため。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/全JAR照合",
+    "公開98依存の純粋base 0dda71b983dc2db0c8caec7b55e5c92318ff87ed と277固有差分を分けた固定独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "IMAGE-277-I1",
+      "issue": 277,
+      "change": "I1: 画像入力と既存入力の共存",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "PNG/JPEGファイルを入力欄へ1枚D&Dし、OSの画像clipboardを貼り付ける。取り除いて各形式を個別に繰り返す。",
+        "同じ入力欄で通常textのpaste・Undo、日本語IME確定、mention/slash候補確定、Tab移動、Enter/Cmd-or-Ctrl+Enterの両送信設定を確認する。別の通常Editorにもpasteする。"
+      ],
+      "expected": "画像は1枚のsnapshotとなり、通常text/IME/Undo/候補/Tab/既存Editorの入力が維持される。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I2",
+      "issue": 277,
+      "change": "I2: プレビュー・削除・画像のみ送信・予約",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "添付時だけ現れるthumbnailへTabで移動し、keyboardで原寸previewを開いて戻り、取り除く。削除後には画像が送られないことを確認する。",
+        "本文を空にして再添付し、1回送信する。ACP image blockの内容がsnapshotと一致し、空本文でもターンが1回だけ開始することを合成fixtureで確認する。",
+        "別画像を予約へ登録する。下書き変更、予約編集/移動、画像preview/remove/削除を行い、各項目の画像が混ざらないことと画像のみ予約も確認する。"
+      ],
+      "expected": "操作対象と送信snapshotが一致し、二重送信しない。画像のみ予約から画像を除去した場合は空項目も削除される。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I3",
+      "issue": 277,
+      "change": "I3: 元画像とsnapshotの分離",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "日本語と空白を含むpath、同名画像、symlink参照先から個別に取り込む。取込完了後に元画像を編集/移動/削除する。",
+        "preview・実送信bytes・予約画像が取込時の内容のままであり、別画像・元画像をpluginが削除しないことを確認する。"
+      ],
+      "expected": "project外の所有snapshotだけを参照し、元pathをtemp名や送信URIへ含めない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I4",
+      "issue": 277,
+      "change": "I4: 入力検査と失敗時の保持",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "既存本文/画像がある状態と空の状態で、複数ファイル、GIF、破損/切断PNG、読取権限不足、読取中変更を試す。",
+        "入力10 MiB、4096辺、800万画素、正規化PNG512 KiBの境界と超過を合成画像で試す。巨大ヘッダの小ファイルも含める。"
+      ],
+      "expected": "日本語で理由を示し、既存本文/画像を暗黙に置換・切捨てしない。decode前の上限を守り、送信用の自動縮小をしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I5",
+      "issue": 277,
+      "change": "I5: 送受信frameと保存境界",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "合成ACP fixtureでtext/context/base64/実ID/escape/UTF-8/改行を含む完全frameを1 MiBちょうどと1 byte超過にする。IDの桁増加と長い日本語contextも含める。",
+        "超過時にwriter未送信・接続維持を確認する。初回の未送信画像を予約一覧で確認して明示再開し、小さい本文で同接続の送信を確認する。",
+        "過大受信frame・大きい履歴再生・不正UTF-8を合成fixtureで入力し、既存の受信/履歴上限と保存内容を確認する。"
+      ],
+      "expected": "完全frameを事前拒否し本文/画像を保持する。過大受信は安全に失敗し、base64/temp絶対pathを会話保存へ移さない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I6",
+      "issue": 277,
+      "change": "I6: 画像対応と宛先の変化",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "合成ACP fixtureのimageをtrue/false/欠落/文字列trueで切り替える。print選択中、接続準備中、接続や実行設定を変更した状態で送信を試す。",
+        "遅い画像読込み中にmodel/tab/接続世代を変え、元tabへ戻る。添付完了後のtab移動では画像がそのtabに残ることを確認する。",
+        "実送信時のmodel/mode設定とsession/tab/run tokenを照合する。旧接続から遅い広告や終了callbackを返す。"
+      ],
+      "expected": "literal trueの現在接続だけへ送信する。未知/false/printは理由と画像を保持し、path化・別transportへのfallback・別tabへの流用・古いcallback反映はない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I7",
+      "issue": 277,
+      "change": "I7: Stop・通信/provider失敗と再試行",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "画像送信中にStop、write前/途中/後の接続切断、provider errorを合成fixtureで発生させる。次の本文/別画像を書いた下書きも用意する。",
+        "元本文・設定・context・画像が一時停止した予約一覧に戻り、次の下書きを上書きせず自動送信しないことを確認する。到達不明と未送信を区別する。",
+        "切断して再利用できない会話では、予約previewの画像コピーから新しい会話へ利用者が明示的に再添付できることを確認する。",
+        "正常end_turnの回答がUNAVAILABLEの場合も確認し、通信成功と画像理解を分けて表示する。"
+      ],
+      "expected": "再試行用画像を保持し、既存のStop/不確定終了ガードを維持する。自動再送や次の下書きへの上書きはない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    },
+    {
+      "id": "IMAGE-277-I8",
+      "issue": 277,
+      "change": "I8: 所有temp・会話履歴・終了時の解放",
+      "preconditions": "#10固定契約・#98等の公開依存を含む277固定source/ZIP SHA256/installed全JAR/実起動を照合。指定GUI lease担当が使い捨てproject・合成画像・制御ACP fixtureを使う。実Cursor理解の確認は承認済み環境で別記し、他Case/旧buildのpassを転記しない。",
+      "steps": [
+        "下書きremove、予約の削除/画像除去、成功、tab close、project disposeを個別に実行し、最後の所有参照だけでtempが解放されることを確認する。",
+        "送信中や別tabの下書きを長時間保持し、時間だけでは削除しないことを確認する。使い捨てfixtureの異常終了から再起動し、停止owner/PID再利用/生存owner/不明marker/未知ファイル/symlinkを区別する。",
+        "会話を保存して再起動し、base64/temp絶対pathを復活させず、再添付が必要な印を表示する。通常完了後のthumbnailは会話UI寿命のメモリだけであることを確認する。"
+      ],
+      "expected": "元画像/不明owner/他の生存添付を消さず、保持理由を記録する。run停止後に所有storeを閉じ、ローカル削除をprovider履歴削除と表示しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが統合後に専用QAへI1–I8/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/277",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/275",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/322"
+      ]
+    }
+  ]
+}

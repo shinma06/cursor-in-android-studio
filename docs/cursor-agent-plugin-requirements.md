@@ -190,7 +190,7 @@ AgentToolWindowRootPanel / SessionTabs
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-60 | 画像添付 | P3(公開経路あり・live未検証) | [headless資料](https://cursor.com/docs/cli/headless)はprompt内の画像path読取を説明。CLI `2026.09.02-c22c1a3`のhelpに`--image`はないが非対応の証明にはならない。#10で非TTY実証後、添付/paste/D&D/preview/remove/失敗UIを設計する |
+| F-60 | 画像添付 | P2(ACP接続実装・GUI未完了) | #10の固定契約に基づく#277の[画像1枚入力](development/image-attachment.md)。PNG/JPEG D&D・clipboard、preview/remove、画像のみ送信、予約snapshot/失敗保持。literal image=trueのACPのみ。I1–I8/QA/mainは未完了 |
 | F-61 | 音声入力 | P3(未検証) | 専用録音/送信UIは未実装。#99でOS標準音声入力がEditorTextFieldへ文字入力できるか検証する。音声ファイル解析とdictationを別機能にする |
 | F-62 | ブラウザ視覚検証 | P3(未実装・調査) | [Browser](https://cursor.com/docs/agent/tools/browser)と[Subagents](https://cursor.com/docs/subagents)の公開経路を調査する。MCP利用も候補だが汎用tool summaryだけでは画像描画/視覚検証は成立しない。方式Bでのevent・表示・操作契約は #25で確認 |
 
