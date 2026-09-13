@@ -5,12 +5,12 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.extensions.PluginId
 import java.io.File
+import java.io.InputStream
 import java.util.Properties
 
 internal fun readPluginDiagnostics(): String {
-    val identity = Properties()
-    runCatching {
-        PluginBrand::class.java.getResourceAsStream("/cursor-agent-build.properties")?.use(identity::load)
+    val identity = readBuildIdentity {
+        PluginBrand::class.java.getResourceAsStream("/cursor-agent-build.properties")
     }
     val version = PluginManagerCore.getPlugin(PluginId.getId("com.cursoragent.plugin"))?.version
     return pluginDiagnosticsText(
@@ -22,6 +22,10 @@ internal fun readPluginDiagnostics(): String {
         detectedPath = detectAgentExecutable(),
     )
 }
+
+internal fun readBuildIdentity(open: () -> InputStream?): Properties = runCatching {
+    Properties().apply { open()?.use(::load) }
+}.getOrElse { Properties() }
 
 /** Only these explicit fields can enter the clipboard; no process, account, environment or chat reads. */
 internal fun pluginDiagnosticsText(
