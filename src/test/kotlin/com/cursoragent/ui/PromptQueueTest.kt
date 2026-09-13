@@ -233,7 +233,7 @@ class PromptQueueTest {
         ).asJsonObject)!!
         SwingUtilities.invokeAndWait {
             val timeline = ChatTimelinePanel()
-            val factory = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, recorder, {}, changes, queue::pause)
+            val factory = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, recorder, {}, changes, queue::pause, { _, _ -> })
             recorder.begin("synthetic-turn", "prompt")
             val listener = factory.create(0, "synthetic-turn", { true }, { false }, { true }, { target })
             listener.onToolCallCompleted(completed)

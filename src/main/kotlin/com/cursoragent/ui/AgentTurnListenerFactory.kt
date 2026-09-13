@@ -7,6 +7,7 @@ import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.history.ConversationRecorder
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -27,6 +28,7 @@ internal class AgentTurnListenerFactory(
     private val onRunFinished: (successful: Boolean) -> Unit,
     private val changes: ConversationChanges,
     private val beforeRevert: () -> Unit,
+    private val onUsageFinish: (Long, UsagePhase) -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -73,6 +75,7 @@ internal class AgentTurnListenerFactory(
                     return
                 }
                 update {
+                    onUsageFinish(usageTicket, if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) UsagePhase.STOPPED else UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
@@ -82,6 +85,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
+                    onUsageFinish(usageTicket, UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
@@ -178,6 +182,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onError(message: String) {
                 update {
+                    onUsageFinish(usageTicket, UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     timeline.showError(message)
@@ -191,6 +196,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onStopped() {
                 update(allowStopped = true) {
+                    onUsageFinish(usageTicket, UsagePhase.STOPPED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     recorder.finish("stopped")
@@ -201,6 +207,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onCompleted(exitCode: Int) {
                 update {
+                    onUsageFinish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     if (exitCode != 0) {
