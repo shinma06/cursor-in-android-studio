@@ -52,7 +52,7 @@ class ConversationDisplayTest {
         assertTrue(bubble.height > unwrappedHeight)
         assertFalse(scroller.horizontalScrollBar.isVisible)
         assertTrue(pane.modelToView2D(start + 200).y > pane.modelToView2D(start).y)
-        descendants(bubble).filterIsInstance<JButton>().single().doClick(0)
+        descendants(bubble).filterIsInstance<JButton>().single { it.accessibleContext.accessibleName == "Markdown原文をコピー" }.doClick(0)
         assertEquals(listOf(raw), copies)
         pane.applyDisplaySettings(0, false)
         layout()

@@ -95,7 +95,7 @@ class MarkdownImageSafetyTest {
         for (raw in snapshots) {
             bubble.setContent(raw)
             assertNoImages(pane)
-            descendants(bubble).filterIsInstance<JButton>().single().doClick(0)
+            descendants(bubble).filterIsInstance<JButton>().single { it.accessibleContext.accessibleName == "Markdown原文をコピー" }.doClick(0)
             assertNoImages(pane)
             assertEquals(0, source.reads.get())
         }
@@ -118,7 +118,7 @@ class MarkdownImageSafetyTest {
             assertEquals(raw, loaded.turns.single().messages.single().text)
             val copies = mutableListOf<String>()
             val copied = AssistantMessageBubble(loaded.turns.single().messages.single().text) { copies.add(it) }
-            descendants(copied).filterIsInstance<JButton>().single().doClick(0)
+            descendants(copied).filterIsInstance<JButton>().single { it.accessibleContext.accessibleName == "Markdown原文をコピー" }.doClick(0)
             assertEquals(listOf(raw), copies)
             assertNoImages(descendants(copied).filterIsInstance<MessageTextPane>().single())
         }
