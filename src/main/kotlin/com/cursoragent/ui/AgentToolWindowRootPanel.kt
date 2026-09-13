@@ -1,6 +1,9 @@
 package com.cursoragent.ui
 
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.TurnSettings
+import com.cursoragent.settings.AgentMode
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.session.SessionTabsSnapshot
 import com.cursoragent.settings.AgentSettingsConfigurable
@@ -53,7 +56,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         onTransport = { selectedView?.controller?.selectTransport(it) },
         onSummarize = { selectedView?.controller?.sendPrompt("/summarize") },
         onNewChat = { open() },
-        onHistory = { event -> history.showPopup(event) },
+        onHistory = { event -> selectedView?.controller?.pauseQueue(); history.showPopup(event) },
         onMcp = { McpServersDialog(project).show() },
         onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
         onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
@@ -74,6 +77,11 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        settingsUnavailableReason = { permission, sandbox, worktree ->
+            project.getService(AgentProcessService::class.java).settingsUnavailableReason(
+                AgentTransport.ACP, TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
+            )
+        },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId ->
@@ -98,6 +106,17 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
         showSelected()
+    }
+
+    fun selectionContextTarget(): ((com.cursoragent.ui.composer.context.SelectionContext) -> Unit)? {
+        val id = sessions.snapshot().selectedId
+        val owner = selectedView ?: return null
+        return { selection ->
+            if (!disposed && !project.isDisposed && views[id] === owner) {
+                owner.composer.promptContext.addSelection(selection)
+                owner.composer.inputArea.requestFocusInWindow()
+            }
+        }
     }
 
     internal fun installHeaderToolbar(toolbar: JComponent) {
@@ -128,12 +147,13 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
 
     private fun confirmCloseAllChats() {
         if (disposed || project.isDisposed) return
+        views.values.forEach { it.controller.pauseQueue() }
         confirmCloseChats(sessions.snapshot(), confirm = { count, running ->
             Messages.showYesNoDialog(
                 project,
                 "このウィンドウのチャット $count 件を閉じます。\n" +
                     "実行中: $running 件（この確認を開いた時点）。閉じる時点で実行中の処理は停止します。\n\n" +
-                    "保存済みの本文は履歴から表示できます。未送信の下書き・保存に失敗した本文は閉じると失われます。\n" +
+                    "保存済みの本文は履歴から表示できます。未送信の下書き・予約した入力・保存に失敗した本文は閉じると失われます。\n" +
                     "ファイルエディター・別プロジェクトのチャット・履歴一覧のデータは削除しません。",
                 "すべてのチャットを閉じる",
                 "すべて閉じる", "キャンセル", Messages.getWarningIcon(),
@@ -143,8 +163,9 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
 
     private fun closeTabs(ids: List<String>, confirmed: Boolean = false) {
         if (disposed || project.isDisposed) return
-        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.composer.isRunning || it.composer.inputArea.text.isNotBlank() } == true }) {
-            if (Messages.showYesNoDialog(project, "未保存の本文・下書き、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
+        ids.forEach { views[it]?.controller?.pauseQueue() }
+        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit || it.composer.commands.selectedName != null) } == true }) {
+            if (Messages.showYesNoDialog(project, "未保存の本文・下書き・予約した入力、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
         }
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
@@ -170,6 +191,8 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
             val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly)
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
+            composer.onEnqueue = controller::enqueuePrompt
+            composer.onShowQueue = controller::showQueue
             if (saved != null) {
                 timeline.restore(saved)
                 controller.showResumeAvailability()
@@ -185,7 +208,10 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
             cards.add(panel, tab.id)
             TabView(panel, composer, timeline, controller)
         }
-        views.forEach { (id, other) -> other.timeline.isActiveTab = id == tab.id }
+        views.forEach { (id, other) ->
+            other.timeline.isActiveTab = id == tab.id
+            if (id != tab.id) other.controller.pauseQueue()
+        }
         (cards.layout as CardLayout).show(cards, tab.id)
         refreshStrip()
         view.composer.inputArea.requestFocusInWindow()

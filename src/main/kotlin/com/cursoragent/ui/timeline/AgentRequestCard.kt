@@ -29,6 +29,9 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
             is AgentInput.Permission -> {
                 add(plainText("操作の確認\n${toolDescription(input.tool)}"))
                 if (!input.tool.hasPermissionTarget) add(plainText("操作対象を確認できないため、許可できません。"))
+                if (input.options.any { it.kind == "allow_always" || it.kind == "reject_always" }) {
+                    add(plainText("「今後も」の適用範囲・有効期間は接続先が定めます。このプラグインの共有設定は変更しません。"))
+                }
                 input.options.forEach { option ->
                     val label = when (option.kind) {
                         "allow_once" -> "今回だけ許可"
@@ -95,9 +98,9 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
                         val option = (request.input as AgentInput.Permission).options.first { it.id == answer.optionId }
                         when (option.kind) {
                             "allow_once" -> "今回の操作を許可する回答を送信しました"
-                            "allow_always" -> "今後も操作を許可する回答を送信しました"
+                            "allow_always" -> "今後も操作を許可する回答を送信しました（適用範囲は接続先の仕様によります）"
                             "reject_once" -> "今回の操作を拒否する回答を送信しました"
-                            "reject_always" -> "今後も操作を拒否する回答を送信しました"
+                            "reject_always" -> "今後も操作を拒否する回答を送信しました（適用範囲は接続先の仕様によります）"
                             else -> "未対応の返答です"
                         }
                     }
