@@ -17,11 +17,24 @@ prompt_id = None
 pending = None
 child = None
 
+wire_lock = threading.Lock()
+
 def send(message):
-    print(json.dumps({"jsonrpc": "2.0", **message}, ensure_ascii=False), flush=True)
+    with wire_lock:
+        print(json.dumps({"jsonrpc": "2.0", **message}, ensure_ascii=False), flush=True)
 
 def response(identifier, result):
     send({"id": identifier, "result": result})
+
+def command_updates():
+    import time
+    update(sessionUpdate="available_commands_update", availableCommands=[{"name": "Mixed-日本語", "description": "synthetic only", "input": {"hint": "東京 alpha beta"}}])
+    while not (root / "replace-commands").exists():
+        time.sleep(.01)
+    send({"method": "session/update", "params": {"sessionId": "foreign-session", "update": {"sessionUpdate": "available_commands_update", "availableCommands": [{"name": "foreign", "description": "wrong tab"}]}}})
+    update(sessionUpdate="available_commands_update", availableCommands=[])
+    update(sessionUpdate="available_commands_update", availableCommands=[{"name": "invalid", "description": 8}])
+    update(sessionUpdate="available_commands_update", availableCommands=[{"name": "replacement", "description": "new catalog"}])
 
 def update(**value):
     send({"method": "session/update", "params": {"sessionId": "session-one", "update": value}})
@@ -36,7 +49,13 @@ for line in sys.stdin:
         response(request["id"], {"protocolVersion": 1.5 if scenario == "version-fraction" else "1" if scenario == "version-string" else 1})
     elif method == "session/new":
         assert request["params"]["cwd"] == str(root.resolve())
+        if scenario == "commands-delayed":
+            import time
+            while not (root / "release-new").exists():
+                time.sleep(.01)
         response(request["id"], {"sessionId": "session-one", "configOptions": config})
+        if scenario in ("commands", "commands-delayed"):
+            threading.Thread(target=command_updates, daemon=True).start()
     elif method == "session/set_config_option":
         if scenario != "bad-config":
             for option in config:

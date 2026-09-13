@@ -13,9 +13,10 @@ class TurnAssistantTextTest {
     fun `print parser cumulative resend and tool interruption replace text without duplicate fallback`() {
         val updates = mutableListOf<String>()
         val text = TurnAssistantText({ updates.add("replace:$it") }, { updates.add("start") })
+        val printText = com.cursoragent.parser.PrintAssistantText(null, true)
         val parser = StreamJsonParser { event ->
             when (event) {
-                is StreamEvent.AssistantDelta -> text.printDelta(event.text)
+                is StreamEvent.AssistantDelta -> printText.accept(event)?.let(text::printText)
                 is StreamEvent.Result -> if (!event.isError) event.result?.let(text::printFallback)
                 else -> Unit
             }
@@ -34,11 +35,11 @@ class TurnAssistantTextTest {
     fun `print fallback is shown only once without assistant text and does not seed delta buffer`() {
         val updates = mutableListOf<String>()
         val text = TurnAssistantText(updates::add) { error("print has no message boundary") }
-        text.printDelta("")
+        text.printText("")
         text.printFallback("result only")
         text.printFallback("duplicate")
         // Result is not physical exit; preserve the existing late-delta replacement behavior.
-        text.printDelta("late delta")
+        text.printText("late delta")
         text.printFallback("duplicate after delta")
         assertEquals(listOf("result only", "late delta"), updates)
     }
@@ -68,9 +69,10 @@ class TurnAssistantTextTest {
     fun `captured print fixture flows through existing parser and real display state`() {
         val updates = mutableListOf<String>()
         val text = TurnAssistantText(updates::add) { error("print has no message boundary") }
+        val printText = com.cursoragent.parser.PrintAssistantText(null, true)
         val parser = StreamJsonParser { event ->
             when (event) {
-                is StreamEvent.AssistantDelta -> text.printDelta(event.text)
+                is StreamEvent.AssistantDelta -> printText.accept(event)?.let(text::printText)
                 is StreamEvent.Result -> if (!event.isError) event.result?.let(text::printFallback)
                 else -> Unit
             }
