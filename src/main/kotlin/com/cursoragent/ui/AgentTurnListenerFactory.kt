@@ -2,7 +2,6 @@ package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
-import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
@@ -86,8 +85,8 @@ class AgentTurnListenerFactory(
                 }
             }
 
-            override fun onAssistantDelta(text: String) {
-                update { assistantText.printDelta(text) }
+            override fun onAssistantText(text: String) {
+                update { assistantText.printText(text) }
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -232,17 +231,16 @@ internal fun updateCurrentTurnOnEdt(
     if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
 }
 
-/** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+/** Per-turn text only. Both outputs replace the bubble; print is already normalized by the service. */
 internal class TurnAssistantText(
     private val replaceText: (String) -> Unit,
     private val startMessage: () -> Unit,
 ) {
-    private val printDeduper = AssistantChunkDeduper()
     private var printStarted = false
     private val acpText = StringBuilder()
 
-    fun printDelta(text: String) {
-        val full = printDeduper.dedupe(text) ?: return
+    fun printText(full: String) {
+        if (full.isEmpty()) return
         printStarted = true
         replaceText(full)
     }
