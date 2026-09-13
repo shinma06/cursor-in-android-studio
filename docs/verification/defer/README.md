@@ -13,7 +13,7 @@
 |---|---|---|
 | CTX-24-LIFETIME（公開#24） | `queue`: ticket取得後、owner再評価前。ownerはproject/input fieldの合成UUID、tokenはgeneration:revision:item UUID/配送UUID | `queue.dispatch`の既存owner/generation/revision/先頭item検査。close・選択変更・queue編集後は送信0件 |
 | CTX-24-LIFETIMEの候補遅着 | `popup`: Futureの結果取得後、EDT上の既存guard前。入力fieldの同じowner、popup UUID/query generation | close・次query後の既存project/popup dispose・showing・generation検査がfalseとなり旧候補を表示しない |
-| #229 SETTINGS-BOUNDARY step 2 | `preparation`: 元pooled callback内、最初のisActive検査前。ownerとturn UUID | 設定変更試行はcapturedとsend-entryの設定/workspace fingerprint一致。Stop試行はguard=false、send-entryなし、reservation-closed |
+| #229 SETTINGS-BOUNDARY step 2 | `preparation`: 元pooled callback内、最初のisActive検査前。ownerとturn UUID | 設定変更試行はcapturedとsend-entryのTurnSettingsとworkspace.modeのfingerprint一致。Stop試行はguard=false、send-entryなし、reservation-closed |
 | #231 LIFECYCLE-EDT | `edt-chunk` / `edt-stop` / `edt-complete` / `edt-update`: 元guard直前。owner、turn UUID、normal/terminal区別、callback UUID | disposed/current/stopped/allowStoppedを再評価。古いchunk・旧終端は拒否、同じownerの許容Stop終端だけ配送 |
 
 CTX-24-SNAPSHOTは送信操作が戻った最初の機会の次draft変更と既存queue手順を使う。
@@ -55,6 +55,9 @@ controlは任意コード・コマンド・URLを実行せず、固定のarm/rel
 5. `... release <directory> <pending UUID>`を一回実行する。
    既存guardの結果と実表示・fixtureの送信件数を照合する。単なるreleasedは合格ではない。
    設定試行はcaptured/send-entryのfingerprint一致と下流の固定入力を照合する。
+   fingerprintの対象はTurnSettingsとworkspace.modeだけで、root/resume/restore target全体ではない。
+   正式Caseで必要なroot/resumeは、合成fixtureの起動cwd/argvまたはACP session/new.cwdを
+   同じrunに対応付けて別途照合する。fingerprint一致だけでworkspace全体を合格にしない。
    Stop試行はguard=false、send-entry無し、reservation-closedと復元可能への回復を照合する。
    logのsend-entryはserviceへの入口であり、OS process起動自体の観測ではない。
 6. 各保留は最大60秒。timeout/close/interruptionは`aborted`であり成功解放と扱わない。
@@ -64,6 +67,28 @@ controlは任意コード・コマンド・URLを実行せず、固定のarm/rel
    対象runを確認する。closeは新規保留を無効にして一件の参照を破棄/workerを起こす。
    背景workerのfinally完了までをcloseコマンドの応答だけで断定しない。
    必要な証拠を保存後、所有runディレクトリだけを削除する。再接続は新runと検証IDEで行う。
+
+## pointごとの独立試行
+
+他の準備・実行がない使い捨てprojectで行い、下表の各行を別試行として記録する。
+A/Bは異なるtab、送信数は対象run/itemを識別できる合成fixtureの受信記録から数える。
+
+| 試行 | reachedまでの操作 | 保留後の操作・合格条件 |
+|---|---|---|
+| queue正常対照 | A先行runをfixtureで保留→後続を予約→queue pause→先行完了→Aのqueueをarm→明示再開 | 同じA/同ticketのままrelease。guard=true、当該itemの送信1回 |
+| queue選択変更 | 上と同じ | Bを選択→release。旧ticket guard=false、当該itemの送信0回 |
+| queue owner破棄 | 上と同じ | A close、Aで別会話を開く操作を別々に実施→release。旧owner/ticket guard=false、送信0回 |
+| queue編集 | 上と同じ | pauseして当該itemの編集・並替・取消を各別試行で実施→旧ticket release。guard=false、旧item送信0回。旧ticket試行中は新たな再開をしない |
+| popup遅着 | popupを閉じた状態でAのpopupをarm→@または追加操作で候補収集開始→reached | popup close、別query、owner closeを別試行で実施→release。旧generation guard=false、旧候補非表示。別queryは新結果表示と区別する |
+| preparation設定 | Aのpreparationをarm→元の設定で送信→reached | 次回設定を変更→release。元TurnSettings/workspace.modeでsend-entryへ進む。必要なcwd/resumeは下流fixture記録で別照合 |
+| preparation Stop | 上と同じ | Stop成立を確認→release。guard=false、send-entry無し、元予約がfinallyで解放。他runがない条件で復元可能への回復を確認 |
+| EDT選択変更対照 | Aのedt-chunkをarm→fixtureから合成chunkを送信→reached | B選択だけ→release。Aへ戻ると対象chunkが1回表示され、Bへ誤配送しない |
+| EDT旧chunk拒否 | 上と同じ | A close、Stop、Stop後の同tab次turn、project disposeを各別試行で実施→release。旧chunk guard=false、非表示 |
+| Stop終端の独立配送 | Aのedt-chunkをarm→合成chunkでreached | chunkをholdしたままStop。別pointのedt-stop guard=trueと停止表示を確認→旧chunk releaseでguard=false。これだけで他の拒否枝を合格にしない |
+| 旧終端拒否 | Aのedt-completeまたはedt-stopを別試行でarm→対応終端でreached | owner closeなどで旧ownerを無効化→release。旧終端guard=false、別ownerへ完了表示や状態変更をしない |
+
+popupは **結果取得後の配送保留** を試験する。Future収集中そのものや取消完了を
+直接観測した証拠とは別である。timeout、中止、対応するguard記録がない試行は未達として残す。
 
 ## 非GUIの証拠と限界
 
