@@ -28,7 +28,21 @@ Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選�
 生成不要と判定したHEAD、CI待ち・ビルド失敗の間は新HEADのZIPは存在しない。Release本文のSHAとブランチHEADを照合し、失敗原因を直して再実行する。GitHubのscheduleは遅延し得るほか、公開repositoryでは60日無活動で停止するため必要なら再有効化する。公開済みZIPには影響しない。
 ブランチが256本を超えて同時に未公開の場合はActionsのmatrix制限で明示停止するので、手動でbranchを指定する。
 
-削除済みブランチのReleaseは残す。不要ならそのブランチのReleaseと対応する `branch-zip-...` タグだけをGitHubで削除する。生存ブランチのZIPを誤って消さないため、自動削除は追加しない。
+### 削除済み作業ブランチの掃除（#219）
+
+既定ブランチの毎時scheduleは、削除済み作業ブランチの管理対象Release・Assets・専用タグを掃除する。手動では `cleanup` がfalseなら候補/保留理由をJob summaryに出すdry-runのみ、trueなら実行する。`branch` 指定は配布と掃除の両方をその名前に限定する。pushでは掃除しないため、イベント取りこぼしも次の定期/手動実行で回収する。
+
+管理対象はタグの完全なbranch名SHA-256、本文の単一branch/sha marker、配布タイトル、mutable prerelease、正常な単一ZIPの名前/状態/サイズを照合する。main/master/developと現在のdefault branch、現存ブランチは更新日によらず保護する。識別不能な履歴、draft、タグ単独残存、タグ欠落Releaseは保留し、名前のprefixだけでは削除しない。API/認証失敗は処理失敗であり、不存在の証拠にしない。
+
+cleanupとpublishは同じtagのActions concurrency groupを共有する。lock取得後に候補のRelease ID/ソースSHA/識別情報を再照合し、削除直前にも全branch APIを取得する。Release（Assetsを含む）削除後、branch再作成・Release再作成・tag object変更がなければタグを削除し、両方の不存在をreadbackする。
+
+GitHubの複数APIは原子的ではなく、人間のbranch再作成や直接Release操作をlockできない。観測した再作成/変更は保留し、生存branchの配布は次の通常plan/publishで復旧する。最終確認直後の外部変更まで無競合と保証しない。pending jobが別runに置換された場合も次のschedule/manualで再照合する。
+
+途中失敗はActionsを失敗として残し、削除前のRelease ID/branch/ソースSHA/tag objectのreceiptと次操作をJob summaryへ記録する。Release削除失敗は次回も候補を再検証できる。Release削除後のtag削除失敗は**タグ単独の保留**となり、自動再試行で推測削除しない。PMが当該runのreceiptと新鮮なbranch/ref情報を照合して残存を引き継ぐ。過去QAの配布リンクは履歴のため書き換えない。
+
+初回は `GITHUB_REPOSITORY=owner/repo python3 scripts/workflow/branch_zip.py cleanup-plan` でread-only一覧を記録する。実削除は同じ排他を使う既定branchのActionsで行い、ローカルCLIをpublishと並行実行しない。
+
+根拠: [Release API](https://docs.github.com/en/rest/releases/releases)、[Git reference API](https://docs.github.com/en/rest/git/refs)、[Actions concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency)。
 
 ## 旧運用からの移行
 
