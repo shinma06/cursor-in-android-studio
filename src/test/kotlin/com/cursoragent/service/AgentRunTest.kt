@@ -12,7 +12,7 @@ class AgentRunTest {
         override fun onStopped() { events += "stopped" }
         override fun onCompleted(exitCode: Int) { events += "completed:$exitCode" }
         override fun onError(message: String) { events += "error:$message" }
-        override fun onAssistantDelta(text: String) { events += text }
+        override fun onAssistantText(text: String) { events += text }
     }
 
     @Test
@@ -21,11 +21,11 @@ class AgentRunTest {
         val run = AgentRun(listener)
         var destroys = 0
         run.attachProcess({ destroys++ }, { false })
-        run.emit { it.onAssistantDelta("partial") }
+        run.emit { it.onAssistantText("partial") }
         run.stop()
         run.stop()
         run.reportError("shutdown result error")
-        run.emit { it.onAssistantDelta("late output") }
+        run.emit { it.onAssistantText("late output") }
         assertEquals(listOf("partial"), listener.events)
         run.complete(137, "killed")
         run.complete(137)
@@ -101,8 +101,8 @@ class AgentRunTest {
         val next = AgentRun(second)
         old.attachProcess({}, { false })
         old.stop()
-        next.emit { it.onAssistantDelta("next") }
-        old.emit { it.onAssistantDelta("stale") }
+        next.emit { it.onAssistantText("next") }
+        old.emit { it.onAssistantText("stale") }
         old.complete(137, "stale error")
         next.complete(0)
         assertEquals(listOf("stopped"), first.events)
