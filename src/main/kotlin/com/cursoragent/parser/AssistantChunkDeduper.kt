@@ -1,7 +1,8 @@
 package com.cursoragent.parser
 
 /**
- * Deduplicates `AssistantDelta` chunks against a running buffer for one turn.
+ * Legacy fallback for unknown print producers or metadata outside the verified contract.
+ * [PrintAssistantText] owns strategy selection; ACP must never use this heuristic.
  *
  * Mixed chunk shapes were observed in live print stream-json (Teams plan, CLI
  * `2026.09.02-c22c1a3`, 2026-09): `--stream-partial-output` interleaves true
