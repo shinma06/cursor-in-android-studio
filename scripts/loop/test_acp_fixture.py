@@ -193,5 +193,225 @@ class AdapterBoundaryTest(unittest.TestCase):
                 for stream in (process.stdin, process.stdout, process.stderr):
                     stream.close()
 
+
+class ScenarioProcessTest(unittest.TestCase):
+    setUp = AdapterBoundaryTest.setUp
+
+    def start(self, scenario, name='scenario', arguments=None):
+        output = self.root / name
+        launcher = acp_fixture.prepare(self.workspace, output, scenario)
+        if arguments is None:
+            arguments = ['acp'] if scenario in acp_fixture.ACP_SCENARIOS else [
+                '-p', '--output-format', 'stream-json', '--stream-partial-output', '--trust',
+                '--workspace', str(self.workspace), '--mode', 'ask', 'SYNTHETIC ' + name]
+        process = subprocess.Popen([str(launcher), *arguments], cwd=self.workspace,
+            env={'PROVIDER_SECRET': 'DO_NOT_COLLECT'}, stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+        received = queue.Queue()
+        def read():
+            for line in process.stdout:
+                received.put(json.loads(line))
+            received.put(None)
+        threading.Thread(target=read, daemon=True).start()
+        control = output / 'capture' / f'control-{process.pid}'
+        def cleanup():
+            if control.is_dir():
+                (control / 'release-child').touch()
+                (control / 'release').touch()
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
+            for stream in (process.stdin, process.stdout, process.stderr):
+                stream.close()
+        self.addCleanup(cleanup)
+        return process, received, control, output
+
+    def send(self, process, **message):
+        process.stdin.write(json.dumps({'jsonrpc': '2.0', **message}) + '\n')
+        process.stdin.flush()
+
+    def receive(self, received):
+        value = received.get(timeout=5)
+        self.assertIsNotNone(value)
+        return value
+
+    def wait_file(self, path):
+        import time
+        deadline = time.monotonic() + 5
+        while not path.exists() and time.monotonic() < deadline:
+            time.sleep(.01)
+        self.assertTrue(path.exists(), str(path))
+
+    def initialize(self, process, received, delayed=False):
+        self.send(process, id=1, method='initialize', params={'protocolVersion': 1,
+            'clientCapabilities': {'fs': {'readTextFile': False, 'writeTextFile': False}, 'terminal': False}})
+        self.assertEqual(1, self.receive(received)['result']['protocolVersion'])
+        self.send(process, id=2, method='session/new', params={'cwd': str(self.workspace), 'mcpServers': []})
+        if not delayed:
+            self.assertEqual('session-one', self.receive(received)['result']['sessionId'])
+
+    def prompt(self, process, identifier=3):
+        self.send(process, id=identifier, method='session/prompt', params={
+            'sessionId': 'session-one', 'prompt': [{'type': 'text', 'text': 'SYNTHETIC'}]})
+
+    def test_existing_normal_eof_and_config_mismatch_connect_via_plugin_argv(self):
+        for scenario in ('normal', 'eof', 'bad-config'):
+            with self.subTest(scenario=scenario):
+                process, received, control, _ = self.start(scenario, scenario)
+                self.initialize(process, received)
+                if scenario == 'bad-config':
+                    self.send(process, id=3, method='session/set_config_option', params={
+                        'sessionId': 'session-one', 'configId': 'mode', 'value': 'ask'})
+                    self.assertEqual('agent', self.receive(received)['result']['configOptions'][0]['currentValue'])
+                else:
+                    self.prompt(process)
+                    if scenario == 'normal':
+                        self.assertEqual(['はい', 'はい'], [self.receive(received)['params']['update']['content']['text'] for _ in range(2)])
+                        self.assertEqual('end_turn', self.receive(received)['result']['stopReason'])
+                    else:
+                        self.assertIsNone(received.get(timeout=5))
+                process.stdin.close()
+                self.assertEqual(0, process.wait(timeout=5))
+
+    def test_delayed_new_is_per_process_and_does_not_block_stdin_or_cancel(self):
+        first = self.start('commands-delayed', 'first')
+        second = self.start('commands-delayed', 'second')
+        for process, received, control, _ in (first, second):
+            self.initialize(process, received, delayed=True)
+            self.wait_file(control / 'new-ready')
+            with self.assertRaises(queue.Empty):
+                received.get(timeout=.1)
+        p, q, control, _ = first
+        (control / 'release-new').touch()
+        self.assertEqual(2, self.receive(q)['id'])
+        self.assertEqual('available_commands_update', self.receive(q)['params']['update']['sessionUpdate'])
+        p2, q2, c2, _ = second
+        self.send(p2, method='session/cancel', params={'sessionId': 'session-one'})
+        self.wait_file(c2 / 'cancel-response')
+        (c2 / 'release-new').touch()
+        with self.assertRaises(queue.Empty):
+            q2.get(timeout=.15)
+        for process in (p, p2):
+            process.stdin.close()
+            self.assertEqual(0, process.wait(timeout=5))
+
+    def test_child_cancel_and_owned_release_keep_other_process_separate(self):
+        peers = [self.start('child', name) for name in ('child-a', 'child-b')]
+        for process, received, control, _ in peers:
+            self.initialize(process, received)
+            self.prompt(process)
+            self.assertEqual('running', self.receive(received)['params']['update']['content']['text'])
+            self.wait_file(control / 'child-ready')
+            self.send(process, method='session/cancel', params={'sessionId': 'session-one'})
+            self.assertEqual('cancelled', self.receive(received)['result']['stopReason'])
+        self.assertNotEqual((peers[0][2] / 'child.pid').read_text(), (peers[1][2] / 'child.pid').read_text())
+        for process, received, control, _ in peers:
+            (control / 'release-child').touch()
+            process.stdin.close()
+            self.assertEqual(0, process.wait(timeout=5))
+            self.assertIsNone(received.get(timeout=5))  # Child released its inherited stdout too.
+
+    def test_questions_plan_and_late_answers_after_cancel(self):
+        for scenario, method, answer in [('questions', 'cursor/ask_question', {'outcome': {'outcome': 'answered', 'answers': [{'questionId': 'a', 'selectedOptionIds': ['yes']}]}}),
+                                         ('plan', 'cursor/create_plan', {'outcome': {'outcome': 'rejected'}})]:
+            process, received, _, _ = self.start(scenario, scenario)
+            self.initialize(process, received)
+            self.prompt(process)
+            request = self.receive(received)
+            self.assertEqual(method, request['method'])
+            with self.assertRaises(queue.Empty):
+                received.get(timeout=.1)
+            self.send(process, id=request['id'], result=answer)
+            self.assertEqual('end_turn', self.receive(received)['result']['stopReason'])
+            self.prompt(process, 4)
+            request = self.receive(received)
+            self.send(process, method='session/cancel', params={'sessionId': 'session-one'})
+            self.assertEqual(4, self.receive(received)['id'])
+            self.prompt(process, 5)
+            fresh = self.receive(received)
+            self.assertNotEqual(request['id'], fresh['id'])
+            self.send(process, id=request['id'], result=answer)
+            with self.assertRaises(queue.Empty):
+                received.get(timeout=.1)
+            self.send(process, id=fresh['id'], result=answer)
+            self.assertEqual(5, self.receive(received)['id'])
+
+    def test_tool_updates_release_and_cancel_preserve_wire_shapes_and_disk(self):
+        for cancel in (False, True):
+            process, received, control, _ = self.start('events', str(cancel))
+            self.initialize(process, received)
+            self.prompt(process)
+            self.assertEqual('agent_thought_chunk', self.receive(received)['params']['update']['sessionUpdate'])
+            self.assertEqual('in_progress', self.receive(received)['params']['update']['status'])
+            self.wait_file(control / 'events-ready')
+            if cancel:
+                self.send(process, method='session/cancel', params={'sessionId': 'session-one'})
+                self.assertEqual('cancelled', self.receive(received)['result']['stopReason'])
+            (control / 'release-events').touch()
+            if cancel:
+                with self.assertRaises(queue.Empty):
+                    received.get(timeout=.15)
+            else:
+                rows = [self.receive(received) for _ in range(5)]
+                self.assertEqual(2, len(rows[0]['params']['update']['content']))
+                self.assertEqual('completed', rows[1]['params']['update']['status'])
+                self.assertEqual([], rows[2]['params']['update']['content'])
+                self.assertEqual(3, rows[-1]['id'])
+            self.assertFalse((self.workspace / 'a.txt').exists())
+
+    def test_all_finite_print_outputs_and_physical_exit(self):
+        for scenario in acp_fixture.PRINT_SCENARIOS:
+            process, received, control, output = self.start(scenario, scenario)
+            self.wait_file(control / 'result-written')
+            if scenario == 'print-hold':
+                self.assertIsNone(process.poll())
+                (control / 'release').touch()
+            expected_code = 7 if scenario == 'print-abnormal' else 0
+            self.assertEqual(expected_code, process.wait(timeout=5))
+            events = []
+            while True:
+                value = received.get(timeout=5)
+                if value is None:
+                    break
+                events.append(value)
+            result = events[-1]
+            self.assertEqual('result', result['type'])
+            self.assertEqual(scenario == 'print-error', result['is_error'])
+            if scenario == 'print-usage':
+                self.assertEqual({'inputTokens': 28791, 'outputTokens': 141, 'cacheReadTokens': 5748, 'cacheWriteTokens': 0}, result['usage'])
+            elif scenario == 'print-partial':
+                self.assertEqual({'outputTokens': 0}, result['usage'])
+            else:
+                self.assertNotIn('usage', result)
+            if scenario == 'print-result-only':
+                self.assertEqual(['system', 'result'], [e['type'] for e in events])
+            if scenario == 'print-tools':
+                self.assertEqual(['started', 'completed', 'completed'] * 2, [e['subtype'] for e in events if e['type'] == 'tool_call'])
+                self.assertFalse((self.workspace / 'a.txt').exists())
+            raw = (output / 'capture' / f'wire-{process.pid}.jsonl').read_text()
+            self.assertNotIn('DO_NOT_COLLECT', raw)
+            self.assertEqual('Synthetic abnormal exit\n' if expected_code else '', process.stderr.read())
+
+    def test_print_version_validation_and_two_process_release(self):
+        launcher = acp_fixture.prepare(self.workspace, self.root / 'version', 'print-hold')
+        args = ['-p', '--output-format', 'stream-json', '--stream-partial-output', '--trust', '--workspace', str(self.workspace)]
+        for arguments, expected in [(['--version'], 0), (['mcp', 'list'], 64), (args + ['--unknown', 'x', 'SYNTHETIC'], 64),
+                                    (args + ['--force', '--auto-review', 'SYNTHETIC'], 64), (args[:-1] + [str(self.root), 'SYNTHETIC'], 64)]:
+            result = subprocess.run([str(launcher), *arguments], cwd=self.workspace, env={}, capture_output=True, text=True, timeout=5)
+            self.assertEqual(expected, result.returncode)
+            self.assertEqual(acp_fixture.PRINT_VERSION + '\n' if expected == 0 else '', result.stdout)
+        peers = [self.start('print-hold', name) for name in ('print-a', 'print-b')]
+        for process, _, control, _ in peers:
+            self.wait_file(control / 'result-written')
+        (peers[0][2] / 'release').touch()
+        self.assertEqual(0, peers[0][0].wait(timeout=5))
+        self.assertIsNone(peers[1][0].poll())
+        peers[1][0].terminate()
+        self.assertNotEqual(0, peers[1][0].wait(timeout=5))
+
 if __name__ == '__main__':
     unittest.main()
