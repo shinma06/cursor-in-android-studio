@@ -165,6 +165,15 @@ class SessionTabs(
         return update(token.tabId) { it.copy(title = name) }
     }
 
+    /** Caller has verified that the initial ACP prompt was never dispatched. Metadata alone must not lock transport. */
+    @Synchronized
+    fun abortUnsentAcpTurn(token: SessionRunToken): Boolean {
+        if (!accepts(token)) return false
+        val tab = tabs.first { it.id == token.tabId }
+        if (tab.transport != AgentTransport.ACP || tab.chatId != null) return false
+        return update(tab.id) { it.copy(run = null, transportLocked = false) }
+    }
+
     /** Finish/stop invalidate the token. Repeated terminal/error callbacks are harmless. */
     @Synchronized
     fun finishTurn(token: SessionRunToken): Boolean {
