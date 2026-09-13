@@ -6,13 +6,11 @@ import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.WorktreeMode
-import com.cursoragent.settings.detectAgentExecutable
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessOutputTypes
-import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
@@ -244,10 +242,8 @@ class AgentProcessService(private val project: Project) : Disposable {
      * doc §13), so these run synchronously (blocking) rather than through the
      * streaming OSProcessHandler machinery above. Call off the EDT.
      */
-    fun listModels(): List<ModelOption> {
-        val output = runAgentCommandSync("--list-models") ?: return emptyList()
-        return ModelListParser.parse(output)
-    }
+    fun listModels(): ModelCatalogState =
+        modelCatalogResult(runAgentCommandSync("--list-models", timeoutMs = 15_000))
 
     /** Current CLI metadata path. The dialog parses observed `id: status` rows with
      *  McpListParser and falls back to raw output when no rows can be parsed. */
@@ -258,21 +254,9 @@ class AgentProcessService(private val project: Project) : Disposable {
         return runAgentCommandSync("mcp", subcommand, identifier) != null
     }
 
-    private fun runAgentCommandSync(vararg args: String): String? {
-        val settings = AgentSettingsState.getInstance()
-        val executable = resolveAgentExecutable(settings.agentExecutablePath)
+    private fun runAgentCommandSync(vararg args: String, timeoutMs: Int = 0): String? {
         val workspace = project.basePath ?: return null
-        return try {
-            val commandLine = GeneralCommandLine(executable, *args)
-                .withWorkDirectory(File(workspace))
-                .withCharset(StandardCharsets.UTF_8)
-                .withEnvironment(System.getenv())
-            val output = ExecUtil.execAndGetOutput(commandLine)
-            output.stdout.takeIf { output.exitCode == 0 }
-        } catch (e: Exception) {
-            LOG.warn("agent ${args.joinToString(" ")} failed", e)
-            null
-        }
+        return runAgentMetadataCommand(AgentSettingsState.getInstance().agentExecutablePath, workspace, timeoutMs, *args)
     }
 
     fun killActiveProcess() {
@@ -313,13 +297,5 @@ class AgentProcessService(private val project: Project) : Disposable {
             .withCharset(StandardCharsets.UTF_8)
             .withWorkDirectory(File(requireNotNull(workspace.commandTarget.rootPath)))
             .withEnvironment(System.getenv())
-    }
-
-    private fun resolveAgentExecutable(configuredPath: String): String {
-        if (configuredPath.isNotBlank() && File(configuredPath).canExecute()) {
-            return configuredPath
-        }
-
-        return detectAgentExecutable() ?: "agent"
     }
 }

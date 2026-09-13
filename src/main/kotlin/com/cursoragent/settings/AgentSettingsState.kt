@@ -51,6 +51,12 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     var notifyOnTurnComplete: Boolean = true
     var notifyOnApprovalPending: Boolean = true
 
+    /** A detached per-view selection; reopening old conversations never applies a new print default. */
+    internal fun composerSelection(newPrintConversation: Boolean): AgentSettingsState = AgentSettingsState().also {
+        it.mode = mode
+        it.selectedModel = if (newPrintConversation) selectedModel else ""
+    }
+
     override fun getState(): AgentSettingsState = this
 
     override fun loadState(state: AgentSettingsState) {

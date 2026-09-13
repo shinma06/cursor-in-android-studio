@@ -34,7 +34,6 @@ class AgentUiController(
     private var turnGeneration = 0L
     private var disposed = false
     private var activeRun: AgentRun? = null
-    private var modelLoad: java.util.concurrent.Future<*>? = null
     private var activeToken: SessionRunToken? = null
     private val agentService = project.getService(AgentProcessService::class.java)
     private val checkpointService = project.getService(CheckpointService::class.java)
@@ -63,16 +62,21 @@ class AgentUiController(
         recorder = recorder,
         onRunFinished = ::finishRun,
     )
+    private val modelLoader = ModelCatalogLoader(
+        fetch = agentService::listModels,
+        execute = { ApplicationManager.getApplication().executeOnPooledThread(it) },
+        dispatch = ::runOnEdt,
+        isActive = {
+            !disposed && !project.isDisposed &&
+                sessions.snapshot().tabs.any { it.id == tabId && it.transport == AgentTransport.PRINT }
+        },
+        show = composer.modelSelector::showCatalog,
+    )
+
     init {
         checkpointService.pruneExpired()
-        loadModels()
-    }
-
-    private fun loadModels() {
-        modelLoad = ApplicationManager.getApplication().executeOnPooledThread {
-            val models = agentService.listModels()
-            runOnEdt { if (!disposed && !project.isDisposed && transportState().first == AgentTransport.PRINT) composer.modelSelector.setModels(models) }
-        }
+        composer.modelSelector.onRetry = modelLoader::load
+        if (transportState().first == AgentTransport.ACP) composer.useAcp() else modelLoader.load()
     }
 
     fun transportState(): Pair<AgentTransport, Boolean> {
@@ -83,20 +87,20 @@ class AgentUiController(
     fun selectTransport(transport: AgentTransport) {
         if (disposed || !sessions.selectTransport(tabId, transport)) return
         if (transport == AgentTransport.ACP) {
-            modelLoad?.cancel(false)
+            modelLoader.cancel()
             composer.useAcp()
             timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
         } else {
             composer.usePrint()
-            loadModels()
+            modelLoader.load()
         }
     }
 
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
-        modelLoad?.cancel(true)
-        modelLoad = null
+        modelLoader.cancel()
+        composer.modelSelector.onRetry = {}
         turnGeneration++
         activeToken?.let(sessions::finishTurn)
         activeRun?.detachListener()

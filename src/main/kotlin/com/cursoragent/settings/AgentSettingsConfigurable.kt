@@ -17,6 +17,7 @@ import javax.swing.event.DocumentEvent
 
 class AgentSettingsConfigurable : Configurable {
     private var panel: JPanel? = null
+    private var defaultModelPanel: DefaultModelSettingsPanel? = null
     private var agentPathField: TextFieldWithBrowseButton? = null
     private var agentPathSelection: AgentExecutablePathSelection? = null
     private var agentPathDescription: JBLabel? = null
@@ -57,6 +58,7 @@ class AgentSettingsConfigurable : Configurable {
             }, BorderLayout.EAST)
         }
 
+        defaultModelPanel = DefaultModelSettingsPanel(settings)
         notifyOnTurnCompleteBox = JBCheckBox("応答が完了したら通知する", settings.notifyOnTurnComplete)
         notifyOnApprovalPendingBox = JBCheckBox(
             "ツールの実行が始まったら通知する",
@@ -67,6 +69,9 @@ class AgentSettingsConfigurable : Configurable {
             .addComponent(ImmediateEditNotice())
             .addLabeledComponent("CLIの実行ファイル:", agentPathPanel)
             .addComponent(agentPathDescription!!)
+            .addLabeledComponent("新規会話の既定モデル（互換CLI）:", defaultModelPanel!!)
+            .addComponent(JBLabel("適用後に作る互換CLI会話だけに使います。既存・復元会話とACPには適用しません。"))
+            .addComponent(JBLabel("一覧は適用済みのCLI設定で取得します。CLIを変更した場合は適用して設定を開き直してください。"))
             .addComponent(notifyOnTurnCompleteBox!!)
             .addComponent(notifyOnApprovalPendingBox!!)
             .addComponentFillVertically(JPanel(), 0)
@@ -78,7 +83,8 @@ class AgentSettingsConfigurable : Configurable {
     override fun isModified(): Boolean {
         if (panel == null) return false
         val settings = AgentSettingsState.getInstance()
-        return agentPathSelection?.configuredPath != settings.agentExecutablePath ||
+        return defaultModelPanel?.isModified(settings) == true ||
+            agentPathSelection?.configuredPath != settings.agentExecutablePath ||
             notifyOnTurnCompleteBox?.isSelected != settings.notifyOnTurnComplete ||
             notifyOnApprovalPendingBox?.isSelected != settings.notifyOnApprovalPending
     }
@@ -86,6 +92,7 @@ class AgentSettingsConfigurable : Configurable {
     override fun apply() {
         val selection = agentPathSelection ?: return
         val settings = AgentSettingsState.getInstance()
+        defaultModelPanel?.applyTo(settings)
         settings.agentExecutablePath = selection.configuredPath
         settings.notifyOnTurnComplete = notifyOnTurnCompleteBox?.isSelected == true
         settings.notifyOnApprovalPending = notifyOnApprovalPendingBox?.isSelected == true
@@ -95,6 +102,7 @@ class AgentSettingsConfigurable : Configurable {
 
     override fun reset() {
         val settings = AgentSettingsState.getInstance()
+        defaultModelPanel?.reset(settings)
         agentPathSelection?.reset(settings.agentExecutablePath)
         showAgentPathSelection()
         notifyOnTurnCompleteBox?.isSelected = settings.notifyOnTurnComplete
@@ -112,6 +120,8 @@ class AgentSettingsConfigurable : Configurable {
     }
 
     override fun disposeUIResources() {
+        defaultModelPanel?.dispose()
+        defaultModelPanel = null
         panel = null
         agentPathField = null
         agentPathSelection = null
