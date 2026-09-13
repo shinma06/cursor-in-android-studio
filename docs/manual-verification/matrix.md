@@ -147,3 +147,15 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | CTX-24-MENTIONS | `codex/24-explicit-context` | #24 / 依存#48 | 候補検索・0件/多数・IMEと種類の保証 | Case24の同IDをDark/Light・通常/Compactで実施 | 候補収集中も操作でき、種類ごとの実データ/placeholder/hintを区別する。 | pending | | |
 | CTX-24-SNAPSHOT | `codex/24-explicit-context` | #24 / 依存#48 | 通常送信/予約項目のsnapshot | Case24の同IDをDark/Light・通常/Compactで実施 | 通常/予約各requestが自分のsnapshotを持ち、後から別draftのchipへ差し替わらない。 | pending | | |
 | CTX-24-LIFETIME | `codex/24-explicit-context` | #24 / 依存#48 | tab/破棄・表示と回帰 | Case24の同IDをDark/Light・通常/Compactで実施 | 所有tabとViewの寿命を保ち、非表示timer/候補Futureが残らず、各表示条件で操作できる。 | pending | | |
+
+
+## P. #258 入力前Skills候補（未確認）
+
+正本: [issue-258.json](../verification/changes/issue-258.json)。全4CaseはGPT/human pending、main未反映。#24/#48依存を含む固定buildで確認し、旧Caseのpassを流用しない。
+
+| Case | 確認対象 | GPT / 人間 |
+|---|---|---|
+| SKILLS-258-CONNECT | 入力前接続・settings/transport | pending / pending |
+| SKILLS-258-PICK | 候補検索・選択/取消/解除・IME | pending / pending |
+| SKILLS-258-SEND | 単発呼出しと予約snapshot | pending / pending |
+| SKILLS-258-LIFETIME | 全置換・不正/遅着・複数tab/破棄 | pending / pending |
