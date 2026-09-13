@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "issue": 24,
+  "gui_required": true,
+  "reason": "Add to Chat、明示context、候補popup、queue snapshot、tab/IMEの実機確認が必要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "#24固有差分はdd655160e136a44250f990932a3fe77d686f951f比較で独立レビュー",
+    "PromptContextDraft/PromptQueue/MentionPicker/MentionTokenExtractorの回帰",
+    "./gradlew buildPluginとZIP SHA256/CRC/全JAR",
+    "git diff --checkと旧Case/MV結果不変の照合"
+  ],
+  "cases": [
+    {
+      "id": "CTX-24-SELECTION",
+      "issue": 24,
+      "change": "Add to Chat/自動・明示/削除変更",
+      "preconditions": "#48固定依存を含む#24候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定担当のhost leaseと使い捨てfile/CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別記録。",
+      "steps": [
+        "EditorPopupMenuのAdd to Chatと入力欄の選択を追加で、日本語/空白pathと複数範囲を追加し、path/行範囲/本文previewを照合する。",
+        "同範囲を再追加、file参照とautoを重ね、同内容だけ重複除去されることを確認。明示rowの変更/削除と自動context無効化を試す。",
+        "追加後に元documentを編集し、通常送信/予約登録が再追加または削除を促すことを確認。固定snapshotのpreviewを誤って最新と表示しない。"
+      ],
+      "expected": "追加した内容と表示が対応し、隠れた古い選択を送信せず、削除/変更できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新固定buildで不一致Caseを再試験。旧#5/MVの過去passを転記しない。",
+      "next_action": "PMが依存48統合後の24最終差分を再確認し、固定候補と指定GUI担当へ4Caseを引継ぎ、main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/24",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    },
+    {
+      "id": "CTX-24-MENTIONS",
+      "issue": 24,
+      "change": "候補検索・0件/多数・IMEと種類の保証",
+      "preconditions": "#48固定依存を含む#24候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定担当のhost leaseと使い捨てfile/CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別記録。",
+      "steps": [
+        "@と追加ボタンを開き、収集中の検索/取消、0件・500件以上のfixture、長名/空白/日本語pathとpath説明を確認する。初期500件の外にあるfileを検索して見つかることを確認。探索範囲と一致表示上限を区別し、本文の編集でattachment identityが壊れない。",
+        "上下/Enter選択・Escape取消・日本語IMEを試す。元の入力を変更/消去した後に旧popupから誤置換/追加されないことを確認。",
+        "Files未保存本文、Folder直下一覧、Git diff/Branch差分、Terminal実出力/タブなし/無効を送信fixtureで照合する。Docs/Webはhintのみ、画像/Skills/Browserは実装済みと表記しない。"
+      ],
+      "expected": "候補収集中も操作でき、種類ごとの実データ/placeholder/hintを区別する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新固定buildで不一致Caseを再試験。旧#5/MVの過去passを転記しない。",
+      "next_action": "PMが依存48統合後の24最終差分を再確認し、固定候補と指定GUI担当へ4Caseを引継ぎ、main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/24",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    },
+    {
+      "id": "CTX-24-SNAPSHOT",
+      "issue": 24,
+      "change": "通常送信/予約項目のsnapshot",
+      "preconditions": "#48固定依存を含む#24候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定担当のhost leaseと使い捨てfile/CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別記録。",
+      "steps": [
+        "通常送信を受理させた直後に次draftの添付を変更し、進行中promptへ混入しないことを確認。",
+        "実行中に明示selection/参照を付けて予約登録し、登録後に別draft・元file・選択を変更する。queue context previewを照合する。",
+        "予約textの編集/順序変更/取消/再開とdispatchを行い、固定selection/参照identityはその項目のまま、自動contextと参照内容は実turn開始時の方針で送ることを確認。別draftはclearしない。"
+      ],
+      "expected": "通常/予約各requestが自分のsnapshotを持ち、後から別draftのchipへ差し替わらない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新固定buildで不一致Caseを再試験。旧#5/MVの過去passを転記しない。",
+      "next_action": "PMが依存48統合後の24最終差分を再確認し、固定候補と指定GUI担当へ4Caseを引継ぎ、main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/24",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    },
+    {
+      "id": "CTX-24-LIFETIME",
+      "issue": 24,
+      "change": "tab/破棄・表示と回帰",
+      "preconditions": "#48固定依存を含む#24候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定担当のhost leaseと使い捨てfile/CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別記録。",
+      "steps": [
+        "異なるcontextを持つ複数tabを往復し、各draft/予約の添付が混入しないことを確認。contextだけの未送信draftを閉じる際の破棄確認を試す。",
+        "popup候補収集中、Add to Chat実行時、予約配送直前にtab close/別tab/会話変更を行い、破棄先へ結果が届かないことを確認。",
+        "Dark/Light × 通常/Compact、狭幅/広幅で自動/明示行とAdd/削除/変更/previewが欠けず操作できるか確認。入力/送信Stop/IMEと既存#5 QAも回帰確認する。"
+      ],
+      "expected": "所有tabとViewの寿命を保ち、非表示timer/候補Futureが残らず、各表示条件で操作できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新固定buildで不一致Caseを再試験。旧#5/MVの過去passを転記しない。",
+      "next_action": "PMが依存48統合後の24最終差分を再確認し、固定候補と指定GUI担当へ4Caseを引継ぎ、main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/24",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    }
+  ]
+}
