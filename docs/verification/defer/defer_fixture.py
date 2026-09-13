@@ -28,8 +28,16 @@ def write_json(path, value):
     temporary.replace(path)
 
 
+def source_inputs(source):
+    paths = [p for directory in ('src', 'gradle') for p in (source / directory).rglob('*') if p.is_file()]
+    paths += [source / name for name in ('build.gradle.kts', 'settings.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat')]
+    return {str(p.relative_to(source)): digest(p.read_bytes()) for p in sorted(paths)}
+
+
 def prepare(repo, output):
-    repo, output = Path(repo).resolve(), Path(output).absolute()
+    repo, output = Path(repo).resolve(), Path(output).resolve()
+    if output.is_relative_to(repo) and not output.is_relative_to(repo / 'build'):
+        raise ValueError('Use a separate output directory or the ignored build directory')
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo).strip():
         raise ValueError('Commit the reviewed source before preparing the variant')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
@@ -53,19 +61,23 @@ def prepare(repo, output):
         'patch_sha256': digest((source / PATCH).read_bytes()),
         'helper_sha256': digest(target.read_bytes()), 'instrumented_sources': product,
         'source_digest': digest(json.dumps(product, sort_keys=True).encode()),
-        'variant': '0.1.0-verification-313', 'gui_performed': False}
+        'variant': '0.1.0-verification-313', 'gui_performed': False, 'build_inputs': source_inputs(source)}
     write_json(output / 'build-identity.json', manifest)
     return manifest
 
 
 def build(output, platform_path=None):
     output = Path(output).resolve()
+    manifest = json.loads((output / 'build-identity.json').read_text())
+    if source_inputs(output / 'source') != manifest['build_inputs']:
+        raise ValueError('Prepared build inputs changed; generate a new fixed variant')
     args = ['./gradlew', 'test', 'buildPlugin', '--console=plain']
     if platform_path:
         args.append('-PplatformPath=' + platform_path)
     subprocess.run(args, cwd=output / 'source', check=True)
     plugin = output / 'source/build/distributions/cursor-in-android-studio-0.1.0-verification-313.zip'
-    manifest = json.loads((output / 'build-identity.json').read_text())
+    if source_inputs(output / 'source') != manifest['build_inputs']:
+        raise ValueError('Build inputs changed during the build; discard this result')
     with zipfile.ZipFile(plugin) as archive:
         if archive.testzip() is not None:
             raise ValueError('Invalid variant ZIP')

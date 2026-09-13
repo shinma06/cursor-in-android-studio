@@ -11,10 +11,10 @@
 
 | Case | 接続点・識別 | 解放後に確認する既存処理 |
 |---|---|---|
-| CTX-24-LIFETIME（公開#24） | `queue`: ticket取得後、owner再評価前。ownerはproject/input fieldの合成UUID、tokenはgeneration:revision:item UUID | `queue.dispatch`の既存owner/generation/revision/先頭item検査。close・選択変更・queue編集後は送信0件 |
+| CTX-24-LIFETIME（公開#24） | `queue`: ticket取得後、owner再評価前。ownerはproject/input fieldの合成UUID、tokenはgeneration:revision:item UUID/配送UUID | `queue.dispatch`の既存owner/generation/revision/先頭item検査。close・選択変更・queue編集後は送信0件 |
 | CTX-24-LIFETIMEの候補遅着 | `popup`: Futureの結果取得後、EDT上の既存guard前。入力fieldの同じowner、popup UUID/query generation | close・次query後の既存project/popup dispose・showing・generation検査がfalseとなり旧候補を表示しない |
 | #229 SETTINGS-BOUNDARY step 2 | `preparation`: 元pooled callback内、最初のisActive検査前。ownerとturn UUID | 設定変更試行はcapturedとsend-entryの設定/workspace fingerprint一致。Stop試行はguard=false、send-entryなし、reservation-closed |
-| #231 LIFECYCLE-EDT | `edt-chunk` / `edt-stop` / `edt-complete` / `edt-update`: 元guard直前。owner、turn UUID、normal/terminal区別 | disposed/current/stopped/allowStoppedを再評価。古いchunk・旧終端は拒否、同じownerの許容Stop終端だけ配送 |
+| #231 LIFECYCLE-EDT | `edt-chunk` / `edt-stop` / `edt-complete` / `edt-update`: 元guard直前。owner、turn UUID、normal/terminal区別、callback UUID | disposed/current/stopped/allowStoppedを再評価。古いchunk・旧終端は拒否、同じownerの許容Stop終端だけ配送 |
 
 CTX-24-SNAPSHOTは送信操作が戻った最初の機会の次draft変更と既存queue手順を使う。
 同期Add to Chatの非同期化・追加hookはない。#229の設定変更とStopは別試行にする。
@@ -31,7 +31,7 @@ CTX-24-SNAPSHOTは送信操作が戻った最初の機会の次draft変更と既
 3. `python3 docs/verification/defer/defer_fixture.py build <出力ディレクトリ>`。
    必要なら`--platform-path <SDK>`を付ける。既存SDKの参照のみでIDEは起動しない。
 4. `build-identity.json`のHEAD、元source tree、patch/helper SHA256、生成src/mainの各hash、
-   source digest、ZIPと全JAR SHA256を保存する。ZIP CRCも検査する。
+   source digest、全build入力hash、ZIPと全JAR SHA256を保存する。ZIP CRCも検査する。
    通常ZIPには`com/cursoragent/verification/`がなく、検証ZIPにはあることを照合する。
    最終候補へ変更を加えたら新しい未作成出力へ再生成し、古い証拠と混同しない。
 

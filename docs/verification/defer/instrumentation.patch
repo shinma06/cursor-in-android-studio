@@ -22,7 +22,7 @@
 -            val ownerIsIdle = !disposed && !project.isDisposed && activeRun == null && isSelectedConversation()
 -            queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
 -            if (!disposed) refreshQueue()
-+            val identity = "${ticket.generation}:${ticket.revision}:${ticket.prompt.id}"
++            val identity = "${ticket.generation}:${ticket.revision}:${ticket.prompt.id}/${java.util.UUID.randomUUID()}"
 +            VerificationDefer.edt("queue", verificationOwner, identity) {
 +                val ownerIsIdle = !disposed && !project.isDisposed && activeRun == null && isSelectedConversation()
 +                val dispatched = queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
@@ -105,7 +105,7 @@
 -            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
 +        fun update(allowStopped: Boolean = false, kind: String = "edt-update", block: () -> Unit) {
 +            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped,
-+                probe = Triple(kind, verificationOwner, "$verificationToken/${if (allowStopped) "terminal" else "normal"}"), block = block)
++                probe = Triple(kind, verificationOwner, "$verificationToken/${if (allowStopped) "terminal" else "normal"}/${java.util.UUID.randomUUID()}"), block = block)
          }
          val assistantText = TurnAssistantText(
              { text -> timeline.setAssistantText(text); recorder.assistant(text) },

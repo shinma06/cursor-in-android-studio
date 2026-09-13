@@ -23,6 +23,7 @@ class DeferFixtureTest(unittest.TestCase):
             self.assertFalse((source / fixture.HELPER).exists())
             self.assertTrue((source / str(fixture.HELPER).replace('src/test/', 'src/main/', 1)).is_file())
             self.assertIn('0.1.0-verification-313', (source / 'build.gradle.kts').read_text())
+            self.assertEqual(manifest['build_inputs'], fixture.source_inputs(source))
             changed = []
             for original in (ROOT / 'src/main').rglob('*'):
                 if original.is_file() and original.read_bytes() != (source / original.relative_to(ROOT)).read_bytes():
@@ -32,6 +33,9 @@ class DeferFixtureTest(unittest.TestCase):
                 'src/main/kotlin/com/cursoragent/ui/AgentUiController.kt',
                 'src/main/kotlin/com/cursoragent/ui/composer/mention/MentionPopupController.kt',
             ])
+            (source / 'build.gradle.kts').write_text('changed after preparation')
+            with self.assertRaisesRegex(ValueError, 'inputs changed'):
+                fixture.build(target)
         self.assertEqual(before, subprocess.check_output(['git', 'diff', '--', 'src/main', 'build.gradle.kts'], cwd=ROOT))
 
     def test_owned_control_initialization_and_missing_previous_ack(self):
