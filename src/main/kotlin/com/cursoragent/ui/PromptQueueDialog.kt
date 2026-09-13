@@ -58,10 +58,21 @@ internal class PromptQueueDialog(
 
     override fun createCenterPanel(): JComponent = JPanel(BorderLayout(JBUI.scale(8), JBUI.scale(8))).apply {
         preferredSize = JBUI.size(640, 440)
-        add(JLabel("mode/modelは登録時、ファイル・選択範囲・実行設定は送信開始時の内容を使います。"), BorderLayout.NORTH)
+        add(JLabel("明示選択・添付は登録時に固定。自動context・参照内容・実行設定は送信開始時です。"), BorderLayout.NORTH)
         add(JBScrollPane(list), BorderLayout.CENTER)
         add(JPanel(FlowLayout(FlowLayout.LEFT)).apply {
             add(button("編集…", ::edit))
+            add(button("context…") { entry ->
+                val snapshot = entry.context
+                val details = buildString {
+                    append("登録時の明示context\n")
+                    snapshot?.selections?.forEach { append(it.block()).append("\n\n") }
+                    snapshot?.mentions?.forEach { append(it.displayLabel).append(" — ").append(it.insertToken).append("\n") }
+                    append("\n参照内容と自動contextは次turn開始時。自動context: ")
+                    append(if (snapshot?.automaticEnabled != false) "有効" else "無効")
+                }
+                com.intellij.openapi.ui.Messages.showInfoMessage(project, details.take(4_000), "予約項目のcontext")
+            })
             add(button("削除") { queue.remove(it.id) })
             add(button("上へ") { queue.move(it.id, -1) })
             add(button("下へ") { queue.move(it.id, 1) })

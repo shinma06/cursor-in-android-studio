@@ -61,7 +61,13 @@ class AgentUiController(
 
     fun enqueuePrompt(text: String) {
         if (disposed || project.isDisposed || activeRun?.isActive != true || !isSelectedConversation()) return
-        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel)) {
+        val context = try {
+            composer.promptContext.snapshot()
+        } catch (error: IllegalArgumentException) {
+            timeline.showStatus(error.message ?: "追加したcontextを確認してください。")
+            return
+        }
+        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context)) {
             composer.clearInput()
             refreshQueue()
         }
@@ -246,6 +252,13 @@ class AgentUiController(
             timeline.showStatus(reason)
             return false
         }
+        val context = try {
+            if (queued == null) composer.promptContext.snapshot()
+            else queued.context ?: com.cursoragent.ui.composer.context.PromptContextSnapshot(emptyList(), emptyList(), true)
+        } catch (error: IllegalArgumentException) {
+            timeline.showStatus(error.message ?: "追加したcontextを確認してください。")
+            return false
+        }
         val generation = turnGeneration + 1
         sessions.updateComposer(tabId, settings.mode, settings.model, userText, userText.length)
         val sessionTurn = sessions.beginTurn(tabId) ?: return false
@@ -292,7 +305,7 @@ class AgentUiController(
         timeline.showStatus("送信を準備中…")
 
         val edtContext = try {
-            promptContextBuilder.buildEdtContext(userText)
+            promptContextBuilder.buildEdtContext(userText, context)
         } catch (error: Exception) {
             run.reportError("送信の準備に失敗しました: ${error.message}")
             run.complete(-1)
@@ -315,7 +328,7 @@ class AgentUiController(
                         checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
                     } else null
                     if (!run.isActive) return@executeOnPooledThread
-                    val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
+                    val backgroundContext = promptContextBuilder.buildBackgroundContext(userText, context)
                     val fullContext = listOfNotNull(edtContext, backgroundContext)
                         .joinToString("\n\n")
                         .takeIf { it.isNotBlank() }
