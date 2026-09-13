@@ -41,3 +41,9 @@
 `PromptQueueTest`はFIFO・mode/model保持、編集/削除/順序、世代/選択/idle/pause、開始拒否と同期失敗、実AgentRun終端とSessionTabsの並行runを確認する。既存run/ACP/配送/保存テストを併走する。native dialog、未登録draft/caret、IME、狭いpanel、実Agentの連続送信は[Case48](../verification/changes/issue-48.json)へpendingで分ける。
 
 [所有境界](../architecture/README.md)と[Lifecycleの6条件](../verification/lifecycle-contracts.md)に従う。Swing EDT/controller dispose/process終端が対象で、Android Activity、DB、coroutineは使用しない。#44保存schema/ID、#45/#47/#254、モデル取得・設定・共通描画の他Issueを複製しない。統合時にPMが停止済みPRとcontroller接続を再照合する。
+
+## develop統合時の変更一覧との接続
+
+#47と組み合わせ、変更一覧を開く前と一覧・個別カードのRevert前に、その会話の予約を一時停止する。確認の取消や復元拒否後も明示再開まで送信せず、pauseで古い配送ticketを無効にする。手動・予約共通のstartPromptから実turn IDで変更観測を開始し、予約本文・別tab実行・既存復元gateを保持する。#308の既存修復方針からこの接続だけを適用し、後続PR314の独立した組合せ受入を省略しない。
+
+実listener→FileEditCard→Revertから復元service取得前にpauseする回帰をPromptQueueTestに追加する。古いEDT配送、明示再開後の古いticket、予約本文と別tabの実行を検査する。print本文の通知集約はPR330のTurnEdtUpdatesを維持する。

@@ -2,19 +2,15 @@ package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
-import com.cursoragent.parser.AssistantChunkDeduper
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
-import com.cursoragent.service.AgentProcessService
-import com.cursoragent.service.RestorePolicy
-import com.cursoragent.service.RestoreResult
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.history.ConversationRecorder
-import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
 /**
@@ -22,22 +18,29 @@ import javax.swing.SwingUtilities
  * timeline/composer UI updates. Extracted from [AgentUiController] so the
  * controller stays focused on prompt assembly and high-level orchestration (#11).
  */
-class AgentTurnListenerFactory(
+internal class AgentTurnListenerFactory(
     private val project: Project,
     private val timeline: ChatTimelinePanel,
-    private val composer: ComposerPanel,
+    private val onUsage: (Long, com.cursoragent.parser.TokenUsage?) -> Unit,
+    private val onConfiguration: (AgentEvent.Configuration) -> Unit,
     private val recorder: ConversationRecorder,
     private val onRunFinished: (successful: Boolean) -> Unit,
+    private val changes: ConversationChanges,
+    private val beforeRevert: () -> Unit,
 ) {
     fun create(
         usageTicket: Long,
+        turnId: String,
         isCurrent: () -> Boolean,
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
     ): AgentProcessListener {
-        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        val updates = TurnEdtUpdates { allowStopped, block ->
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
+        }
+        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+            updates.update(allowStopped, block)
         }
         val assistantText = TurnAssistantText(
             { text -> timeline.setAssistantText(text); recorder.assistant(text) },
@@ -51,6 +54,7 @@ class AgentTurnListenerFactory(
                         is AgentEvent.Text -> assistantText.acpDelta(event)
                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
                         is AgentEvent.Tool -> {
+                            changes.acp(turnId, event.state, restoreTarget())
                             recorder.tool(event.state.id, "ツール: ${safeToolKind(event.state.kind)} (${safeToolStatus(event.state.status)})")
                             timeline.upsertStructuredTool(event.state) { diff ->
                                 DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
@@ -58,7 +62,7 @@ class AgentTurnListenerFactory(
                         }
                         is AgentEvent.Input -> timeline.addInputRequest(event.request)
                         is AgentEvent.Plan -> timeline.showPlan(event.entries)
-                        is AgentEvent.Configuration -> composer.showAcpConfiguration(event)
+                        is AgentEvent.Configuration -> onConfiguration(event)
                     }
                 }
             }
@@ -86,12 +90,12 @@ class AgentTurnListenerFactory(
                 }
             }
 
-            override fun onAssistantDelta(text: String) {
-                update { assistantText.printDelta(text) }
+            override fun onAssistantText(text: String) {
+                updates.print(text, assistantText::printText)
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
-                update { composer.contextUsage.update(usageTicket, usage) }
+                update { onUsage(usageTicket, usage) }
             }
 
             override fun onResultFallback(text: String) {
@@ -127,6 +131,7 @@ class AgentTurnListenerFactory(
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
                         val target = restoreTarget()
+                        changes.print(turnId, payload.callId, edit, target)
                         timeline.addFileEditCard(
                             callId = payload.callId,
                             details = edit,
@@ -139,19 +144,10 @@ class AgentTurnListenerFactory(
                                 )
                             },
                             onRevert = {
-                                val before = edit.beforeContent
-                                val after = edit.afterContent
-                                val reservation = project.getService(AgentProcessService::class.java).tryRestore()
-                                val result = if (reservation == null) {
-                                    RestoreResult(RestorePolicy.BUSY)
-                                } else {
-                                    reservation.use {
-                                        if (before == null || after == null) RestoreResult(RestorePolicy.RESTORE_FAILED)
-                                        else DiffViewerHelper.revertFileContentResult(project, edit.path, before, after, target)
-                                    }
+                                beforeRevert()
+                                DiffViewerHelper.revertObservedEdit(project, edit.path, edit.beforeContent, edit.afterContent, target) {
+                                    timeline.showStatus("ファイルを編集前に戻しました")
                                 }
-                                if (result.restored) timeline.showStatus("ファイルを編集前に戻しました")
-                                else Messages.showErrorDialog(project, result.rejectionReason!!, PluginBrand.NAME)
                             },
                         )
                         return@update
@@ -220,6 +216,35 @@ class AgentTurnListenerFactory(
     }
 }
 
+/** Coalesce only adjacent print replacements; other events keep their ordering and ownership checks. */
+internal class TurnEdtUpdates(private val enqueue: (Boolean, () -> Unit) -> Unit) {
+    private var pendingPrint: AtomicReference<String>? = null
+
+    @Synchronized
+    fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        pendingPrint = null
+        enqueue(allowStopped, block)
+    }
+
+    @Synchronized
+    fun print(text: String, consume: (String) -> Unit) {
+        if (text.isEmpty()) return
+        pendingPrint?.let {
+            it.set(text)
+            return
+        }
+        val batch = AtomicReference(text)
+        pendingPrint = batch
+        enqueue(false) {
+            val latest = synchronized(this) {
+                if (pendingPrint === batch) pendingPrint = null
+                batch.get()
+            }
+            consume(latest)
+        }
+    }
+}
+
 /** Recheck ownership when the queued callback runs, including callbacks queued before Stop/close. */
 internal fun updateCurrentTurnOnEdt(
     isDisposed: () -> Boolean,
@@ -232,17 +257,16 @@ internal fun updateCurrentTurnOnEdt(
     if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
 }
 
-/** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+/** Per-turn text only. Both outputs replace the bubble; print is already normalized by the service. */
 internal class TurnAssistantText(
     private val replaceText: (String) -> Unit,
     private val startMessage: () -> Unit,
 ) {
-    private val printDeduper = AssistantChunkDeduper()
     private var printStarted = false
     private val acpText = StringBuilder()
 
-    fun printDelta(text: String) {
-        val full = printDeduper.dedupe(text) ?: return
+    fun printText(full: String) {
+        if (full.isEmpty()) return
         printStarted = true
         replaceText(full)
     }
