@@ -15,11 +15,11 @@ class HistoryNavigationTest {
             recorder.begin(newHistoryId(), "元入力")
             timeline.addUserMessage("元入力")
             val text = TurnAssistantText({ timeline.setAssistantText(it); recorder.assistant(it) }, { timeline.finalizeAssistantMessage(); recorder.newAssistant() })
-            if (acp) text.acpDelta(AgentEvent.Text("最初", "a", true)) else text.printDelta("最初")
+            if (acp) text.acpDelta(AgentEvent.Text("最初", "a", true)) else text.printText("最初")
             timeline.showStatus("思考")
             timeline.addToolCallSummary(null, "ファイル: 完了")
             recorder.tool("tool", "ファイル: 完了")
-            if (acp) text.acpDelta(AgentEvent.Text("最後😀", "b", true)) else text.printDelta("最初 最後😀")
+            if (acp) text.acpDelta(AgentEvent.Text("最後😀", "b", true)) else text.printText("最初 最後😀")
             val snapshot = recorder.conversation
             val match = findConversationText(snapshot, "最後😀")!!
             assertTrue(timeline.scrollToHistoryMatch(snapshot, match.messageId, "最後😀"))
