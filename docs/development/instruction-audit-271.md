@@ -42,3 +42,16 @@
 | #44本文再表示とACP再開 | 保存本文の存在だけでprovider resumeやRevert可能と判断しない |
 
 形式確認はfrontmatter・両Skillの一致・AGENTS symlink・変更した相対リンクを確認する。必要な自動検証はCase271とChange Impactに従い、結果はPRの固定SHAに記録する。効率・停止率の改善は未測定であり、以後の実タスク履歴で確認する。
+
+## 再開・再割当の追加確認（#333）
+
+PR272統合後、start-workの一律な再作成禁止が、workflowの停止済み担当交代と旧ownerディレクトリの共有禁止に矛盾することを確認した。禁止の適用条件を揃え、既存の権限や登録変更手順は維持する。上の初期監査時点や最終PRレビューの履歴は変更しない。
+
+| 入力・状況 | 修正後に必要な動作 |
+| --- | --- |
+| 同一ownerが中断した作業を継続 | owner/source/実行handleと未保存状態を照合し、既存worktreeで再開する。照合前の作り直し・成果破棄はしない。 |
+| 旧ownerが応答しない・停止/解放も再割当も未確認 | 日数や無応答でclaimを失効させない。横取り・新writerの開始をしない。 |
+| 旧writer停止とclaim解放、または停止確認付き明示再割当が成立 | workflowの中断・再開に従って新claimを記録し、新owner専用worktreeで進める。再割当時は旧コメントID・停止確認・新ownerとsupersedesを記録する。旧ownerのディレクトリを共有しない。 |
+| coordinator所有のenrolled branchがある | 別worktree作成をowner/source変更や並行編集の許可にしない。既存登録の扱いはPR automationに従い、自動変更・PAUSED再開をしない。 |
+
+これは文言と既存規約の整合確認であり、実Sessionの再割当実験・効率測定・新しい登録移譲機能ではない。
