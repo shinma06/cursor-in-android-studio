@@ -14,6 +14,7 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
 /**
@@ -35,8 +36,11 @@ class AgentTurnListenerFactory(
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
     ): AgentProcessListener {
-        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        val updates = TurnEdtUpdates { allowStopped, block ->
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
+        }
+        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+            updates.update(allowStopped, block)
         }
         val assistantText = TurnAssistantText(
             { text -> timeline.setAssistantText(text); recorder.assistant(text) },
@@ -86,7 +90,7 @@ class AgentTurnListenerFactory(
             }
 
             override fun onAssistantText(text: String) {
-                update { assistantText.printText(text) }
+                updates.print(text, assistantText::printText)
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -215,6 +219,35 @@ class AgentTurnListenerFactory(
                     onRunFinished()
                 }
             }
+        }
+    }
+}
+
+/** Coalesce only adjacent print replacements; other events keep their ordering and ownership checks. */
+internal class TurnEdtUpdates(private val enqueue: (Boolean, () -> Unit) -> Unit) {
+    private var pendingPrint: AtomicReference<String>? = null
+
+    @Synchronized
+    fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        pendingPrint = null
+        enqueue(allowStopped, block)
+    }
+
+    @Synchronized
+    fun print(text: String, consume: (String) -> Unit) {
+        if (text.isEmpty()) return
+        pendingPrint?.let {
+            it.set(text)
+            return
+        }
+        val batch = AtomicReference(text)
+        pendingPrint = batch
+        enqueue(false) {
+            val latest = synchronized(this) {
+                if (pendingPrint === batch) pendingPrint = null
+                batch.get()
+            }
+            consume(latest)
         }
     }
 }

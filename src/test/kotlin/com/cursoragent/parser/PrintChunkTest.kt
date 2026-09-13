@@ -4,6 +4,37 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class PrintChunkTest {
+    @Test fun `line limit accepts its boundary and rejects overflow before appending or parsing again`() {
+        val valid = """{"type":"assistant","text":"ok"}"""
+        val boundary = valid + " ".repeat(StreamJsonParser.MAX_LINE_CHARS - valid.length)
+        for (route in listOf("chunk", "line", "split")) {
+            val events = mutableListOf<StreamEvent>()
+            val parser = StreamJsonParser(events::add)
+            when (route) {
+                "chunk" -> parser.parseChunk(boundary + "\n")
+                "line" -> parser.parseLine(boundary)
+                else -> {
+                    parser.parseChunk(boundary)
+                    parser.finish()
+                }
+            }
+            assertEquals(listOf(StreamEvent.AssistantDelta("ok", PrintAssistantKind.FINAL_FLUSH)), events, route)
+            when (route) {
+                "chunk" -> parser.parseChunk(boundary + "x\n" + valid + "\n")
+                "line" -> parser.parseLine(boundary + "x")
+                else -> {
+                    parser.parseChunk(boundary)
+                    parser.parseChunk("x")
+                }
+            }
+            parser.parseChunk(valid + "\n")
+            parser.parseLine(valid)
+            parser.finish()
+            assertEquals(2, events.size, route)
+            assertEquals(StreamEvent.OutputLimitExceeded, events.last(), route)
+        }
+    }
+
     @Test fun `every split including surrogate pairs and final line without newline preserves live fixture`() {
         val fixture = javaClass.getResource("/issue-116/tools.jsonl")!!.readText().trimEnd()
         val expected = mutableListOf<StreamEvent>()
