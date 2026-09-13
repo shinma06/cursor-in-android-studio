@@ -79,6 +79,9 @@ class AgentUiController(
         if (transportState().first == AgentTransport.ACP) composer.useAcp() else modelLoader.load()
     }
 
+    /** EDT-only immutable value; callers freeze it before opening modal UI. */
+    fun conversationSnapshot(): Conversation? = recorder.conversation.takeUnless { disposed || legacyOnly }
+
     fun transportState(): Pair<AgentTransport, Boolean> {
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId }
         return (tab?.transport ?: AgentTransport.PRINT) to (tab == null || tab.transportLocked || tab.chatId != null)
