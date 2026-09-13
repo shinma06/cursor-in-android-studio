@@ -53,7 +53,7 @@ def main():
             send({'type': 'assistant', 'text': '完了', 'timestamp_ms': 6})
             answer += '完了'
         if scenario != 'print-result-only':
-            send({'type': 'assistant', 'text': answer, 'model_call_id': 'synthetic-final'})
+            send({'type': 'assistant', 'text': answer})
         result = {'type': 'result', 'subtype': 'success', 'session_id': 'synthetic-session',
                   'request_id': 'Synthetic-Opaque', 'is_error': scenario == 'print-error', 'result': answer}
         if scenario == 'print-usage':

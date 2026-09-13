@@ -381,6 +381,14 @@ class ScenarioProcessTest(unittest.TestCase):
             result = events[-1]
             self.assertEqual('result', result['type'])
             self.assertEqual(scenario == 'print-error', result['is_error'])
+            assistants = [event for event in events if event['type'] == 'assistant']
+            if scenario != 'print-result-only':
+                # #254 final flush has neither timestamp nor call metadata. A call-only
+                # record would force the real parser into its legacy fallback.
+                self.assertEqual({'type': 'assistant', 'text': result['result']}, assistants[-1])
+                deltas = [event['text'] for event in assistants if 'timestamp_ms' in event and 'model_call_id' not in event]
+                self.assertEqual('はいはい😀😀' + ('完了' if scenario == 'print-tools' else ''), ''.join(deltas))
+                self.assertEqual(result['result'], ''.join(deltas))
             if scenario == 'print-usage':
                 self.assertEqual({'inputTokens': 28791, 'outputTokens': 141, 'cacheReadTokens': 5748, 'cacheWriteTokens': 0}, result['usage'])
             elif scenario == 'print-partial':
