@@ -1,0 +1,244 @@
+--- a/src/main/kotlin/com/cursoragent/ui/AgentUiController.kt
++++ b/src/main/kotlin/com/cursoragent/ui/AgentUiController.kt
+@@ -1,4 +1,6 @@
+ package com.cursoragent.ui
++
++import com.cursoragent.verification.VerificationDefer
+
+ import com.cursoragent.history.Conversation
+ import com.cursoragent.history.ConversationHistory
+@@ -31,6 +33,7 @@
+     private val restored: Conversation? = null,
+     private val legacyOnly: Boolean = false,
+ ) {
++    private val verificationOwner = VerificationDefer.owner(project, composer.inputArea)
+     private var turnGeneration = 0L
+     private var disposed = false
+     private var activeRun: AgentRun? = null
+@@ -103,9 +106,13 @@
+     private fun scheduleNextQueuedPrompt() {
+         val ticket = queue.ticket(turnGeneration) ?: return
+         SwingUtilities.invokeLater {
+-            val ownerIsIdle = !disposed && !project.isDisposed && activeRun == null && isSelectedConversation()
+-            queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
+-            if (!disposed) refreshQueue()
++            val identity = "${ticket.generation}:${ticket.revision}:${ticket.prompt.id}/${java.util.UUID.randomUUID()}"
++            VerificationDefer.edt("queue", verificationOwner, identity) {
++                val ownerIsIdle = !disposed && !project.isDisposed && activeRun == null && isSelectedConversation()
++                val dispatched = queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
++                VerificationDefer.event("guard", "queue", verificationOwner, identity, dispatched.toString())
++                if (!disposed) refreshQueue()
++            }
+         }
+     }
+
+@@ -116,6 +123,7 @@
+         composer = composer,
+         recorder = recorder,
+         onRunFinished = ::finishRun,
++        verificationOwner = verificationOwner,
+     )
+     init {
+         checkpointService.pruneExpired()
+@@ -228,6 +236,7 @@
+                 val usageTicket = composer.contextUsage.beginTurn()
+                 turnListenerFactory.create(
+                     usageTicket,
++                    verificationToken = sessionTurn.token.turnId,
+                     isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
+                     onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
+                     isStopped = { run.wasStopped },
+@@ -270,7 +279,12 @@
+         try {
+             ApplicationManager.getApplication().executeOnPooledThread {
+                 try {
+-                    if (!run.isActive) return@executeOnPooledThread
++                    VerificationDefer.event("captured", "preparation", verificationOwner, sessionTurn.token.turnId,
++                        VerificationDefer.fingerprint("$settings/${workspace.mode}"))
++                    VerificationDefer.awaitPreparation(verificationOwner, sessionTurn.token.turnId)
++                    val preparationActive = run.isActive
++                    VerificationDefer.event("guard", "preparation", verificationOwner, sessionTurn.token.turnId, preparationActive.toString())
++                    if (!preparationActive) return@executeOnPooledThread
+                     val commandTarget = workspace.commandTarget
+                     check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                         "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
+@@ -302,12 +316,15 @@
+                     check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                         "準備中に作業場所が変わったため会話を再開しません。"
+                     }
++                    VerificationDefer.event("send-entry", "preparation", verificationOwner, sessionTurn.token.turnId,
++                        VerificationDefer.fingerprint("${turn.settings}/${turn.workspace.mode}"))
+                     agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
+                 } catch (error: Exception) {
+                     run.reportError("送信の準備に失敗しました: ${error.message}")
+                     run.complete(-1)
+                 } finally {
+                     turn.preparation.close()
++                    VerificationDefer.event("reservation-closed", "preparation", verificationOwner, sessionTurn.token.turnId)
+                 }
+             }
+         } catch (_: Exception) {
+--- a/src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt
++++ b/src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt
+@@ -1,4 +1,6 @@
+ package com.cursoragent.ui
++
++import com.cursoragent.verification.VerificationDefer
+
+ import com.cursoragent.PluginBrand
+ import com.cursoragent.notification.AgentNotificationService
+@@ -28,6 +30,7 @@
+     private val composer: ComposerPanel,
+     private val recorder: ConversationRecorder,
+     private val onRunFinished: (successful: Boolean) -> Unit,
++    private val verificationOwner: String = "",
+ ) {
+     fun create(
+         usageTicket: Long,
+@@ -35,9 +38,11 @@
+         isStopped: () -> Boolean,
+         onSession: (String) -> Boolean,
+         restoreTarget: () -> RestoreTarget,
++        verificationToken: String = "",
+     ): AgentProcessListener {
+-        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+-            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
++        fun update(allowStopped: Boolean = false, kind: String = "edt-update", block: () -> Unit) {
++            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped,
++                probe = Triple(kind, verificationOwner, "$verificationToken/${if (allowStopped) "terminal" else "normal"}/${java.util.UUID.randomUUID()}"), block = block)
+         }
+         val assistantText = TurnAssistantText(
+             { text -> timeline.setAssistantText(text); recorder.assistant(text) },
+@@ -46,7 +51,7 @@
+
+         return object : AgentProcessListener {
+             override fun onStructuredEvent(event: AgentEvent) {
+-                update {
++                update(kind = if (event is AgentEvent.Text) "edt-chunk" else "edt-update") {
+                     when (event) {
+                         is AgentEvent.Text -> assistantText.acpDelta(event)
+                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
+@@ -77,7 +82,7 @@
+             }
+
+             override fun onUncertain(message: String) {
+-                update(allowStopped = true) {
++                update(allowStopped = true, kind = "edt-stop") {
+                     timeline.finalizeAssistantMessage()
+                     recorder.error("接続の終了を確認できませんでした。")
+                     recorder.finish("failed")
+@@ -87,7 +92,7 @@
+             }
+
+             override fun onAssistantDelta(text: String) {
+-                update { assistantText.printDelta(text) }
++                update(kind = "edt-chunk") { assistantText.printDelta(text) }
+             }
+
+             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
+@@ -95,7 +100,7 @@
+             }
+
+             override fun onResultFallback(text: String) {
+-                update { assistantText.printFallback(text) }
++                update(kind = "edt-chunk") { assistantText.printFallback(text) }
+             }
+
+             override fun onThinking(text: String) {
+@@ -194,7 +199,7 @@
+             }
+
+             override fun onStopped() {
+-                update(allowStopped = true) {
++                update(allowStopped = true, kind = "edt-stop") {
+                     timeline.clearStatus()
+                     timeline.finalizeAssistantMessage()
+                     recorder.finish("stopped")
+@@ -204,7 +209,7 @@
+             }
+
+             override fun onCompleted(exitCode: Int) {
+-                update {
++                update(kind = "edt-complete") {
+                     timeline.clearStatus()
+                     timeline.finalizeAssistantMessage()
+                     if (exitCode != 0) {
+@@ -226,10 +231,18 @@
+     isCurrent: () -> Boolean,
+     isStopped: () -> Boolean,
+     allowStopped: Boolean = false,
++    probe: Triple<String, String, String>? = null,
+     block: () -> Unit,
+ ) {
+-    val update = { if (!isDisposed() && isCurrent() && (allowStopped || !isStopped())) block() }
+-    if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
++    val update = {
++        val accepted = !isDisposed() && isCurrent() && (allowStopped || !isStopped())
++        probe?.let { VerificationDefer.event("guard", it.first, it.second, it.third, accepted.toString()) }
++        if (accepted) block()
++    }
++    val dispatch = {
++        if (probe == null) update() else VerificationDefer.edt(probe.first, probe.second, probe.third, update)
++    }
++    if (SwingUtilities.isEventDispatchThread()) dispatch() else SwingUtilities.invokeLater(dispatch)
+ }
+
+ /** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+--- a/src/main/kotlin/com/cursoragent/ui/composer/mention/MentionPopupController.kt
++++ b/src/main/kotlin/com/cursoragent/ui/composer/mention/MentionPopupController.kt
+@@ -1,4 +1,6 @@
+ package com.cursoragent.ui.composer.mention
++
++import com.cursoragent.verification.VerificationDefer
+
+ import com.intellij.openapi.Disposable
+ import com.intellij.openapi.application.ApplicationManager
+@@ -18,6 +20,7 @@
+     private val field: EditorTextField,
+     private val onAttach: (Mention) -> Unit,
+ ) {
++    private val verificationOwner = VerificationDefer.owner(project, field)
+     private var popup: JBPopup? = null
+
+     fun install() {
+@@ -42,6 +45,7 @@
+         lateinit var next: JBPopup
+         lateinit var panel: MentionPickerPanel
+         var pending: java.util.concurrent.Future<*>? = null
++        val verificationPopup = java.util.UUID.randomUUID().toString()
+         var queryGeneration = 0L
+         fun load(query: String) {
+             pending?.cancel(true)
+@@ -49,8 +53,10 @@
+             pending = ApplicationManager.getApplication().executeOnPooledThread {
+                 val result = runCatching { ReadAction.compute<List<Mention>, RuntimeException> { MentionCandidateSource.buildCandidates(project, query) } }
+                 SwingUtilities.invokeLater {
+-                    if (!project.isDisposed && !next.isDisposed && field.isShowing && generation == queryGeneration) {
+-                        result.fold(panel::loaded) { panel.failed() }
++                    VerificationDefer.edt("popup", verificationOwner, "$verificationPopup/$generation") {
++                        val accepted = !project.isDisposed && !next.isDisposed && field.isShowing && generation == queryGeneration
++                        VerificationDefer.event("guard", "popup", verificationOwner, "$verificationPopup/$generation", accepted.toString())
++                        if (accepted) result.fold(panel::loaded) { panel.failed() }
+                     }
+                 }
+             }
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -5,7 +5,7 @@
+ }
+
+ group = "com.cursoragent"
+-version = "0.1.0-SNAPSHOT"
++version = "0.1.0-verification-313"
+
+ // Self-installing safety net: point this repo's git hooks at the versioned
+ // .githooks/ directory (unversioned hooks under .git/hooks/ never survive a
+@@ -58,7 +58,7 @@
+
+ intellijPlatform {
+     pluginConfiguration {
+-        name = "Cursor in Android Studio"
++        name = "Cursor in Android Studio [Verification 313]"
+         version = project.version.toString()
+         ideaVersion {
+             sinceBuild = "261"

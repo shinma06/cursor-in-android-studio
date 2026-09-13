@@ -136,3 +136,14 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
 | MV-044 | main | - / #27 | 同一モデルのThinking/Fast/Context/Effort | 旧ID復元→オプション表示/切替→Model検索→Auto往復→取消 | 系列は1行、対応項目だけ表示、実在するIDへ解決。他オプションを勝手に変更しない | pass | GPT / CUA: 0310729でThinking/Fast/Effort・系列検索・Auto・取消、最終1cca572で旧ID復元・モデル往復保持・元設定復元を確認。Contextは複数容量未提供で非表示、切替は単体試験。[記録](../loop-engineering/runs/2026-09-06-model-options.md) | 2026-09-06 |
+
+## O. #24 Add to Chatと明示context
+
+#48固定依存を含む候補を指定して実施する。詳細は[Case24](../verification/changes/issue-24.json)。既存#5の結果は再判定しない。
+
+| ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
+|----|--------|-----|------|------|----------|--------|-------------|------|
+| CTX-24-SELECTION | `codex/24-explicit-context` | #24 / 依存#48 | Add to Chat/自動・明示/削除変更 | Case24の同IDをDark/Light・通常/Compactで実施 | 追加した内容と表示が対応し、隠れた古い選択を送信せず、削除/変更できる。 | pending | | |
+| CTX-24-MENTIONS | `codex/24-explicit-context` | #24 / 依存#48 | 候補検索・0件/多数・IMEと種類の保証 | Case24の同IDをDark/Light・通常/Compactで実施 | 候補収集中も操作でき、種類ごとの実データ/placeholder/hintを区別する。 | pending | | |
+| CTX-24-SNAPSHOT | `codex/24-explicit-context` | #24 / 依存#48 | 通常送信/予約項目のsnapshot | Case24の同IDをDark/Light・通常/Compactで実施 | 通常/予約各requestが自分のsnapshotを持ち、後から別draftのchipへ差し替わらない。 | pending | | |
+| CTX-24-LIFETIME | `codex/24-explicit-context` | #24 / 依存#48 | tab/破棄・表示と回帰 | Case24の同IDをDark/Light・通常/Compactで実施 | 所有tabとViewの寿命を保ち、非表示timer/候補Futureが残らず、各表示条件で操作できる。 | pending | | |

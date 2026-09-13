@@ -27,7 +27,7 @@ class AgentTurnListenerFactory(
     private val timeline: ChatTimelinePanel,
     private val composer: ComposerPanel,
     private val recorder: ConversationRecorder,
-    private val onRunFinished: () -> Unit,
+    private val onRunFinished: (successful: Boolean) -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -72,7 +72,7 @@ class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -82,7 +82,7 @@ class AgentTurnListenerFactory(
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
                     timeline.showError(message)
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -189,7 +189,7 @@ class AgentTurnListenerFactory(
                     recorder.finish("failed")
                     AgentNotificationService.notifyError(project, message)
                     Messages.showErrorDialog(project, message, PluginBrand.NAME)
-                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished()
+                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished(false)
                 }
             }
 
@@ -199,7 +199,7 @@ class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     recorder.finish("stopped")
                     timeline.showStatus("停止しました")
-                    onRunFinished()
+                    onRunFinished(false)
                 }
             }
 
@@ -213,7 +213,7 @@ class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
-                    onRunFinished()
+                    onRunFinished(exitCode == 0)
                 }
             }
         }
