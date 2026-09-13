@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "issue": 258,
+  "gui_required": true,
+  "reason": "入力前ACP候補、単発slash、IME、設定切替とqueue/contextを固定buildで確認するため。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
+    "#24 b9f8275d08cb19c66d69c65ec157ba8a381ece65 比較で#258固有差分の独立レビュー",
+    "合成ACP fixtureのみ使用、実provider接続/実推論は未実施"
+  ],
+  "cases": [
+    {
+      "id": "SKILLS-258-CONNECT",
+      "issue": 258,
+      "change": "入力前接続・settings/transport",
+      "preconditions": "#24/#48依存を含む#258固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/Skills/制御ACP fixtureを使用。CLI版/transportとLight/Dark×通常/Compactを記録。",
+      "steps": [
+        "ACPを選択し、本文を送らずに候補を開く。接続中/接続済み未通知/確認済み0件/失敗を合成serverで分け、wireにpromptがないことを確認する。",
+        "接続中と接続後の初回送信前に実行ファイル・permission/sandbox/worktree設定を変更する。旧候補が無効化され、未対応設定を無視せず表示することを確認。設定を戻し再接続する。mode/modelは送信時の選択で確定する。",
+        "初回送信前のACP→print→ACP切替と失敗時の再接続、接続中のtab closeを試す。未送信draft/contextを保持し、旧接続がpromptを送らず終了することを確認。未広告でもコマンド未選択の通常本文送信は利用できる。"
+      ],
+      "expected": "候補取得だけで推論/送信/transport固定を行わず、設定変更と寿命に応じて再接続できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが#117/#24/#48統合と最終base照合後、専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/258",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/117",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/282",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    },
+    {
+      "id": "SKILLS-258-PICK",
+      "issue": 258,
+      "change": "候補検索・選択/取消/解除・IME",
+      "preconditions": "#24/#48依存を含む#258固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/Skills/制御ACP fixtureを使用。CLI版/transportとLight/Dark×通常/Compactを記録。",
+      "steps": [
+        "合成serverの名前/説明/input hint/namespace付きIDを照合し、出所がserver広告であることを確認。0件/多数/長名/検索0件を試す。広告しないlocal/plugin出所を推定表示しない。",
+        "上下で見えていない行まで移動し、選択行へscrollすることを確認。Enterは候補選択のみ、Escapeは取消のみ。日本語IME変換確定Enterで選択/送信しない。",
+        "先頭/文中slash、選択後の@context、下書きの変更、選択の×/keyboard解除を試し、本文・空白・日本語引数が保持されることを確認。tab往復とcommandだけのclose確認も試す。"
+      ],
+      "expected": "候補操作で勝手に送信せず、出所・単発選択が分かり、IME/下書き/contextを保つ。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが#117/#24/#48統合と最終base照合後、専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/258",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/117",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/282",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    },
+    {
+      "id": "SKILLS-258-SEND",
+      "issue": 258,
+      "change": "単発呼出しと予約snapshot",
+      "preconditions": "#24/#48依存を含む#258固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/Skills/制御ACP fixtureを使用。CLI版/transportとLight/Dark×通常/Compactを記録。",
+      "steps": [
+        "使い捨ての確認済みSkillsで日本語・先頭末尾/連続空白の引数を選択し、固定buildから送信する。先頭ACP text blockのslash/name/引数と、別text blockのIDE contextを照合する。合成wire確認と実Agent end_turn/結果確認を分けて記録する。",
+        "次メッセージへ選択が持続しないこと、送信前失敗/停止で未送信draftが戻ることを確認。新draftがある場合は上書きせず予約一覧で保持し、再送は手動であることを確認する。 サイズ上限でwire未送信なら復元/再接続可能、write開始後の不確定な失敗は自動再送せず復元操作を拒否することを区別する。",
+        "実行中に異なるcommand/contextを付けて2項目を予約し、別draftを編集、予約引数を編集・並べ替えする。各name/引数/明示snapshotが独立し、dispatch時点の自動context/参照内容は#24/#48契約を保つことを確認。候補削除時は停止し、未送信項目を保持する。"
+      ],
+      "expected": "name/引数は改変されず1メッセージだけに適用され、queueと別draftが混入しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが#117/#24/#48統合と最終base照合後、専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/258",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/117",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/282",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    },
+    {
+      "id": "SKILLS-258-LIFETIME",
+      "issue": 258,
+      "change": "全置換・不正/遅着・複数tab/破棄",
+      "preconditions": "#24/#48依存を含む#258固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を一致。指定GUI lease担当が使い捨てproject/Skills/制御ACP fixtureを使用。CLI版/transportとLight/Dark×通常/Compactを記録。",
+      "steps": [
+        "制御serverで同sessionへ全置換→空→不正→正常の順に通知し、古い候補が利用可能として残らず、削除済み選択は未確認になることを確認する。別session IDの通知は無視する。",
+        "A/B会話を並行し、片方の接続中close、接続後dispose、print切替/再接続、初回送信との同時接続を試す。旧世代callbackで別tab/新接続の候補を更新しない。",
+        "Light/Dark × 通常/Compactと狭幅で、検索・説明・hint・単発badge・解除・再接続を操作する。既存print/model/mention/queue/usage/Stop/本文保存の回帰を確認。旧研究や合成試験をGUI passへ転記しない。"
+      ],
+      "expected": "候補とUIを所有session/tab/接続の寿命へ限定し、不正・遅着でも誤呼出しを防ぐ。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが#117/#24/#48統合と最終base照合後、専用QAへ全4Case/main未反映を双方向link/readbackし、指定GUI担当へ引き継ぐ。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/258",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/117",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/5",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/282",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/279"
+      ]
+    }
+  ]
+}

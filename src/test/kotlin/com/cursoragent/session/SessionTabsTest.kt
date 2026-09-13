@@ -6,6 +6,24 @@ import org.junit.jupiter.api.Test
 
 class SessionTabsTest {
     @Test
+    fun `failed initial ACP preparation releases transport but a bound provider or stale token cannot`() {
+        val sessions = SessionTabs()
+        val tab = sessions.snapshot().selectedId
+        sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.ACP)
+        sessions.updateComposer(tab, com.cursoragent.settings.AgentMode.AGENT, "", "prompt", 6)
+        val first = sessions.beginTurn(tab)!!
+        assertTrue(sessions.abortUnsentAcpTurn(first.token))
+        assertTrue(sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.PRINT))
+        assertFalse(sessions.abortUnsentAcpTurn(first.token))
+        sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.ACP)
+        sessions.updateComposer(tab, com.cursoragent.settings.AgentMode.AGENT, "", "prompt", 6)
+        val sent = sessions.beginTurn(tab)!!
+        sessions.bindChat(sent.token, "provider")
+        assertFalse(sessions.abortUnsentAcpTurn(sent.token))
+        assertFalse(sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.PRINT))
+    }
+
+    @Test
     fun `transport belongs to tab and locks on first send including failed or stopped turns`() {
         val tabs = SessionTabs()
         val first = tabs.snapshot().selected.id

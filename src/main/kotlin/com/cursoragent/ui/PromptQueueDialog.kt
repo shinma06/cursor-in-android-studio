@@ -28,7 +28,7 @@ internal class PromptQueueDialog(
     private val list = JBList(model).apply {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
         cellRenderer = SimpleListCellRenderer.create("") { value: QueuedPrompt ->
-            "${value.mode.name.lowercase().replaceFirstChar { it.titlecase() }} / ${value.model.ifBlank { "既定モデル" }} — ${value.text.replace('\n', ' ').take(100)}"
+            "${value.mode.name.lowercase().replaceFirstChar { it.titlecase() }} / ${value.model.ifBlank { "既定モデル" }} — ${com.cursoragent.service.commandPrompt(value.command, value.text).replace('\n', ' ').take(100)}"
         }
         emptyText.text = "予約した入力はありません"
     }
@@ -65,7 +65,7 @@ internal class PromptQueueDialog(
             add(button("context…") { entry ->
                 val snapshot = entry.context
                 val details = buildString {
-                    append("登録時の明示context\n")
+                    append("登録時のコマンド: ").append(entry.command?.let { "/$it" } ?: "なし").append("\n登録時の明示context\n")
                     snapshot?.selections?.forEach { append(it.block()).append("\n\n") }
                     snapshot?.mentions?.forEach { append(it.displayLabel).append(" — ").append(it.insertToken).append("\n") }
                     append("\n参照内容と自動contextは次turn開始時。自動context: ")
@@ -83,7 +83,7 @@ internal class PromptQueueDialog(
         object : DialogWrapper(project, false) {
             private val text = JBTextArea(entry.text, 8, 50).apply { lineWrap = true; wrapStyleWord = true }
             init {
-                title = "予約した入力を編集"
+                title = "予約した入力を編集" + (entry.command?.let { "（/$it の引数）" } ?: "")
                 setOKButtonText("保存")
                 setCancelButtonText("キャンセル")
                 init()
@@ -91,7 +91,7 @@ internal class PromptQueueDialog(
             override fun createCenterPanel(): JComponent = JBScrollPane(text)
             override fun doOKAction() {
                 if (!isCurrent()) return
-                if (text.text.isBlank()) {
+                if (text.text.isBlank() && entry.command == null) {
                     com.intellij.openapi.ui.Messages.showInfoMessage(project, "空の入力は予約できません。削除する場合は一覧の「削除」を使ってください。", "予約した入力")
                     return
                 }
