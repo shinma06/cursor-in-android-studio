@@ -2,12 +2,14 @@ package com.cursoragent.service
 
 import com.cursoragent.acp.AcpException
 import com.cursoragent.acp.AcpSession
+import com.cursoragent.parser.PrintAssistantText
 import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.WorktreeMode
 import com.cursoragent.settings.detectAgentExecutable
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
@@ -30,7 +32,7 @@ interface AgentProcessListener {
     }
     fun onUncertain(message: String) { onError(message) }
     fun onUserMessage(prompt: String) {}
-    fun onAssistantDelta(text: String) {}
+    fun onAssistantText(text: String) {}
     fun onResultFallback(text: String) {}
     fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {}
     fun onThinking(text: String) {}
@@ -130,6 +132,14 @@ class AgentProcessService(private val project: Project) : Disposable {
         run.emit { it.onUserMessage(prompt) }
 
         val commandLine = buildCommandLine(prompt, turn.workspace, settings)
+        val printText = PrintAssistantText(
+            probePrintVersion(commandLine, run),
+            commandLine.parametersList.hasParameter("--stream-partial-output"),
+        )
+        if (!run.isActive) {
+            run.complete(0)
+            return
+        }
         LOG.info("Starting print agent")
 
         val processReservation = turn.preparation.launchingProcess()
@@ -159,7 +169,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                         }
 
                         is StreamEvent.AssistantDelta -> {
-                            if (event.text.isNotEmpty()) listener.onAssistantDelta(event.text)
+                            printText.accept(event)?.let(listener::onAssistantText)
                         }
 
                         is StreamEvent.ThinkingDelta -> {
@@ -197,7 +207,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                     when (outputType) {
                         ProcessOutputTypes.STDOUT -> {
-                            event.text.lineSequence().forEach(parser::parseLine)
+                            parser.parseChunk(event.text)
                         }
 
                         ProcessOutputTypes.STDERR -> {
@@ -209,6 +219,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                 override fun processTerminated(event: ProcessEvent) {
                     runs.remove(run)
                     try {
+                        parser.finish()
                         run.complete(event.exitCode, stderr.toString().trim())
                     } finally {
                         processReservation.close()
@@ -244,10 +255,8 @@ class AgentProcessService(private val project: Project) : Disposable {
      * doc §13), so these run synchronously (blocking) rather than through the
      * streaming OSProcessHandler machinery above. Call off the EDT.
      */
-    fun listModels(): List<ModelOption> {
-        val output = runAgentCommandSync("--list-models") ?: return emptyList()
-        return ModelListParser.parse(output)
-    }
+    fun listModels(): ModelCatalogState =
+        modelCatalogResult(runAgentCommandSync("--list-models", timeoutMs = 15_000))
 
     /** Current CLI metadata path. The dialog parses observed `id: status` rows with
      *  McpListParser and falls back to raw output when no rows can be parsed. */
@@ -258,7 +267,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         return runAgentCommandSync("mcp", subcommand, identifier) != null
     }
 
-    private fun runAgentCommandSync(vararg args: String): String? {
+    private fun runAgentCommandSync(vararg args: String, timeoutMs: Int = 0): String? {
         val settings = AgentSettingsState.getInstance()
         val executable = resolveAgentExecutable(settings.agentExecutablePath)
         val workspace = project.basePath ?: return null
@@ -267,8 +276,8 @@ class AgentProcessService(private val project: Project) : Disposable {
                 .withWorkDirectory(File(workspace))
                 .withCharset(StandardCharsets.UTF_8)
                 .withEnvironment(System.getenv())
-            val output = ExecUtil.execAndGetOutput(commandLine)
-            output.stdout.takeIf { output.exitCode == 0 }
+            val output = ExecUtil.execAndGetOutput(commandLine, timeoutMs)
+            output.stdout.takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
         } catch (e: Exception) {
             LOG.warn("agent ${args.joinToString(" ")} failed", e)
             null
@@ -323,3 +332,16 @@ class AgentProcessService(private val project: Project) : Disposable {
         return detectAgentExecutable() ?: "agent"
     }
 }
+
+/** Probe the frozen invocation, never current global settings; cancellation also owns this subprocess. */
+internal fun probePrintVersion(command: GeneralCommandLine, run: AgentRun): String? = runCatching {
+    if (!run.isActive) return null
+    val probe = GeneralCommandLine(command.exePath, "--version")
+        .withWorkDirectory(command.workDirectory)
+        .withCharset(StandardCharsets.UTF_8)
+        .withEnvironment(command.environment)
+    val handler = CapturingProcessHandler(probe)
+    run.attachCancellation { handler.destroyProcess() }
+    val output = handler.runProcess(3000)
+    output.stdout.trim().takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
+}.getOrNull()

@@ -19,7 +19,7 @@ v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMo
 
 root/worktreeModeは直近の実行先来歴でありturn別の復元権限ではない。履歴を開くsnapshotはそのview/controllerへ渡すだけでrootにキャッシュせず、closeで解放する。
 
-同じassistant全文置換はmessage IDを維持。ACP startsMessageで新ID、tool更新はturn内のprovider call IDをlocal message IDへ対応付ける。call ID自体や実行可能な要求は保存しない。printは現行表示の正規化結果であり、deduperの正しさを新たに保証しない。#116の実wire差は別修正scopeで追跡し、その修正後も保存の全文置換契約を使う。
+同じassistant全文置換はmessage IDを維持。ACP startsMessageで新ID、tool更新はturn内のprovider call IDをlocal message IDへ対応付ける。call ID自体や実行可能な要求は保存しない。printは#254のservice内正規化と同じ全文を保存する。実測版・partial指定・未知版fallbackの範囲は[event-contracts](event-contracts.md)に従い、保存側で再度dedupeしない。
 
 controller/listenerのisCurrent/token/停止guard後だけRecorderを更新。close/disposeはcallbackを待たずinterruptedで終える。workerは最新の会話snapshotを200msごとにまとめ、順に書く。書込み完了したrevisionだけ「保存済み」、保留は「保存中」、例外/上限は保存失敗。保存失敗はAgent応答失敗とは別。突然のprocess停止は最後の200ms以内の未完了保存を失い得る。OS電源断の完全な耐久性は保証しない。
 
