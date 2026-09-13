@@ -7,6 +7,13 @@ import java.io.File
 
 class ModelListParserTest {
     @Test
+    fun `command failure differs from successful empty catalog`() {
+        assertEquals(ModelCatalogState.Failed, modelCatalogResult(null))
+        assertEquals(ModelCatalogState.Loaded(emptyList()), modelCatalogResult("Available models\n"))
+        assertEquals(ModelCatalogState.Loaded(listOf(ModelOption("auto", "Auto"))), modelCatalogResult("auto - Auto"))
+    }
+
+    @Test
     fun `parses a hand-written sample`() {
         val raw = """
             Available models

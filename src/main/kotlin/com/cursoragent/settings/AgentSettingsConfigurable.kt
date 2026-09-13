@@ -17,6 +17,7 @@ import javax.swing.event.DocumentEvent
 
 class AgentSettingsConfigurable : Configurable {
     private var panel: JPanel? = null
+    private var diagnosticsPanel: PluginDiagnosticsPanel? = null
     private var agentPathField: TextFieldWithBrowseButton? = null
     private var agentPathSelection: AgentExecutablePathSelection? = null
     private var agentPathDescription: JBLabel? = null
@@ -63,12 +64,16 @@ class AgentSettingsConfigurable : Configurable {
             settings.notifyOnApprovalPending,
         )
 
+        diagnosticsPanel = PluginDiagnosticsPanel()
+
         panel = FormBuilder.createFormBuilder()
             .addComponent(ImmediateEditNotice())
             .addLabeledComponent("CLIの実行ファイル:", agentPathPanel)
             .addComponent(agentPathDescription!!)
             .addComponent(notifyOnTurnCompleteBox!!)
             .addComponent(notifyOnApprovalPendingBox!!)
+            .addSeparator()
+            .addComponent(diagnosticsPanel!!)
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
@@ -91,6 +96,7 @@ class AgentSettingsConfigurable : Configurable {
         settings.notifyOnApprovalPending = notifyOnApprovalPendingBox?.isSelected == true
         selection.reset(settings.agentExecutablePath)
         showAgentPathSelection()
+        diagnosticsPanel?.refresh()
     }
 
     override fun reset() {
@@ -99,6 +105,7 @@ class AgentSettingsConfigurable : Configurable {
         showAgentPathSelection()
         notifyOnTurnCompleteBox?.isSelected = settings.notifyOnTurnComplete
         notifyOnApprovalPendingBox?.isSelected = settings.notifyOnApprovalPending
+        diagnosticsPanel?.refresh()
     }
 
     private fun showAgentPathSelection() {
@@ -113,6 +120,7 @@ class AgentSettingsConfigurable : Configurable {
 
     override fun disposeUIResources() {
         panel = null
+        diagnosticsPanel = null
         agentPathField = null
         agentPathSelection = null
         agentPathDescription = null
