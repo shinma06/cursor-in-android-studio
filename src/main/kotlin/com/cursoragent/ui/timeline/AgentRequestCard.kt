@@ -5,8 +5,8 @@ import com.cursoragent.service.AgentInput
 import com.cursoragent.service.AgentInputRequest
 import com.cursoragent.service.AgentTool
 import com.cursoragent.service.AgentToolContent
+import com.cursoragent.service.displayText
 import java.awt.BorderLayout
-import java.awt.FlowLayout
 import javax.swing.AbstractButton
 import javax.swing.BoxLayout
 import javax.swing.ButtonGroup
@@ -115,7 +115,9 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
     }
 }
 
-class StructuredToolCard(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit) : JPanel(BorderLayout()) {
+class StructuredToolCard(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit, initiallyExpanded: Boolean = false) : JPanel(BorderLayout()) {
+    private val details: ToolDetailsPanel
+    internal val expanded: Boolean get() = details.expanded
     init {
         isOpaque = false
         val status = when (tool.status) {
@@ -125,23 +127,26 @@ class StructuredToolCard(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> U
             "failed" -> "失敗"
             else -> "状態を確認中"
         }
-        add(plainText("$status: ${toolDescription(tool)}"), BorderLayout.NORTH)
-        add(plainText(tool.content.mapNotNull {
-            when (it) {
-                is AgentToolContent.Text -> it.text
-                is AgentToolContent.Unsupported -> "表示未対応の内容: ${it.type}"
-                is AgentToolContent.Diff -> null
-            }
-        }.joinToString("\n")), BorderLayout.CENTER)
-        add(JPanel(FlowLayout(FlowLayout.LEFT)).apply {
+        add(plainText("$status: ${tool.title.lineSequence().first().take(120)}"), BorderLayout.NORTH)
+        details = ToolDetailsPanel(JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
             isOpaque = false
-            tool.content.filterIsInstance<AgentToolContent.Diff>().forEach { diff ->
-                add(JButton("差分を表示").apply {
-                    toolTipText = diff.path
-                    addActionListener { viewDiff(diff) }
+            add(plainText(toolDescription(tool).ifBlank { "詳細は提供されていません" }))
+            if (tool.content.isEmpty()) add(plainText("結果の内容は提供されていません"))
+            tool.locationsNotice?.let { add(plainText(it)) }
+            tool.content.forEach { content ->
+                add(when (content) {
+                    is AgentToolContent.Text -> plainText(content.text)
+                    is AgentToolContent.Summary -> plainText(content.displayText())
+                    is AgentToolContent.Unsupported -> plainText("表示未対応の内容: ${content.type}")
+                    is AgentToolContent.Diff -> JButton("差分を表示").apply {
+                        toolTipText = content.path
+                        addActionListener { viewDiff(content) }
+                    }
                 })
             }
-        }, BorderLayout.SOUTH)
+        }, initiallyExpanded)
+        add(details, BorderLayout.CENTER)
         // No Revert: these reports do not establish a verified root/before/current-file restore contract.
     }
 }
@@ -157,4 +162,12 @@ private fun plainText(value: String) = JTextArea(value).apply {
     isOpaque = false
     lineWrap = true
     wrapStyleWord = true
+}
+
+/** Distinct from Markdown source and tool execution; all received metadata remains literal text. */
+internal class AssistantContentRow(text: String) : JPanel(BorderLayout()) {
+    init {
+        isOpaque = false
+        add(plainText("応答の内容情報\n$text"), BorderLayout.CENTER)
+    }
 }

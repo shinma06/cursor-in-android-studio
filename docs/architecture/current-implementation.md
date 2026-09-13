@@ -46,12 +46,28 @@ Stopはそのタブのrunへ停止要求を出す。通常Stopでは先にtoken�
 
 ## イベント・補助CLI・保存
 
-- `StreamEvent` / `ToolCallPayloadParser` は現行printの構造化JSON用。未知/不正入力は防御的に扱う。completed fixtureとstarted payloadの推定を分ける。`AssistantChunkDeduper` は増分/累積混在へのheuristicで、常に全文を返して置換する契約。全出力への正しさやACP chunk処理への流用は未検証。
+- `StreamEvent` / `ToolCallPayloadParser` は現行printの構造化JSON用。未知/不正入力は防御的に扱う。completed fixtureとstarted payloadの推定を分ける。`PrintAssistantText` は実測版2026.09.10-fd3934aとpartial指定に基づきdelta/flushを分離し全文置換する（#254）。旧/未知版と契約外metadataは従来`AssistantChunkDeduper`のheuristicへ戻す。版取得・EOF・保存境界と保証範囲は[event-contracts](event-contracts.md)を参照。ACPへ流用しない。
 - mode/modelとモデルオプションは実CLI IDへ対応。`ModelListParser` / `McpListParser` は補助CLIの表示文字列解析。MCP dialogは既知の`id: status`を整形し、解析不能ならraw表示する。これらはACPモデル設定やMCP tool公開の実装ではない。
 - usageはprintの入力値を `TokenUsage` / context usage状態へ反映する現行表示。ACP usage/contextとCursor Todoは未実装。ACPの標準Plan表示・Cursor質問/Plan要求・permission UIは以下の範囲で実装。
 - `cursor-agent-chat-history.xml` はproject単位のchat ID/preview/更新時刻のみ。開いたタブの本文はメモリ内、PRINT/ACP本文は[保存契約](conversation-persistence.md)のproject単位JSONへ保存（#44、実IDE再起動QAは別）。`cursor-agent-checkpoints.xml` はsnapshot metadata、`cursor-agent-settings.xml` はアプリ設定。保存ID/enum、`com.cursoragent.plugin`、内部tool-window/notification IDは変更しない。
 
 型・テスト名の維持理由と再評価箇所は [監査記録](../development/project-context-audit.md)。syntheticテスト成功は実装の回帰確認であり、実Cursorのwire採取や新しいbuildのGUI合格には数えない。
+
+
+
+## 実行状態・経過時間・ツール詳細・通知（#98）
+
+各会話の上部に準備中→実行中/考え中/ツール実行中→完了/停止/失敗と、送信準備を含むターン全体の経過時間を表示する。`RunStatusPanel`はEDT上の会話所有で単調時計を使い、終端で時間を固定し、Controller破棄でtimerを止める。printのprocess構築後とACPのprompt dispatchを`onStarted`で反映し、Thought受信だけを考え中とする。最後の活動イベントを表示するもので、思考時間・並列tool数・推測した承認待ち・再接続状態を作らない。実際の質問/permissionカードは独立して表示する。旧形式・未知subtype・typed解析失敗のgeneric tool情報は、提供された名前をliteralな会話内カードへ残し「状態未取得」と表示する。開始の根拠にはせず、開始通知も出さない。
+
+Stop直後は終了が未確認なら「停止を確認中」を保ち、物理終了/ACP終端の既存判定で停止または失敗へ進む。`AgentRun`とFactoryのEDT token/generation/dispose再照合を維持し、古いcallbackは新turnの時間や通知を更新しない。経過時間はproviderの計測値ではなく、履歴復元では再計測しない。
+
+printのコマンド出力と長い要約、ACPのtool内容は既定で折り畳み、概要と提供された状態を残す。ボタンはkeyboardで操作でき、同じcall IDの更新でも開閉状態を保持する。printの同じcall IDの完了は同じ行を置換し、完了後のstartedで行や状態を戻さない。ID再利用は次の実turnで分離する。長い本文・空出力・エラー・差分の順序を保持し、raw HTMLを解釈しない。既存の子Task表示とその詳細開閉を維持し、編集カードのDiff/Revertや要求回答controlsは隠さない。
+
+ツール開始通知は背景の会話の各turnに一度だけ送る。初回活動が前景ならそのturnは通知しない。project内の開始通知は最新1件へ置換し、旧turnの終了で別turnの通知を消さない。完了・失敗・停止の通知は各turnで独立し、設定でOFFにできる。通知の「会話を開く」は元のtabを選択する既存導線を使い、閉じたtabを再作成しない。終了とtab/project破棄で所有する開始通知を解放する。通知本文へツールのcommandやAgentのraw errorを載せない。
+
+同一turnのエラーは会話内の詳細と日本語の失敗通知で知らせ、Factoryの重複modal割込みを廃止する。通知OFFでも会話内詳細は残す。他の設定/認証/IDEエラーdialogは変更しない。停止は途中本文が残り、適用済み編集を自動復元しないことを表示する。usage、実exit0後のRequest ID、queue停止/予約配送、非テキスト/子Task終端、Revert前のpauseは既存契約を保持する。
+
+2026-09-13の比較根拠: [Cursor IDE内Agent panel](https://cursor.com/docs/agent/overview)はコード・検索・terminal・編集を統合する。[JetBrains AI Assistant + ACP](https://www.jetbrains.com/help/ai-assistant/acp.html)は外部Agentとcustom/IntelliJ MCP server公開を提供し、[IntelliJ MCP Server](https://www.jetbrains.com/help/idea/mcp-server.html)には実行構成・ファイル・編集等のtoolsがある。IDE内Agent、tool進捗やIDE操作そのものを独自能力とは呼ばない。本変更は既存能力との同等UXを目指す日本語表示と、Pluginのtab/token・queue・Request ID・復元保護への直接接続を担当する。[要検証] 最新競合の細かな折畳み/通知/経過時間の外観差と本候補の同等以上UXは実機未観測であり、公式資料だけで達成済みと判定しない。受入手順は[issue-98.json](../verification/changes/issue-98.json)、GUI/mainはpending。
 
 
 ## ACP接続（#147）
@@ -94,3 +110,7 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 print/ACPの本文・思考・tool・要求返答・終端・usageと、全文置換/メッセージ境界の分離理由は [UIイベント契約](event-contracts.md)を参照。イベント変更のwriterと独立reviewerがwire/表示/未知処理と実経路テストを照合する。
 
 #44の会話/turn/message ID、保存型/責務・来歴、保持削除、元入力と注入context、保存状態は[会話保存契約](conversation-persistence.md)を参照。過去のprovider sessionと本文閲覧・Revertを分ける。
+
+## ACP非テキスト内容（#296）
+
+画像・音声・リソースの有限情報表示、更新/上限/保存互換と未実装previewの境界は[ACP内容の有限表示](acp-content.md)を参照。
