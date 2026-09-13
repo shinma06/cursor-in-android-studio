@@ -60,9 +60,9 @@ class AgentSettingsConfigurable : Configurable {
         }
 
         sendKeyBox = javax.swing.JComboBox(SendKeyMode.entries.toTypedArray()).apply { selectedItem = settings.sendKeyMode }
-        notifyOnTurnCompleteBox = JBCheckBox("応答が完了したら通知する", settings.notifyOnTurnComplete)
+        notifyOnTurnCompleteBox = JBCheckBox("応答の完了・失敗・停止を通知する", settings.notifyOnTurnComplete)
         notifyOnApprovalPendingBox = JBCheckBox(
-            "ツールの実行が始まったら通知する",
+            "別の会話のツール開始を通知する（各ターンに一度）",
             settings.notifyOnApprovalPending,
         )
 

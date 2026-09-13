@@ -28,6 +28,8 @@ import java.nio.charset.StandardCharsets
 data class ModelOption(val id: String, val label: String)
 
 interface AgentProcessListener {
+    /** Print process constructed, or ACP prompt dispatch observed; preparation has ended. */
+    fun onStarted() {}
     fun onStructuredEvent(event: AgentEvent) {}
     fun onTurnOutcome(outcome: AgentTurnOutcome) {
         if (outcome == AgentTurnOutcome.COMPLETED) onCompleted(0) else onError(outcome.message)
@@ -44,6 +46,8 @@ interface AgentProcessListener {
     fun onSessionUpdated(chatId: String?, model: String?) {}
     fun onError(message: String) {}
     fun onCompleted(exitCode: Int) {}
+    /** Successful print Result plus actual exit 0, after AgentRun has rejected Stop/errors. */
+    fun onPrintCompleted(requestId: PrintRequestId) { onCompleted(0) }
     fun onStopped() {}
 }
 
@@ -176,10 +180,12 @@ class AgentProcessService(private val project: Project) : Disposable {
 
         try {
             var chatId = turn.workspace.resumeId
+            val requestId = PrintRequestIdCandidate(chatId)
             val parser = StreamJsonParser { event ->
                 run.emit { listener ->
                     when (event) {
                         is StreamEvent.SessionInit -> {
+                            requestId.session(event.sessionId)
                             if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
@@ -200,6 +206,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                         is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallCompleted(event.payload)
 
                         is StreamEvent.Result -> {
+                            requestId.accept(event)
                             listener.onTokenUsage(event.usage)
                             if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
@@ -237,7 +244,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     runs.remove(run)
                     try {
                         parser.finish()
-                        run.complete(event.exitCode, stderr.toString().trim())
+                        run.complete(event.exitCode, stderr.toString().trim(), printRequestId = requestId.completed(event.exitCode))
                     } finally {
                         processReservation.close()
                     }
@@ -245,6 +252,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             })
 
             run.attachProcess(handler::destroyProcess) { handler.isProcessTerminated }
+            run.emit { it.onStarted() }
             handler.startNotify()
         } catch (error: Exception) {
             // A constructed process may already be writing even if listener setup/startNotify fails.

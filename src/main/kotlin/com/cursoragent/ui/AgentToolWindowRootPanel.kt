@@ -74,6 +74,9 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        onChanges = { selectedView?.controller?.showChanges() },
+        requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
+        onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId ->
@@ -180,7 +183,9 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
             val composer = ComposerPanel(project)
-            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly)
+            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly,
+                onShowConversation = { if (!disposed && sessions.select(tab.id)) showSelected() },
+            )
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
             composer.onEnqueue = controller::enqueuePrompt

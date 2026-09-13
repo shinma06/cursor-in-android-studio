@@ -41,3 +41,29 @@
 `PromptQueueTest`はFIFO・mode/model保持、編集/削除/順序、世代/選択/idle/pause、開始拒否と同期失敗、実AgentRun終端とSessionTabsの並行runを確認する。既存run/ACP/配送/保存テストを併走する。native dialog、未登録draft/caret、IME、狭いpanel、実Agentの連続送信は[Case48](../verification/changes/issue-48.json)へpendingで分ける。
 
 [所有境界](../architecture/README.md)と[Lifecycleの6条件](../verification/lifecycle-contracts.md)に従う。Swing EDT/controller dispose/process終端が対象で、Android Activity、DB、coroutineは使用しない。#44保存schema/ID、#45/#47/#254、モデル取得・設定・共通描画の他Issueを複製しない。統合時にPMが停止済みPRとcontroller接続を再照合する。
+
+## 変更一覧とRevertの組合せ（#308）
+
+変更一覧を開く前（開いている一覧を閉じる場合も含む）、一覧のRevert操作前、
+カードRevertの復元予約前に、そのControllerの`pauseQueue()`を呼ぶ。
+checkpoint確認前の既存pauseも維持する。取消・拒否・busy・復元成功で自動resumeしない。
+停止はrevisionを更新して保留中の配送ticketを無効にするだけで、他タブのrunや予約本文/context/draftは消さない。
+再開は既存予約一覧の明示操作に限定し、再開後も古いticketは再利用しない。
+
+#47と#48の組合せでは`changes.beginTurn(sessionTurn.token.turnId)`とFactoryへの同じturnIdを
+手動/予約の共通`startPrompt`に接続する。#308の依存mergeでこの衝突を調整しており、
+変更集約が手動経路だけへ戻らないことを全候補レビューで確認する。
+`finishRun(successful)`はtoken終了後に次予約を予定し、失敗時pause・print最終本文・Task終端も維持する。
+
+復元自体は#47の`revertObservedEdit`/既存gateを使う。root/current-after/未保存/ISOLATED/一覧snapshot検査を変えない。
+新しいApply承認や復元経路は作らない。実RevertカードのListener callbackはControllerのpauseを受け取る。
+Factoryのusage/configは同じComposer更新callbackを渡し、IDEの入力Editorに依存せず実カード接続を回帰検査できる。
+
+`QueuedRevertDispatchTest`は実Listener→FileEditCard→Revert操作→復元service取得の順で
+保留ticketが停止済みであること、再開時の古ticket拒否・別タブ・内容保持を検査する。
+実turn IDごとのListenerからの変更集約と本文も照合する（共通startPrompt自体の再実装をテスト証拠とはしない）。
+`ChangesReviewControllerTest`はControllerが委譲する実一覧処理のsnapshot・Revert callback・閉じる・戻る・取消を
+合成modal EDT loopで実行し、保留ticketの不送信と明示再開を確認する。snapshot/current判定と既存復元callbackは一箇所に保つ。
+既存`ConversationChangesTest`はsnapshot/after/root/未保存の拒否、`PromptQueueTest`はcheckpointで使うpause・明示再開・generation/entry/revisionを確認する。
+Controllerからの一覧表示/一覧Revert/checkpoint確認と手動/予約送信の実IDE操作は
+[組合せCase](../verification/changes/issue-308.json)でpendingとして追跡する。

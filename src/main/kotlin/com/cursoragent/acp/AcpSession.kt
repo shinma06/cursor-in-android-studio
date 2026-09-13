@@ -111,7 +111,7 @@ internal class AcpSession(
                         processTree!!.sample()
                         current.promptSent = true
                         turn.promptDispatched = true
-                        turn.run.emit { it.onSessionUpdated(sessionId, null) }
+                        turn.run.emit { it.onStarted(); it.onSessionUpdated(sessionId, null) }
                     }
                 }) { result ->
                     val reason = result.asJsonObject.requiredString("stopReason")
