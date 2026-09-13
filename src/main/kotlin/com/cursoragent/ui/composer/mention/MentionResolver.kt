@@ -33,9 +33,9 @@ class MentionResolver(private val project: Project) {
             when (mention.kind) {
                 MentionKind.TERMINAL -> buildTerminalBlock()
                 MentionKind.FILE -> buildFileBlock(mention.insertToken, onFileContent)
-                    ?: "@${mention.insertToken}: (file unavailable; no contents attached)"
+                    ?: "@${mention.insertToken}: (file unavailable; no contents attached)".takeIf { mention in explicit }
                 MentionKind.FOLDER -> buildFolderBlock(mention.insertToken.removeSuffix("/"))
-                    ?: "@${mention.insertToken}: (folder unavailable; no listing attached)"
+                    ?: "@${mention.insertToken}: (folder unavailable; no listing attached)".takeIf { mention in explicit }
                 else -> null
             }
         }
