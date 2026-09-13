@@ -15,7 +15,7 @@ class TaskPayloadTest {
         } }
 
     @Test fun `print public projection separates request IDs results and child failure from parent success`() {
-        // Public projection flattens tool_call: restore only that known wire envelope for the parser.
+        // The fixed legacy projection flattens tool_call; restore that known envelope for the parser.
         val states = projected().map { ToolCallPayloadParser.parse(it)!! }
         assertEquals(listOf("print-parent-1"), states.map { it.parentSessionId }.distinct())
         assertEquals("print-argument-agent-1", states[1].task!!.task!!.requestedAgentId)
@@ -25,7 +25,7 @@ class TaskPayloadTest {
         assertEquals("print-child-1", states[3].task!!.task!!.resumeId)
         assertNull(states[3].task!!.task!!.agentId)
         assertEquals("failed", states[3].task!!.status)
-        assertTrue(states[3].task!!.task!!.errorText!!.startsWith("Request blocked"))
+        assertEquals("<redacted provider error>", states[3].task!!.task!!.errorText)
         val events = mutableListOf<StreamEvent>()
         val parser = StreamJsonParser(events::add)
         projected().forEach { parser.parseLine(it.toString()) }

@@ -179,6 +179,11 @@ class AgentProcessService(private val project: Project) : Disposable {
             val parser = StreamJsonParser { event ->
                 run.emit { listener ->
                     when (event) {
+                        StreamEvent.OutputLimitExceeded -> {
+                            run.reportError("CLIの出力が1行の受信上限を超えたため停止しました。")
+                            handler.destroyProcess()
+                        }
+
                         is StreamEvent.SessionInit -> {
                             if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
@@ -272,10 +277,8 @@ class AgentProcessService(private val project: Project) : Disposable {
      * doc §13), so these run synchronously (blocking) rather than through the
      * streaming OSProcessHandler machinery above. Call off the EDT.
      */
-    fun listModels(): List<ModelOption> {
-        val output = runAgentCommandSync("--list-models") ?: return emptyList()
-        return ModelListParser.parse(output)
-    }
+    fun listModels(): ModelCatalogState =
+        modelCatalogResult(runAgentCommandSync("--list-models", timeoutMs = 15_000))
 
     /** Current CLI metadata path. The dialog parses observed `id: status` rows with
      *  McpListParser and falls back to raw output when no rows can be parsed. */
@@ -286,7 +289,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         return runAgentCommandSync("mcp", subcommand, identifier) != null
     }
 
-    private fun runAgentCommandSync(vararg args: String): String? {
+    private fun runAgentCommandSync(vararg args: String, timeoutMs: Int = 0): String? {
         val settings = AgentSettingsState.getInstance()
         val executable = resolveAgentExecutable(settings.agentExecutablePath)
         val workspace = project.basePath ?: return null
@@ -295,8 +298,8 @@ class AgentProcessService(private val project: Project) : Disposable {
                 .withWorkDirectory(File(workspace))
                 .withCharset(StandardCharsets.UTF_8)
                 .withEnvironment(System.getenv())
-            val output = ExecUtil.execAndGetOutput(commandLine)
-            output.stdout.takeIf { output.exitCode == 0 }
+            val output = ExecUtil.execAndGetOutput(commandLine, timeoutMs)
+            output.stdout.takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
         } catch (e: Exception) {
             LOG.warn("agent ${args.joinToString(" ")} failed", e)
             null

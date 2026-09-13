@@ -36,7 +36,7 @@ durationMsは数字だけの整数number/整数string、0〜31,536,000,000 ms（
 ## 根拠・比較・検証範囲
 
 [調査#118の固定契約](https://github.com/shinma06/cursor-in-android-studio/blob/44ce1defbf092d514f6d203c7488c134602cba37/docs/research/issue-118-subagent-contract.md) と公開投影を再利用する。
-[test fixture](../../src/test/resources/task/issue-118-projection.json) は同固定版のJSON投影2配列の値を保持し、テストでprintの既知tool_call envelopeだけを復元する。新たなprovider実行・認証・原本取得はしていない。
+[test fixture](../../src/test/resources/task/issue-118-projection.json) は同固定版のJSON投影2配列を再利用し、providerエラー文だけを`<redacted provider error>`へ伏せる。その他の値・型・順序は保持し、テストで旧投影のprintの既知tool_call envelopeを復元する。`run`はwire外の注釈である。伏字の文言をprovider分類や再開成功の根拠にせず、エラー構造と文字列の保持を検査する。新たなprovider実行・認証・原本取得はしていない。
 2026-09-12に [Cursor Subagents](https://cursor.com/docs/subagents)、[Cursor ACP](https://cursor.com/docs/cli/acp)、[ACP tool calls](https://agentclientprotocol.com/protocol/v1/tool-calls)、[JetBrains ACP](https://www.jetbrains.com/help/ai-assistant/acp.html) を再確認した。
 Cursor IDE内panelの委譲・親への結果返却、JetBrains AI Assistant + Cursor ACP + configured MCP + IntelliJ MCP Serverの既存連携能力を比較対象にする。子実行やtool詳細そのものを独自機能と呼ばない。本変更の対象は親会話・タブ・停止・保存に整合した結果表示であり、競合GUIの同等以上UXは未受入。
 
