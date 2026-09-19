@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 310,
+  "gui_required": false,
+  "reason": "既存合成ACP/printの有限再生・adapter・headless process検査と手順のみ。製品dispatcher/GUI設定/providerを変更・操作しない。対象QAのGUI/main受入と厳密内部窓は未実施で保持する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "固定Python/source/marker/argv、ACP有限要求・cancel、print usage/反復/tool/Result/異常exit、同rootのPID別capture/release、既存file非上書きをheadlessで確認",
+    "固定独立レビュー・公開CI・QAとmain未反映追跡。実provider/GUIのPASSへ転記しない"
+  ],
+  "cases": []
+}
