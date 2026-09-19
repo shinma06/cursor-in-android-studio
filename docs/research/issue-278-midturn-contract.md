@@ -27,6 +27,11 @@ ACP/非TTY printへ実行中の入力を送る専用契約は、今回確認し�
 | ACP v1 + Cursor拡張 | 通常`session/prompt`と終端、取消は公開。今回の資料には同一sessionの同時promptをsteeringへ変換する保証なし。専用入力methodは未確認 | `cursor/ask_question`はAgent→clientのblocking質問で、ユーザー起点の`/btw`ではない。side chat専用契約も未確認 | available_commands_updateでgoal広告、通常promptで1回FIVE_278/end_turn。goal状態の標準/拡張method・通知は未確認 |
 | Cloud Agents API v1 | `POST /v1/agents/{id}/runs`は次runのfollow-up。既存runがCREATING/RUNNINGなら`409 agent_busy`。このendpointで同時steeringは**非対応と明記** | 今回未確認。公式Side chatsは現在local-onlyと説明 | 今回未確認。Cloud Agent/workersを起動していない |
 
+2026-09-20資料再確認: [Agent Overview](https://cursor.com/docs/agent/overview)はside chatの入口として`/side`と`/btw`を併記し、永続する会話と説明している。
+一方、[CLI Changelogの2026-04項](https://cursor.com/docs/cli/changelog)はCLIの`/btw`を履歴へ残さないoverlayと説明する。
+提供面・版の異なる記述を分け、コマンド名だけで同一の保存契約としない。IDE/TTYの固定版実測は未実施で、
+以下の9/12有限観測・固定schemaは更新も再実行もしていない。
+
 一次資料:
 
 - [Cursor Agent Overview](https://cursor.com/docs/agent/overview): IDEの既存queue/即時入力と、Web/AW/CLIの新steering・goalの説明を区別する。名称が同じでもキー/提供面を一括移植しない。
@@ -34,7 +39,7 @@ ACP/非TTY printへ実行中の入力を送る専用契約は、今回確認し�
 - [CLI Parameters](https://cursor.com/docs/cli/reference/parameters)、[Cursor ACP](https://cursor.com/docs/cli/acp): 非TTY入力flagや専用steering/side/goal状態のCursor拡張は今回確認できない。`agent acp`自体はdefault helpで非表示でも公式経路である。
 - [ACP Prompt Turn](https://agentclientprotocol.com/protocol/v1/prompt-turn): 原requestにstopReasonを返すturn、完了後の次prompt、cancel時の原requestの終端を規定。[Architecture](https://agentclientprotocol.com/get-started/architecture)の複数session並行と、同一sessionの同時promptは別。
 - [ACP Slash Commands](https://agentclientprotocol.com/protocol/v1/slash-commands): 広告されたcommandを通常promptのtextで呼び出す。独自の`session/goal`等を発明しない。
-- [Side chats](https://cursor.com/help/ai-features/side-chats): `/side`は親履歴を参照する**永続する子会話**。自身のtranscriptを持ち、closeはarchive。`/btw`の履歴に残らない質問やAgentが実行するSubagentとも別。記事はlocal-onlyとし、IDE内panelの固定版配置は今回未確認。
+- [Side chats](https://cursor.com/help/ai-features/side-chats): `/side`は親履歴を参照する**永続する子会話**。自身のtranscriptを持ち、closeはarchive。CLIの`/btw`の履歴に残らない質問やAgentが実行するSubagentとは提供面と寿命を分ける。記事はlocal-onlyとし、IDE内panelの固定版配置は今回未確認。
 - [Cloud API / Create A Run](https://cursor.com/docs/cloud-agent/api/endpoints#create-a-run): 新run・agentId/runIdとbusy拒否を規定。Web UIでsteering可能という説明からAPIの同時入力を推定しない。
 
 比較対象は [JetBrains AI Assistant + ACP](https://www.jetbrains.com/help/ai-assistant/acp.html) に
@@ -84,10 +89,10 @@ TTY steering/btwは公式仕様確認に留めた。今回の採用判断はPlug
 TUI表示の再現だけではACP/printの入出力契約を解決しない。Cloud API、同時ACP prompt、print stdin追記も実行していない。
 必要な追加証拠は後述のR1–R5に限定する。無期限の調査や代替Agent機構を追加しない。
 
-## #48と現行コードのID・終端・保存
+## #48と9/12固定コードのID・終端・保存
 
 比較するqueueは [PR #279](https://github.com/shinma06/cursor-in-android-studio/pull/279) の固定
-`dd655160e136a44250f990932a3fe77d686f951f`（base9979266、独立レビュー済み・未統合）。
+`dd655160e136a44250f990932a3fe77d686f951f`（base9979266、調査時点では独立レビュー済み・未統合。9/20現在はdevelopへ統合済み）。
 [固定queue仕様](https://github.com/shinma06/cursor-in-android-studio/blob/dd655160e136a44250f990932a3fe77d686f951f/docs/development/prompt-queue.md)
 とPromptQueue/Controllerの実配送をread-onlyで確認した。未統合sourceは複製しない。
 
@@ -100,7 +105,8 @@ TUI表示の再現だけではACP/printの入出力契約を解決しない。Cl
 | print | promptを起動引数に渡すprocess、provider session_id。今回の入力は実行中stdinへ書かない | Resultやtool完了だけで物理終了としない。OS終了をAgentRun.completeへ渡し、意図Stop/errorを優先する |
 | 保存 | Plugin Conversation ID、SavedTurn.id、ChatMessage.id。provider IDは別field | recorder.beginでuser本文、assistant/tool要約、finishでturn状態。表示データを保存し未送信queueや実行命令を再開時に実行しない。baseの保存ACP会話は閲覧のみ |
 
-現行source: [SessionTabs](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、
+以下の表は9/12の固定観測であり、後続の実装変更の受入を代替しない。source位置の相対リンクは閲覧時点のツリーを開く。
+source: [SessionTabs](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、
 [Controller](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)、[prepareTurn/print](../../src/main/kotlin/com/cursoragent/service/AgentProcessService.kt)、
 [AcpSession](../../src/main/kotlin/com/cursoragent/acp/AcpSession.kt)、[AgentRun](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt)、
 [TurnSettings/Workspace](../../src/main/kotlin/com/cursoragent/service/TurnWorkspace.kt)、[保存model/recorder](../../src/main/kotlin/com/cursoragent/history/Conversation.kt)。
@@ -121,7 +127,7 @@ JSON-RPC request ID、provider session ID、Plugin turn/message ID、Cloud run I
 | tab切替/New Chat/履歴移動 | #48元tabのqueueをpause。現在のrunと他tabのrunは維持 | 新操作は宛先tab/session/runを固定し、遅着を別会話へ配送しない |
 | 一覧・編集・close確認 | modalに入る前にpause。確認取消でもpause。close/disposeで破棄 | 未送信消失を伝える既存Caseを保つ |
 | 即時steer | **不採用（公開接続契約待ち）**。既定EnterやStopを置き換えない | R1/R2 |
-| `/btw`一時質問 / `/side`永続子会話 | **専用UI不採用**。通常会話の複製を同じ機能と呼ばない | R3 |
+| CLI `/btw`一時質問 / IDE side chat | **専用UI不採用**。通常会話の複製を同じ機能と呼ばない | R3 |
 | `/goal` | 広告された通常slashの選択/呼出しは#258へ。**専用永続goal UI不採用** | R4 |
 | 独自loop/自動再prompt | goalやsteeringの代替として**不採用** | provider責務を再実装する根拠がなく、今回の有限scope外 |
 
@@ -133,7 +139,7 @@ R1–R5は**未実施**。新しい公開根拠が出た時、親#25から当該
 |---|---|---|
 | R1 ACP mid-turn | Cursor公式のrequest/notification名、capability、元promptと追加入力のID/更新帰属規則 | 元runが継続し追加入力の受付/拒否を識別。終端と競合/重複/遅着/Stop/tab変更を確認。通常prompt並行投入で代用しない |
 | R2 print/TTY | 非TTYの公開入力framingまたは新API、TTYとの版/境界の対応 | TTYは合成作業中の入力が次tool境界に反映された証拠とinterruptの差を確認。TTY文字表示だけでPlugin接続成功とはしない |
-| R3 side question/chat | client起点呼出し、主run継続、質問/子会話IDと保存/破棄の契約 | `/btw`回答は親履歴へ混入しない、`/side`は別の永続履歴とarchive。#146のAgent起点質問で代用しない |
+| R3 side question/chat | client起点呼出し、主run継続、質問/子会話IDと保存/破棄の契約 | CLIの一時overlayは非保存、IDE side chatは別履歴/archiveという各経路の契約を固定版で検証。コマンド名から共通仕様を推定せず、#146のAgent起点質問で代用しない |
 | R4 durable goal | goal ID・active/paused/completedと更新通知、pause/resume、保存/再開の公開契約または固定版の広告 | 単発回答/end_turnとgoal完了を分離。複数turn/idle/停止/再接続で同じgoalを確認し、gated拒否は回避しない |
 | R5 IDE同等性 | Cursor IDE内panelとJetBrains AI Assistant + Cursor ACP + 実在するIDE MCP/toolsの識別build | キー/下書き/queue/steer/質問/保存の操作Caseを比較。GUI未確認の現段階で優位性を主張しない |
 
