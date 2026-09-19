@@ -282,7 +282,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun scrollToHistoryMatch(conversation: com.cursoragent.history.Conversation, messageId: String, query: String): Boolean {
         val bodies = conversation.turns.flatMap { it.messages }.filter { it.role == "user" || it.role == "assistant" }
         val index = bodies.indexOfFirst { it.id == messageId && it.text.contains(query, ignoreCase = true) }
-        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble }
+        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble || it is AssistantContentRow }
         if (index < 0 || rows.size != bodies.size) {
             setSaveStatus("検索後に本文が変わりました。履歴を開き直して検索してください。")
             return false
