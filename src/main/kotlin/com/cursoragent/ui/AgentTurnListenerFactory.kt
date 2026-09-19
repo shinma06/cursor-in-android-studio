@@ -40,6 +40,7 @@ internal class AgentTurnListenerFactory(
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
+        onPrintRequestId: (com.cursoragent.service.PrintRequestId) -> Unit = {},
     ): AgentProcessListener {
         val updates = TurnEdtUpdates { allowStopped, block ->
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
@@ -231,7 +232,11 @@ internal class AgentTurnListenerFactory(
                 }
             }
 
-            override fun onCompleted(exitCode: Int) {
+            override fun onCompleted(exitCode: Int) = completed(exitCode, null)
+
+            override fun onPrintCompleted(requestId: com.cursoragent.service.PrintRequestId) = completed(0, requestId)
+
+            private fun completed(exitCode: Int, requestId: com.cursoragent.service.PrintRequestId?) {
                 update {
                     onUsageFinish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
@@ -243,6 +248,7 @@ internal class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
+                    if (requestId != null) onPrintRequestId(requestId)
                     onRunFinished(exitCode == 0)
                 }
             }

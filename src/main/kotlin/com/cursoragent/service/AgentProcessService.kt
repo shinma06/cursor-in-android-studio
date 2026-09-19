@@ -44,6 +44,8 @@ interface AgentProcessListener {
     fun onSessionUpdated(chatId: String?, model: String?) {}
     fun onError(message: String) {}
     fun onCompleted(exitCode: Int) {}
+    /** Successful print Result plus actual exit 0, after AgentRun has rejected Stop/errors. */
+    fun onPrintCompleted(requestId: PrintRequestId) { onCompleted(0) }
     fun onStopped() {}
 }
 
@@ -176,6 +178,7 @@ class AgentProcessService(private val project: Project) : Disposable {
 
         val taskState = PrintTaskState(turn.workspace.resumeId)
         try {
+            val requestId = PrintRequestIdCandidate(turn.workspace.resumeId)
             val parser = StreamJsonParser { event ->
                 taskState.observe(event)
                 val chatId = taskState.sessionId
@@ -187,6 +190,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                         }
 
                         is StreamEvent.SessionInit -> {
+                            requestId.session(event.sessionId)
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                         }
@@ -210,6 +214,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                         }
 
                         is StreamEvent.Result -> {
+                            requestId.accept(event)
                             listener.onTokenUsage(event.usage)
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
@@ -246,7 +251,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     runs.remove(run)
                     try {
                         parser.finish()
-                        finishPrintTaskRun(run, operations, taskState.backgroundObserved, event.exitCode, stderr.toString().trim())
+                        finishPrintTaskRun(run, operations, taskState.backgroundObserved, event.exitCode, stderr.toString().trim(), requestId.completed(event.exitCode))
                     } finally {
                         processReservation.close()
                     }
@@ -373,11 +378,11 @@ internal fun probePrintVersion(command: GeneralCommandLine, run: AgentRun): Stri
 }.getOrNull()
 
 /** Physical parent exit cannot confirm a provider-managed background child's termination. */
-internal fun finishPrintTaskRun(run: AgentRun, operations: WorkspaceOperationGate, backgroundObserved: Boolean, exitCode: Int, errorOutput: String? = null) {
+internal fun finishPrintTaskRun(run: AgentRun, operations: WorkspaceOperationGate, backgroundObserved: Boolean, exitCode: Int, errorOutput: String? = null, printRequestId: PrintRequestId? = null) {
     if (backgroundObserved) {
         operations.markUncertain()
         run.completeUncertain("背景Taskの終了を確認できません。復元を停止しました。")
-    } else run.complete(exitCode, errorOutput)
+    } else run.complete(exitCode, errorOutput, printRequestId = printRequestId)
 }
 
 /** Wire safety state outlives UI delivery, including buffered initialization after Stop or tab close. */

@@ -44,6 +44,8 @@ internal class ToolWindowChatActions(
     onExport: () -> Unit = {},
     onChanges: () -> Unit = {},
     private val settingsUnavailableReason: (PermissionMode, SandboxMode, WorktreeMode) -> String? = { _, _, _ -> null },
+    requestIdSnapshot: () -> com.cursoragent.session.SessionTabsSnapshot? = { null },
+    onRequestIdCopyFeedback: (String) -> Unit = {},
 ) {
     val titleActions = listOf(
         action("新規チャット", "新しいタブでチャットを開始します。", AllIcons.General.Add, toolbarVisible = { settings.showNewChatIcon }) { onNewChat() },
@@ -56,6 +58,7 @@ internal class ToolWindowChatActions(
         action("開いているチャット…", "このウィンドウの会話タブを検索して切り替えます。", perform = onOpenedChats),
         action("すべてのチャットを閉じる…", "会話本文・下書きの消失と実行停止を確認してから、チャットだけを閉じます。") { onCloseAllChats() },
         action("ブラウザーを開く…", "IDE内でURLを入力して手動で閲覧します。Agentによる操作・会話への共有は未接続です。") { onBrowser() },
+        RequestIdCopyActions(requestIdSnapshot, onRequestIdCopyFeedback),
         Separator.create("チャット設定"),
         choice("操作の確認", { settings.permissionMode }, { settings.permissionMode = it }, listOf(
             Option(PermissionMode.ASK_EVERY_TIME, "標準", "追加の自動承認を指定せず、保存済みCLI設定を引き継ぎます。毎回事前確認やallowlist解除を保証せず、即時編集も防ぎません。"),

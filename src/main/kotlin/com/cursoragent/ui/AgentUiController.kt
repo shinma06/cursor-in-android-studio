@@ -243,6 +243,7 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        sessions.clearRequestId(tabId)
         composer.contextUsage.reset()
         commandConnection.clear()
         commandSettingsWatch.stop()
@@ -341,6 +342,7 @@ class AgentUiController(
                     onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
                     isStopped = { run.wasStopped },
                     restoreTarget = { workspace.restoreTarget },
+                    onPrintRequestId = { sessions.confirmRequestId(sessionTurn.token, it) },
                 )
             }
         } catch (_: Exception) {
