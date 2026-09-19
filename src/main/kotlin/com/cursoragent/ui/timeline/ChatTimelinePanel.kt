@@ -29,6 +29,8 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         border = JBUI.Borders.empty(6, 12, 12, 12)
     }
 
+    internal val runStatus = RunStatusPanel()
+
     private val saveStatus = javax.swing.JLabel().apply { border = JBUI.Borders.empty(2, 12) }
     fun setSaveStatus(text: String) {
         saveStatus.text = text
@@ -42,7 +44,10 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
             turn.messages.forEach { message ->
                 when (message.role) {
                     "user" -> addUserMessage(message.text)
-                    "assistant" -> { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    "assistant" -> {
+                        if (message.presentation == "acp_content") addAssistantContent(message.text)
+                        else { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    }
                     "tool" -> addToolCallSummary(null, message.text)
                     "error" -> showError(message.text)
                 }
@@ -68,23 +73,30 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     var isActiveTab: Boolean = true
+    private var readingHistory = false
 
     private var currentAssistantBubble: AssistantMessageBubble? = null
     private var currentStatusRow: StatusMessageRow? = null
 
-    /** Tracks the still-in-progress row for a `started` tool call, keyed by call id, so the
-     * matching `completed` event can replace it in place instead of leaving a stale duplicate. */
-    private val activeToolCallRows = mutableMapOf<String, Component>()
+    /** Keep each print call in place through updates; IDs are scoped to the current turn. */
+    private val completedPrintTools = mutableSetOf<String>()
+    private val printToolRows = mutableMapOf<String, Component>()
     private val structuredTools = mutableMapOf<String, Component>()
+    private val taskCards = linkedMapOf<Pair<String?, String>, TaskToolCard>()
     private var planRow: Component? = null
 
     init {
         isOpaque = false
         add(emptyState, BorderLayout.CENTER)
+        add(runStatus, BorderLayout.NORTH)
     }
 
     fun addUserMessage(text: String): UserMessageBubble {
+        readingHistory = false
         structuredTools.clear()
+        printToolRows.clear()
+        completedPrintTools.clear()
+        taskCards.clear()
         planRow = null
         hideEmptyState()
         val bubble = UserMessageBubble(text)
@@ -104,6 +116,13 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun setAssistantText(text: String) {
         ensureAssistantBubble().setContent(text)
         scrollToBottom()
+    }
+
+    fun addAssistantContent(text: String) {
+        finalizeAssistantMessage()
+        clearStatus()
+        hideEmptyState()
+        addRow(AssistantContentRow(text))
     }
 
     fun finalizeAssistantMessage() {
@@ -133,17 +152,17 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun showError(text: String) {
         clearStatus()
         hideEmptyState()
-        addRow(StatusMessageRow("Error: $text"))
+        addRow(StatusMessageRow("エラー: $text"))
         scrollToBottom()
     }
+
+    internal fun hasCompletedPrintTool(callId: String): Boolean = callId in completedPrintTools
 
     fun addToolCallStarted(payload: ParsedToolCall) {
         clearStatus()
         hideEmptyState()
-        removeActiveRow(payload.callId)
-        val row = ToolCallBubble(payload.summary)
-        addRow(row)
-        activeToolCallRows[payload.callId] = row
+        if (payload.callId in completedPrintTools) return
+        putPrintRow(payload.callId, ToolCallBubble("ツール開始: ${payload.summary}"), completed = false)
         scrollToBottom()
     }
 
@@ -154,31 +173,62 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         onRevert: () -> Unit,
     ) {
         hideEmptyState()
-        removeActiveRow(callId)
-        addRow(FileEditCard(details, onViewDiff, onRevert))
+        putPrintRow(callId, FileEditCard(details, onViewDiff, onRevert))
         scrollToBottom()
     }
 
     fun addShellResultCard(payload: ParsedToolCall) {
         val result = payload.shellResult ?: return
         hideEmptyState()
-        removeActiveRow(payload.callId)
-        addRow(ToolCallBubble.forShell(payload.summary, result))
+        putPrintRow(payload.callId, ToolCallBubble.forShell(payload.summary, result))
         scrollToBottom()
     }
 
     fun addToolCallSummary(callId: String?, summary: String) {
         hideEmptyState()
-        callId?.let { removeActiveRow(it) }
-        addRow(ToolCallBubble(summary))
+        val row = ToolCallBubble(summary)
+        if (callId == null) addRow(row) else putPrintRow(callId, row)
         scrollToBottom()
     }
 
-    fun upsertStructuredTool(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit) {
+    fun upsertStructuredTool(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> Unit): AgentTool {
+        if (tool.task != null) return upsertTask(tool, viewDiff = viewDiff)
         clearStatus()
         hideEmptyState()
-        val card = StructuredToolCard(tool, viewDiff)
+        val expanded = (structuredTools[tool.id] as? StructuredToolCard)?.expanded ?: false
+        val card = StructuredToolCard(tool, viewDiff, expanded)
         replaceRow(structuredTools.put(tool.id, card), card)
+        return tool
+    }
+
+    fun upsertTask(
+        tool: AgentTool,
+        parentSessionId: String? = null,
+        viewDiff: (AgentToolContent.Diff) -> Unit = {},
+    ): AgentTool {
+        clearStatus()
+        hideEmptyState()
+        val key = parentSessionId to tool.id
+        val old = taskCards[key]
+        if (old != null) {
+            old.update(tool)
+            revalidate()
+            repaint()
+            return old.tool
+        }
+        val card = TaskToolCard(tool, viewDiff)
+        taskCards[key] = card
+        // A standard ACP row can precede cursor/task metadata for the same ID.
+        replaceRow(if (parentSessionId == null) structuredTools.remove(tool.id) else printToolRows.remove(tool.id), card)
+        return card.tool
+    }
+
+    /** Parent termination is not evidence that an unfinished child has stopped or succeeded. */
+    fun finishTasks(): List<Pair<String, AgentTool>> = taskCards.mapNotNull { (key, card) ->
+        if (card.tool.status in setOf("completed", "failed")) return@mapNotNull null
+        card.update(card.tool.copy(status = "unconfirmed"))
+        val (parent, id) = key
+        (if (parent == null) id else "${parent.length}:$parent$id") to card.tool
     }
 
     fun addInputRequest(request: AgentInputRequest) {
@@ -203,9 +253,11 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         }
     }
 
-    /** Removes the still-in-progress row for [callId] (if any) — a `completed` event replaces it. */
-    private fun removeActiveRow(callId: String) {
-        activeToolCallRows.remove(callId)?.let { removeRow(it) }
+    private fun putPrintRow(callId: String, row: Component, completed: Boolean = true) {
+        val old = printToolRows.put(callId, row)
+        if (row is ToolCallBubble && old is ToolCallBubble) row.expanded = old.expanded
+        if (completed) completedPrintTools.add(callId)
+        replaceRow(old, row)
     }
 
     private fun addRow(component: Component) {
@@ -232,9 +284,27 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         }
     }
 
+    /** Resolve the hit against the current snapshot; never infer a different row after a stale hit. */
+    fun scrollToHistoryMatch(conversation: com.cursoragent.history.Conversation, messageId: String, query: String): Boolean {
+        val bodies = conversation.turns.flatMap { it.messages }.filter { it.role == "user" || it.role == "assistant" }
+        val index = bodies.indexOfFirst { it.id == messageId && it.text.contains(query, ignoreCase = true) }
+        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble || it is AssistantContentRow }
+        if (index < 0 || rows.size != bodies.size) {
+            setSaveStatus("検索後に本文が変わりました。履歴を開き直して検索してください。")
+            return false
+        }
+        val row = rows[index]
+        if (!isActiveTab || row.parent !== messagesPanel) return false
+        readingHistory = true
+        messagesPanel.scrollRectToVisible(row.bounds)
+        row.isFocusable = true
+        row.requestFocusInWindow()
+        return true
+    }
+
     private fun scrollToBottom() {
         SwingUtilities.invokeLater {
-            if (!isActiveTab) return@invokeLater
+            if (!isActiveTab || readingHistory) return@invokeLater
             val bar = scrollPane.verticalScrollBar
             bar.value = bar.maximum
         }

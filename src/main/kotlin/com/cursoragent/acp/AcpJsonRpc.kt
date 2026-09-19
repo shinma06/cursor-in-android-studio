@@ -40,9 +40,15 @@ internal class AcpJsonRpc(
     val isClosed: Boolean get() = stopped.get()
     internal val pendingCount: Int get() = pending.size
 
-    fun request(method: String, params: JsonObject, onResult: (JsonElement) -> Unit = {}): CompletableFuture<JsonElement> {
+    fun request(method: String, params: JsonObject, onDispatch: () -> Unit = {}, onResult: (JsonElement) -> Unit = {}): CompletableFuture<JsonElement> {
         val id = "client-${sequence.incrementAndGet()}"
         val result = CompletableFuture<JsonElement>()
+        // Measure the exact UTF-8 envelope, including its allocated ID and newline, before registering it.
+        val bytes = encode(envelope(method, params).apply { addProperty("id", id) })
+        if (bytes.size > frameLimit) {
+            result.completeExceptionally(AcpLocalRejection("画像と本文を含む送信データが1 MiBを超えます。内容を減らして再送してください。"))
+            return result
+        }
         synchronized(pending) {
             if (isClosed || pending.size >= 32) {
                 result.completeExceptionally(AcpException("ACP接続を利用できません"))
@@ -51,7 +57,7 @@ internal class AcpJsonRpc(
             pending[id] = result
         }
         val response = result.thenApply { onResult(it); it }
-        send(envelope(method, params).apply { addProperty("id", id) })
+        sendBytes(bytes, onDispatch)
         return response
     }
 
@@ -145,16 +151,26 @@ internal class AcpJsonRpc(
         }
     }
 
-    private fun send(message: JsonObject): Boolean {
+    private fun send(message: JsonObject, onDispatch: () -> Unit = {}): Boolean {
         if (isClosed) return false
-        val bytes = (message.toString() + "\n").toByteArray(StandardCharsets.UTF_8)
+        val bytes = encode(message)
         if (bytes.size > frameLimit) {
             fail("ACPへの送信上限を超えました")
             return false
         }
+        return sendBytes(bytes, onDispatch)
+    }
+
+    private fun encode(message: JsonObject) = (message.toString() + "\n").toByteArray(StandardCharsets.UTF_8)
+
+    private fun sendBytes(bytes: ByteArray, onDispatch: () -> Unit): Boolean {
+        if (isClosed) return false
         return try {
             writer.execute {
                 if (!isClosed) try {
+                    // Local frame/queue rejection and cancellation before this point wrote no bytes.
+                    // After dispatch begins, a write failure can be partial and must remain uncertain.
+                    onDispatch()
                     output.write(bytes)
                     output.flush()
                 } catch (_: Exception) {
@@ -194,12 +210,14 @@ internal class AcpJsonRpc(
         else "n:${id.asBigDecimal.stripTrailingZeros().toString()}"
 
     companion object {
-        // ponytail: text-only first connection; revisit with the image limit before enabling image input.
         const val MAX_FRAME_BYTES = 1024 * 1024
     }
 }
 
-internal class AcpException(message: String) : RuntimeException(message)
+internal open class AcpException(message: String) : RuntimeException(message)
+
+/** Proven local rejection: no prompt byte was dispatched and the existing connection remains usable. */
+internal class AcpLocalRejection(message: String) : AcpException(message)
 
 internal fun JsonObject.string(name: String): String? = get(name)?.takeIf {
     it.isJsonPrimitive && it.asJsonPrimitive.isString
