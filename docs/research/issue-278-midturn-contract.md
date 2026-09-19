@@ -68,6 +68,8 @@ Agentがclientへ求めるpermission/elicitation/質問と、clientが実行中A
 全て空の使い捨てroot、新規session、既存認証、合成textのみ。modelは`composer-2.5[fast=true]`、modeはAsk。
 ID/実path/思考本文/私的command一覧を公開せず、authorがrawから許可fieldだけ抽出した投影を添付する。
 独立Reviewerの公開投影検査とrawの独立再実測は区別する。
+検査scriptはこの1件のレビュー済み公開投影のcanonical JSON hashを固定し、未知field・値の変更・重複keyを拒否する。
+raw wireの自動匿名化器ではなく、新観測を追加する場合は別のprivacy確認後に固定値を更新する。
 
 | Case | 手順 | 観測と限界 |
 |---|---|---|
@@ -104,6 +106,20 @@ TUI表示の再現だけではACP/printの入出力契約を解決しない。Cl
 | ACP | tabごとのresident AcpSession + provider sessionId、promptごとのJSON-RPC id | Activeがある間は次sendを拒否。原promptのstopReasonとtool/子process静止を確認して終端。session/updateのsessionIdはrun識別子の代わりにならない |
 | print | promptを起動引数に渡すprocess、provider session_id。今回の入力は実行中stdinへ書かない | Resultやtool完了だけで物理終了としない。OS終了をAgentRun.completeへ渡し、意図Stop/errorを優先する |
 | 保存 | Plugin Conversation ID、SavedTurn.id、ChatMessage.id。provider IDは別field | recorder.beginでuser本文、assistant/tool要約、finishでturn状態。表示データを保存し未送信queueや実行命令を再開時に実行しない。baseの保存ACP会話は閲覧のみ |
+
+2026-09-20統合差分（固定develop `039cb74128e14a9ab0a969e227a3334b251041cd`）:
+
+- #279は`ed915db35db46c6e7783d4af3988b75a77188d7a`で統合済み。旧`dd655160`を現在の未統合実装とは扱わない。
+- #24 / PR282は明示contextの登録時snapshotをqueue entryに保持し、自動contextの次turn取得と区別する。
+- #277 / PR323は画像の所有をdraft→queue→started turnへ移し、取消/破棄で解放する。添付失敗時はpauseし、別draftを消さない。
+- #308 / PR314はChanges一覧を開く/閉じる操作とRevert前にもqueueをpauseし、拒否/取消で自動再開しない。
+- #263 / PR306はprintでbackground Taskを観測した場合、親OS exit0だけでは静止を認定せずuncertainとして残queueをpauseする。
+
+統合後のsnapshot/寿命は[現在のqueue仕様](../development/prompt-queue.md)と固定developの
+[PromptQueue](https://github.com/shinma06/cursor-in-android-studio/blob/039cb74128e14a9ab0a969e227a3334b251041cd/src/main/kotlin/com/cursoragent/ui/PromptQueue.kt)、
+[Controller](https://github.com/shinma06/cursor-in-android-studio/blob/039cb74128e14a9ab0a969e227a3334b251041cd/src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)、
+[print終端](https://github.com/shinma06/cursor-in-android-studio/blob/039cb74128e14a9ab0a969e227a3334b251041cd/src/main/kotlin/com/cursoragent/service/AgentProcessService.kt)を照合した。
+これらは次turn queueの対象/所有/静止性の変更であり、同一turnのsteering契約を追加しない。GUI Caseは各QAで未確認のまま残る。
 
 以下の表は9/12の固定観測であり、後続の実装変更の受入を代替しない。source位置の相対リンクは閲覧時点のツリーを開く。
 source: [SessionTabs](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、
