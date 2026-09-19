@@ -39,7 +39,7 @@ launcherは固定Pythonでadapterを実行し、marker/cwd/固定fileを照合�
 
 ACP各行は `direction`（in/out）、`pid`、`monotonic_ns`、`rpc_id`、`session_id`、元JSONの `payload` です。session IDがpayloadにない応答ではnullとし、同じPID・RPC ID・方向で要求と対応付けます。単調時刻はその実行中の順序確認用で、日時ではありません。outはstdout書込み直前の観測であり、IDEでの受信・描画成功を保証しません。stdoutはprotocol専用です。子へ環境変数を継承せず、認証値や全環境を記録しません。payload自体は保存するため、明示した合成入力だけを送信してください。
 
-permissionシナリオは回答の許否にかかわらず合成end_turnを返します。「今回は拒否」で正常終了するこのfixtureの挙動を、実providerの拒否挙動と扱わないでください。Stop/cancelは別の取消経路です。正常配送の試験にcancelや子process releaseを代用しません。
+permissionシナリオは選択の許否にかかわらず合成end_turnを返します。取消応答（outcome: cancelled）にはcancelledを返し、その後のsession/cancelで二重終端を返しません。「今回は拒否」で正常終了するこのfixtureの挙動を、実providerの拒否挙動と扱わないでください。Stop/cancelは別の取消経路です。正常配送の試験にcancelや子process releaseを代用しません。
 
 ## 制約と片付け
 
@@ -69,13 +69,13 @@ prepareに `--scenario <name>` を追加するだけで、同じ固定launcher�
 | permission（既定） | #24/#105/#152/#160/#182のpermission保留。質問への回答前後に広い操作時間を作る | 実permission回答でend_turn、session/cancelでcancelled。回答IDは各要求で更新し、前turnの遅い回答を次turnへ流用しない |
 | normal / eof / bad-config | #152/#246: はい×2の本文、prompt直後EOF、指定modeへ反映されないconfig応答。bad-configはAgent側の設定不一致拒否を観測する材料 | normalはend_turn。eofはprocess終了。bad-configは呼出側の拒否後stdinを閉じる |
 | cancel / child | #152/#239: running表示後の取消。childは所有子processとそのstdout保持も含む | session/cancelへすぐ回答。child-ready/child.pidで対象を記録し、同controlのrelease-childで子を終える。Plugin Stopが子を止めた結果と、操作者が解放した結果を区別 |
-| commands-delayed | #152 START/SETTINGS: new-readyからsession/new応答まで保留。context構築前を固定したことにはならない | 同controlのrelease-new。stdin loopを塞がず、cancel/EOFで待機を終了。session/new前のcancelには架空のprompt応答を返さない。catalog置換はreplace-commandsで解放 |
+| commands-delayed | #152 START/SETTINGS: new-readyからsession/new応答まで保留。context構築前を固定したことにはならない | 同controlのrelease-newをnew-readyから10秒未満で作成。操作先を事前に準備し、期限を逃したら新規run/会話でやり直す。stdin loopを塞がず、cancel/EOFで待機を終了。session/new前のcancelには架空のprompt応答を返さない。catalog置換はreplace-commandsで解放 |
 | events | #152/#239/#246/#47: thought→tool開始→部分content/locations更新→completed→配列消去→本文。既存AcpProtocolTestの形を再利用 | events-ready後にrelease-events。cancelで保留送出を打ち切る。開始済みの通信とEDT待ちcallbackは外部fixtureでは厳密に停止できない |
 | questions / plan | #152 REQUESTS: 既存cursor/ask_question・cursor/create_planの有限要求 | 実カードの回答を待つ。回答結果によらず合成end_turn、取消はcancelled。実providerが選択を解釈する挙動は再現しない |
 | print-usage / print-missing / print-partial | #106 TOKEN-PANEL-HIERARCHY-1・#105: 28791/141/5748/0、usage全欠損、outputTokens=0のみ。欠損を0へ読み替えない | Result後に正常終了。旧usageが既にEDT待ちの厳密な瞬間は固定不可 |
 | print-repeat / print-result-only | #246 TEXT-CONTRACTS・#49/#132: はい×2・emoji×2の増分とflush、またはassistant eventなしのResultだけ | Result後に終了。合成版は#254の2026.09.10-fd3934aを返す。実CLI版の観測証拠ではない |
 | print-tools | #40 MV021–023/025/029/030・#47/#102/#105/#132: tool前flush、既存02編集/03shellのstarted→completed→同call重複、tool後本文 | **eventだけを再生しdisk編集・shell実行はしない**。既存02/03形式を有限置換し、編集先は合成root/a.txt、前後はhello\n/world\n |
-| print-error / print-abnormal / print-hold | #104/#246/#49: is_error、stderr＋exit7、改行なしResult後の物理終了待ち（#289の既存実process素材） | holdはresult-writtenを確認後、同controlのreleaseで終了。Stopは所有processを停止。Result到着/書込完了を終了扱いにしない |
+| print-error / print-abnormal / print-hold | #104/#246/#49: is_error、stderr＋exit7、改行付きResultを受信した後の物理終了待ち（#289の既存実process素材） | holdはstdout上のResult受信と生PIDを確認後、同controlのreleaseで終了。result-writtenだけではクライアントの受信証拠にしない。Stopは所有processを停止。Result到着/書込完了を終了扱いにしない |
 
 ### printのargvと固定候補
 
@@ -93,4 +93,6 @@ ACP eventsのdiff本文はbefore/after、最後の明示空配列で消去しま
 
 終わったら所有会話を止め、stdin EOF→所有PID終了を確認、必要時だけそのPIDへTERM→KILL。child.pidがある場合は所有子の終了とpipe EOFまで確認します。GUIの元設定へ戻す→対象試験コピーの変更を元のfixture baselineへ戻す→外部sentinelが不変であることを照合→所有記録を保管、の順で引き継ぎます。元保全資料や他processを削除・停止しません。
 
-release-new/events/print-holdは最大300秒で打ち切ります。newのtimeoutは合成error、eventsはcancelled、printはexit64として記録し、通常完了へ読み替えません。stdioの実通信成功、capture out、実IDEでの受信・描画、実providerの動作は別々の証拠です。受理後context前、queue済みEDT callback、復元予約取得直後の内部I窓はこの準備では固定できず、既存Caseに未観測で残します。
+release-newは製品のsession/new待ち上限20秒より短い10秒で打ち切ります。events/print-holdは最大300秒です。newのtimeoutは合成error、eventsはcancelled、printはexit64として記録し、通常完了へ読み替えません。stdioの実通信成功、capture out、実IDEでの受信・描画、実providerの動作は別々の証拠です。受理後context前、queue済みEDT callback、復元予約取得直後の内部I窓はこの準備では固定できず、既存Caseに未観測で残します。
+
+2026-09-20追補: print-holdは改行付きResultを生PID中に配送します。最終改行なしResultのEOF処理は別の既存print-result-onlyで確認します。取消応答→session/cancelという実クライアントの順序もcancelledとして扱い、遅延session/newは10秒で終了して製品の20秒timeoutと混同しません。

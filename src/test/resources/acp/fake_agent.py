@@ -83,13 +83,15 @@ def update(**value):
 def new_session(identifier):
     if scenario == "commands-delayed":
         (control / "new-ready").touch()
-        deadline = time.monotonic() + 300
-        while not (control / "release-new").exists():
+        deadline = time.monotonic() + 10  # Below AcpSession session/new timeout (20 seconds).
+        while True:
             if cancelled.is_set() or closed.wait(.01):
                 return
             if time.monotonic() >= deadline:
                 send({"id": identifier, "error": {"code": -32000, "message": "Synthetic release timeout"}})
                 return
+            if (control / "release-new").exists():
+                break
     response(identifier, {"sessionId": "session-one", "configOptions": config})
     if scenario in ("commands", "commands-delayed"):
         threading.Thread(target=command_updates, daemon=True).start()
@@ -235,7 +237,11 @@ for line in sys.stdin:
     elif "method" not in request and pending is not None and request.get("id") == pending:
         if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard", "task-reopened"):
             assert request["error"]["code"] == -32601
-        finish(scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn")
+        if request.get("result") == {"outcome": {"outcome": "cancelled"}}:
+            cancelled.set()
+            finish("cancelled")
+        else:
+            finish(scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn")
         if scenario == "task-late-standard":
             update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
 

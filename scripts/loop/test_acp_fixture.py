@@ -299,6 +299,38 @@ class ScenarioProcessTest(unittest.TestCase):
             process.stdin.close()
             self.assertEqual(0, process.wait(timeout=5))
 
+    def test_delayed_new_expires_before_client_timeout_and_cannot_release_late(self):
+        process, received, control, _ = self.start('commands-delayed', 'timeout')
+        self.initialize(process, received, delayed=True)
+        self.wait_file(control / 'new-ready')
+        response = received.get(timeout=15)  # Product session/new timeout is 20 seconds.
+        self.assertEqual(2, response['id'])
+        self.assertEqual(-32000, response['error']['code'])
+        (control / 'release-new').touch()
+        with self.assertRaises(queue.Empty):
+            received.get(timeout=.15)
+        process.stdin.close()
+        self.assertEqual(0, process.wait(timeout=5))
+
+    def test_pending_request_cancel_response_precedes_session_cancel(self):
+        for scenario in ('permission', 'questions', 'plan'):
+            with self.subTest(scenario=scenario):
+                process, received, control, _ = self.start(scenario, 'stop-' + scenario)
+                self.initialize(process, received)
+                self.prompt(process)
+                request = self.receive(received)
+                # Exact answerJson(AgentAnswer.Cancel), then AcpSession.cancel notification.
+                self.send(process, id=request['id'], result={'outcome': {'outcome': 'cancelled'}})
+                response = self.receive(received)
+                self.assertEqual(3, response['id'])
+                self.assertEqual('cancelled', response['result']['stopReason'])
+                self.send(process, method='session/cancel', params={'sessionId': 'session-one'})
+                self.wait_file(control / 'cancel-response')
+                with self.assertRaises(queue.Empty):
+                    received.get(timeout=.15)
+                process.stdin.close()
+                self.assertEqual(0, process.wait(timeout=5))
+
     def test_child_cancel_and_owned_release_keep_other_process_separate(self):
         peers = [self.start('child', name) for name in ('child-a', 'child-b')]
         for process, received, control, _ in peers:
@@ -367,12 +399,15 @@ class ScenarioProcessTest(unittest.TestCase):
         for scenario in acp_fixture.PRINT_SCENARIOS:
             process, received, control, output = self.start(scenario, scenario)
             self.wait_file(control / 'result-written')
+            events = []
             if scenario == 'print-hold':
+                # Observe the newline-delimited Result on stdout while the PID lives.
+                while not events or events[-1].get('type') != 'result':
+                    events.append(self.receive(received))
                 self.assertIsNone(process.poll())
                 (control / 'release').touch()
             expected_code = 7 if scenario == 'print-abnormal' else 0
             self.assertEqual(expected_code, process.wait(timeout=5))
-            events = []
             while True:
                 value = received.get(timeout=5)
                 if value is None:

@@ -60,7 +60,7 @@ def main():
             result['usage'] = {'inputTokens': 28791, 'outputTokens': 141, 'cacheReadTokens': 5748, 'cacheWriteTokens': 0}
         elif scenario == 'print-partial':
             result['usage'] = {'outputTokens': 0}
-        send(result, newline=scenario != 'print-hold')
+        send(result, newline=scenario != 'print-result-only')
         (control / 'result-written').touch()
         if scenario == 'print-hold':
             deadline = time.monotonic() + 300
