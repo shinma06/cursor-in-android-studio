@@ -162,6 +162,7 @@ class AgentUiController(
         changes = changes,
         beforeRevert = ::pauseQueue,
         onRunFinished = ::finishRun,
+        onShowConversation = onShowConversation,
     )
     private val modelLoader = ModelCatalogLoader(
         fetch = agentService::listModels,
@@ -244,6 +245,8 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        timeline.runStatus.dispose()
+        activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
         sessions.clearRequestId(tabId)
         composer.contextUsage.reset()
         commandConnection.clear()
@@ -329,6 +332,7 @@ class AgentUiController(
         activeToken = sessionTurn.token
         recorder.conversation = recorder.conversation.copy(transport = tab.transport)
         recorder.begin(sessionTurn.token.turnId, userText)
+        timeline.runStatus.begin()
         changes.beginTurn(sessionTurn.token.turnId)
         lateinit var run: AgentRun
         var preparationFailure = RestorePolicy.BUSY
@@ -350,6 +354,7 @@ class AgentUiController(
             null
         }
         if (turn == null) {
+            timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.FAILED)
             composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
             recorder.finish("failed")
             if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
@@ -391,7 +396,6 @@ class AgentUiController(
         timeline.clearStatus()
         timeline.finalizeAssistantMessage()
         val userBubble = timeline.addUserMessage(userText)
-        timeline.showStatus("送信を準備中…")
 
         val edtContext = try {
             promptContextBuilder.buildEdtContext(userText, context)
@@ -430,7 +434,6 @@ class AgentUiController(
                         if (checkpointId != null) {
                             userBubble.onRollbackRequested = { requestRollback(checkpointId) }
                         }
-                        timeline.showStatus("実行中…")
                     }
 
                     // Context/checkpoint preparation may take time; do not trust the earlier path check.
@@ -498,7 +501,10 @@ class AgentUiController(
             run.stop()
         } finally {
             // An already-observed exit wins over a later Stop click.
-            if (run.wasStopped) composer.contextUsage.stop()
+            if (run.wasStopped) {
+                composer.contextUsage.stop()
+                timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.STOPPING)
+            }
         }
     }
 
