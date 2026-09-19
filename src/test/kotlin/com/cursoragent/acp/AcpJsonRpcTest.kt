@@ -15,6 +15,132 @@ import kotlin.concurrent.thread
 
 class AcpJsonRpcTest {
     @Test
+    fun `local frame rejection never dispatches while partial write failure happens after dispatch`() {
+        var dispatched = false
+        val oversized = AcpJsonRpc(ByteArrayInputStream(byteArrayOf()), ByteArrayOutputStream(), { _, _ -> }, { _, _, _ -> }, {}, 128)
+        val rejected = oversized.request("prompt", jsonObject("text" to "x".repeat(256)), onDispatch = { dispatched = true })
+        assertTrue(rejected.isCompletedExceptionally)
+        assertFalse(dispatched)
+        assertFalse(oversized.isClosed)
+        assertEquals(0, oversized.pendingCount)
+        oversized.close()
+        val attempted = CountDownLatch(1)
+        val failure = CountDownLatch(1)
+        val output = object : java.io.OutputStream() {
+            override fun write(value: Int) { attempted.countDown(); throw java.io.IOException("synthetic partial write") }
+        }
+        val partial = AcpJsonRpc(ByteArrayInputStream(byteArrayOf()), output, { _, _ -> }, { _, _, _ -> }, { failure.countDown() })
+        val future = partial.request("prompt", JsonObject(), onDispatch = { dispatched = true })
+        assertTrue(attempted.await(5, TimeUnit.SECONDS))
+        assertTrue(failure.await(5, TimeUnit.SECONDS))
+        assertTrue(dispatched)
+        assertTrue(future.isCompletedExceptionally)
+        partial.close()
+    }
+
+    @Test
+    fun `exact UTF8 envelope boundary includes JSON escaping newline and growing request ID`() {
+        val params = jsonObject("text" to "日本語\n\"", "data" to java.util.Base64.getEncoder().encodeToString(ByteArray(48)))
+        val frame = JsonObject().apply {
+            addProperty("jsonrpc", "2.0")
+            addProperty("method", "session/prompt")
+            add("params", params)
+            addProperty("id", "client-1")
+        }.toString() + "\n"
+        val input = PipedInputStream()
+        val server = PipedOutputStream(input)
+        val writes = java.util.concurrent.LinkedBlockingQueue<ByteArray>()
+        val output = object : java.io.OutputStream() {
+            override fun write(value: Int) = error("whole frame expected")
+            override fun write(bytes: ByteArray) { writes.add(bytes.copyOf()) }
+        }
+        val rpc = AcpJsonRpc(input, output, { _, _ -> }, { _, _, _ -> }, {}, frame.toByteArray().size)
+        val reader = thread { rpc.read() }
+        try {
+            repeat(9) { index ->
+                val future = rpc.request("session/prompt", params)
+                val written = writes.poll(5, TimeUnit.SECONDS)!!
+                assertEquals(frame.toByteArray().size, written.size)
+                val id = JsonParser.parseString(String(written)).asJsonObject["id"].asString
+                assertEquals("client-${index + 1}", id)
+                server.write("{\"jsonrpc\":\"2.0\",\"id\":\"$id\",\"result\":null}\n".toByteArray())
+                server.flush()
+                assertEquals(JsonNull.INSTANCE, future.get(5, TimeUnit.SECONDS))
+            }
+            var dispatched = false
+            val rejected = rpc.request("session/prompt", params, onDispatch = { dispatched = true })
+            val failure = assertThrows(java.util.concurrent.ExecutionException::class.java) { rejected.get() }
+            assertInstanceOf(AcpLocalRejection::class.java, failure.cause)
+            assertFalse(dispatched)
+            assertFalse(rpc.isClosed)
+            assertEquals(0, rpc.pendingCount)
+            assertTrue(writes.isEmpty())
+            val next = rpc.request("session/prompt", jsonObject("text" to "small"))
+            val written = writes.poll(5, TimeUnit.SECONDS)!!
+            assertEquals("client-11", JsonParser.parseString(String(written)).asJsonObject["id"].asString)
+            server.write("{\"jsonrpc\":\"2.0\",\"id\":\"client-11\",\"result\":null}\n".toByteArray())
+            server.flush()
+            assertEquals(JsonNull.INSTANCE, next.get(5, TimeUnit.SECONDS))
+        } finally {
+            rpc.close()
+            server.close()
+            reader.join(5000)
+            input.close()
+        }
+    }
+
+    @Test
+    fun `closed writer and saturated queue never dispatch the rejected request`() {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val output = object : java.io.OutputStream() {
+            override fun write(value: Int) {
+                entered.countDown()
+                release.await(5, TimeUnit.SECONDS)
+            }
+        }
+        val rpc = AcpJsonRpc(ByteArrayInputStream(byteArrayOf()), output, { _, _ -> }, { _, _, _ -> }, {})
+        try {
+            rpc.notify("blocking", JsonObject())
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            repeat(32) { assertTrue(rpc.notify("queued", JsonObject())) }
+            var dispatched = false
+            val rejected = rpc.request("prompt", JsonObject(), onDispatch = { dispatched = true })
+            assertTrue(rejected.isCompletedExceptionally)
+            assertFalse(dispatched)
+            val closed = rpc.request("prompt", JsonObject(), onDispatch = { dispatched = true })
+            assertTrue(closed.isCompletedExceptionally)
+            assertFalse(dispatched)
+        } finally {
+            release.countDown()
+            rpc.close()
+        }
+    }
+
+    @Test
+    fun `cancellation while a request is still queued does not begin its write`() {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val output = object : java.io.OutputStream() {
+            override fun write(value: Int) { entered.countDown(); release.await(5, TimeUnit.SECONDS) }
+        }
+        val rpc = AcpJsonRpc(ByteArrayInputStream(byteArrayOf()), output, { _, _ -> }, { _, _, _ -> }, {})
+        try {
+            rpc.notify("blocking", JsonObject())
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            var dispatched = false
+            val queued = rpc.request("prompt", JsonObject(), onDispatch = { dispatched = true })
+            rpc.close()
+            release.countDown()
+            assertTrue(queued.isCompletedExceptionally)
+            assertFalse(dispatched)
+        } finally {
+            release.countDown()
+            rpc.close()
+        }
+    }
+
+    @Test
     fun `split UTF8 and multiple messages preserve order including notification without a response`() {
         val received = mutableListOf<String>()
         val frames = """{"jsonrpc":"2.0","method":"update","params":{"text":"日本語"}}

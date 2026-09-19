@@ -126,6 +126,13 @@ internal class SelectorPopupController(private val button: JComponent, private v
         }
     }
 
+    fun close() {
+        closeChild()
+        val previous = popup
+        popup = null
+        previous?.cancel()
+    }
+
     fun closeChild() {
         val previous = child
         child = null

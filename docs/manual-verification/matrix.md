@@ -74,7 +74,7 @@ MV-032はこの幅での表示結果。ツールチップ等で補完する仕�
 
 - `./gradlew test`（パーサー・BranchDiffBuilder 等）
 - Teams プランでの CLI スパイク（stream-json 形状、force なしでも即書き込み）
-- CLI `--help` に画像添付フラグなし（F-60 は CLI 非対応と判断、2026-09-04）
+- 2026-09-04のCLI `--help`に画像添付フラグがないという観測は履歴。そこからF-60非対応とした判定は撤回済み。2026-09-19追補: [#10の9/12有限probe](../research/issue-10-image-contract.md)でACP画像bytes入力とprint path読取の成功を確認した。固定CLI/modelのみの実測であり、P7の正しい絶対pathによるroot外アクセスは未判定。製品画像UIは本調査PRでは未実装、#277のGUI受入はpending。既存QAのStatusは変更しない。
 
 ## F. ループ基盤の試運転（#29）
 
@@ -136,3 +136,54 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
 |----|--------|-----|------|------|----------|--------|-------------|------|
 | MV-044 | main | - / #27 | 同一モデルのThinking/Fast/Context/Effort | 旧ID復元→オプション表示/切替→Model検索→Auto往復→取消 | 系列は1行、対応項目だけ表示、実在するIDへ解決。他オプションを勝手に変更しない | pass | GPT / CUA: 0310729でThinking/Fast/Effort・系列検索・Auto・取消、最終1cca572で旧ID復元・モデル往復保持・元設定復元を確認。Contextは複数容量未提供で非表示、切替は単体試験。[記録](../loop-engineering/runs/2026-09-06-model-options.md) | 2026-09-06 |
+
+## O. #24 Add to Chatと明示context
+
+#48固定依存を含む候補を指定して実施する。詳細は[Case24](../verification/changes/issue-24.json)。既存#5の結果は再判定しない。
+
+| ID | Branch | PR | 観点 | 手順 | 期待結果 | Status | Verified by | Date |
+|----|--------|-----|------|------|----------|--------|-------------|------|
+| CTX-24-SELECTION | `codex/24-explicit-context` | #24 / 依存#48 | Add to Chat/自動・明示/削除変更 | Case24の同IDをDark/Light・通常/Compactで実施 | 追加した内容と表示が対応し、隠れた古い選択を送信せず、削除/変更できる。 | pending | | |
+| CTX-24-MENTIONS | `codex/24-explicit-context` | #24 / 依存#48 | 候補検索・0件/多数・IMEと種類の保証 | Case24の同IDをDark/Light・通常/Compactで実施 | 候補収集中も操作でき、種類ごとの実データ/placeholder/hintを区別する。 | pending | | |
+| CTX-24-SNAPSHOT | `codex/24-explicit-context` | #24 / 依存#48 | 通常送信/予約項目のsnapshot | Case24の同IDをDark/Light・通常/Compactで実施 | 通常/予約各requestが自分のsnapshotを持ち、後から別draftのchipへ差し替わらない。 | pending | | |
+| CTX-24-LIFETIME | `codex/24-explicit-context` | #24 / 依存#48 | tab/破棄・表示と回帰 | Case24の同IDをDark/Light・通常/Compactで実施 | 所有tabとViewの寿命を保ち、非表示timer/候補Futureが残らず、各表示条件で操作できる。 | pending | | |
+
+
+## P. #258 入力前Skills候補（未確認）
+
+正本: [issue-258.json](../verification/changes/issue-258.json)。全4CaseはGPT/human pending、main未反映。#24/#48依存を含む固定buildで確認し、旧Caseのpassを流用しない。
+
+| Case | 確認対象 | GPT / 人間 |
+|---|---|---|
+| SKILLS-258-CONNECT | 入力前接続・settings/transport | pending / pending |
+| SKILLS-258-PICK | 候補検索・選択/取消/解除・IME | pending / pending |
+| SKILLS-258-SEND | 単発呼出しと予約snapshot | pending / pending |
+| SKILLS-258-LIFETIME | 全置換・不正/遅着・複数tab/破棄 | pending / pending |
+
+
+## Q. #97 送信キー設定（未確認）
+
+正本: [issue-97.json](../verification/changes/issue-97.json)。MV-010/011/016対応の新4CaseはGPT/human pending、main未反映。#258/#24/#48を含む固定buildで確認し、旧Case結果を流用しない。
+
+| Case | 確認対象 | GPT / 人間 |
+|---|---|---|
+| KEYS-97-SETTINGS | 送信キー保存・旧設定移行 | pending / pending |
+| KEYS-97-IME | 日本語IME・mention/slash確定 | pending / pending |
+| KEYS-97-DRAFT | 複数行貼付・tab別draft/caret/focus | pending / pending |
+| KEYS-97-RUNNING | 実行中Enter・Stop/終了競合・明示予約 | pending / pending |
+
+
+## R. #300 権限設定の案内（未確認）
+
+正本: [issue-300.json](../verification/changes/issue-300.json)。#297 P1/P2/P3対応の新3CaseはGPT/human pending、main未反映。既存QA40/102/104/107や過去buildの結果は変更しない。
+
+| Case | 確認対象 | GPT / 人間 |
+|---|---|---|
+| PERM-300-SCOPE | 共有保存値・次回適用・メニュー/Settings | pending / pending |
+| PERM-300-ACP | 選択候補の案内・18組合せ・既存拒否 | pending / pending |
+| PERM-300-REQUEST | permissionのscope・回答/取消/遅着 | pending / pending |
+
+## S. 会話本文の表示設定（#268）
+
+正本: [Case268](../verification/changes/issue-268.json)。DISPLAY-268-SETTINGS / LAYOUT / STATEはGPT・人間ともpending。
+標準/8〜36 ptとコード折返しの保存、既存/新規へのApply、Dark/Light/通常Compact/高DPI/狭幅、選択と原文コピー保持を固定buildで確認する。合成JUnitをGUI passへ流用しない。

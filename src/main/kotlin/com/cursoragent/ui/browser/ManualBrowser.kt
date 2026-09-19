@@ -39,7 +39,7 @@ class ManualBrowser : ToolWindowFactory, DumbAware {
             val panel = ManualBrowserPanel(project)
             val content = ContentFactory.getInstance().createContent(panel, "Browser", false)
             content.setDisposer(panel)
-            content.preferredFocusableComponent = panel.address
+            content.preferredFocusableComponent = panel.preferredFocusableComponent
             window.contentManager.addContent(content)
         }
     }
