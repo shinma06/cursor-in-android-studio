@@ -1,5 +1,7 @@
 package com.cursoragent.service
 
+import com.cursoragent.parser.belongsToPrintSession
+
 import com.cursoragent.acp.AcpException
 import com.cursoragent.acp.AcpSession
 import com.cursoragent.parser.PrintAssistantText
@@ -172,9 +174,11 @@ class AgentProcessService(private val project: Project) : Disposable {
             return
         }
 
+        val taskState = PrintTaskState(turn.workspace.resumeId)
         try {
-            var chatId = turn.workspace.resumeId
             val parser = StreamJsonParser { event ->
+                taskState.observe(event)
+                val chatId = taskState.sessionId
                 run.emit { listener ->
                     when (event) {
                         StreamEvent.OutputLimitExceeded -> {
@@ -183,7 +187,6 @@ class AgentProcessService(private val project: Project) : Disposable {
                         }
 
                         is StreamEvent.SessionInit -> {
-                            if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                         }
@@ -198,13 +201,16 @@ class AgentProcessService(private val project: Project) : Disposable {
 
                         is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
 
-                        is StreamEvent.ToolCallStarted -> listener.onToolCallStarted(event.payload)
+                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) {
+                            listener.onToolCallStarted(event.payload)
+                        }
 
-                        is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
+                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) {
+                            listener.onToolCallCompleted(event.payload)
+                        }
 
                         is StreamEvent.Result -> {
                             listener.onTokenUsage(event.usage)
-                            if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                             if (event.isError) {
@@ -240,7 +246,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     runs.remove(run)
                     try {
                         parser.finish()
-                        run.complete(event.exitCode, stderr.toString().trim())
+                        finishPrintTaskRun(run, operations, taskState.backgroundObserved, event.exitCode, stderr.toString().trim())
                     } finally {
                         processReservation.close()
                     }
@@ -257,7 +263,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             handler.process.onExit().thenRun {
                 runs.remove(run)
                 try {
-                    run.complete(-1)
+                    finishPrintTaskRun(run, operations, taskState.backgroundObserved, -1)
                 } finally {
                     processReservation.close()
                 }
@@ -365,3 +371,36 @@ internal fun probePrintVersion(command: GeneralCommandLine, run: AgentRun): Stri
     val output = handler.runProcess(3000)
     output.stdout.trim().takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
 }.getOrNull()
+
+/** Physical parent exit cannot confirm a provider-managed background child's termination. */
+internal fun finishPrintTaskRun(run: AgentRun, operations: WorkspaceOperationGate, backgroundObserved: Boolean, exitCode: Int, errorOutput: String? = null) {
+    if (backgroundObserved) {
+        operations.markUncertain()
+        run.completeUncertain("背景Taskの終了を確認できません。復元を停止しました。")
+    } else run.complete(exitCode, errorOutput)
+}
+
+/** Wire safety state outlives UI delivery, including buffered initialization after Stop or tab close. */
+internal class PrintTaskState(resumeId: String?) {
+    @Volatile var sessionId: String? = resumeId
+        private set
+    @Volatile var backgroundObserved = false
+        private set
+
+    @Synchronized
+    fun observe(event: StreamEvent) {
+        if (sessionId == null) sessionId = when (event) {
+            is StreamEvent.SessionInit -> event.sessionId
+            is StreamEvent.Result -> event.sessionId
+            else -> null
+        }?.takeIf { it.isNotBlank() }
+        val payload = when (event) {
+            is StreamEvent.ToolCallStarted -> event.payload
+            is StreamEvent.ToolCallCompleted -> event.payload
+            else -> null
+        }
+        if (payload?.belongsToPrintSession(sessionId) == true && payload.task?.task?.isBackground == true) {
+            backgroundObserved = true
+        }
+    }
+}
