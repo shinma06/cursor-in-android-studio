@@ -21,7 +21,11 @@ Javaの`public`、クラスの存在、注釈の不在は、第三者plugin向�
 | AI Assistant | `com.intellij.ml.llm`、version `261.26222.129`、since `261.26222.58`、until `261.26222.*` | 宣言範囲は対象buildに合う。Android StudioでのACP動作保証ではない |
 | Cursor CLI | `2026.09.10-fd3934a` | 直前の#118 probeで確認した版。#150実比較前に再固定が必要 |
 | Android SDK | installed platform `android-37.0`、build-tools `36.0.0`、platform-tools `37.0.1` | directory/source.propertiesのみ。AGP互換、device API/接続状態は未確認 |
-| 実比較用project/model | 未固定 | 現repositoryはIDE plugin。Android fixture、AGP/Gradle、明示model IDは比較開始条件 |
+| 実比較用project/model（9/12調査時点） | 当時未固定 | その後のfixture準備記録のbaseline/4 APKは[比較手順§2](issue-150-comparison.md#2-準備済みfixtureの受取と具体仕様)へ反映。model・実環境lockは未確認 |
+
+2026-09-20追記: 下表とcompile-onlyは旧固定SDKの保存記録。独立レビューが参照したSDKは`261.26222.65.2614.16379836`へ更新され、
+product-info/android.jarのhashが異なることを独立レビューで確認した。旧表を現SDKへ転記せず、実比較前に対象buildと全hash/APIを再固定する。
+新SDKでの別compile-only成功も、旧SDKの独立再現や実IDE成功とは区別する。
 
 SHA-256（パスはartifact内の相対名。ローカル利用者名・配置パスを公開しない）:
 
@@ -71,7 +75,11 @@ Platformのみで成り立つ機能はAndroid型を参照しない場所へ置�
 `optional="true"`と専用`config-file`でクラスのロード境界も分離する。対象をAndroid Studio専用にするかは既存product方針に従い、今回依存を変更しない。
 [Plugin dependencies](https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html)、[Verifier failure levels](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-types.html)
 
-## 3. 比較相手はAI Assistant + Cursor ACP + IDE + MCP全体
+## 3. Cursor IDE内panelとAI Assistant + Cursor ACP + IDE + MCP全体を比較
+
+2026-09-20追記: [比較手順](issue-150-comparison.md)はA=最強JetBrains構成、B=本plugin、C=Cursor IDE内Agent panelの三経路。
+Cのversion/画面/tool履歴・C01〜C10は独立に記録し、AのACP観測でCursor本体の機能/UX比較を代用しない。
+[Cursor Agent](https://cursor.com/docs/agent/overview)はpanelの入口を説明するが、今回そのGUIを観測していない。
 
 公式Cursor経路はAI Assistantを使うJetBrains統合とACP。対応の一般説明を、この固定Android Studioと
 pluginの組合せの成功証拠へ読み替えない。[Cursor JetBrains](https://cursor.com/docs/integrations/jetbrains)、[Cursor ACP](https://cursor.com/docs/cli/acp)
@@ -175,8 +183,8 @@ class SdkSurfaceProbe {
 | Issue受入 | 本PRで用意したもの | 残作業・判定 |
 |---|---|---|
 | 固定SDKのAPI/public/internal/optional/fallback | §1–2、compile-only | module取得・classloader・各状態の実動は未確認 |
-| 最強IDE/MCP構成の同条件比較 | §3、比較手順の環境lock | **blocked**: compatible server/toolset・catalog・実会話未確認 |
-| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | 具体fixture仕様と未実施Case | **pending**: fixture build、2device確保、GUI lease、全Case実行 |
+| Cursor IDE内panelと最強IDE/MCP構成の同条件比較 | §3、三経路の環境lock/Case記録 | **blocked**: Cの実panel比較、compatible server/toolset・catalog・実会話未確認 |
+| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | fixture準備記録/4 APKへの参照と未実施Case | **pending**: 保全資材の受取照合、IDE import/sync、2device確保、GUI lease、三経路の全Case実行 |
 | 直接読取とAgent toolの分離 | §4の試験契約 | 既存toolの充足/不足を実測し、必要時のみ新toolへ絞る |
 | 最初の1機能選定 | T17/T18に対する比較・採否基準 | **pending**: 効果差未測定。採用実装Issueなし |
 | XML View/ViewBinding、GUI未達の明記 | fixtureの指定、全Case未実施 | Compose/DOMで代用しない。#150をcloseしない |
