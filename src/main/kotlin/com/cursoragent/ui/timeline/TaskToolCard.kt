@@ -23,7 +23,8 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
         isVisible = false
         add(bodyText, BorderLayout.NORTH)
     }
-    private var standardContent: JPanel? = null
+    private var standardContent: StructuredToolCard? = null
+    private var standardExpanded = true
     private val toggle = JButton("詳細を表示").apply {
         addActionListener {
             details.isVisible = !details.isVisible
@@ -73,8 +74,8 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
             append("\n${task.resultText?.let { "提供された子の結果（取得できた範囲）:\n$it" } ?: "子の結果本文は取得できません"}")
         }
         if (bodyText.text != body) bodyText.text = body
-        standardContent?.let(details::remove)
-        standardContent = if (tool.content.isNotEmpty() || tool.locations.isNotEmpty() || tool.locationsNotice != null) StructuredToolCard(tool, viewDiff) else null
+        standardContent?.let { standardExpanded = it.expanded; details.remove(it) }
+        standardContent = if (tool.content.isNotEmpty() || tool.locations.isNotEmpty() || tool.locationsNotice != null) StructuredToolCard(tool, viewDiff, initiallyExpanded = standardExpanded) else null
         standardContent?.let { details.add(it, BorderLayout.CENTER) }
         revalidate()
         repaint()

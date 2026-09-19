@@ -84,6 +84,8 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
                 AgentTransport.ACP, TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
             )
         },
+        requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
+        onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId, match, query ->

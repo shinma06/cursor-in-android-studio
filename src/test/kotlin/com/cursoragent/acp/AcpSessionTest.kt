@@ -27,6 +27,7 @@ class AcpSessionTest {
         lateinit var run: AgentRun
         lateinit var lastTurn: PreparedAgentTurn
         val bindings = CopyOnWriteArrayList<String?>()
+        val starts = java.util.concurrent.atomic.AtomicInteger()
 
         init {
             Files.createDirectories(root)
@@ -40,6 +41,7 @@ class AcpSessionTest {
         fun send(model: String = "", mode: AgentMode = AgentMode.AGENT, prompt: String = "synthetic prompt", commandText: String? = null) {
             val preparation = gate.tryPrepare()!!
             run = AgentRun(object : AgentProcessListener {
+                override fun onStarted() { starts.incrementAndGet() }
                 override fun onStructuredEvent(event: AgentEvent) {
                     events += event
                     if (event !is AgentEvent.Configuration) received.countDown()
@@ -158,6 +160,7 @@ class AcpSessionTest {
             assertEquals(1, h.processes.size)
             assertEquals(1, h.wire().count { it.string("method") == "session/new" })
             assertEquals(2, h.wire().count { it.string("method") == "session/prompt" })
+            assertEquals(2, h.starts.get())
             assertEquals("small", h.events.filterIsInstance<AgentEvent.Configuration>().last().model)
             assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
         }
@@ -374,6 +377,7 @@ class AcpSessionTest {
             assertFalse(preparing.isAlive)
             assertEquals(count, h.commands.size)
             assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertEquals(0, h.starts.get())
         }
     }
 
@@ -387,6 +391,7 @@ class AcpSessionTest {
             h.send(commandText = "/Mixed-日本語 東京")
             h.finish()
             assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertEquals(0, h.starts.get())
             assertTrue(h.outcomes.single().startsWith("error:"))
             assertFalse(h.gate.isUncertain)
         }
@@ -400,6 +405,7 @@ class AcpSessionTest {
             h.send(prompt = "x".repeat(AcpJsonRpc.MAX_FRAME_BYTES), commandText = "/Mixed-日本語 東京")
             h.finish()
             assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertEquals(0, h.starts.get())
             assertFalse(h.lastTurn.promptDispatched)
             assertTrue(h.bindings.isEmpty())
             assertFalse(h.gate.isUncertain)

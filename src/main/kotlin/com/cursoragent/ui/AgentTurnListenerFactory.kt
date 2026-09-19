@@ -1,6 +1,5 @@
 package com.cursoragent.ui
 
-import com.cursoragent.PluginBrand
 import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.parser.taskKey
@@ -12,8 +11,8 @@ import com.cursoragent.service.taskStatusText
 import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
+import com.cursoragent.ui.timeline.RunPhase
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
@@ -32,6 +31,16 @@ internal class AgentTurnListenerFactory(
     private val changes: ConversationChanges,
     private val beforeRevert: () -> Unit,
     private val onUsageFinish: (Long, UsagePhase) -> Unit,
+    private val onShowConversation: () -> Unit = {},
+    private val onToolNotice: (String) -> Unit = { AgentNotificationService.notifyToolCall(project, it, onShowConversation) },
+    private val onTerminalNotice: (String, RunPhase) -> Unit = { id, phase ->
+        AgentNotificationService.clearToolCall(project, id)
+        when (phase) {
+            RunPhase.COMPLETED -> AgentNotificationService.notifyTurnCompleted(project, 0, onShowConversation)
+            RunPhase.STOPPED -> AgentNotificationService.notifyStopped(project, onShowConversation)
+            else -> AgentNotificationService.notifyTurnCompleted(project, -1, onShowConversation)
+        }
+    },
 ) {
     fun create(
         usageTicket: Long,
@@ -40,9 +49,27 @@ internal class AgentTurnListenerFactory(
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
+        onPrintRequestId: (com.cursoragent.service.PrintRequestId) -> Unit = {},
     ): AgentProcessListener {
+        var terminal = false
+        var toolNoticeSent = false
         val updates = TurnEdtUpdates { allowStopped, block ->
-            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
+            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped) {
+                if (!terminal) block()
+            }
+        }
+        fun activity(phase: RunPhase) { timeline.runStatus.update(phase) }
+        fun toolStarted() {
+            activity(RunPhase.TOOL)
+            if (!toolNoticeSent) {
+                toolNoticeSent = true
+                if (!timeline.isActiveTab) onToolNotice(turnId)
+            }
+        }
+        fun finish(phase: RunPhase) {
+            terminal = true
+            activity(phase)
+            onTerminalNotice(turnId, phase)
         }
         fun update(allowStopped: Boolean = false, block: () -> Unit) {
             updates.update(allowStopped, block)
@@ -63,18 +90,23 @@ internal class AgentTurnListenerFactory(
         }
 
         return object : AgentProcessListener {
+            override fun onStarted() { update { activity(RunPhase.RUNNING) } }
+
             override fun onStructuredEvent(event: AgentEvent) {
                 update {
                     when (event) {
-                        is AgentEvent.Text -> assistantText.acpDelta(event)
+                        is AgentEvent.Text -> { activity(RunPhase.RUNNING); assistantText.acpDelta(event) }
                         is AgentEvent.Content -> {
+                            activity(RunPhase.RUNNING)
                             assistantText.interrupt()
                             val text = event.summary.displayText()
                             timeline.addAssistantContent(text)
                             recorder.assistantContent(text)
                         }
-                        is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
+                        is AgentEvent.Thought -> activity(RunPhase.THINKING)
                         is AgentEvent.Tool -> {
+                            if (event.state.status == "in_progress") toolStarted()
+                            else activity(RunPhase.RUNNING)
                             changes.acp(turnId, event.state, restoreTarget())
                             val displayed = timeline.upsertStructuredTool(event.state) { diff ->
                                 DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
@@ -82,8 +114,8 @@ internal class AgentTurnListenerFactory(
                             recorder.tool(displayed.id, if (displayed.task != null) taskSavedSummary(displayed)
                                 else "ツール: ${safeToolKind(displayed.kind)} (${safeToolStatus(displayed.status)})" + safeContentSummary(displayed))
                         }
-                        is AgentEvent.Input -> timeline.addInputRequest(event.request)
-                        is AgentEvent.Plan -> timeline.showPlan(event.entries)
+                        is AgentEvent.Input -> { activity(RunPhase.RUNNING); timeline.addInputRequest(event.request) }
+                        is AgentEvent.Plan -> { activity(RunPhase.RUNNING); timeline.showPlan(event.entries) }
                         is AgentEvent.Configuration -> onConfiguration(event)
                     }
                 }
@@ -100,6 +132,7 @@ internal class AgentTurnListenerFactory(
                     finishTasks()
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
+                    finish(if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) RunPhase.STOPPED else RunPhase.FAILED)
                     onRunFinished(false)
                 }
             }
@@ -112,12 +145,13 @@ internal class AgentTurnListenerFactory(
                     recorder.error("接続の終了を確認できませんでした。")
                     recorder.finish("failed")
                     timeline.showError(message)
+                    finish(RunPhase.FAILED)
                     onRunFinished(false)
                 }
             }
 
             override fun onAssistantText(text: String) {
-                updates.print(text, assistantText::printText)
+                updates.print(text) { full -> activity(RunPhase.RUNNING); assistantText.printText(full) }
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -125,37 +159,39 @@ internal class AgentTurnListenerFactory(
             }
 
             override fun onResultFallback(text: String) {
-                update { assistantText.printFallback(text) }
+                update { activity(RunPhase.RUNNING); assistantText.printFallback(text) }
             }
 
             override fun onThinking(text: String) {
                 update {
-                    timeline.showStatus("Thinking: ${text.take(80)}")
+                    activity(RunPhase.THINKING)
                 }
             }
 
             override fun onToolCall(toolName: String) {
                 update {
-                    timeline.showStatus("Running: $toolName")
-                    AgentNotificationService.notifyToolCall(project, toolName)
+                    // Legacy and malformed typed events do not establish a start or completion.
+                    activity(RunPhase.RUNNING)
+                    timeline.addToolCallSummary(null, "ツール情報（状態未取得）: $toolName")
                 }
             }
 
             override fun onToolCallStarted(payload: ParsedToolCall) {
                 update {
+                    if (payload.task == null && timeline.hasCompletedPrintTool(payload.callId)) return@update
+                    toolStarted()
                     if (updateTask(payload)) return@update
-                    timeline.showStatus(payload.summary)
                     recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（実行中）")
                     timeline.addToolCallStarted(payload)
-                    AgentNotificationService.notifyToolCall(project, payload.summary)
                 }
             }
 
             override fun onToolCallCompleted(payload: ParsedToolCall) {
                 update {
+                    activity(RunPhase.RUNNING)
                     if (updateTask(payload)) return@update
                     timeline.clearStatus()
-                    recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（完了）")
+                    recorder.tool(payload.callId, "ツール: ${safeToolKind(payload.kind)}（${if (payload.shellResult?.exitCode?.let { it != 0 } == true) "失敗" else "完了"}）")
                     val edit = payload.fileEdit
                     if (edit != null && payload.subtype == "completed") {
                         val target = restoreTarget()
@@ -213,9 +249,8 @@ internal class AgentTurnListenerFactory(
                     timeline.showError(message)
                     recorder.error("このターンでエラーが発生しました。")
                     recorder.finish("failed")
-                    AgentNotificationService.notifyError(project, message)
-                    Messages.showErrorDialog(project, message, PluginBrand.NAME)
-                    if (!project.isDisposed && isCurrent() && !isStopped()) onRunFinished(false)
+                    finish(RunPhase.FAILED)
+                    onRunFinished(false)
                 }
             }
 
@@ -226,23 +261,29 @@ internal class AgentTurnListenerFactory(
                     timeline.finalizeAssistantMessage()
                     finishTasks()
                     recorder.finish("stopped")
-                    timeline.showStatus("停止しました")
+                    timeline.showStatus("停止しました。途中までの応答は残ります。適用済みの変更は自動で戻りません。")
+                    finish(RunPhase.STOPPED)
                     onRunFinished(false)
                 }
             }
 
-            override fun onCompleted(exitCode: Int) {
+            override fun onCompleted(exitCode: Int) = completed(exitCode, null)
+
+            override fun onPrintCompleted(requestId: com.cursoragent.service.PrintRequestId) = completed(0, requestId)
+
+            private fun completed(exitCode: Int, requestId: com.cursoragent.service.PrintRequestId?) {
                 update {
                     onUsageFinish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
                     if (exitCode != 0) {
-                        timeline.showError("Agent exited with code $exitCode")
+                        timeline.showError("Agentが終了コード $exitCode で終了しました")
                     }
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
-                    AgentNotificationService.notifyTurnCompleted(project, exitCode)
+                    finish(if (exitCode == 0) RunPhase.COMPLETED else RunPhase.FAILED)
+                    if (requestId != null) onPrintRequestId(requestId)
                     onRunFinished(exitCode == 0)
                 }
             }

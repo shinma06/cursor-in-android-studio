@@ -122,7 +122,35 @@ class AgentUiController(
     }
 
     private val changes = ConversationChanges(recorder.conversation.id)
-    private var changesDialog: ConversationChangesDialog? = null
+    private val changesReview = ChangesReviewController(
+        changes = changes,
+        pauseQueue = ::pauseQueue,
+        isAlive = { !disposed && !project.isDisposed },
+        captureCurrent = {
+            val generation = turnGeneration
+            val current = {
+                !disposed && !project.isDisposed && generation == turnGeneration &&
+                    sessions.snapshot().selectedId == tabId
+            }
+            current
+        },
+        createView = { snapshot, onDiff, onRevert, onConversation ->
+            val dialog = ConversationChangesDialog(project, snapshot, onDiff, onRevert, onConversation)
+            object : ChangesReviewView {
+                override fun show() = dialog.show()
+                override fun cancel() = dialog.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+            }
+        },
+        onDiff = { file ->
+            DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
+        },
+        onRevert = { file, isCurrent ->
+            DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
+                timeline.showStatus("ファイルを編集前に戻しました")
+            }
+        },
+        onConversation = onShowConversation,
+    )
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
@@ -134,6 +162,7 @@ class AgentUiController(
         changes = changes,
         beforeRevert = ::pauseQueue,
         onRunFinished = ::finishRun,
+        onShowConversation = onShowConversation,
     )
     private val modelLoader = ModelCatalogLoader(
         fetch = agentService::listModels,
@@ -189,34 +218,7 @@ class AgentUiController(
     /** EDT-only immutable value; callers freeze it before opening modal UI. */
     fun conversationSnapshot(): Conversation? = recorder.conversation.takeUnless { disposed || legacyOnly }
 
-    fun showChanges() {
-        if (disposed || project.isDisposed) return
-        pauseQueue()
-        changesDialog?.let { it.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE); changesDialog = null; return }
-        val snapshot = changes.snapshot()
-        val generation = turnGeneration
-        val isCurrent = {
-            !disposed && !project.isDisposed && generation == turnGeneration &&
-                sessions.snapshot().selectedId == tabId && changes.snapshot() == snapshot
-        }
-        val dialog = ConversationChangesDialog(project, snapshot,
-            onDiff = { file -> if (!disposed && !project.isDisposed && file.canShowDiff) {
-                DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
-            } },
-            onRevert = { file ->
-                pauseQueue()
-                if (!disposed && !project.isDisposed && file.revertRejection == null) {
-                    DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
-                        timeline.showStatus("ファイルを編集前に戻しました")
-                    }
-                }
-            },
-            onConversation = { if (!disposed && !project.isDisposed) onShowConversation() },
-        )
-        changesDialog = dialog
-        dialog.show()
-        if (changesDialog === dialog) changesDialog = null
-    }
+    fun showChanges() = changesReview.show()
 
     fun transportState(): Pair<AgentTransport, Boolean> {
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId }
@@ -243,6 +245,9 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        timeline.runStatus.dispose()
+        activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
+        sessions.clearRequestId(tabId)
         composer.contextUsage.reset()
         commandConnection.clear()
         commandSettingsWatch.stop()
@@ -250,8 +255,7 @@ class AgentUiController(
         queue.clear()
         queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
         queueDialog = null
-        changesDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
-        changesDialog = null
+        changesReview.dispose()
         modelLoader.cancel()
         composer.modelSelector.onRetry = {}
         turnGeneration++
@@ -328,6 +332,7 @@ class AgentUiController(
         activeToken = sessionTurn.token
         recorder.conversation = recorder.conversation.copy(transport = tab.transport)
         recorder.begin(sessionTurn.token.turnId, userText)
+        timeline.runStatus.begin()
         changes.beginTurn(sessionTurn.token.turnId)
         lateinit var run: AgentRun
         var preparationFailure = RestorePolicy.BUSY
@@ -341,6 +346,7 @@ class AgentUiController(
                     onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
                     isStopped = { run.wasStopped },
                     restoreTarget = { workspace.restoreTarget },
+                    onPrintRequestId = { sessions.confirmRequestId(sessionTurn.token, it) },
                 )
             }
         } catch (_: Exception) {
@@ -348,6 +354,7 @@ class AgentUiController(
             null
         }
         if (turn == null) {
+            timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.FAILED)
             composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
             recorder.finish("failed")
             if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
@@ -389,7 +396,6 @@ class AgentUiController(
         timeline.clearStatus()
         timeline.finalizeAssistantMessage()
         val userBubble = timeline.addUserMessage(userText)
-        timeline.showStatus("送信を準備中…")
 
         val edtContext = try {
             promptContextBuilder.buildEdtContext(userText, context)
@@ -428,7 +434,6 @@ class AgentUiController(
                         if (checkpointId != null) {
                             userBubble.onRollbackRequested = { requestRollback(checkpointId) }
                         }
-                        timeline.showStatus("実行中…")
                     }
 
                     // Context/checkpoint preparation may take time; do not trust the earlier path check.
@@ -496,7 +501,10 @@ class AgentUiController(
             run.stop()
         } finally {
             // An already-observed exit wins over a later Stop click.
-            if (run.wasStopped) composer.contextUsage.stop()
+            if (run.wasStopped) {
+                composer.contextUsage.stop()
+                timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.STOPPING)
+            }
         }
     }
 
