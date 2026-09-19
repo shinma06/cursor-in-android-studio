@@ -1,0 +1,525 @@
+{
+  "schema": 1,
+  "issue": 149,
+  "evidence_note": "live_projectionは著者のraw照合によるallowlist投影。syntheticは製品へ未接続の境界期待値。raw session/request IDs、path、会話履歴は含まない。",
+  "live_projection": {
+    "date": "2026-09-12",
+    "cli": "2026.09.10-fd3934a",
+    "wire_protocol": 1,
+    "jsonrpc": "2.0",
+    "mode": "ask",
+    "preflight": {
+      "method": "session/set_config_option",
+      "value": "composer-2.5",
+      "code": -32602,
+      "reason": "Invalid model value",
+      "prompt_turns": 0
+    },
+    "acp": {
+      "session": "acp-A",
+      "frames": 32,
+      "client_frames": 8,
+      "usage_update_count": 0,
+      "prompt_response_usage_count": 0,
+      "post_response_observation_seconds_each": 2,
+      "client_tool_requests": 0,
+      "stderr_bytes": 0,
+      "turns": [
+        {
+          "turn": "a1",
+          "model": "composer-2.5[fast=true]",
+          "stop_reason": "end_turn",
+          "response_keys": [
+            "stopReason"
+          ]
+        },
+        {
+          "turn": "a2",
+          "model": "composer-2.5[fast=true]",
+          "stop_reason": "end_turn",
+          "response_keys": [
+            "stopReason"
+          ]
+        },
+        {
+          "turn": "a3",
+          "model": "gpt-5.3-codex[reasoning=medium,fast=false]",
+          "stop_reason": "end_turn",
+          "response_keys": [
+            "stopReason"
+          ]
+        }
+      ]
+    },
+    "print": [
+      {
+        "turn": "p1",
+        "session": "print-P",
+        "requested_model": "composer-2.5[fast=true]",
+        "init_model": "Composer 2.5 Fast",
+        "exit": 0,
+        "is_error": false,
+        "usage": {
+          "inputTokens": 11696,
+          "outputTokens": 129,
+          "cacheReadTokens": 6720,
+          "cacheWriteTokens": 0
+        }
+      },
+      {
+        "turn": "p2",
+        "session": "print-P",
+        "requested_model": "composer-2.5[fast=true]",
+        "init_model": "Composer 2.5 Fast",
+        "exit": 0,
+        "is_error": false,
+        "usage": {
+          "inputTokens": 398,
+          "outputTokens": 63,
+          "cacheReadTokens": 18528,
+          "cacheWriteTokens": 0
+        }
+      },
+      {
+        "turn": "p3",
+        "session": "print-P",
+        "requested_model": "gpt-5.3-codex[reasoning=medium,fast=false]",
+        "init_model": "Codex 5.3 Medium",
+        "exit": 0,
+        "is_error": false,
+        "usage": {
+          "inputTokens": 17497,
+          "outputTokens": 7,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        }
+      }
+    ],
+    "workspace_empty_after": true
+  },
+  "synthetic": {
+    "context": [
+      {
+        "id": "CTX_ZERO",
+        "input": {
+          "used": 0,
+          "size": 100
+        },
+        "percent": "0.0"
+      },
+      {
+        "id": "CTX_VALID",
+        "input": {
+          "used": 25,
+          "size": 200
+        },
+        "percent": "12.5"
+      },
+      {
+        "id": "CTX_FULL",
+        "input": {
+          "used": 100,
+          "size": 100
+        },
+        "percent": "100.0"
+      },
+      {
+        "id": "CTX_ZERO_SIZE",
+        "input": {
+          "used": 0,
+          "size": 0
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_MISSING_SIZE",
+        "input": {
+          "used": 1
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_MISSING_USED",
+        "input": {
+          "size": 100
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_ABSENT",
+        "input": null,
+        "percent": null
+      },
+      {
+        "id": "CTX_NEGATIVE",
+        "input": {
+          "used": -1,
+          "size": 100
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_FRACTION",
+        "input": {
+          "used": 1.5,
+          "size": 100
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_STRING",
+        "input": {
+          "used": "1",
+          "size": 100
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_BOOLEAN",
+        "input": {
+          "used": true,
+          "size": 100
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_OVERSIZE",
+        "input": {
+          "used": 101,
+          "size": 100
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_LARGE_VALID",
+        "input": {
+          "used": 3000000000,
+          "size": 6000000000
+        },
+        "percent": "50.0"
+      },
+      {
+        "id": "CTX_SIGNED_LIMIT",
+        "input": {
+          "used": 9223372036854775807,
+          "size": 9223372036854775807
+        },
+        "percent": "100.0"
+      },
+      {
+        "id": "CTX_UNSIGNED_UNSUPPORTED",
+        "input": {
+          "used": 18446744073709551615,
+          "size": 18446744073709551615
+        },
+        "percent": null
+      },
+      {
+        "id": "CTX_INTEGER_DECIMAL",
+        "input": {
+          "used": 1.0,
+          "size": 100.0
+        },
+        "percent": "1.0"
+      }
+    ],
+    "print": [
+      {
+        "id": "PRINT_ZERO_PARTIAL",
+        "input": {
+          "outputTokens": 0
+        },
+        "expected": {
+          "outputTokens": 0
+        }
+      },
+      {
+        "id": "PRINT_INVALID_PARTIAL",
+        "input": {
+          "inputTokens": -1,
+          "outputTokens": 0,
+          "cacheReadTokens": 3000000000
+        },
+        "expected": {
+          "outputTokens": 0,
+          "cacheReadTokens": 3000000000
+        }
+      },
+      {
+        "id": "PRINT_ABSENT",
+        "input": null,
+        "expected": {}
+      },
+      {
+        "id": "PRINT_UNSIGNED_UNSUPPORTED",
+        "input": {
+          "inputTokens": 9223372036854775808
+        },
+        "expected": {}
+      },
+      {
+        "id": "PRINT_UNSTABLE_KEYS_NOT_ALIASES",
+        "input": {
+          "cachedReadTokens": 12,
+          "cachedWriteTokens": 0
+        },
+        "expected": {}
+      },
+      {
+        "id": "PRINT_INTEGER_DECIMAL",
+        "input": {
+          "inputTokens": 1000.0
+        },
+        "expected": {
+          "inputTokens": 1000
+        }
+      }
+    ],
+    "cost": [
+      {
+        "id": "COST_ZERO",
+        "input": {
+          "amount": 0,
+          "currency": "USD"
+        },
+        "scope": "session_cumulative",
+        "display": {
+          "amount": "0",
+          "currency": "USD"
+        },
+        "currency_confirmed": true
+      },
+      {
+        "id": "COST_VALID",
+        "input": {
+          "amount": 1.25,
+          "currency": "USD"
+        },
+        "scope": "session_cumulative",
+        "display": {
+          "amount": "1.25",
+          "currency": "USD"
+        },
+        "currency_confirmed": true
+      },
+      {
+        "id": "COST_SCOPE_UNKNOWN",
+        "input": {
+          "amount": 1,
+          "currency": "USD"
+        },
+        "scope": "unknown",
+        "display": null,
+        "currency_confirmed": true
+      },
+      {
+        "id": "COST_CURRENCY_MISSING",
+        "input": {
+          "amount": 1
+        },
+        "scope": "session_cumulative",
+        "display": null,
+        "currency_confirmed": true
+      },
+      {
+        "id": "COST_CURRENCY_UNCONFIRMED",
+        "input": {
+          "amount": 1,
+          "currency": "???"
+        },
+        "scope": "session_cumulative",
+        "display": null,
+        "currency_confirmed": false
+      },
+      {
+        "id": "COST_NEGATIVE",
+        "input": {
+          "amount": -1,
+          "currency": "USD"
+        },
+        "scope": "session_cumulative",
+        "display": null,
+        "currency_confirmed": true
+      },
+      {
+        "id": "COST_STRING",
+        "input": {
+          "amount": "1",
+          "currency": "USD"
+        },
+        "scope": "session_cumulative",
+        "display": null,
+        "currency_confirmed": true
+      },
+      {
+        "id": "COST_ABSENT",
+        "input": null,
+        "scope": "session_cumulative",
+        "display": null,
+        "currency_confirmed": true
+      }
+    ],
+    "lifecycle": [
+      {
+        "id": "LIFE_CURRENT",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "current": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "origin_known": true,
+        "stopped": false,
+        "accept": true
+      },
+      {
+        "id": "LIFE_TAB",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "current": [
+          "tab-B",
+          "session-B",
+          1,
+          1,
+          1
+        ],
+        "origin_known": true,
+        "stopped": false,
+        "accept": false
+      },
+      {
+        "id": "LIFE_SESSION",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "current": [
+          "tab-A",
+          "session-B",
+          2,
+          4,
+          1
+        ],
+        "origin_known": true,
+        "stopped": false,
+        "accept": false
+      },
+      {
+        "id": "LIFE_CONNECTION",
+        "captured": [
+          "tab-A",
+          "session-A",
+          1,
+          4,
+          1
+        ],
+        "current": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "origin_known": true,
+        "stopped": false,
+        "accept": false
+      },
+      {
+        "id": "LIFE_RUN",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          3,
+          1
+        ],
+        "current": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "origin_known": true,
+        "stopped": false,
+        "accept": false
+      },
+      {
+        "id": "LIFE_MODEL",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "current": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          2
+        ],
+        "origin_known": true,
+        "stopped": false,
+        "accept": false
+      },
+      {
+        "id": "LIFE_STOP",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "current": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          1
+        ],
+        "origin_known": true,
+        "stopped": true,
+        "accept": false
+      },
+      {
+        "id": "LIFE_UNATTRIBUTED_WIRE",
+        "captured": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          2
+        ],
+        "current": [
+          "tab-A",
+          "session-A",
+          2,
+          4,
+          2
+        ],
+        "origin_known": false,
+        "stopped": false,
+        "accept": false
+      }
+    ]
+  }
+}

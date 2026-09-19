@@ -174,13 +174,19 @@ class AgentProcessService(private val project: Project) : Disposable {
             return
         }
 
+        val taskState = PrintTaskState(turn.workspace.resumeId)
         try {
-            var chatId = turn.workspace.resumeId
             val parser = StreamJsonParser { event ->
+                taskState.observe(event)
+                val chatId = taskState.sessionId
                 run.emit { listener ->
                     when (event) {
+                        StreamEvent.OutputLimitExceeded -> {
+                            run.reportError("CLIの出力が1行の受信上限を超えたため停止しました。")
+                            handler.destroyProcess()
+                        }
+
                         is StreamEvent.SessionInit -> {
-                            if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                         }
@@ -195,13 +201,16 @@ class AgentProcessService(private val project: Project) : Disposable {
 
                         is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
 
-                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallStarted(event.payload)
+                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) {
+                            listener.onToolCallStarted(event.payload)
+                        }
 
-                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallCompleted(event.payload)
+                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) {
+                            listener.onToolCallCompleted(event.payload)
+                        }
 
                         is StreamEvent.Result -> {
                             listener.onTokenUsage(event.usage)
-                            if (chatId == null) chatId = event.sessionId?.takeIf { it.isNotBlank() }
                             chatId?.let { sessionTargets.record(it, turn.workspace.restoreTarget) }
                             listener.onSessionUpdated(chatId, event.model)
                             if (event.isError) {
@@ -237,7 +246,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     runs.remove(run)
                     try {
                         parser.finish()
-                        run.complete(event.exitCode, stderr.toString().trim())
+                        finishPrintTaskRun(run, operations, taskState.backgroundObserved, event.exitCode, stderr.toString().trim())
                     } finally {
                         processReservation.close()
                     }
@@ -254,7 +263,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             handler.process.onExit().thenRun {
                 runs.remove(run)
                 try {
-                    run.complete(-1)
+                    finishPrintTaskRun(run, operations, taskState.backgroundObserved, -1)
                 } finally {
                     processReservation.close()
                 }
@@ -272,10 +281,8 @@ class AgentProcessService(private val project: Project) : Disposable {
      * doc §13), so these run synchronously (blocking) rather than through the
      * streaming OSProcessHandler machinery above. Call off the EDT.
      */
-    fun listModels(): List<ModelOption> {
-        val output = runAgentCommandSync("--list-models") ?: return emptyList()
-        return ModelListParser.parse(output)
-    }
+    fun listModels(): ModelCatalogState =
+        modelCatalogResult(runAgentCommandSync("--list-models", timeoutMs = 15_000))
 
     /** Current CLI metadata path. The dialog parses observed `id: status` rows with
      *  McpListParser and falls back to raw output when no rows can be parsed. */
@@ -286,7 +293,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         return runAgentCommandSync("mcp", subcommand, identifier) != null
     }
 
-    private fun runAgentCommandSync(vararg args: String): String? {
+    private fun runAgentCommandSync(vararg args: String, timeoutMs: Int = 0): String? {
         val settings = AgentSettingsState.getInstance()
         val executable = resolveAgentExecutable(settings.agentExecutablePath)
         val workspace = project.basePath ?: return null
@@ -295,8 +302,8 @@ class AgentProcessService(private val project: Project) : Disposable {
                 .withWorkDirectory(File(workspace))
                 .withCharset(StandardCharsets.UTF_8)
                 .withEnvironment(System.getenv())
-            val output = ExecUtil.execAndGetOutput(commandLine)
-            output.stdout.takeIf { output.exitCode == 0 }
+            val output = ExecUtil.execAndGetOutput(commandLine, timeoutMs)
+            output.stdout.takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
         } catch (e: Exception) {
             LOG.warn("agent ${args.joinToString(" ")} failed", e)
             null
@@ -364,3 +371,36 @@ internal fun probePrintVersion(command: GeneralCommandLine, run: AgentRun): Stri
     val output = handler.runProcess(3000)
     output.stdout.trim().takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
 }.getOrNull()
+
+/** Physical parent exit cannot confirm a provider-managed background child's termination. */
+internal fun finishPrintTaskRun(run: AgentRun, operations: WorkspaceOperationGate, backgroundObserved: Boolean, exitCode: Int, errorOutput: String? = null) {
+    if (backgroundObserved) {
+        operations.markUncertain()
+        run.completeUncertain("背景Taskの終了を確認できません。復元を停止しました。")
+    } else run.complete(exitCode, errorOutput)
+}
+
+/** Wire safety state outlives UI delivery, including buffered initialization after Stop or tab close. */
+internal class PrintTaskState(resumeId: String?) {
+    @Volatile var sessionId: String? = resumeId
+        private set
+    @Volatile var backgroundObserved = false
+        private set
+
+    @Synchronized
+    fun observe(event: StreamEvent) {
+        if (sessionId == null) sessionId = when (event) {
+            is StreamEvent.SessionInit -> event.sessionId
+            is StreamEvent.Result -> event.sessionId
+            else -> null
+        }?.takeIf { it.isNotBlank() }
+        val payload = when (event) {
+            is StreamEvent.ToolCallStarted -> event.payload
+            is StreamEvent.ToolCallCompleted -> event.payload
+            else -> null
+        }
+        if (payload?.belongsToPrintSession(sessionId) == true && payload.task?.task?.isBackground == true) {
+            backgroundObserved = true
+        }
+    }
+}

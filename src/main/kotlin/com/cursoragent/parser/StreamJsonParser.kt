@@ -10,37 +10,60 @@ import com.google.gson.JsonParser
 class StreamJsonParser(
     private val onEvent: (StreamEvent) -> Unit,
 ) {
-    private val pendingLine = StringBuilder()
+    private var pendingLine = StringBuilder()
+    private var exceededLimit = false
 
     /** Process output notifications may split a JSON line, including inside a string. */
     fun parseChunk(chunk: String) {
+        if (exceededLimit) return
         var start = 0
         chunk.forEachIndexed { index, char ->
             if (char == '\n') {
-                pendingLine.append(chunk, start, index)
+                if (!appendSegment(chunk, start, index)) return
                 val line = pendingLine.toString()
                 pendingLine.setLength(0)
                 parseLine(line)
                 start = index + 1
             }
         }
-        pendingLine.append(chunk, start, chunk.length)
+        appendSegment(chunk, start, chunk.length)
     }
 
     /** Deliver a complete final JSON value even when the producer omitted its newline. */
     fun finish() {
+        if (exceededLimit) return
         val line = pendingLine.toString()
         pendingLine.setLength(0)
         parseLine(line)
     }
 
     fun parseLine(line: String) {
+        if (exceededLimit) return
+        if (line.length > MAX_LINE_CHARS) {
+            rejectOversizedLine()
+            return
+        }
         val trimmed = line.trim()
         if (trimmed.isEmpty()) return
 
         val json = runCatching { JsonParser.parseString(trimmed).asJsonObject }.getOrNull() ?: return
         val event = runCatching { mapEvent(json) }.getOrElse { StreamEvent.Unknown("unknown", trimmed) }
         onEvent(event)
+    }
+
+    private fun appendSegment(chunk: String, start: Int, end: Int): Boolean {
+        if (end - start > MAX_LINE_CHARS - pendingLine.length) {
+            rejectOversizedLine()
+            return false
+        }
+        pendingLine.append(chunk, start, end)
+        return true
+    }
+
+    private fun rejectOversizedLine() {
+        exceededLimit = true
+        pendingLine = StringBuilder()
+        onEvent(StreamEvent.OutputLimitExceeded)
     }
 
     private fun mapEvent(json: JsonObject): StreamEvent {
@@ -147,9 +170,15 @@ class StreamJsonParser(
             ?: json.getAsJsonObject("tool")?.get("name")?.asString
             ?: "tool"
     }
+
+    companion object {
+        // Print edit events include before/after/diff; this is a UTF-16 character limit, not ACP's frame limit.
+        const val MAX_LINE_CHARS = 8 * 1024 * 1024
+    }
 }
 
 sealed interface StreamEvent {
+    data object OutputLimitExceeded : StreamEvent
     data class SessionInit(val sessionId: String?, val model: String?) : StreamEvent
     data class AssistantDelta(val text: String, val kind: PrintAssistantKind = PrintAssistantKind.UNRECOGNIZED) : StreamEvent
     data class ThinkingDelta(val text: String) : StreamEvent
