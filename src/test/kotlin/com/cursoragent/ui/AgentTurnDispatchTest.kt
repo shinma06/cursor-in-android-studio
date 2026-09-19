@@ -4,12 +4,59 @@ import com.cursoragent.session.SessionTabs
 import com.cursoragent.settings.AgentMode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import javax.swing.SwingUtilities
 
 class AgentTurnDispatchTest {
+    @Test
+    fun `adjacent print replacements share one EDT ticket and preserve event boundaries`() {
+        val delivered = mutableListOf<String>()
+        var tickets = 0
+        val updates = TurnEdtUpdates { allowStopped, block ->
+            tickets++
+            updateCurrentTurnOnEdt({ false }, { true }, { false }, allowStopped, block)
+        }
+        queued {
+            repeat(1_000) { updates.print("x".repeat((it + 1) * 16)) { text -> delivered += "text:${text.length}" } }
+            updates.print("") { fail("Empty text should not replace a pending prefix") }
+            updates.update { delivered += "tool" }
+            updates.print("last") { delivered += it }
+            updates.update { delivered += "completed" }
+            assertEquals(4, tickets)
+        }
+        assertEquals(listOf("text:16000", "tool", "last", "completed"), delivered)
+        updates.print("next") { delivered += it }
+        SwingUtilities.invokeAndWait {}
+        assertEquals("next", delivered.last())
+    }
+
+    @Test
+    fun `coalesced print still rechecks ownership and terminal stop permission on EDT`() {
+        for (change in listOf("dispose", "generation", "stop")) {
+            var disposed = false
+            var current = true
+            var stopped = false
+            val delivered = mutableListOf<String>()
+            val updates = TurnEdtUpdates { allowStopped, block ->
+                updateCurrentTurnOnEdt({ disposed }, { current }, { stopped }, allowStopped, block)
+            }
+            queued {
+                updates.print("first") { delivered += it }
+                updates.print("last") { delivered += it }
+                updates.update(allowStopped = true) { delivered += "terminal" }
+                when (change) {
+                    "dispose" -> disposed = true
+                    "generation" -> current = false
+                    "stop" -> stopped = true
+                }
+            }
+            assertEquals(if (change == "stop") listOf("terminal") else emptyList<String>(), delivered, change)
+        }
+    }
+
     @Test
     fun `queued output follows its owner across selection and rejects closed or replaced tokens`() {
         for (change in listOf("select", "close", "replace")) {

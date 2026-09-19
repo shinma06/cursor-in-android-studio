@@ -15,6 +15,7 @@ import com.cursoragent.session.SessionRunToken
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
@@ -30,11 +31,11 @@ class AgentUiController(
     private val tabId: String,
     private val restored: Conversation? = null,
     private val legacyOnly: Boolean = false,
+    private val onShowConversation: () -> Unit = {},
 ) {
     private var turnGeneration = 0L
     private var disposed = false
     private var activeRun: AgentRun? = null
-    private var modelLoad: java.util.concurrent.Future<*>? = null
     private var activeToken: SessionRunToken? = null
     private var releaseUnsentTransport: (() -> Unit)? = null
     private var recoverUnsentCommand: (() -> Unit)? = null
@@ -120,17 +121,35 @@ class AgentUiController(
         }
     }
 
+    private val changes = ConversationChanges(recorder.conversation.id)
+    private var changesDialog: ConversationChangesDialog? = null
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
         timeline = timeline,
-        composer = composer,
+        onUsage = composer.contextUsage::update,
+        onUsageFinish = composer.contextUsage::finish,
+        onConfiguration = composer::showAcpConfiguration,
         recorder = recorder,
+        changes = changes,
+        beforeRevert = ::pauseQueue,
         onRunFinished = ::finishRun,
     )
+    private val modelLoader = ModelCatalogLoader(
+        fetch = agentService::listModels,
+        execute = { ApplicationManager.getApplication().executeOnPooledThread(it) },
+        dispatch = ::runOnEdt,
+        isActive = {
+            !disposed && !project.isDisposed &&
+                sessions.snapshot().tabs.any { it.id == tabId && it.transport == AgentTransport.PRINT }
+        },
+        show = composer.modelSelector::showCatalog,
+    )
+
     init {
         checkpointService.pruneExpired()
-        loadModels()
+        composer.modelSelector.onRetry = modelLoader::load
+        if (transportState().first == AgentTransport.ACP) composer.useAcp() else modelLoader.load()
         composer.commands.onRetry = { refreshAcpConnection(force = true) }
         composer.addHierarchyListener {
             if (composer.isShowing && !disposed) { refreshAcpConnection(); commandSettingsWatch.start() }
@@ -147,6 +166,7 @@ class AgentUiController(
         val shared = AgentSettingsState.getInstance()
         val key = com.cursoragent.ui.composer.command.AcpCommandKey(project.basePath, shared.agentExecutablePath, shared.permissionMode, shared.sandboxMode, shared.worktreeMode)
         val generation = commandConnection.replace(key, force) ?: return
+        composer.contextUsage.reset()
         agentService.closeSession(tabId)
         val settings = TurnSettings(shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode, shared.permissionMode, shared.sandboxMode)
         val reason = agentService.settingsUnavailableReason(AgentTransport.ACP, settings, shared.worktreeMode)
@@ -166,11 +186,36 @@ class AgentUiController(
         }
     }
 
-    private fun loadModels() {
-        modelLoad = ApplicationManager.getApplication().executeOnPooledThread {
-            val models = agentService.listModels()
-            runOnEdt { if (!disposed && !project.isDisposed && transportState().first == AgentTransport.PRINT) composer.modelSelector.setModels(models) }
+    /** EDT-only immutable value; callers freeze it before opening modal UI. */
+    fun conversationSnapshot(): Conversation? = recorder.conversation.takeUnless { disposed || legacyOnly }
+
+    fun showChanges() {
+        if (disposed || project.isDisposed) return
+        pauseQueue()
+        changesDialog?.let { it.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE); changesDialog = null; return }
+        val snapshot = changes.snapshot()
+        val generation = turnGeneration
+        val isCurrent = {
+            !disposed && !project.isDisposed && generation == turnGeneration &&
+                sessions.snapshot().selectedId == tabId && changes.snapshot() == snapshot
         }
+        val dialog = ConversationChangesDialog(project, snapshot,
+            onDiff = { file -> if (!disposed && !project.isDisposed && file.canShowDiff) {
+                DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
+            } },
+            onRevert = { file ->
+                pauseQueue()
+                if (!disposed && !project.isDisposed && file.revertRejection == null) {
+                    DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
+                        timeline.showStatus("ファイルを編集前に戻しました")
+                    }
+                }
+            },
+            onConversation = { if (!disposed && !project.isDisposed) onShowConversation() },
+        )
+        changesDialog = dialog
+        dialog.show()
+        if (changesDialog === dialog) changesDialog = null
     }
 
     fun transportState(): Pair<AgentTransport, Boolean> {
@@ -180,8 +225,9 @@ class AgentUiController(
 
     fun selectTransport(transport: AgentTransport) {
         if (disposed || !sessions.selectTransport(tabId, transport)) return
+        composer.contextUsage.reset()
         if (transport == AgentTransport.ACP) {
-            modelLoad?.cancel(false)
+            modelLoader.cancel()
             composer.useAcp()
             timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
             refreshAcpConnection()
@@ -190,21 +236,24 @@ class AgentUiController(
             agentService.closeSession(tabId)
             composer.commands.update(commandConnection.catalog, false)
             composer.usePrint()
-            loadModels()
+            modelLoader.load()
         }
     }
 
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        composer.contextUsage.reset()
         commandConnection.clear()
         commandSettingsWatch.stop()
         composer.commands.close()
         queue.clear()
         queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
         queueDialog = null
-        modelLoad?.cancel(true)
-        modelLoad = null
+        changesDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+        changesDialog = null
+        modelLoader.cancel()
+        composer.modelSelector.onRetry = {}
         turnGeneration++
         activeToken?.let(sessions::finishTurn)
         activeRun?.detachListener()
@@ -279,13 +328,15 @@ class AgentUiController(
         activeToken = sessionTurn.token
         recorder.conversation = recorder.conversation.copy(transport = tab.transport)
         recorder.begin(sessionTurn.token.turnId, userText)
+        changes.beginTurn(sessionTurn.token.turnId)
         lateinit var run: AgentRun
         var preparationFailure = RestorePolicy.BUSY
+        val usageTicket = composer.contextUsage.beginTurn(settings.model)
         val turn = try {
             agentService.prepareTurn(workspace, settings) {
-                val usageTicket = composer.contextUsage.beginTurn()
                 turnListenerFactory.create(
                     usageTicket,
+                    turnId = sessionTurn.token.turnId,
                     isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
                     onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
                     isStopped = { run.wasStopped },
@@ -297,6 +348,7 @@ class AgentUiController(
             null
         }
         if (turn == null) {
+            composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
             recorder.finish("failed")
             if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
             sessions.finishTurn(sessionTurn.token)
@@ -439,8 +491,13 @@ class AgentUiController(
 
     fun stopRun() {
         pauseQueue()
-        composer.contextUsage.reset()
-        activeRun?.stop()
+        val run = activeRun ?: return
+        try {
+            run.stop()
+        } finally {
+            // An already-observed exit wins over a later Stop click.
+            if (run.wasStopped) composer.contextUsage.stop()
+        }
     }
 
     private fun finishRun(successful: Boolean) {
