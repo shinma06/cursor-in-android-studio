@@ -47,6 +47,52 @@ class OwnedMemoryBoundaryTest(unittest.TestCase):
         (self.root / 'data').symlink_to(self.root / 'package', target_is_directory=True)
         self.refused()
 
+    def test_version_probe_uses_same_owned_npm_configuration_as_install(self):
+        target = self.root / 'new-run'
+        npm = self.root / 'npm-cli.js'
+        npm.write_text('synthetic npm')
+        calls = []
+        def install(command, **options):
+            calls.append(command)
+            entry = target / 'package/node_modules/@modelcontextprotocol/server-memory/dist/index.js'
+            entry.parent.mkdir(parents=True)
+            entry.write_text('synthetic official entry')
+        def version(command, **options):
+            if str(npm) not in command:
+                return 'v26.8.2\n'
+            self.assertEqual(target, options.get('cwd'))
+            for name, relative in (('--userconfig', 'user.npmrc'), ('--globalconfig', 'global.npmrc'),
+                                   ('--prefix', 'package'), ('--cache', 'cache')):
+                self.assertIn(name, command)
+                value = str(target / relative)
+                self.assertEqual(value, command[command.index(name) + 1])
+                self.assertEqual(value, calls[0][calls[0].index(name) + 1])
+            self.assertEqual(b'', (target / 'user.npmrc').read_bytes())
+            self.assertEqual(b'', (target / 'global.npmrc').read_bytes())
+            self.assertEqual({'PATH'}, set(options['env']))
+            return '11.19.1\n'
+        with patch.object(fixture.subprocess, 'run', side_effect=install), \
+             patch.object(fixture.subprocess, 'check_output', side_effect=version):
+            fixture.prepare(target, self.node, npm)
+
+    def test_added_package_symlink_is_refused_before_launch(self):
+        (self.root / 'package/extra.js').symlink_to('entry.js')
+        self.refused()
+
+    def test_changed_package_symlink_is_refused_before_launch(self):
+        package = self.root / 'package'
+        (package / 'second.js').write_text('another fixed file')
+        (package / '.bin').mkdir()
+        link = package / '.bin/server'
+        link.symlink_to('../entry.js')
+        manifest_path = self.root / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['files'] = fixture.package_files(self.root)
+        manifest_path.write_text(json.dumps(manifest))
+        link.unlink()
+        link.symlink_to('../second.js')
+        self.refused()
+
     def test_changed_runtime_package_template_or_marker_is_refused(self):
         for relative in ('node', 'package/entry.js', 'project-mcp.template.json', 'MARKER.json'):
             with self.subTest(relative=relative):

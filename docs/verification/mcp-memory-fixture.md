@@ -61,3 +61,5 @@ stdinを閉じ、所有processのexit0とstdout EOF、data無変更まで確認�
 MV-029のツール行集約は#310/T1の別条件です。2026-09-19: #261の統合凍結は終了済みです。既存GUI待ち・main未反映を維持します。[stdio停止の根拠](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#shutdown)に従うserver単体停止と、実Cursorの停止動作の観測を分けます。
 
 境界テスト: `python3 -m unittest discover -s scripts/loop -p test_mcp_memory_fixture.py`。既存root/データ、symlink、runtime/package/template/marker変更をserver起動前に拒否することを確認します。ネットワークや公式serverを再取得しない検査です。
+
+2026-09-20: npm版取得にもinstallと同じ専用cwd・空user/global npmrc・prefix/cacheを適用しました。package内symlinkは内部の実ファイルへの参照だけを許し、リンク先文字列と実体hashをmanifestへ含めます。追加・差し替え・外部/壊れた参照をserver起動前に拒否します。旧manifestを書き換えず、新runをprepareしてください。7件の境界テストと新しい専用runで、3,635実ファイルと2リンク、空graph・stdin EOF exit0・data不変を再確認しました。実Cursor/GUIは未実施です。

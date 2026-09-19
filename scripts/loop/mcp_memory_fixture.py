@@ -23,8 +23,18 @@ def digest(path):
 
 
 def package_files(root):
-    return {str(path.relative_to(root)): digest(path)
-            for path in sorted((root / 'package').rglob('*')) if path.is_file() and not path.is_symlink()}
+    files = {}
+    package = root / 'package'
+    for path in sorted(package.rglob('*')):
+        relative = str(path.relative_to(root))
+        if path.is_symlink():
+            target = path.resolve(strict=True)
+            if not target.is_relative_to(package) or not target.is_file():
+                raise ValueError('Package link must target a fixed file inside the package')
+            files[relative] = {'symlink': os.readlink(path), 'sha256': digest(target)}
+        elif path.is_file():
+            files[relative] = digest(path)
+    return files
 
 
 def prepare(root, node, npm):
@@ -48,12 +58,11 @@ def prepare(root, node, npm):
     for name in ('user.npmrc', 'global.npmrc'):
         (root / name).write_text('')
     environment = {'PATH': str(node.parent) + os.pathsep + os.defpath}
-    command = [str(node), str(npm), 'ci', '--ignore-scripts', '--no-audit', '--no-fund',
-               '--prefix', str(root / 'package'), '--cache', str(root / 'cache'),
+    command = [str(node), str(npm), '--prefix', str(root / 'package'), '--cache', str(root / 'cache'),
                '--userconfig', str(root / 'user.npmrc'), '--globalconfig', str(root / 'global.npmrc'),
                '--registry=https://registry.npmjs.org']
     with (root / 'evidence/install.txt').open('x') as log:
-        subprocess.run(command, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
+        subprocess.run(command + ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
     entry = root / 'package/node_modules/@modelcontextprotocol/server-memory/dist/index.js'
     if entry.is_symlink() or not entry.is_file():
         raise ValueError('Official entry point is unavailable')
@@ -63,7 +72,7 @@ def prepare(root, node, npm):
     manifest = {**marker, 'package_version': VERSION, 'integrity': INTEGRITY,
                 'node': str(node), 'node_sha256': digest(node),
                 'node_version': subprocess.check_output([str(node), '--version'], env={}, text=True).strip(),
-                'npm': str(npm), 'npm_version': subprocess.check_output([str(node), str(npm), '--version'], env=environment, text=True).strip(),
+                'npm': str(npm), 'npm_version': subprocess.check_output(command + ['--version'], cwd=root, env=environment, text=True).strip(),
                 'files': package_files(root), 'template_sha256': digest(root / 'project-mcp.template.json')}
     (root / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return root
