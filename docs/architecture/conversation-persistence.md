@@ -19,7 +19,7 @@ v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMo
 
 root/worktreeModeは直近の実行先来歴でありturn別の復元権限ではない。履歴を開くsnapshotはそのview/controllerへ渡すだけでrootにキャッシュせず、closeで解放する。
 
-同じassistant全文置換はmessage IDを維持。ACP startsMessageで新ID、tool更新はturn内のprovider call IDをlocal message IDへ対応付ける。call ID自体や実行可能な要求は保存しない。printは現行表示の正規化結果であり、deduperの正しさを新たに保証しない。#116の実wire差は別修正scopeで追跡し、その修正後も保存の全文置換契約を使う。
+同じassistant全文置換はmessage IDを維持。ACP startsMessageで新ID、tool更新はturn内のprovider call IDをlocal message IDへ対応付ける。call ID自体や実行可能な要求は保存しない。printは#254のservice内正規化と同じ全文を保存する。実測版・partial指定・未知版fallbackの範囲は[event-contracts](event-contracts.md)に従い、保存側で再度dedupeしない。
 
 controller/listenerのisCurrent/token/停止guard後だけRecorderを更新。close/disposeはcallbackを待たずinterruptedで終える。workerは最新の会話snapshotを200msごとにまとめ、順に書く。書込み完了したrevisionだけ「保存済み」、保留は「保存中」、例外/上限は保存失敗。保存失敗はAgent応答失敗とは別。突然のprocess停止は最後の200ms以内の未完了保存を失い得る。OS電源断の完全な耐久性は保証しない。
 
@@ -54,3 +54,5 @@ ACP標準の[session/loadとsession/resume](https://agentclientprotocol.com/prot
 Case正本は[issue-44.json](../verification/changes/issue-44.json)。移行・破損・容量/書込み失敗・ID/順序・未完turn・PRINT/ACP非互換はConversationStoreTestとConversationResumeRootTest、イベント/Stop guardは既存dispatch/text/tab回帰と組み合わせる。実IDE再起動は同じ固定buildを指定GUI lease担当が確認し、未観察はpendingでQAへ引き継ぐ。
 
 #45/#47/#48へConversation/SavedTurn/ChatMessageと独立IDを渡す。共有controller/listener/ComposerはEngineer Bが直列writer、scripts/workflowはEngineer A、#116は研究担当。次回の保存型/ID/配置/イベント境界変更時はwriterと独立reviewerが旧XML/v1 fixture、失敗隔離、秘密の保存範囲、再実行禁止を既存レビューで確認する。運用効果は次回の実変更まで未測定。High Impact監査はPMの#251へ統合する。
+
+#45の保存会話検索/Markdown出力は[検索・出力契約](conversation-search-export.md)を参照。v1と元入力/安全tool要約の保存範囲を再利用し、原文を再正規化しない。

@@ -1,0 +1,4 @@
+<idea-plugin>
+    <!-- The IDE owns JCEF APIs and native provider discovery. No provider classes or
+         native binaries are bundled here; ManualBrowserPanel checks isSupported(). -->
+</idea-plugin>
