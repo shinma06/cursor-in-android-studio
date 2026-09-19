@@ -15,7 +15,7 @@ import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.JPanel
 
-class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
+class ComposerPanel(private val project: Project, newPrintConversation: Boolean = true) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
     var onEnqueue: (String) -> Unit = {}
@@ -80,11 +80,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     // Detached selector state: application settings supply defaults only for a new tab.
-    val selection = AgentSettingsState().apply {
-        val defaults = AgentSettingsState.getInstance()
-        mode = defaults.mode
-        selectedModel = defaults.selectedModel
-    }
+    val selection = AgentSettingsState.getInstance().composerSelection(newPrintConversation)
     val modeSelector = ModeSelector(selection)
     val modelSelector = ModelSelector(selection)
 

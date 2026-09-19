@@ -9,14 +9,12 @@ import com.cursoragent.parser.StreamEvent
 import com.cursoragent.parser.StreamJsonParser
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.WorktreeMode
-import com.cursoragent.settings.detectAgentExecutable
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessOutputTypes
-import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
@@ -327,20 +325,8 @@ class AgentProcessService(private val project: Project) : Disposable {
     }
 
     private fun runAgentCommandSync(vararg args: String, timeoutMs: Int = 0): String? {
-        val settings = AgentSettingsState.getInstance()
-        val executable = resolveAgentExecutable(settings.agentExecutablePath)
         val workspace = project.basePath ?: return null
-        return try {
-            val commandLine = GeneralCommandLine(executable, *args)
-                .withWorkDirectory(File(workspace))
-                .withCharset(StandardCharsets.UTF_8)
-                .withEnvironment(System.getenv())
-            val output = ExecUtil.execAndGetOutput(commandLine, timeoutMs)
-            output.stdout.takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
-        } catch (e: Exception) {
-            LOG.warn("agent ${args.joinToString(" ")} failed", e)
-            null
-        }
+        return runAgentMetadataCommand(AgentSettingsState.getInstance().agentExecutablePath, workspace, timeoutMs, *args)
     }
 
     fun killActiveProcess() {
@@ -383,14 +369,6 @@ class AgentProcessService(private val project: Project) : Disposable {
             .withCharset(StandardCharsets.UTF_8)
             .withWorkDirectory(File(requireNotNull(workspace.commandTarget.rootPath)))
             .withEnvironment(System.getenv())
-    }
-
-    private fun resolveAgentExecutable(configuredPath: String): String {
-        if (configuredPath.isNotBlank() && File(configuredPath).canExecute()) {
-            return configuredPath
-        }
-
-        return detectAgentExecutable() ?: "agent"
     }
 }
 

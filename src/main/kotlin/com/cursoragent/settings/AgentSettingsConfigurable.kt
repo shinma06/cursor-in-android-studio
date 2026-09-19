@@ -23,6 +23,7 @@ class AgentSettingsConfigurable : Configurable {
     private var sendKeyBox: javax.swing.JComboBox<SendKeyMode>? = null
     private var panel: JPanel? = null
     private var diagnosticsPanel: PluginDiagnosticsPanel? = null
+    private var defaultModelPanel: DefaultModelSettingsPanel? = null
     private var agentPathField: TextFieldWithBrowseButton? = null
     private var agentPathSelection: AgentExecutablePathSelection? = null
     private var agentPathDescription: JBLabel? = null
@@ -69,6 +70,7 @@ class AgentSettingsConfigurable : Configurable {
         wrapCodeBox = JBCheckBox("コードの長い行を折り返す", settings.wrapCodeLines)
         sendKeyBox = javax.swing.JComboBox(SendKeyMode.entries.toTypedArray()).apply { selectedItem = settings.sendKeyMode }
         notifyOnTurnCompleteBox = JBCheckBox("応答の完了・失敗・停止を通知する", settings.notifyOnTurnComplete)
+        defaultModelPanel = DefaultModelSettingsPanel(settings)
         notifyOnApprovalPendingBox = JBCheckBox(
             "別の会話のツール開始を通知する（各ターンに一度）",
             settings.notifyOnApprovalPending,
@@ -84,6 +86,9 @@ class AgentSettingsConfigurable : Configurable {
             .addLabeledComponent("会話本文の文字サイズ:", fontSizeBox!!)
             .addComponent(wrapCodeBox!!)
             .addComponent(JBLabel("適用すると全会話へ反映します。標準はIDEの表示文字・拡大率に追従します。"))
+            .addLabeledComponent("新規会話の既定モデル（互換CLI）:", defaultModelPanel!!)
+            .addComponent(JBLabel("適用後に作る互換CLI会話だけに使います。既存・復元会話とACPには適用しません。"))
+            .addComponent(JBLabel("一覧は適用済みのCLI設定で取得します。CLIを変更した場合は適用して設定を開き直してください。"))
             .addComponent(notifyOnTurnCompleteBox!!)
             .addComponent(notifyOnApprovalPendingBox!!)
             .addSeparator()
@@ -100,6 +105,7 @@ class AgentSettingsConfigurable : Configurable {
         return fontSizes.getOrNull(fontSizeBox?.selectedIndex ?: -1) != settings.conversationFontSize ||
             wrapCodeBox?.isSelected != settings.wrapCodeLines ||
             sendKeyBox?.selectedItem != settings.sendKeyMode ||
+            defaultModelPanel?.isModified(settings) == true ||
             agentPathSelection?.configuredPath != settings.agentExecutablePath ||
             notifyOnTurnCompleteBox?.isSelected != settings.notifyOnTurnComplete ||
             notifyOnApprovalPendingBox?.isSelected != settings.notifyOnApprovalPending
@@ -108,6 +114,7 @@ class AgentSettingsConfigurable : Configurable {
     override fun apply() {
         val selection = agentPathSelection ?: return
         val settings = AgentSettingsState.getInstance()
+        defaultModelPanel?.applyTo(settings)
         settings.agentExecutablePath = selection.configuredPath
         settings.notifyOnTurnComplete = notifyOnTurnCompleteBox?.isSelected == true
         settings.notifyOnApprovalPending = notifyOnApprovalPendingBox?.isSelected == true
@@ -130,6 +137,7 @@ class AgentSettingsConfigurable : Configurable {
 
     override fun reset() {
         val settings = AgentSettingsState.getInstance()
+        defaultModelPanel?.reset(settings)
         agentPathSelection?.reset(settings.agentExecutablePath)
         showAgentPathSelection()
         fontSizeBox?.selectedIndex = fontSizes.indexOf(settings.conversationFontSize)
@@ -154,6 +162,8 @@ class AgentSettingsConfigurable : Configurable {
         fontSizeBox = null
         wrapCodeBox = null
         sendKeyBox = null
+        defaultModelPanel?.dispose()
+        defaultModelPanel = null
         panel = null
         diagnosticsPanel = null
         agentPathField = null
