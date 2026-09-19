@@ -47,7 +47,7 @@ permissionシナリオは回答の許否にかかわらず合成end_turnを返�
 
 後日のGUI接続前に、元の実行ファイル設定・transport設定を控えます。実行終了時は、このrunで起動した会話/所有processだけを終了し、終端とPIDを確認して記録を保管します。担当者が元設定へ戻し、合成会話を実provider会話として再利用しないでください。headlessではstdinを閉じて終了を待ち、タイムアウト時もその所有PIDだけを停止します。他のIDE/processを停止しません。captureは合成内容のローカル証拠として保存し、自動公開しません。復元先を変えたときはlauncher/configを流用せず、ソース/markerを照合して新runを生成します。原素材は削除しません。
 
-#258の停止済み実commit `86934b13a81243b2772daf6a07f20dbf2ad6f95a` を通常mergeして祖先を保持しています。元developは `9979266b4e99e7d4dc46689dac1f61f33f09b88a`。実行時は当該checkoutのHEAD、launch.json、capture、使用したPlugin ZIPのhashを一緒に記録します。ソースが変われば新しいlauncherを生成し、製品の差分がある候補は新しい固定buildで確認します。#261統合保留中はenroll/mergeしません。製品build/GUIの受入は既存#24 Caseに残し、本toolingのCLI成功で転記しません。
+#258の停止済み実commit `86934b13a81243b2772daf6a07f20dbf2ad6f95a` を通常mergeして祖先を保持しています。元developは `9979266b4e99e7d4dc46689dac1f61f33f09b88a`。実行時は当該checkoutのHEAD、launch.json、capture、使用したPlugin ZIPのhashを一緒に記録します。ソースが変われば新しいlauncherを生成し、製品の差分がある候補は新しい固定buildで確認します。2026-09-19: #261の統合保留は終了し、現在は通常のIssue PR統合手順に従います。製品build/GUIの受入は既存#24 Caseに残し、本toolingのCLI成功で転記しません。
 
 ## headless回帰
 

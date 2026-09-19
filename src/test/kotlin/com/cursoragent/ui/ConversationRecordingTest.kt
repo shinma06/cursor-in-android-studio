@@ -22,8 +22,8 @@ class ConversationRecordingTest {
                 text.acpDelta(AgentEvent.Text("次", "b", true))
                 assertEquals(listOf("元prompt", "同じ同じ", "次"), recorder.conversation.turns.single().messages.map { it.text })
             } else {
-                text.printDelta("hello")
-                text.printDelta("hello world")
+                text.printText("hello")
+                text.printText("hello world")
                 text.printFallback("ignored")
                 assertEquals(displayed.last(), recorder.conversation.turns.single().messages.last().text)
             }

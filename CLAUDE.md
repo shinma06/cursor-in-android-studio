@@ -28,73 +28,27 @@ trust boundary のvalidation、認証/認可、型安全性、データ整合性
 
 [機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ちは維持する。方式Bは現行実装の記録であり、新規連携の設計方針は上記ACP Firstを優先する。以下の過去記録の「非対応」は観測時点・経路に限定する。
 
-## GitHub-first collaboration (2026-09-06, #31)
+## 変更作業の共通契約
 
-[GitHub Work Management Rules](docs/development/work-management.md)に従い、Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは実際の依存/分解に使う。作成/triage時にProject登録・Milestone選定・関係判定・Status/Priority表示を確認する。Standaloneは正常であり、#1等へ分類目的で接続しない。
+コード・文書・設定の変更は、Issue・所有claim・専用のIssue番号付きbranch/worktree・PRで進める。読み取りだけの助言/レビューは新Issue不要。main/developへ直接commit/pushせず、無関係な編集と未解放claimを保全する。通常の変更はorigin/developから開始し、GUI不要toolingのmain向け変更は[GitHub workflow](docs/development/github-workflow.md)の条件を使う。
 
-[Git Governance Audit](docs/development/git-governance-audit.md)を開始・統合終了時の判断に適用する。主要Milestone/High Impact/構造問題と10 meaningful mergesを確認し、既存ルールの削除・統合・単純化を先に検討する。監査状態は各回の監査Issueを正本とし、毎PRの全体監査や二重台帳を追加しない。
+開始/再開は[start-work](.agents/skills/start-work/SKILL.md)、検証/引継ぎ/終了は[finish-work](.agents/skills/finish-work/SKILL.md)を入口にする。`.claude/skills/`の同名Skillも同じ契約、Cursorは本ファイルと`.cursor/rules/loop-engineering.mdc`に従う。作業別の参照条件と承認/再開判断は[GitHub workflow](docs/development/github-workflow.md#参照する範囲と進行判断)に集約する。確認済みの同一資料を段階ごとに読み直さず、変更や矛盾がある箇所を確認する。
 
-開発Agentの追加・委譲前に[Codex実行規約](docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
+- [Work Management](docs/development/work-management.md): Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは実際の依存/分解。作成・triage・終了時に登録/Status/Priority/関係をreadbackし、分類だけの架空の親を付けない。
+- [Codex実行規約](docs/development/codex-execution-policy.md): 追加Agent/委譲前に確認。GPT-6 Astraの子Agentは禁止し、合理的な独立top-level Session連携だけを使う。他モデルの扱いと最新版は#135を参照し、製品のCursor Subagent対応と混同しない。
+- [PR automation](docs/development/pr-automation.md): writer停止・clean確認後にtrusted-mainのv2 enrollへ引き継ぐ。独立sessionによる固定HEAD/baseレビューと、最新のtest / PR policy / Agent review / Acceptance gateの成功が必要。enrollmentは完了ではなく、PM/coordinatorが実行・結果・次担当を追跡する。既存owner/source/registry/PAUSED heartbeatを勝手に変更しない。
+- [GUI coordination](docs/development/gui-coordination.md): desktop操作・install・restart・runIdeはhost共通leaseを持つ指定GPTまたは人間だけが行う。worktree分離はIDE状態を分離しない。使い捨てfixtureとロードしたbuildを識別する。
+- [Git Governance Audit](docs/development/git-governance-audit.md): 開始・統合終了時に既存trigger（主要Milestone/High Impact/構造問題/10 meaningful merges）を確認する。既存監査Issueを正本にし、毎PRの全体監査や二重台帳を増やさない。
 
-**Apply this to every change request, even when the user says nothing about Git/GitHub.**
-The previous no-PR/direct-main and GUI-before-any-merge policies are superseded. Read
-[the GitHub workflow](docs/development/github-workflow.md) before implementation.
-Every code, docs, or configuration task needs an existing/new Issue, an ownership claim,
-its own Issue-numbered branch and worktree, and a PR. Never commit or push directly to main.
-Read-only advice/review does not need a new Issue. Preserve unrelated local work.
+## 統合と完了
 
-1. Read this file, requirements, the Project roadmap and relevant Milestone, target Issue/comments, and open PRs. Inspect status,
-   worktrees, run `git fetch --prune origin`, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
-2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
-   and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
-   in the workflow; no concurrent writers to the same worktree.
-3. Normally create `<codex|claude|cursor>/<issue>-<slug>` in a separate worktree from origin/develop,
-   clear its initial upstream (tooling bootstrap uses origin/main), and run `bash scripts/workflow/bootstrap.sh`.
-   Parallel agents implement assigned independent Issues there and push their own branches.
-4. Open a Draft PR early; update the Issue at each handoff/state change.
-   Follow [PR automation](docs/development/pr-automation.md): stop the original writer and enroll
-   the clean Issue worktree with the trusted-main `agent_loop.py enroll` command. The scheduled
-   coordinator then owns fixes, independent re-review, Issue completion and verified Issue-branch cleanup (never main/develop).
-   `Agent review` is required along with CI. Do not resume editing an enrolled branch concurrently. Record independent
-   review by session and SHA. GPT coordinates integration through GitHub PR merge only.
-5. GUI operations, installs, restarts and runIde require a host-wide lease under
-   [GUI coordination](docs/development/gui-coordination.md). Only its designated GPT session
-   (or human handoff) operates the desktop. Other tasks continue implementation/tests/review.
-   Worktree isolation does not isolate IDE state. Use disposable fixtures and identified builds.
-6. Run tests and independent review, reconcile the target branch and verify current checks.
-   Develop permits pending/blocked/failed GUI with complete Case/fix tracking. Main requires every
-   required Case of the entire fixed candidate to pass on its identified build. See docs/verification/README.md. Never force push, bypass hooks or invent a GUI pass.
-   Close Issues only when acceptance is complete; otherwise record blockers, next action and ownership.
-   Merge and cleanup are separate completion checks: verify remote/local/tracking refs and owned worktrees,
-   or record the retained resource, owner and retry trigger under [branch hygiene](docs/development/pr-automation.md#ブランチ残存の判定と完了確認).
+必要テスト・独立レビュー・Case追跡が揃えば、GUI pending/環境blocked/製品failでもdevelopへsquash統合できる。製品failは専用修正Issueへ追跡する。未解決コード指摘やテスト失敗は許可しない。元実装Issueのcloseは全受入とQAへの双方向引継ぎ/readback後。親tracking/researchやQAを子PRだけでcloseしない。
 
-The [loop protocol](docs/loop-engineering/README.md) defines GUI cases and evidence;
-[the runbook](docs/loop-engineering/human-runbook.md) is the human entrypoint.
-`.agents/skills/` and `.claude/skills/` route start/finish to the same rules;
-Cursor follows this file and `.cursor/rules/loop-engineering.mdc`.
-GitHub Issues/PRs are the shared source of truth; local notes are supporting evidence.
-Existing user authorization applies. Routine work within scope needs no repeated confirmation.
+main promotionは固定develop候補の**全commit・全必要Case**を識別した同一buildで確認し、merge commitで統合する。具体的なGUI不要理由とCLI検証があるdocs/toolingはmain向けPRも可能。[確認マトリクス](docs/verification/README.md)のJSONを正本とし、生成Markdownは二重編集しない。過去build・部分pass・合成テストを新候補全体のpassにしない。
 
-**Server protection active (2026-09-06, #33):** the user made the repository public.
-Ruleset `main-pr-required` (ID 22368189) now requires PRs, successful `test` and `PR policy`
-checks against an up-to-date base, and resolved review conversations; main deletion and force
-push are blocked, with no bypass actors. Same-account agents still record independent session
-reviews; required GitHub approval count is 0. See the workflow for settings and verification.
+全open QAには[人間向け試験ドキュメント](docs/verification/human-qa.md)への本文リンク、前提/手順/期待結果/記録方法、Project #2のQA表示readbackが必要。GUI不要でもmain未反映はQAに残す。初期Caseの入口は[今回の確認一覧](docs/verification/current.md)、GUIの詳細は[loop protocol](docs/loop-engineering/README.md)と[human runbook](docs/loop-engineering/human-runbook.md)。
 
-全open `type:qa` は[人間向け試験ドキュメント](docs/verification/human-qa.md)への本文リンクを必須とする。作成/引継ぎ時は前提・番号付き手順・期待結果・記録方法を揃え、Project #2の「QA — 人間向け試験」への登録/表示をreadbackする。
-
-## develop統合とmain昇格（2026-09-07 / #83、ユーザー方針）
-
-通常実装はdevelop向けIssue PRへ。必要テストと独立コードレビューが通り、
-[確認マトリクス](docs/verification/README.md)に必要Case・手順・期待結果・GPT/人間の状態・次の操作があれば、
-GUIのpending/環境blocked/製品failでもdevelopへ統合できる。製品failは専用修正Issue/PRへ追跡する。
-未解決コード指摘やテスト失敗は許可しない。develop統合後はQAを先に作成・双方向link/readback確認し、実装受入完了の元Issueをcloseする。GUI不要でもmain未反映はQAマトリクスへ引継ぐ。失敗時はcloseせず冪等再試行。QA Case/QA Issueの完了やmain反映とは区別し、親tracking/researchを子PRだけでcloseしない。Issue命名・3軸labelはgithub-workflow.mdの#96規約に従う。
-mainは固定develop候補全体をGPT/人間が適切に確認したpromotion PRをmerge commitで統合する。
-過去buildのpass、1 Caseだけのpass、未確認commitの混入はAcceptance gateが拒否する。
-GUI不要docs/toolingだけは理由とCLI検証を記録したmain PRも可能。main/developはcleanup禁止。
-初期9 Case（製品/probe 7件と親#73のCUA 2件）の入口は [今回の確認一覧](docs/verification/current.md)。JSONを正本に再生成し、二重編集しない。
-既存enrollmentのowner/sourceやPAUSED heartbeatは自動変更しない。公開引継ぎにはopaque IDを使い、
-host/sourceはlocal registryだけへ保存する。#83 bootstrapとGitHub設定順序は運用文書を参照。
+mergeとcleanupは別に確認する。[branch hygiene](docs/development/pr-automation.md#ブランチ残存の判定と完了確認)に従い、所有する停止済みclean Issue branch/worktreeとremote/local/tracking refを照合する。main/master/developは削除しない。残る資源は理由・担当・再開条件を記録する。force push・hook/保護回避は禁止。GitHubを共有の正本とし、ローカルパス/host/秘密は公開せずprivate registryへ保存する。
 
 ## UIの言語と見た目の方針
 
@@ -132,7 +86,7 @@ under the mission and ACP First policy. Read these before adding features.
 
 ## 開発・検証の入口
 
-[全体設計](docs/architecture/README.md)から担当境界を確認し、[現行実装](docs/architecture/current-implementation.md)を読んで変更する。設計判断と履歴を整理するときは[知識の正本](docs/architecture/knowledge.md)を使う。旧checkout由来の指摘は最新baseと照合し、修正済みなら撤回する。
+製品コードの責務・イベント・保存を変更するときは[全体設計](docs/architecture/README.md)と[現行実装](docs/architecture/current-implementation.md)の該当箇所から担当境界を確認する。設計判断と履歴を整理するときは[知識の正本](docs/architecture/knowledge.md)を使う。旧checkout由来の指摘は最新baseと照合し、修正済みなら撤回する。
 
 [Change Impact](docs/development/change-impact.md)をCI・hook・coordinator・ZIP生成で共通利用する。push前は `python3 scripts/workflow/change_impact.py --run-tests`。混在/unknownの検証、明示buildとGUI、独立review/Acceptance gateは維持し、`--no-verify`・保護無効化を使わない。
 
@@ -156,7 +110,7 @@ Gradle自体はJDK17+、KotlinはJDK21 toolchain。`gradle.properties`の`platfo
 - 現printは標準permissionでも即時編集が起こる。Diff/Revertは事後操作。ACPのpermissionを全書込みの事前承認保証にせず、来歴のないACP差分へRevertを追加しない。
 - printのdeduperは全文置換を返すheuristic。ACPの正当な反復deltaへ流用しない。不正/未知wireを防御的に扱い、採取済みcompletedと推定startedを同じ証拠強度にしない。
 - ACPは新規会話の初回送信前だけ選択可。固定settingsを使い、非対応設定を無視しない。要求への一度だけの返答、取消/拒否/切断を保持し、失敗promptを自動再送しない。
-- 保存XML/enumと既定`PermissionMode.ASK_EVERY_TIME`、Plugin ID、内部tool-window/notification IDを維持。print履歴はmetadataのみ、開いたviewはメモリ内。本文永続化は#44、ACPの旧print ID互換は未保証。本文表示・provider再開・Revert可否は別判定。
+- 保存XML/enumと既定`PermissionMode.ASK_EVERY_TIME`、Plugin ID、内部tool-window/notification IDを維持。旧print履歴XMLはmetadataのみ。PRINT/ACP本文は#44の[会話保存契約](docs/architecture/conversation-persistence.md)に従うproject単位JSONへ保存する。実IDE再起動はQA #259で追跡し、ACPの旧print ID互換は未保証。本文表示・provider再開・Revert可否は別判定。
 - モデルは実CLI/provider IDを保持し、未知alias/Context容量を推測で発明しない。`New Agent`と#66の命名取得待ちを維持する。画像/Skills/subagentsは公式能力、UI実装、live受入を分ける。
 - Markdownのraw HTMLをそのまま描画しない。秘密・raw error・非公開wireを公開ログや恒久指示へ移さない。#146の公開承認待ちとownerを維持する。
 - Case JSONは受入/証拠の正本。旧MV/run・過去buildのpass・合成テスト成功を新しい固定buildのGUI passにしない。未確認main/GUIは既存QAへ引き継ぐ。
