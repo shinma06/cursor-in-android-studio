@@ -28,12 +28,14 @@ CLI変更履歴の上記日付は機能を説明する公開release日で、今�
 
 | 層 | scope・読込/優先順 | 実行/失敗・今回の境界 |
 | --- | --- | --- |
-| hook設定 | project `.cursor/hooks.json` / user `~/.cursor/hooks.json`、Enterprise/Team配布。全該当hookが動き、応答の衝突はEnterprise→Team→Project→User。設定file変更はwatch/reload。projectはtrusted workspaceで読込 | 作業directoryはproject root / user `.cursor` / 管理元directoryなどsource依存。実ファイルは読まず、設定存在を成功としない |
-| command/prompt hook | commandはscript、prompt型はLLM評価。`0`は成功、`2`は対象action拒否、通常の他失敗はfail-open。`failClosed`でcrash/timeout/不正JSON時の拒否を指定できる | hook別例外がある。`sessionStart` は待機/拒否を強制せず、`continue:false`も作成を止めない。`sessionEnd`応答も処理継続の保証ではない。全hookを承認防壁と表示しない |
+| hook設定 | project `.cursor/hooks.json` / user `~/.cursor/hooks.json`、Enterprise/Team配布。全該当hookが動く。2026-09-19再確認: 応答は項目別に結合し、sourceにかかわらずdeny > ask > allow、user_message/agent_messageは連結。followup_message等はEnterprise→Team→Project→Userの処理順で後勝ち（低優先sourceが上書き）。設定file変更はwatch/reload、projectはtrusted workspaceで読込 | 作業directoryはproject root / user `.cursor` / 管理元directoryなどsource依存。実ファイルは読まず、設定存在を成功としない |
+| command/prompt hook | commandはscript、prompt型はLLM評価。`0`はJSON応答を利用、`2`は対象action拒否、通常の他終了コードはfail-open。2026-09-19再確認: permission hookは不正JSON/応答schema不一致なら`failClosed=false`でも拒否。`failClosed=true`はcrash/timeout/非zero/出力なし等も拒否 | hook別例外がある。`sessionStart` は待機/拒否を強制せず、`continue:false`も作成を止めない。`sessionEnd`応答も処理継続の保証ではない。全hookを承認防壁と表示しない |
 | lifecycle/環境 | `workspaceOpen`はdesktop/CLIのworkspace開始/変更時に動き、`pluginPaths`を返せる。`sessionStart`のenvは後続hookへ共有。`stop`は追加メッセージを起こし得る | hookのconversation/generation IDは公開schema上の意味だけを使い、Plugin run IDやACP IDへの無検証な同一視をしない。transcript path/利用者情報を含み得るのでrawを保存証拠にしない |
 | plugin設定 | Customizeのinstall scope/管理policy、local pluginはReload Window等で再発見、同名marketplace優先。CLIには設定経路/reloadの別記述あり | bundle配布・有効化・provider認証・個々のhook/tool実行を区別。multi-rootで同名が競合した時の実効構成とACP reloadは未確認 |
 | Rules | 適用時にcontextへ入る。Team→Project→Userの競合優先、nested `AGENTS.md`は親と合成し詳細側優先 | 命令文の優先であり権限の強制ではない。個々のroot/常駐ACPでの再読込時点、CLI/IDE間の全設定同一性は未確認 |
 | worktree setup | `.cursor/worktrees.json`を隔離先→project rootの順で探す。OS別キー優先、generic fallback。配列commandは隔離先で順に実行、scriptは設定fileからの相対path | インストール、fileコピー、DB等への副作用を持ち得る。コピー元 `ROOT_WORKTREE_PATH` は復元先の証拠ではない。失敗時rollback/再試行の冪等性、取消/子process回収、共有資源の隔離は公開記述だけでは保証されない |
+
+2026-09-19補足は[Hooks Configuration](https://cursor.com/docs/hooks#configuration)と同ページのCommand-Based / Per-Script Configurationを再確認した現在の公開契約。2026-09-12時点の記述との差が生じた時期は未確認であり、当時の実測結果やsource基準を変更するものではない。
 
 hooksの実行権限・sandbox/認証との組合せは接続先依存で未測定。UIの「標準」でも即時編集し得る既存print実測と、事後Diff/Revertを維持する。after-edit formatter等が編集結果を再変更した場合、古いRevertのstale拒否を緩めない。Pluginからhookをもう一度実行したり、providerのstop hook follow-upをローカルqueueへ重複投入したりしない。
 
