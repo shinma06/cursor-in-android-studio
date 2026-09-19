@@ -47,4 +47,15 @@ class AgentSettingsStateTest {
         assertEquals(PermissionMode.AUTO_REVIEW, live.permissionMode)
     }
 
+    @Test
+    fun `old XML keeps Enter and both send modes survive load and round trip`() {
+        val old = XmlSerializer.deserialize(Element("state"), AgentSettingsState::class.java)
+        assertEquals(SendKeyMode.ENTER, old.sendKeyMode)
+        for (mode in SendKeyMode.entries) {
+            old.sendKeyMode = mode
+            val restored = XmlSerializer.deserialize(XmlSerializer.serialize(old), AgentSettingsState::class.java)
+            assertEquals(mode, AgentSettingsState().apply { loadState(restored) }.sendKeyMode)
+        }
+    }
+
 }
