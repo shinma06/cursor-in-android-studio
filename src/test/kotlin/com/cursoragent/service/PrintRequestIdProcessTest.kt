@@ -21,13 +21,16 @@ class PrintRequestIdProcessTest {
     }
 
     @Test fun `actual abnormal exit stop and missing ID never report print diagnostics`() {
-        for (ending in listOf("abnormal", "stop", "missing", "error")) exercise(ending)
+        for (ending in listOf("abnormal", "stop", "missing", "error", "background")) exercise(ending)
     }
 
     private fun exercise(ending: String) {
         val root = Files.createDirectory(directory.resolve(ending))
         val script = root.resolve("fake-agent")
         val field = if (ending == "missing") "" else ",\"request_id\":\"Synthetic-Opaque\""
+        val task = if (ending == "background") """
+            printf '%s\n' '{"type":"tool_call","subtype":"completed","session_id":"synthetic-session","call_id":"t","tool_call":{"toolCallId":"t","taskToolCall":{"result":{"success":{"isBackground":true}}}}}'
+        """.trimIndent() else ""
         Files.writeString(script, """
             #!/bin/sh
             if [ "${'$'}1" = "--version" ]; then
@@ -35,6 +38,7 @@ class PrintRequestIdProcessTest {
                 exit 0
             fi
             printf '%s\n' '{"type":"system","subtype":"init","session_id":"synthetic-session"}'
+            $task
             printf '%s' '{"type":"result","subtype":"success","session_id":"synthetic-session","is_error":${ending == "error"},"result":"answer"$field}'
             touch result-written
             while [ ! -f release ]; do sleep 0.05; done
@@ -57,6 +61,7 @@ class PrintRequestIdProcessTest {
                 done.countDown()
             }
             override fun onCompleted(exitCode: Int) { events += "exit:$exitCode"; done.countDown() }
+            override fun onUncertain(message: String) { events += "uncertain"; done.countDown() }
             override fun onStopped() { events += "stopped"; done.countDown() }
             override fun onError(message: String) { events += "error"; done.countDown() }
         }
@@ -76,8 +81,10 @@ class PrintRequestIdProcessTest {
                 "stop" -> "stopped"
                 "abnormal" -> "exit:7"
                 "error" -> "error"
+                "background" -> "uncertain"
                 else -> "exit:0"
             }), events)
+            if (ending == "background") assertNull(service.tryRestore())
         } finally {
             Files.writeString(root.resolve("release"), "")
             turn.run.stop()

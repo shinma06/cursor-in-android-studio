@@ -55,15 +55,12 @@ open class SelectorButton : JButton() {
         try {
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             copy.font = font
-            val fill = if (isEnabled && (model.isRollover || hasFocus())) {
-                if (pillColor != null) {
-                    AgentUiColors.userBubbleBackground
-                } else {
-                    JBUI.CurrentTheme.ActionButton.pressedBackground()
-                }
-            } else pillColor
-            if (fill != null) {
-                copy.color = fill
+            pillColor?.let {
+                copy.color = it
+                copy.fillRoundRect(0, 0, width, height, height, height)
+            }
+            if (isEnabled && (model.isRollover || hasFocus())) {
+                copy.color = JBUI.CurrentTheme.ActionButton.pressedBackground()
                 copy.fillRoundRect(0, 0, width, height, height, height)
             }
             val color = if (isEnabled) foreground else AgentUiColors.mutedText

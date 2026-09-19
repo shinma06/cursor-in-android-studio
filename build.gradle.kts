@@ -71,3 +71,30 @@ tasks {
         enabled = false
     }
 }
+
+// Build identity belongs to the packaged binary, never the IDE's current checkout.
+fun buildGitValue(vararg arguments: String): String? = runCatching {
+    if (!rootDir.resolve(".git").exists()) return@runCatching null
+    val result = providers.exec {
+        workingDir(rootDir)
+        commandLine("git", *arguments)
+        isIgnoreExitValue = true
+    }
+    if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim() else null
+}.getOrNull()
+
+val generateBuildIdentity by tasks.registering(WriteProperties::class) {
+    destinationFile.set(layout.buildDirectory.file("generated/diagnostics/cursor-agent-build.properties"))
+    property("source.commit", providers.provider { buildGitValue("rev-parse", "HEAD").orEmpty() })
+    property("source.state", providers.provider {
+        when (buildGitValue("status", "--porcelain=v1", "--untracked-files=normal")) {
+            null -> "unknown"
+            "" -> "clean"
+            else -> "dirty"
+        }
+    })
+}
+
+tasks.processResources {
+    from(generateBuildIdentity)
+}

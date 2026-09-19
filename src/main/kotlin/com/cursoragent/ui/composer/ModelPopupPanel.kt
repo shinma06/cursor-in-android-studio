@@ -211,10 +211,15 @@ internal class AutoToggle : JToggleButton() {
             val h = JBUI.scale(20)
             val y = (height - h) / 2
             val track = if (isSelected) JBColor(Color(0x288750), Color(0x3CA36C)) else AgentUiColors.bubbleBorder
-            copy.color = if (isEnabled && (model.isRollover || hasFocus())) {
+            val highlighted = isEnabled && (model.isRollover || hasFocus())
+            copy.color = if (highlighted && isSelected) {
                 ColorUtil.mix(track, AgentUiColors.userBubbleBackground, 0.35)
             } else track
             copy.fillRoundRect(0, y, width, h, h, h)
+            if (highlighted && !isSelected) {
+                copy.color = JBUI.CurrentTheme.ActionButton.pressedBackground()
+                copy.fillRoundRect(0, y, width, h, h, h)
+            }
             copy.color = Color.WHITE
             val diameter = h - JBUI.scale(4)
             val x = if (isSelected) width - diameter - JBUI.scale(2) else JBUI.scale(2)

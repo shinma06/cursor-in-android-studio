@@ -72,4 +72,29 @@ class MentionPickerPanelTest {
         panel.failed()
         assertTrue(panel.list.emptyText.text.contains("取得できません"))
     }
+    @Test
+    fun `committed IME event cannot choose cancel or move and cannot clear a newer composition`() {
+        var chosen = 0
+        var cancelled = 0
+        lateinit var panel: MentionPickerPanel
+        SwingUtilities.invokeAndWait {
+            panel = MentionPickerPanel({ chosen++ }, { cancelled++ })
+            panel.loaded(listOf(Mention(MentionKind.FILE, "a.kt", "a.kt"), Mention(MentionKind.FILE, "b.kt", "b.kt")))
+            for (committed in listOf(2, 0)) {
+                val event = java.awt.event.InputMethodEvent(panel.search, java.awt.event.InputMethodEvent.INPUT_METHOD_TEXT_CHANGED,
+                    java.text.AttributedString("日本").iterator, committed, null, null)
+                panel.search.inputMethodListeners.forEach { it.inputMethodTextChanged(event) }
+                for (key in listOf("ENTER", "ESCAPE", "DOWN")) panel.search.actionMap.get(key).actionPerformed(null)
+                assertEquals(0, chosen)
+                assertEquals(0, cancelled)
+                assertEquals(0, panel.list.selectedIndex)
+            }
+        }
+        SwingUtilities.invokeAndWait {
+            for (key in listOf("ENTER", "ESCAPE", "DOWN")) panel.search.actionMap.get(key).actionPerformed(null)
+            assertEquals(0, chosen)
+            assertEquals(0, cancelled)
+            assertEquals(0, panel.list.selectedIndex)
+        }
+    }
 }
