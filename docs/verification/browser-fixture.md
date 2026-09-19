@@ -81,4 +81,4 @@ curl --noproxy '*' --cacert "$browser_qa_run/ca.pem" \
 
 P0はprovider不在/disabledの隔離IDE構成、P1は既存静的照合済みのQuail4 `AI-261.26222.65.2614.16204760` / bundled JBR `25.0.3+-15898627-b508.16` / mac-arm64とJCEF provider `261.22158.414-mac-arm64`。provider ZIPの既存SHA256は`923cf9706b7cdc863c4a48bba06d69f50af3ab818c164a67e3e2bcd9691fb64e`。これはnative/描画の成功ではなく、既存配布物・手順の再利用条件。最新版比較・独自JBR差替え・native例外注入を増やさない。
 
-CLI確認は管理入力の到達・値・順序だけ。実Browser/GUI/lease、IDE install/nativeロード、OS clipboard、通常hosts/trust変更、外部サイト試験は行わない。#164の既存製品fail/候補pendingや#182の未実施結果を上書きしない。provider初期化Exception/LinkageError/renderer終了の制御入口を用意したとは報告しない。PMが#261承認後の正式candidateと固定sourceを照合し、独立レビュー/CI/STOPからQA/main・cleanupへ追跡する。
+CLI確認は管理入力の到達・値・順序だけ。実Browser/GUI/lease、IDE install/nativeロード、OS clipboard、通常hosts/trust変更、外部サイト試験は行わない。#164の既存製品fail/候補pendingや#182の未実施結果を上書きしない。provider初期化Exception/LinkageError/renderer終了の制御入口を用意したとは報告しない。PMが正式candidateと固定sourceを照合し、独立レビュー/CI/STOPからQA/main・cleanupへ追跡する。
