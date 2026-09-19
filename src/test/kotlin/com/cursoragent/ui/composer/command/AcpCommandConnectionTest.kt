@@ -17,6 +17,8 @@ class AcpCommandConnectionTest {
         val state = AcpCommandConnection()
         var ticket = state.replace(key)!!
         assertTrue(state.update(ticket, ready))
+        assertTrue(state.updateImageSupport(ticket, true))
+        assertEquals(true, state.imageSupported)
         assertNull(state.replace(key))
         for (next in listOf(key.copy(root = "/other"), key.copy(executable = "other-agent"),
             key.copy(permission = PermissionMode.entries.first { it != key.permission }),
@@ -24,6 +26,8 @@ class AcpCommandConnectionTest {
             key.copy(workspace = WorktreeMode.ISOLATED))) {
             val current = state.replace(next)!!
             assertFalse(state.update(ticket, ready))
+            assertFalse(state.updateImageSupport(ticket, true))
+            assertNull(state.imageSupported)
             assertEquals(CommandCatalog.Loading, state.catalog)
             ticket = current
         }
@@ -39,7 +43,10 @@ class AcpCommandConnectionTest {
         val b = AcpCommandConnection()
         val ticket = a.replace(key)!!
         b.replace(key)
+        assertTrue(a.updateImageSupport(ticket, true))
         a.clear()
+        assertNull(a.imageSupported)
+        assertFalse(a.updateImageSupport(ticket, true))
         assertFalse(a.update(ticket, ready))
         assertEquals(CommandCatalog.Unavailable, a.catalog)
         assertEquals(CommandCatalog.Loading, b.catalog)

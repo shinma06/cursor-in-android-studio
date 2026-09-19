@@ -69,4 +69,32 @@ class AgentRequestCardTest {
         }
     }
 
+    @Test
+    fun `always permission scope is plain text and one opaque reply is reported as a reply`() {
+        for (kind in listOf("allow_always", "reject_always")) {
+            val replies = mutableListOf<AgentAnswer>()
+            val id = "opaque:$kind"
+            val request = AgentInputRequest(AgentInput.Permission(AgentTool("tool", command = "synthetic"),
+                listOf(PermissionOption(id, "<html>external label</html>", kind), PermissionOption("unknown", "Unknown", "future"))),
+                { answer -> replies.add(answer); answer })
+            lateinit var card: AgentRequestCard
+            SwingUtilities.invokeAndWait {
+                card = AgentRequestCard(request)
+                val texts = card.components.filterIsInstance<javax.swing.JTextArea>().map { it.text }
+                assertTrue(texts.any { it.contains("適用範囲・有効期間は接続先") })
+                val buttons = card.components.filterIsInstance<JButton>()
+                assertFalse(buttons.first { it.text.startsWith("未対応") }.isEnabled)
+                val button = buttons.first { it.text.startsWith("今後も") }
+                assertEquals(true, button.getClientProperty("html.disable"))
+                button.doClick(0)
+                button.doClick(0)
+            }
+            SwingUtilities.invokeAndWait {
+                assertTrue(card.components.filterIsInstance<javax.swing.JTextArea>().last().text.contains("回答を送信しました"))
+                assertTrue(card.components.filterIsInstance<javax.swing.JTextArea>().last().text.contains("適用範囲は接続先"))
+                assertTrue(card.components.filterIsInstance<AbstractButton>().none { it.isEnabled })
+            }
+            assertEquals(listOf(AgentAnswer.Permission(id)), replies)
+        }
+    }
 }

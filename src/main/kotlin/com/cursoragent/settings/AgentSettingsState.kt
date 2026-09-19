@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import com.intellij.util.messages.Topic
 
 enum class AgentMode(val cliValue: String?) {
     ASK("ask"),
@@ -35,6 +36,21 @@ enum class WorktreeMode(val useIsolatedWorktree: Boolean, val label: String) {
     ISOLATED(true, "Worktree: isolated (-w)"),
 }
 
+enum class SendKeyMode {
+    ENTER,
+    MODIFIER_ENTER;
+
+    fun keyLabel(isMac: Boolean): String = when (this) {
+        ENTER -> "Enter"
+        MODIFIER_ENTER -> if (isMac) "Cmd+Enter" else "Ctrl+Enter"
+    }
+
+    override fun toString(): String = when (this) {
+        ENTER -> "Enterで送信 / Shift+Enterで改行"
+        MODIFIER_ENTER -> "${keyLabel(com.intellij.openapi.util.SystemInfo.isMac)}で送信 / Enterで改行"
+    }
+}
+
 @Service(Service.Level.APP)
 @State(name = "CursorAgentSettings", storages = [Storage("cursor-agent-settings.xml")])
 class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
@@ -48,8 +64,19 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     var worktreeMode: WorktreeMode = WorktreeMode.DEFAULT
     var showNewChatIcon: Boolean = true
     var showHistoryIcon: Boolean = true
+    /** Zero follows IDE UI typography; persisted custom sizes are unscaled points. */
+    var conversationFontSize: Int = 0
+        set(value) { field = if (value == 0 || value in 8..36) value else 0 }
+    var wrapCodeLines: Boolean = false
+    var sendKeyMode: SendKeyMode = SendKeyMode.ENTER
     var notifyOnTurnComplete: Boolean = true
     var notifyOnApprovalPending: Boolean = true
+
+    /** A detached per-view selection; reopening old conversations never applies a new print default. */
+    internal fun composerSelection(newPrintConversation: Boolean): AgentSettingsState = AgentSettingsState().also {
+        it.mode = mode
+        it.selectedModel = if (newPrintConversation) selectedModel else ""
+    }
 
     override fun getState(): AgentSettingsState = this
 
@@ -58,6 +85,12 @@ class AgentSettingsState : PersistentStateComponent<AgentSettingsState> {
     }
 
     companion object {
+        @Topic.AppLevel
+        val DISPLAY_CHANGED: Topic<Runnable> = Topic.create("Cursor Agent display changed", Runnable::class.java)
+
+        @Topic.AppLevel
+        val SEND_KEY_CHANGED: Topic<Runnable> = Topic.create("Cursor Agent send key changed", Runnable::class.java)
+
         fun getInstance(): AgentSettingsState =
             ApplicationManager.getApplication().getService(AgentSettingsState::class.java)
     }

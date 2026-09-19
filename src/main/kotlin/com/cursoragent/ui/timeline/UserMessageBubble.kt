@@ -10,6 +10,18 @@ import javax.swing.JPanel
 class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
     var onRollbackRequested: (() -> Unit)? = null
 
+    private val imageThumbnail = javax.swing.JLabel().apply {
+        isVisible = false
+        accessibleContext.accessibleName = "送信した画像のサムネイル（再送には再添付が必要）"
+    }
+
+    internal fun setImageThumbnail(image: java.awt.image.BufferedImage) {
+        imageThumbnail.icon = javax.swing.ImageIcon(image)
+        imageThumbnail.isVisible = true
+        revalidate()
+        repaint()
+    }
+
     private val rollbackButton = JButton(AllIcons.Actions.Rollback).apply {
         toolTipText = "この応答の前の状態へ復元"
         isBorderPainted = false
@@ -22,9 +34,10 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
         isOpaque = false
         val bubble = com.cursoragent.ui.RoundedSurface(AgentUiColors.userBubbleBackground).apply {
             border = AgentUiColors.bubbleBorder(8)
+            add(imageThumbnail, BorderLayout.NORTH)
             add(MessageTextPane().apply {
                 this.text = "<html><body>${escapeHtml(text).replace("\n", "<br>")}</body></html>"
-            }, BorderLayout.CENTER)
+            }.scrollable(), BorderLayout.CENTER)
             add(rollbackButton.apply {
                 preferredSize = JBUI.size(24, 24)
                 minimumSize = preferredSize

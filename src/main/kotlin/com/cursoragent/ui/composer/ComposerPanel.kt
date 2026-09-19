@@ -6,17 +6,16 @@ import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.RoundedSurface
 import com.cursoragent.ui.composer.mention.MentionPopupController
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.util.messages.MessageBusConnection
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.JPanel
-import javax.swing.KeyStroke
 
-class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
+class ComposerPanel(private val project: Project, newPrintConversation: Boolean = true) : JPanel(BorderLayout()) {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
     var onEnqueue: (String) -> Unit = {}
@@ -24,6 +23,19 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     var isRunning = false
         private set
     private var acp = false
+    internal var images: com.cursoragent.ui.composer.image.ImageDraft? = null
+        private set
+    private val imageContainer = JPanel(BorderLayout()).apply { isOpaque = false }
+    internal fun installImages(draft: com.cursoragent.ui.composer.image.ImageDraft): com.cursoragent.ui.composer.image.ImageAttachmentPanel {
+        images = draft
+        val panel = com.cursoragent.ui.composer.image.ImageAttachmentPanel(draft)
+        imageContainer.add(panel)
+        inputArea.onImageTransfer = { value -> draft.import { com.cursoragent.ui.composer.image.ImageTransfer.read(value) }; true }
+        return panel
+    }
+    private val sendShortcut = PromptSendShortcut(::submit)
+    private var settingsConnection: MessageBusConnection? = null
+    private var sendLabel = "送信（Enter）"
 
     val contextUsage = com.cursoragent.ui.composer.context.ContextUsageView()
 
@@ -51,7 +63,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     private val enqueueButton = javax.swing.JButton("予約に追加").apply {
         isVisible = false
         toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
-        addActionListener { if (isRunning && inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen) inputText().takeIf { it.isNotBlank() || commands.selectedName != null }?.let(onEnqueue) }
+        addActionListener { if (isRunning && inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen) inputText().takeIf { it.isNotBlank() || commands.selectedName != null || images?.attachment != null }?.let(onEnqueue) }
     }
     private val queueButton = javax.swing.JButton().apply {
         isVisible = false
@@ -68,11 +80,7 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     // Detached selector state: application settings supply defaults only for a new tab.
-    val selection = AgentSettingsState().apply {
-        val defaults = AgentSettingsState.getInstance()
-        mode = defaults.mode
-        selectedModel = defaults.selectedModel
-    }
+    val selection = AgentSettingsState.getInstance().composerSelection(newPrintConversation)
     val modeSelector = ModeSelector(selection)
     val modelSelector = ModelSelector(selection)
 
@@ -100,13 +108,15 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         promptContext.onAddMention = { mentionPopupController.showPopup() }
         inputWrapper.add(JPanel(BorderLayout()).apply {
             isOpaque = false
-            add(commands, BorderLayout.NORTH)
+            add(JPanel(BorderLayout()).apply {
+                isOpaque = false
+                add(imageContainer, BorderLayout.NORTH)
+                add(commands, BorderLayout.CENTER)
+            }, BorderLayout.NORTH)
             add(promptContext, BorderLayout.CENTER)
         }, BorderLayout.NORTH)
 
-        object : AnAction() {
-            override fun actionPerformed(e: AnActionEvent) = submit()
-        }.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0)), inputArea)
+        refreshSendShortcut()
 
         sendButton.addActionListener { if (isRunning) onStop() else submit() }
 
@@ -135,9 +145,35 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         add(inputWrapper, BorderLayout.CENTER)
     }
 
+    override fun addNotify() {
+        super.addNotify()
+        settingsConnection?.disconnect()
+        settingsConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            it.subscribe(AgentSettingsState.SEND_KEY_CHANGED, Runnable { refreshSendShortcut() })
+        }
+        refreshSendShortcut()
+    }
+
+    override fun removeNotify() {
+        settingsConnection?.disconnect()
+        settingsConnection = null
+        super.removeNotify()
+    }
+
+    private fun refreshSendShortcut() {
+        val mode = AgentSettingsState.getInstance().sendKeyMode
+        sendShortcut.install(inputArea, mode, SystemInfo.isMac)
+        sendLabel = "送信（${mode.keyLabel(SystemInfo.isMac)}）"
+        updateSendLabel()
+    }
+
+    private fun updateSendLabel() {
+        sendButton.toolTipText = if (isRunning) "停止" else sendLabel
+        sendButton.accessibleContext.accessibleName = sendButton.toolTipText
+    }
+
     fun useAcp() {
         acp = true
-        selection.selectedModel = ""
         modelSelector.waitForAcp()
     }
 
@@ -168,11 +204,11 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
         }
         sendButton.text = if (running) "" else "↑"
         sendButton.icon = if (running) StopIcon else null
-        sendButton.toolTipText = if (running) "停止" else "送信（Enter）"
-        sendButton.accessibleContext.accessibleName = sendButton.toolTipText
+        updateSendLabel()
     }
 
     fun clearInput() {
+        images?.clear()
         inputArea.text = ""
         promptContext.clearExplicit()
         commands.clearSelection()
@@ -181,9 +217,10 @@ class ComposerPanel(private val project: Project) : JPanel(BorderLayout()) {
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (isRunning || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen) return
+        if (isRunning || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
         val text = inputText()
-        if (text.isNotEmpty() || commands.selectedName != null) {
+        if (images?.importing == true) return
+        if (text.isNotEmpty() || commands.selectedName != null || images?.attachment != null) {
             onSend(text)
         }
     }

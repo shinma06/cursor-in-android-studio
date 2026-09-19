@@ -11,7 +11,7 @@ class MessageTextPaneTest {
     @Test
     fun `assistant updates replace prior text including cumulative corrections and empty content`() = SwingUtilities.invokeAndWait {
         val bubble = AssistantMessageBubble("old reply")
-        val pane = bubble.components.filterIsInstance<MessageTextPane>().single()
+        val pane = (bubble.components.filterIsInstance<javax.swing.JScrollPane>().single().viewport.view as MessageTextPane)
         fun renderedText() = pane.document.getText(0, pane.document.length).trim()
         assertEquals("old reply", renderedText())
         bubble.setContent("**new**")

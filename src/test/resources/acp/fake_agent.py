@@ -137,7 +137,10 @@ for line in sys.stdin:
     method = request.get("method")
     if method == "initialize":
         assert request["params"]["clientCapabilities"] == {"fs": {"readTextFile": False, "writeTextFile": False}, "terminal": False}
-        response(request["id"], {"protocolVersion": 1.5 if scenario == "version-fraction" else "1" if scenario == "version-string" else 1})
+        initialized = {"protocolVersion": 1.5 if scenario == "version-fraction" else "1" if scenario == "version-string" else 1}
+        if scenario.startswith("image-"):
+            initialized["agentCapabilities"] = {"promptCapabilities": {"image": {"image-true": True, "image-false": False, "image-string": "true"}[scenario]}}
+        response(request["id"], initialized)
     elif method == "session/new":
         assert request["params"]["cwd"] == str(root.resolve())
         cancelled.clear()
@@ -165,6 +168,42 @@ for line in sys.stdin:
             if child is not None:
                 threading.Thread(target=child.wait, daemon=True).start()
             update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "running"})
+        elif scenario.startswith("content-"):
+            send({"method": "session/update", "params": {"sessionId": "foreign-session", "update": {"sessionUpdate": "agent_message_chunk", "content": {"type": "image", "mimeType": "foreign", "data": "x"}}}})
+            update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "before"})
+            update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "image/png", "data": "synthetic"})
+            update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "after"})
+            update(sessionUpdate="tool_call", toolCallId="media", status="completed", content=[None, {"type": "content", "content": {"type": "audio", "mimeType": "audio/wav", "data": "synthetic"}}])
+            if scenario != "content-stop":
+                finish()
+                update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "late", "data": "x"})
+        elif scenario.startswith("task-"):
+            # Synthetic adaptation of #118's public projection; requests remain unsupported.
+            send({"method": "cursor/task", "params": {"toolCallId": "missing", "model": "ignore-before-tool"}})
+            update(sessionUpdate="tool_call", toolCallId="task-one", kind="other", status="pending", rawInput={"_toolName": "task", "description": "synthetic child", "subagentType": {"custom": {"name": "reader"}}})
+            update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
+            if scenario.startswith("task-background"):
+                update(sessionUpdate="tool_call_update", toolCallId="task-one", status="completed", rawOutput={"isBackground": True})
+                update(sessionUpdate="tool_call_update", toolCallId="task-one", status="completed", rawOutput={"isBackground": None})
+                (root / "background-ready").touch()
+                if scenario != "task-background-stop":
+                    finish("cancelled" if scenario == "task-background-cancelled" else "end_turn")
+            elif scenario != "task-stop":
+                update(sessionUpdate="tool_call_update", toolCallId="task-one", status="failed" if scenario == "task-failed" else "completed", rawOutput={"durationMs": 12, "isBackground": False})
+                if scenario == "task-reopened":
+                    update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
+                send({"method": "cursor/task", "params": {"sessionId": "foreign-session", "toolCallId": "task-one", "agentId": "foreign"}})
+                send({"method": "cursor/task", "params": {"toolCallId": "unknown", "agentId": "unknown"}})
+                send({"method": "cursor/task", "params": {"agentId": "missing-id"}})
+                metadata = {"toolCallId": "task-one", "agentId": "reported-child", "model": "default", "durationMs": "12"}
+                if scenario == "task-notify":
+                    send({"method": "cursor/task", "params": metadata})
+                    send({"method": "cursor/task", "params": metadata})
+                    finish()
+                    send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-terminal"}})
+                else:
+                    pending = 7001
+                    send({"id": pending, "method": "cursor/task", "params": metadata})
         elif scenario == "events":
             threading.Thread(target=tool_events, args=(prompt_id, cancelled), daemon=True).start()
         elif scenario in ("questions", "plan"):
@@ -189,10 +228,16 @@ for line in sys.stdin:
         cancelled.set()
         finish("cancelled")
         (control / "cancel-response").touch()
+        if scenario == "content-stop":
+            update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "after-stop", "data": "x"})
+        if scenario == "task-stop":
+            send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-stop"}})
     elif "method" not in request and pending is not None and request.get("id") == pending:
-        if scenario == "unknown":
+        if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard", "task-reopened"):
             assert request["error"]["code"] == -32601
         finish(scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn")
+        if scenario == "task-late-standard":
+            update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
 
 closed.set()
 cancelled.set()

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 149,
+  "gui_required": false,
+  "reason": "合成usage契約probeと文書・境界fixtureの調査のみ。製品表示/GUI受入は未達として追跡する。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 docs/research/issue-149-check.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "固定CLI/modelの合成usage probeと境界fixture・一次資料の独立照合"
+  ],
+  "cases": []
+}
