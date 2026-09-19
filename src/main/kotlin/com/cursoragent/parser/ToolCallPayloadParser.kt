@@ -30,6 +30,7 @@ object ToolCallPayloadParser {
         val payload = kindEntry.value.asJsonObject
 
         return when (kind) {
+            "task" -> parseTask(json, callId, subtype, payload)
             "read" -> parseRead(callId, subtype, payload)
             "edit" -> parseEdit(callId, subtype, payload)
             "shell" -> parseShell(callId, subtype, payload)
@@ -40,6 +41,29 @@ object ToolCallPayloadParser {
                 summary = "$kind tool",
             )
         }
+    }
+
+    private fun parseTask(json: JsonObject, callId: String, subtype: String, payload: JsonObject): ParsedToolCall? {
+        if (subtype !in setOf("started", "completed") ||
+            (json.taskId("call_id") ?: json.taskId("callId")) != callId ||
+            json.objectValue("tool_call")?.taskId("toolCallId") != callId) return null
+        val parent = json.taskId("session_id") ?: return null
+        val result = payload.objectValue("result")
+        val error = result?.objectValue("error")
+        val failed = error != null
+        val success = if (failed) null else result?.objectValue("success")
+        val details = com.cursoragent.service.AgentTask().withTaskInput(payload.objectValue("args"))
+            .withTaskOutput(success, includeSteps = true).copy(
+                errorText = error?.taskString("error", 8_192),
+            )
+        val status = when {
+            failed -> "failed"
+            subtype == "started" -> "in_progress"
+            success != null -> "completed"
+            else -> null
+        }
+        return ParsedToolCall(callId, subtype, "task", "子Task", parentSessionId = parent,
+            task = com.cursoragent.service.AgentTool(callId, "子Task", "task", status, task = details))
     }
 
     private fun parseRead(callId: String, subtype: String, payload: JsonObject): ParsedToolCall {

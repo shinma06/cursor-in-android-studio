@@ -1,6 +1,9 @@
 package com.cursoragent.ui
 
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.service.AgentProcessService
+import com.cursoragent.service.TurnSettings
+import com.cursoragent.settings.AgentMode
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.session.SessionTabsSnapshot
 import com.cursoragent.settings.AgentSettingsConfigurable
@@ -74,15 +77,31 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         },
         onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
         onBrowser = { ManualBrowser.open(project) },
+        onExport = { TranscriptExport(project).export(selectedView?.controller?.conversationSnapshot()) },
+        onChanges = { selectedView?.controller?.showChanges() },
+        settingsUnavailableReason = { permission, sandbox, worktree ->
+            project.getService(AgentProcessService::class.java).settingsUnavailableReason(
+                AgentTransport.ACP, TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
+            )
+        },
+        requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
+        onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
-        onChatResumed = { conversation, legacyId ->
+        onChatResumed = { conversation, legacyId, match, query ->
             if (conversation != null) {
                 sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
             } else {
                 sessions.open(legacyId)
             }
             showSelected(conversation, legacyId != null)
+            if (match != null) {
+                val view = selectedView
+                javax.swing.SwingUtilities.invokeLater {
+                    val current = view?.controller?.conversationSnapshot()
+                    if (current != null) view.timeline.scrollToHistoryMatch(current, match.messageId, query)
+                }
+            }
         },
         isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
     )
@@ -156,7 +175,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     private fun closeTabs(ids: List<String>, confirmed: Boolean = false) {
         if (disposed || project.isDisposed) return
         ids.forEach { views[it]?.controller?.pauseQueue() }
-        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit || it.composer.commands.selectedName != null) } == true }) {
+        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit || it.composer.commands.selectedName != null || it.composer.images?.hasUnsent == true) } == true }) {
             if (Messages.showYesNoDialog(project, "未保存の本文・下書き・予約した入力、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
         }
         sessions.closeAll(ids).forEach { tab ->
@@ -180,7 +199,9 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
             val composer = ComposerPanel(project)
-            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly)
+            val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly,
+                onShowConversation = { if (!disposed && sessions.select(tab.id)) showSelected() },
+            )
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun
             composer.onEnqueue = controller::enqueuePrompt

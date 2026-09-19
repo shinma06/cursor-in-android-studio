@@ -45,7 +45,7 @@
       "history": [],
       "fix_issue": null,
       "fix_pr": null,
-      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。旧Case passを流用しない。",
       "next_action": "PMが統合後に全Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が実施する。",
       "main_eligible": false,
       "provenance": [
@@ -88,7 +88,7 @@
       "history": [],
       "fix_issue": null,
       "fix_pr": null,
-      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。旧Case passを流用しない。",
       "next_action": "PMが統合後に全Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が実施する。",
       "main_eligible": false,
       "provenance": [
@@ -131,7 +131,7 @@
       "history": [],
       "fix_issue": null,
       "fix_pr": null,
-      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。旧Case passを流用しない。",
       "next_action": "PMが統合後に全Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が実施する。",
       "main_eligible": false,
       "provenance": [
