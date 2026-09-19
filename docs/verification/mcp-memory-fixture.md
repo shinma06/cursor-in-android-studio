@@ -58,6 +58,6 @@ stdinを閉じ、所有processのexit0とstdout EOF、data無変更まで確認�
 
 続いて、その試験で起動した所有processの終了を確認→新設した当該設定entryだけを、確定した設定保存先から担当者が撤去→所有記録を保存→専用data/package/cacheを含む所有rootのみを撤去します。S0復帰と新設資材撤去は別工程です。通常設定全体を古いbackupで上書きせず、他server/PIDを操作しません。失敗時は未復帰の項目と所有者をPMへ引き継ぎます。今回の準備ではtemplateを配置しておらず、通常設定の復元操作は不要です。
 
-MV-029のツール行集約は#310/T1の別条件です。#261全merge凍結・既存GUI待ち・main未反映を維持します。[stdio停止の根拠](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#shutdown)に従うserver単体停止と、実Cursorの停止動作の観測を分けます。
+MV-029のツール行集約は#310/T1の別条件です。2026-09-19: #261の統合凍結は終了済みです。既存GUI待ち・main未反映を維持します。[stdio停止の根拠](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#shutdown)に従うserver単体停止と、実Cursorの停止動作の観測を分けます。
 
 境界テスト: `python3 -m unittest discover -s scripts/loop -p test_mcp_memory_fixture.py`。既存root/データ、symlink、runtime/package/template/marker変更をserver起動前に拒否することを確認します。ネットワークや公式serverを再取得しない検査です。
