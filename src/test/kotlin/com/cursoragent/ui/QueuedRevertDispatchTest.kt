@@ -61,7 +61,7 @@ class QueuedRevertDispatchTest {
         ).asJsonObject)!!
         SwingUtilities.invokeAndWait {
             val timeline = ChatTimelinePanel()
-            val factory = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, recorder, {}, changes, queue::pause)
+            val factory = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, recorder, {}, changes, queue::pause, { _, _ -> })
             recorder.begin("synthetic-turn", "prompt")
             val listener = factory.create(0, "synthetic-turn", { true }, { false }, { true }, { target })
             listener.onToolCallCompleted(completed)
@@ -93,7 +93,7 @@ class QueuedRevertDispatchTest {
             if (method.name == "isDisposed") false else error("Unexpected project access")
         } as Project
         val turns = mutableListOf<String>()
-        val factory = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, recorder, {}, changes, queue::pause)
+        val factory = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, recorder, {}, changes, queue::pause, { _, _ -> })
         fun start(text: String): Boolean {
             sessions.updateComposer(owner.id, AgentMode.AGENT, "", text, 0)
             val token = sessions.beginTurn(owner.id)!!.token

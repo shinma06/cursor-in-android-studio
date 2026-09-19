@@ -1,7 +1,6 @@
 package com.cursoragent.ui
 
 import com.cursoragent.PluginBrand
-import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.notification.AgentNotificationService
 import com.cursoragent.parser.ParsedToolCall
 import com.cursoragent.parser.taskKey
@@ -10,9 +9,12 @@ import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.RestoreTarget
 import com.cursoragent.service.displayText
 import com.cursoragent.service.taskStatusText
+import com.cursoragent.history.ConversationRecorder
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
 /**
@@ -29,6 +31,7 @@ internal class AgentTurnListenerFactory(
     private val onRunFinished: (successful: Boolean) -> Unit,
     private val changes: ConversationChanges,
     private val beforeRevert: () -> Unit,
+    private val onUsageFinish: (Long, UsagePhase) -> Unit,
 ) {
     fun create(
         usageTicket: Long,
@@ -37,9 +40,13 @@ internal class AgentTurnListenerFactory(
         isStopped: () -> Boolean,
         onSession: (String) -> Boolean,
         restoreTarget: () -> RestoreTarget,
+        onPrintRequestId: (com.cursoragent.service.PrintRequestId) -> Unit = {},
     ): AgentProcessListener {
-        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        val updates = TurnEdtUpdates { allowStopped, block ->
             updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
+        }
+        fun update(allowStopped: Boolean = false, block: () -> Unit) {
+            updates.update(allowStopped, block)
         }
         val assistantText = TurnAssistantText(
             { text -> timeline.setAssistantText(text); recorder.assistant(text) },
@@ -89,6 +96,7 @@ internal class AgentTurnListenerFactory(
                     return
                 }
                 update {
+                    onUsageFinish(usageTicket, if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) UsagePhase.STOPPED else UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     finishTasks()
                     recorder.finish(outcome.name.lowercase())
@@ -99,6 +107,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onUncertain(message: String) {
                 update(allowStopped = true) {
+                    onUsageFinish(usageTicket, UsagePhase.FAILED)
                     timeline.finalizeAssistantMessage()
                     finishTasks()
                     recorder.error("接続の終了を確認できませんでした。")
@@ -109,7 +118,7 @@ internal class AgentTurnListenerFactory(
             }
 
             override fun onAssistantText(text: String) {
-                update { assistantText.printText(text) }
+                updates.print(text, assistantText::printText)
             }
 
             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
@@ -198,6 +207,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onError(message: String) {
                 update {
+                    onUsageFinish(usageTicket, UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
@@ -212,6 +222,7 @@ internal class AgentTurnListenerFactory(
 
             override fun onStopped() {
                 update(allowStopped = true) {
+                    onUsageFinish(usageTicket, UsagePhase.STOPPED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
@@ -221,8 +232,13 @@ internal class AgentTurnListenerFactory(
                 }
             }
 
-            override fun onCompleted(exitCode: Int) {
+            override fun onCompleted(exitCode: Int) = completed(exitCode, null)
+
+            override fun onPrintCompleted(requestId: com.cursoragent.service.PrintRequestId) = completed(0, requestId)
+
+            private fun completed(exitCode: Int, requestId: com.cursoragent.service.PrintRequestId?) {
                 update {
+                    onUsageFinish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                     timeline.clearStatus()
                     timeline.finalizeAssistantMessage()
                     finishTasks()
@@ -232,9 +248,39 @@ internal class AgentTurnListenerFactory(
                     if (exitCode != 0) recorder.error("Agent終了コード: $exitCode")
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     AgentNotificationService.notifyTurnCompleted(project, exitCode)
+                    if (requestId != null) onPrintRequestId(requestId)
                     onRunFinished(exitCode == 0)
                 }
             }
+        }
+    }
+}
+
+/** Coalesce only adjacent print replacements; other events keep their ordering and ownership checks. */
+internal class TurnEdtUpdates(private val enqueue: (Boolean, () -> Unit) -> Unit) {
+    private var pendingPrint: AtomicReference<String>? = null
+
+    @Synchronized
+    fun update(allowStopped: Boolean = false, block: () -> Unit) {
+        pendingPrint = null
+        enqueue(allowStopped, block)
+    }
+
+    @Synchronized
+    fun print(text: String, consume: (String) -> Unit) {
+        if (text.isEmpty()) return
+        pendingPrint?.let {
+            it.set(text)
+            return
+        }
+        val batch = AtomicReference(text)
+        pendingPrint = batch
+        enqueue(false) {
+            val latest = synchronized(this) {
+                if (pendingPrint === batch) pendingPrint = null
+                batch.get()
+            }
+            consume(latest)
         }
     }
 }

@@ -27,12 +27,15 @@ class PrintRecordingDispatchTest {
         val assistant = TurnAssistantText({ displayed.add(it); recorder.assistant(it) }, recorder::newAssistant)
         var current = true
         lateinit var run: AgentRun
+        val updates = TurnEdtUpdates { allowStopped, block ->
+            updateCurrentTurnOnEdt({ false }, { current }, { run.wasStopped }, allowStopped, block)
+        }
         run = AgentRun(object : AgentProcessListener {
             override fun onAssistantText(text: String) {
-                updateCurrentTurnOnEdt({ false }, { current }, { run.wasStopped }) { assistant.printText(text) }
+                updates.print(text, assistant::printText)
             }
             override fun onResultFallback(text: String) {
-                updateCurrentTurnOnEdt({ false }, { current }, { run.wasStopped }) { assistant.printFallback(text) }
+                updates.update { assistant.printFallback(text) }
             }
         })
         val print = PrintAssistantText(PrintAssistantText.VERIFIED_VERSION, true)

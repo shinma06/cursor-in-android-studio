@@ -15,6 +15,7 @@ import javax.swing.JTextArea
 internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentToolContent.Diff) -> Unit) : JPanel(BorderLayout()) {
     var tool: AgentTool = initial
         private set
+    private var backgroundObserved = false
     private val summary = textArea()
     private val bodyText = textArea()
     private val details = JPanel(BorderLayout()).apply {
@@ -48,10 +49,12 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
     }
 
     fun update(incoming: AgentTool) {
+        backgroundObserved = backgroundObserved || incoming.task?.isBackground == true
         // Retain the observed result, but do not hide contradictory activity behind "completed".
         if (tool.status == "failed" && incoming.status != "failed") return
         val status = taskStatus(tool.status, incoming.status)
         tool = if (status == "unconfirmed") tool.copy(status = status) else incoming.copy(status = status)
+        if (backgroundObserved && tool.status != "failed") tool = tool.copy(status = "unconfirmed")
         val task = requireNotNull(tool.task)
         val title = "子Task: ${task.name ?: task.description ?: "名前は未取得"}\n${taskStatusText(tool.status, task.isBackground)}"
         if (summary.text != title) summary.text = title
