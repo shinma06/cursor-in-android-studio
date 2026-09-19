@@ -1,6 +1,10 @@
 package com.cursoragent.ui.browser
 
+import com.intellij.ide.BrowserUtil
+import com.intellij.ide.plugins.PluginManagerConfigurable
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBTextArea
@@ -20,6 +24,7 @@ import org.cef.network.CefRequest
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.JButton
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
@@ -28,6 +33,9 @@ internal class ManualBrowserPanel(private val project: Project) : JPanel(BorderL
         emptyText.text = "https:// または http:// から始まるURL"
         accessibleContext.accessibleName = "URL"
     }
+    var preferredFocusableComponent: JComponent = address
+        private set
+
     private val status = JBTextArea("URLを入力するとページを開きます。Agentによる操作・会話への共有は未接続です。").apply {
         isEditable = false
         lineWrap = true
@@ -65,10 +73,12 @@ internal class ManualBrowserPanel(private val project: Project) : JPanel(BorderL
             } else {
                 unavailable("このIDEでは内蔵ブラウザー（JCEF）を利用できません。")
             }
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            Logger.getInstance(ManualBrowserPanel::class.java).warn("Could not initialize manual JCEF browser", error)
             releaseBrowser()
-            unavailable("内蔵ブラウザーを起動できませんでした。閉じてから開き直してください。")
-        } catch (_: LinkageError) {
+            unavailable("内蔵ブラウザーを起動できませんでした。導入・回復手順を確認してください。")
+        } catch (error: LinkageError) {
+            Logger.getInstance(ManualBrowserPanel::class.java).warn("Manual JCEF browser runtime unavailable", error)
             releaseBrowser()
             unavailable("このIDEの実行環境では内蔵ブラウザー（JCEF）を利用できません。")
         }
@@ -83,6 +93,20 @@ internal class ManualBrowserPanel(private val project: Project) : JPanel(BorderL
         status.text = message
         address.isEnabled = false
         go.isEnabled = false
+        val recovery = BrowserRecoveryPanel(
+            onSettings = {
+                if (!disposed && !project.isDisposed) {
+                    ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginManagerConfigurable::class.java)
+                }
+            },
+            onHelp = {
+                if (!disposed && !project.isDisposed) {
+                    BrowserUtil.browse("https://plugins.jetbrains.com/plugin/31360-web-browser-jcef-")
+                }
+            },
+        )
+        preferredFocusableComponent = recovery.settingsButton
+        add(recovery, BorderLayout.CENTER)
     }
 
     private fun navigate(value: String) {
