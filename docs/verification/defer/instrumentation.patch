@@ -7,15 +7,15 @@
 
  import com.cursoragent.history.Conversation
  import com.cursoragent.history.ConversationHistory
-@@ -31,6 +33,7 @@
-     private val restored: Conversation? = null,
+@@ -33,6 +35,7 @@
      private val legacyOnly: Boolean = false,
+     private val onShowConversation: () -> Unit = {},
  ) {
 +    private val verificationOwner = VerificationDefer.owner(project, composer.inputArea)
      private var turnGeneration = 0L
      private var disposed = false
      private var activeRun: AgentRun? = null
-@@ -103,9 +106,13 @@
+@@ -128,9 +131,13 @@
      private fun scheduleNextQueuedPrompt() {
          val ticket = queue.ticket(turnGeneration) ?: return
          SwingUtilities.invokeLater {
@@ -32,23 +32,15 @@
          }
      }
 
-@@ -116,6 +123,7 @@
-         composer = composer,
-         recorder = recorder,
+@@ -175,6 +182,7 @@
+         changes = changes,
+         beforeRevert = ::pauseQueue,
          onRunFinished = ::finishRun,
 +        verificationOwner = verificationOwner,
+         onShowConversation = onShowConversation,
      )
-     init {
-         checkpointService.pruneExpired()
-@@ -228,6 +236,7 @@
-                 val usageTicket = composer.contextUsage.beginTurn()
-                 turnListenerFactory.create(
-                     usageTicket,
-+                    verificationToken = sessionTurn.token.turnId,
-                     isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
-                     onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
-                     isStopped = { run.wasStopped },
-@@ -270,7 +279,12 @@
+     private val modelLoader = ModelCatalogLoader(
+@@ -459,7 +467,12 @@
          try {
              ApplicationManager.getApplication().executeOnPooledThread {
                  try {
@@ -59,18 +51,19 @@
 +                    val preparationActive = run.isActive
 +                    VerificationDefer.event("guard", "preparation", verificationOwner, sessionTurn.token.turnId, preparationActive.toString())
 +                    if (!preparationActive) return@executeOnPooledThread
-                     val commandTarget = workspace.commandTarget
-                     check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
-                         "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
-@@ -302,12 +316,15 @@
+                     val imagePayload = sentImage?.let { com.cursoragent.ui.composer.image.ValidatedImage(it.bytes(), it.width, it.height) }
+                     imagePayload?.thumbnail()?.let { thumbnail ->
+                         runOnEdt {
+@@ -498,6 +511,8 @@
                      check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
                          "準備中に作業場所が変わったため会話を再開しません。"
                      }
 +                    VerificationDefer.event("send-entry", "preparation", verificationOwner, sessionTurn.token.turnId,
 +                        VerificationDefer.fingerprint("${turn.settings}/${turn.workspace.mode}"))
-                     agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
-                 } catch (error: Exception) {
-                     run.reportError("送信の準備に失敗しました: ${error.message}")
+                     agentService.sendPrompt(
+                         if (command != null) fullContext.orEmpty() else fullPrompt,
+                         turn, tabId, sessionTurn.transport, commandText = userText.takeIf { command != null }, commandName = command,
+@@ -508,6 +523,7 @@
                      run.complete(-1)
                  } finally {
                      turn.preparation.close()
@@ -85,90 +78,125 @@
 +
 +import com.cursoragent.verification.VerificationDefer
 
- import com.cursoragent.PluginBrand
  import com.cursoragent.notification.AgentNotificationService
-@@ -28,6 +30,7 @@
-     private val composer: ComposerPanel,
-     private val recorder: ConversationRecorder,
-     private val onRunFinished: (successful: Boolean) -> Unit,
+ import com.cursoragent.parser.ParsedToolCall
+@@ -41,6 +43,7 @@
+             else -> AgentNotificationService.notifyTurnCompleted(project, -1, onShowConversation)
+         }
+     },
 +    private val verificationOwner: String = "",
  ) {
      fun create(
          usageTicket: Long,
-@@ -35,9 +38,11 @@
-         isStopped: () -> Boolean,
-         onSession: (String) -> Boolean,
-         restoreTarget: () -> RestoreTarget,
-+        verificationToken: String = "",
+@@ -53,8 +56,10 @@
      ): AgentProcessListener {
+         var terminal = false
+         var toolNoticeSent = false
+-        val updates = TurnEdtUpdates { allowStopped, block ->
+-            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped) {
++        val updates = TurnEdtUpdates { allowStopped, kind, block ->
++            updateCurrentTurnOnEdt({ project.isDisposed }, { isCurrent() && !terminal }, isStopped, allowStopped,
++                probe = Triple(kind, verificationOwner, "$turnId/${if (allowStopped) "terminal" else "normal"}/${java.util.UUID.randomUUID()}"),
++            ) {
+                 if (!terminal) block()
+             }
+         }
+@@ -71,8 +76,8 @@
+             activity(phase)
+             onTerminalNotice(turnId, phase)
+         }
 -        fun update(allowStopped: Boolean = false, block: () -> Unit) {
--            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped, block)
+-            updates.update(allowStopped, block)
 +        fun update(allowStopped: Boolean = false, kind: String = "edt-update", block: () -> Unit) {
-+            updateCurrentTurnOnEdt({ project.isDisposed }, isCurrent, isStopped, allowStopped,
-+                probe = Triple(kind, verificationOwner, "$verificationToken/${if (allowStopped) "terminal" else "normal"}/${java.util.UUID.randomUUID()}"), block = block)
++            updates.update(allowStopped, kind, block)
          }
          val assistantText = TurnAssistantText(
              { text -> timeline.setAssistantText(text); recorder.assistant(text) },
-@@ -46,7 +51,7 @@
+@@ -93,7 +98,7 @@
+             override fun onStarted() { update { activity(RunPhase.RUNNING) } }
 
-         return object : AgentProcessListener {
              override fun onStructuredEvent(event: AgentEvent) {
 -                update {
 +                update(kind = if (event is AgentEvent.Text) "edt-chunk" else "edt-update") {
                      when (event) {
-                         is AgentEvent.Text -> assistantText.acpDelta(event)
-                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
-@@ -77,7 +82,7 @@
+                         is AgentEvent.Text -> { activity(RunPhase.RUNNING); assistantText.acpDelta(event) }
+                         is AgentEvent.Content -> {
+@@ -138,7 +143,7 @@
              }
 
              override fun onUncertain(message: String) {
 -                update(allowStopped = true) {
 +                update(allowStopped = true, kind = "edt-stop") {
+                     onUsageFinish(usageTicket, UsagePhase.FAILED)
                      timeline.finalizeAssistantMessage()
-                     recorder.error("接続の終了を確認できませんでした。")
-                     recorder.finish("failed")
-@@ -87,7 +92,7 @@
-             }
-
-             override fun onAssistantDelta(text: String) {
--                update { assistantText.printDelta(text) }
-+                update(kind = "edt-chunk") { assistantText.printDelta(text) }
-             }
-
-             override fun onTokenUsage(usage: com.cursoragent.parser.TokenUsage?) {
-@@ -95,7 +100,7 @@
+                     finishTasks()
+@@ -159,7 +164,7 @@
              }
 
              override fun onResultFallback(text: String) {
--                update { assistantText.printFallback(text) }
-+                update(kind = "edt-chunk") { assistantText.printFallback(text) }
+-                update { activity(RunPhase.RUNNING); assistantText.printFallback(text) }
++                update(kind = "edt-chunk") { activity(RunPhase.RUNNING); assistantText.printFallback(text) }
              }
 
              override fun onThinking(text: String) {
-@@ -194,7 +199,7 @@
+@@ -255,7 +260,7 @@
              }
 
              override fun onStopped() {
 -                update(allowStopped = true) {
 +                update(allowStopped = true, kind = "edt-stop") {
+                     onUsageFinish(usageTicket, UsagePhase.STOPPED)
                      timeline.clearStatus()
                      timeline.finalizeAssistantMessage()
-                     recorder.finish("stopped")
-@@ -204,7 +209,7 @@
-             }
+@@ -272,7 +277,7 @@
+             override fun onPrintCompleted(requestId: com.cursoragent.service.PrintRequestId) = completed(0, requestId)
 
-             override fun onCompleted(exitCode: Int) {
+             private fun completed(exitCode: Int, requestId: com.cursoragent.service.PrintRequestId?) {
 -                update {
 +                update(kind = "edt-complete") {
+                     onUsageFinish(usageTicket, if (exitCode == 0) UsagePhase.COMPLETED else UsagePhase.FAILED)
                      timeline.clearStatus()
                      timeline.finalizeAssistantMessage()
-                     if (exitCode != 0) {
-@@ -226,10 +231,18 @@
-     isCurrent: () -> Boolean,
+@@ -292,13 +297,14 @@
+ }
+
+ /** Coalesce only adjacent print replacements; other events keep their ordering and ownership checks. */
+-internal class TurnEdtUpdates(private val enqueue: (Boolean, () -> Unit) -> Unit) {
++internal class TurnEdtUpdates(private val enqueue: (Boolean, String, () -> Unit) -> Unit) {
++    constructor(enqueue: (Boolean, () -> Unit) -> Unit) : this({ allowStopped, _, block -> enqueue(allowStopped, block) })
+     private var pendingPrint: AtomicReference<String>? = null
+
+     @Synchronized
+-    fun update(allowStopped: Boolean = false, block: () -> Unit) {
++    fun update(allowStopped: Boolean = false, kind: String = "edt-update", block: () -> Unit) {
+         pendingPrint = null
+-        enqueue(allowStopped, block)
++        enqueue(allowStopped, kind, block)
+     }
+
+     @Synchronized
+@@ -310,7 +316,7 @@
+         }
+         val batch = AtomicReference(text)
+         pendingPrint = batch
+-        enqueue(false) {
++        enqueue(false, "edt-chunk") {
+             val latest = synchronized(this) {
+                 if (pendingPrint === batch) pendingPrint = null
+                 batch.get()
+@@ -327,9 +333,25 @@
      isStopped: () -> Boolean,
      allowStopped: Boolean = false,
-+    probe: Triple<String, String, String>? = null,
      block: () -> Unit,
++) = updateCurrentTurnOnEdt(isDisposed, isCurrent, isStopped, allowStopped, probe = null, block = block)
++
++internal fun updateCurrentTurnOnEdt(
++    isDisposed: () -> Boolean,
++    isCurrent: () -> Boolean,
++    isStopped: () -> Boolean,
++    allowStopped: Boolean,
++    probe: Triple<String, String, String>?,
++    block: () -> Unit,
  ) {
 -    val update = { if (!isDisposed() && isCurrent() && (allowStopped || !isStopped())) block() }
 -    if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
@@ -183,7 +211,7 @@
 +    if (SwingUtilities.isEventDispatchThread()) dispatch() else SwingUtilities.invokeLater(dispatch)
  }
 
- /** Per-turn text only. Both outputs replace the bubble; ACP deltas never use print heuristics. */
+ /** Per-turn text only. Both outputs replace the bubble; print is already normalized by the service. */
 --- a/src/main/kotlin/com/cursoragent/ui/composer/mention/MentionPopupController.kt
 +++ b/src/main/kotlin/com/cursoragent/ui/composer/mention/MentionPopupController.kt
 @@ -1,4 +1,6 @@
@@ -194,14 +222,14 @@
  import com.intellij.openapi.Disposable
  import com.intellij.openapi.application.ApplicationManager
 @@ -18,6 +20,7 @@
-     private val field: EditorTextField,
+     private val field: GrowingPromptField,
      private val onAttach: (Mention) -> Unit,
  ) {
 +    private val verificationOwner = VerificationDefer.owner(project, field)
      private var popup: JBPopup? = null
+     val popupOpen: Boolean get() = popup?.isDisposed == false
 
-     fun install() {
-@@ -42,6 +45,7 @@
+@@ -43,6 +46,7 @@
          lateinit var next: JBPopup
          lateinit var panel: MentionPickerPanel
          var pending: java.util.concurrent.Future<*>? = null
@@ -209,7 +237,7 @@
          var queryGeneration = 0L
          fun load(query: String) {
              pending?.cancel(true)
-@@ -49,8 +53,10 @@
+@@ -50,8 +54,10 @@
              pending = ApplicationManager.getApplication().executeOnPooledThread {
                  val result = runCatching { ReadAction.compute<List<Mention>, RuntimeException> { MentionCandidateSource.buildCandidates(project, query) } }
                  SwingUtilities.invokeLater {

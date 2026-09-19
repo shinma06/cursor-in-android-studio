@@ -13,6 +13,11 @@ class ToolCallBubble(
     title: String,
     body: String? = null,
 ) : JPanel(BorderLayout()) {
+    private var detailsPanel: ToolDetailsPanel? = null
+    internal var expanded: Boolean
+        get() = detailsPanel?.expanded ?: false
+        set(value) { detailsPanel?.expanded = value }
+
     init {
         isOpaque = true
         background = AgentUiColors.assistantBubbleBackground
@@ -21,22 +26,27 @@ class ToolCallBubble(
             JBUI.Borders.empty(8, 10),
         )
 
-        add(JBLabel(title).apply {
+        val heading = title.lineSequence().first().take(120)
+        add(JBLabel(if (heading == title) title else "$heading…").apply {
+            putClientProperty("html.disable", true)
             font = font.deriveFont(Font.BOLD, font.size2D - 1f)
         }, BorderLayout.NORTH)
 
-        if (!body.isNullOrBlank()) {
-            add(
-                JTextArea(body.trim()).apply {
+        val detailText = listOfNotNull(title.takeIf { it != heading }, body).joinToString("\n\n")
+        if (detailText.isNotBlank()) {
+            val details = JPanel(BorderLayout()).apply {
+                isOpaque = false
+                add(JTextArea(detailText).apply {
                     isEditable = false
                     lineWrap = true
                     wrapStyleWord = true
                     font = Font(Font.MONOSPACED, Font.PLAIN, font.size)
                     background = AgentUiColors.assistantBubbleBackground
                     border = JBUI.Borders.emptyTop(6)
-                },
-                BorderLayout.CENTER,
-            )
+                }, BorderLayout.CENTER)
+            }
+            detailsPanel = ToolDetailsPanel(details)
+            add(detailsPanel, BorderLayout.CENTER)
         }
     }
 
@@ -50,7 +60,7 @@ class ToolCallBubble(
                         append(result.stderr)
                     }
                 }
-            return ToolCallBubble(title, output.ifBlank { "(no output)" })
+            return ToolCallBubble("コマンド${if (result.exitCode == 0) "完了" else "失敗"}（終了コード ${result.exitCode}）", "$title\n\n${output.ifBlank { "出力はありません" }}")
         }
     }
 }
