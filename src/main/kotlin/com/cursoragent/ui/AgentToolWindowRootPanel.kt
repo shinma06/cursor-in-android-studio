@@ -198,7 +198,8 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
-            val composer = ComposerPanel(project)
+            val composer = ComposerPanel(project, newPrintConversation =
+                tab.transport == com.cursoragent.service.AgentTransport.PRINT && tab.chatId == null && saved == null && !legacyOnly)
             val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly,
                 onShowConversation = { if (!disposed && sessions.select(tab.id)) showSelected() },
             )
