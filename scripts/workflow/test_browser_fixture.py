@@ -176,6 +176,51 @@ class BrowserFixtureTest(unittest.TestCase):
             if directory is not None and directory.exists():
                 fixture.cleanup(directory)
 
+    def test_close_refuses_hold_accepted_after_release_sweep(self):
+        run = fixture.Fixture(ipv6=False)
+        entered, resume, received = threading.Event(), threading.Event(), threading.Event()
+        server = run.servers['http4']
+        shutdown = server.shutdown
+        def delayed_shutdown():
+            entered.set()  # close already set stopped and swept every existing hold.
+            resume.wait(5)
+            shutdown()
+        server.shutdown = delayed_shutdown
+        closer = threading.Thread(target=run.close)
+        def late_request():
+            try:
+                self.request('/hold/late', run=run)
+            except (http.client.RemoteDisconnected, ConnectionError, TimeoutError):
+                pass
+            finally:
+                received.set()
+        client = threading.Thread(target=late_request)
+        try:
+            closer.start()
+            self.assertTrue(entered.wait(3))
+            client.start()
+            deadline = time.monotonic() + 3
+            while not received.is_set() and time.monotonic() < deadline:
+                with run.lock:
+                    if 'late' in run.holds:
+                        break
+                received.wait(.01)
+            resume.set()
+            closer.join(2)
+            self.assertFalse(closer.is_alive(), 'late hold must not delay server_close')
+            self.assertNotIn('late', run.holds)
+            self.assertEqual('stopped', fixture.read_run(run.directory)[1]['state'])
+        finally:
+            resume.set()
+            with run.lock:
+                for release in run.holds.values():
+                    release.set()
+            closer.join(5)
+            if client.ident is not None:
+                client.join(5)
+            run.close()
+            fixture.cleanup(run.directory)
+
     def test_close_releases_pending_requests_and_cleanup_preserves_unexpected_files(self):
         run = fixture.Fixture(ipv6=False)
         addresses = [(s.server_address[0], s.server_port) for s in run.servers.values()]

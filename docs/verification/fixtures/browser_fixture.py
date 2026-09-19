@@ -136,6 +136,8 @@ class Handler(BaseHTTPRequestHandler):
         elif re.fullmatch(r'/hold/[A-Za-z0-9_-]{1,32}', path):
             tag = path.rsplit('/', 1)[1]
             with run.lock:
+                if run.stopped.is_set():
+                    return
                 if len(run.holds) >= 64 and tag not in run.holds:
                     self.send(429)
                     return
