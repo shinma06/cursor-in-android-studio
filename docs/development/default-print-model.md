@@ -20,4 +20,4 @@ Cursor IDE内panelのモデル/Auto選択、JetBrains AI Assistant + Cursor ACP 
 DefaultModelSettingsPanelTestは一時選択・Apply/reset・失敗/空/再試行・遅着破棄・旧XML/再起動・新規/既存/復元/ACP境界を合成検証する。AgentMetadataCommandTestはローカル合成実行ファイルだけでargv/workspace/失敗契約を確認する。
 [Case269](../verification/changes/issue-269.json)の3件はGPT/人間pending。実CLI一覧・GUI/インストール・実推論は未実施。Android Lifecycle/DBは本経路にない。SwingのEDT、view/request破棄、取得失敗時のデータ保持を確認する。
 
-基礎は公開済み停止#43固定16165ecのみ。#28診断、#97送信キー、#300説明等の公開STOP成果と将来のSettings統合点はPMへ引き継ぐ。公開承認待ち#268/#305のコード・Case・本文は含めず、公開待ちの迂回にしない。B #296 Factory/Timeline/StructuredToolCardは非編集。
+2026-09-13の原作者候補は、公開済み停止#43固定16165ecのみを基礎とし、その時点で承認待ちだった#268/#305等を含めなかった。2026-09-19のdevelop統合では、先行PR315の表示設定、診断、送信キー、権限/ISOLATEDの説明、通知と画像入力を保持する。Factory/Timeline/StructuredToolCardへ本機能の固有変更は加えない。
