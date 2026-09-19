@@ -15,6 +15,7 @@ import com.cursoragent.session.SessionRunToken
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
@@ -30,13 +31,30 @@ class AgentUiController(
     private val tabId: String,
     private val restored: Conversation? = null,
     private val legacyOnly: Boolean = false,
+    private val onShowConversation: () -> Unit = {},
 ) {
     private var turnGeneration = 0L
     private var disposed = false
     private var activeRun: AgentRun? = null
-    private var modelLoad: java.util.concurrent.Future<*>? = null
     private var activeToken: SessionRunToken? = null
+    private var releaseUnsentTransport: (() -> Unit)? = null
+    private var recoverUnsentCommand: (() -> Unit)? = null
+    private val commandConnection = com.cursoragent.ui.composer.command.AcpCommandConnection()
+    private val commandSettingsWatch = javax.swing.Timer(400) {
+        if (composer.isShowing) refreshAcpConnection()
+    }
     private val agentService = project.getService(AgentProcessService::class.java)
+    private var imagePanel: com.cursoragent.ui.composer.image.ImageAttachmentPanel? = null
+    private val imageDraft = com.cursoragent.ui.composer.image.ImageDraft(
+        worker = agentService.imageWorker,
+        deliver = { runOnEdt(it) },
+        store = agentService::imageStore,
+        changed = { imagePanel?.refresh() },
+        scope = { listOf(sessions.snapshot().selectedId, transportState(), composer.selection.selectedModel, commandConnection.revision,
+            AgentSettingsState.getInstance().agentExecutablePath, AgentSettingsState.getInstance().permissionMode,
+            AgentSettingsState.getInstance().sandboxMode, AgentSettingsState.getInstance().worktreeMode) },
+    )
+    private var finishImage: ((Boolean) -> Unit)? = null
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val history = project.getService(ConversationHistory::class.java)
     private var resumeAllowed = restored == null && !legacyOnly
@@ -55,25 +73,175 @@ class AgentUiController(
             }
         } }
     }
+    private val queue = PromptQueue(recorder.conversation.id, agentService::releaseImage)
+    private var queueDialog: PromptQueueDialog? = null
+    val hasQueuedPrompts: Boolean get() = queue.size > 0
+
+    fun enqueuePrompt(text: String) {
+        if (disposed || project.isDisposed || activeRun?.isActive != true || !isSelectedConversation()) return
+        val context = try {
+            composer.promptContext.snapshot()
+        } catch (error: IllegalArgumentException) {
+            timeline.showStatus(error.message ?: "追加したcontextを確認してください。")
+            return
+        }
+        val command = composer.commands.selectedName
+        if (command != null && !composer.commands.canInvoke(command)) {
+            timeline.showStatus("選択したコマンドを確認できません。候補から再選択してください。")
+            return
+        }
+        if (imageDraft.importing) return
+        val image = imageDraft.retain()
+        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context, command, image)) {
+            composer.clearInput()
+            refreshQueue()
+        } else image?.let(agentService::releaseImage)
+    }
+
+    private fun isSelectedConversation(): Boolean {
+        val selected = sessions.snapshot().selected
+        return selected.id == tabId && selected.conversationId == queue.conversationId
+    }
+
+    fun pauseQueue() { queue.pause(); refreshQueue() }
+    private fun refreshQueue() { composer.showQueueState(queue.size, queue.paused) }
+
+    fun showQueue() {
+        if (disposed || project.isDisposed || !isSelectedConversation() || queueDialog != null) return
+        pauseQueue()
+        val dialog = PromptQueueDialog(project, queue,
+            isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
+            onChanged = ::refreshQueue,
+            onResume = {
+                if (!disposed && !project.isDisposed && isSelectedConversation()) {
+                    queue.resume()
+                    refreshQueue()
+                    scheduleNextQueuedPrompt()
+                }
+            },
+        )
+        queueDialog = dialog
+        dialog.show()
+        if (queueDialog === dialog) queueDialog = null
+    }
+
+    private fun scheduleNextQueuedPrompt() {
+        val ticket = queue.ticket(turnGeneration) ?: return
+        SwingUtilities.invokeLater {
+            val ownerIsIdle = !disposed && !project.isDisposed && activeRun == null && isSelectedConversation()
+            queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
+            if (!disposed) refreshQueue()
+        }
+    }
+
+    private val changes = ConversationChanges(recorder.conversation.id)
+    private val changesReview = ChangesReviewController(
+        changes = changes,
+        pauseQueue = ::pauseQueue,
+        isAlive = { !disposed && !project.isDisposed },
+        captureCurrent = {
+            val generation = turnGeneration
+            val current = {
+                !disposed && !project.isDisposed && generation == turnGeneration &&
+                    sessions.snapshot().selectedId == tabId
+            }
+            current
+        },
+        createView = { snapshot, onDiff, onRevert, onConversation ->
+            val dialog = ConversationChangesDialog(project, snapshot, onDiff, onRevert, onConversation)
+            object : ChangesReviewView {
+                override fun show() = dialog.show()
+                override fun cancel() = dialog.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+            }
+        },
+        onDiff = { file ->
+            DiffViewerHelper.showFileEditDiff(project, file.last.path, file.first.before!!, file.last.after!!)
+        },
+        onRevert = { file, isCurrent ->
+            DiffViewerHelper.revertObservedEdit(project, file.last.path, file.first.before, file.last.after, file.first.target, isCurrent) {
+                timeline.showStatus("ファイルを編集前に戻しました")
+            }
+        },
+        onConversation = onShowConversation,
+    )
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
     private val turnListenerFactory = AgentTurnListenerFactory(
         project = project,
         timeline = timeline,
-        composer = composer,
+        onUsage = composer.contextUsage::update,
+        onUsageFinish = composer.contextUsage::finish,
+        onConfiguration = composer::showAcpConfiguration,
         recorder = recorder,
+        changes = changes,
+        beforeRevert = ::pauseQueue,
         onRunFinished = ::finishRun,
+        onShowConversation = onShowConversation,
     )
-    init {
-        checkpointService.pruneExpired()
-        loadModels()
-    }
+    private val modelLoader = ModelCatalogLoader(
+        fetch = agentService::listModels,
+        execute = { ApplicationManager.getApplication().executeOnPooledThread(it) },
+        dispatch = ::runOnEdt,
+        isActive = {
+            !disposed && !project.isDisposed &&
+                sessions.snapshot().tabs.any { it.id == tabId && it.transport == AgentTransport.PRINT }
+        },
+        show = composer.modelSelector::showCatalog,
+    )
 
-    private fun loadModels() {
-        modelLoad = ApplicationManager.getApplication().executeOnPooledThread {
-            val models = agentService.listModels()
-            runOnEdt { if (!disposed && !project.isDisposed && transportState().first == AgentTransport.PRINT) composer.modelSelector.setModels(models) }
+    init {
+        imagePanel = composer.installImages(imageDraft)
+        checkpointService.pruneExpired()
+        composer.modelSelector.onRetry = modelLoader::load
+        if (transportState().first == AgentTransport.ACP) composer.useAcp() else modelLoader.load()
+        composer.commands.onRetry = { refreshAcpConnection(force = true) }
+        composer.addHierarchyListener {
+            if (composer.isShowing && !disposed) { refreshAcpConnection(); commandSettingsWatch.start() }
+            else {
+                commandSettingsWatch.stop()
+                if (imageDraft.importing) imageDraft.invalidateImport()
+            }
         }
     }
+
+    /** Only an unsent draft may replace its metadata connection. No provider prompt is sent here. */
+    private fun refreshAcpConnection(force: Boolean = false) {
+        if (disposed || project.isDisposed || legacyOnly || restored != null) return
+        val (transport, locked) = transportState()
+        if (transport != AgentTransport.ACP) return
+        if (locked) { composer.commands.update(commandConnection.catalog, false); return }
+        val shared = AgentSettingsState.getInstance()
+        val key = com.cursoragent.ui.composer.command.AcpCommandKey(project.basePath, shared.agentExecutablePath, shared.permissionMode, shared.sandboxMode, shared.worktreeMode)
+        val generation = commandConnection.replace(key, force) ?: return
+        composer.contextUsage.reset()
+        agentService.closeSession(tabId)
+        val settings = TurnSettings(shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode, shared.permissionMode, shared.sandboxMode)
+        val reason = agentService.settingsUnavailableReason(AgentTransport.ACP, settings, shared.worktreeMode)
+        if (reason != null || project.basePath == null) {
+            commandConnection.update(generation, com.cursoragent.service.CommandCatalog.Failed)
+            composer.commands.update(commandConnection.catalog, true)
+            timeline.showStatus(reason ?: "プロジェクトルートが取得できません。")
+            return
+        }
+        composer.commands.update(commandConnection.catalog, true)
+        agentService.prepareAcpCommands(tabId, project.basePath!!, shared.agentExecutablePath, onImageSupport = { supported ->
+            runOnEdt {
+                if (!disposed && !project.isDisposed && transportState().first == AgentTransport.ACP) {
+                    commandConnection.updateImageSupport(generation, supported)
+                }
+            }
+        }) { state ->
+            runOnEdt {
+                if (!disposed && !project.isDisposed && transportState().first == AgentTransport.ACP && commandConnection.update(generation, state)) {
+                    composer.commands.update(state, !transportState().second)
+                }
+            }
+        }
+    }
+
+    /** EDT-only immutable value; callers freeze it before opening modal UI. */
+    fun conversationSnapshot(): Conversation? = recorder.conversation.takeUnless { disposed || legacyOnly }
+
+    fun showChanges() = changesReview.show()
 
     fun transportState(): Pair<AgentTransport, Boolean> {
         val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId }
@@ -82,26 +250,46 @@ class AgentUiController(
 
     fun selectTransport(transport: AgentTransport) {
         if (disposed || !sessions.selectTransport(tabId, transport)) return
+        if (imageDraft.importing) imageDraft.invalidateImport()
+        composer.contextUsage.reset()
         if (transport == AgentTransport.ACP) {
-            modelLoad?.cancel(false)
+            modelLoader.cancel()
             composer.useAcp()
             timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
+            refreshAcpConnection()
         } else {
+            commandConnection.clear()
+            agentService.closeSession(tabId)
+            composer.commands.update(commandConnection.catalog, false)
             composer.usePrint()
-            loadModels()
+            modelLoader.load()
         }
     }
 
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
-        modelLoad?.cancel(true)
-        modelLoad = null
+        timeline.runStatus.dispose()
+        activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
+        sessions.clearRequestId(tabId)
+        composer.contextUsage.reset()
+        commandConnection.clear()
+        commandSettingsWatch.stop()
+        composer.commands.close()
+        queue.clear()
+        queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+        queueDialog = null
+        changesReview.dispose()
+        modelLoader.cancel()
+        composer.modelSelector.onRetry = {}
         turnGeneration++
         activeToken?.let(sessions::finishTurn)
         activeRun?.detachListener()
         activeRun?.stop()
         activeRun = null
+        finishImage?.invoke(true)
+        finishImage = null
+        imageDraft.close()
         agentService.closeSession(tabId)
     }
 
@@ -124,113 +312,214 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (disposed || legacyOnly || userText.isBlank() || activeRun != null) return
+        if (activeRun != null || userText.isBlank() && composer.commands.selectedName == null && imageDraft.attachment == null) return
+        pauseQueue()
+        startPrompt(userText)
+    }
+
+    private fun startPrompt(arguments: String, queued: QueuedPrompt? = null): Boolean {
+        val command = if (queued == null) composer.commands.selectedName else queued.command
+        val sourceImage = if (queued == null) imageDraft.attachment else queued.image
+        if (queued == null && imageDraft.importing) return false
+        if (disposed || project.isDisposed || legacyOnly || arguments.isBlank() && command == null && sourceImage == null || activeRun != null) return false
+        refreshAcpConnection()
+        if (command != null && !composer.commands.canInvoke(command)) {
+            timeline.showStatus("選択したコマンドを確認できません。候補から再選択してください。予約は一時停止します。")
+            return false
+        }
+        if (sourceImage != null && (transportState().first != AgentTransport.ACP || commandConnection.imageSupported != true)) {
+            timeline.showStatus("画像対応を確認できるACP接続が必要です。画像と本文を保持しました。接続状態を確認してから再送してください。")
+            return false
+        }
+        val userText = com.cursoragent.service.commandPrompt(command, arguments)
+        val displayText = userText + if (sourceImage != null) "\n[画像添付・履歴から再送する場合は再添付が必要]" else ""
 
         val shared = AgentSettingsState.getInstance()
-        val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return
+        val tab = sessions.snapshot().tabs.firstOrNull { it.id == tabId } ?: return false
+        if (queued != null && tab.chatId.isNullOrBlank() && !(queued.retryUnsentImage && sourceImage != null && tab.transport == AgentTransport.ACP)) {
+            timeline.showStatus("会話の継続IDを取得できないため予約送信を一時停止しました。新しい会話への自動送信は行いません。")
+            return false
+        }
         if (!resumeAllowed) {
             timeline.showStatus("保存本文の閲覧のみです。この接続・作業場所からAgentを再開できないため、新しい会話を開始してください。")
-            return
+            return false
         }
         val settings = TurnSettings(
-            shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode,
+            shared.agentExecutablePath, queued?.model ?: composer.selection.selectedModel, queued?.mode ?: composer.selection.mode,
             shared.permissionMode, shared.sandboxMode,
         )
         val workspace = agentService.captureWorkspace(tab.chatId, shared.worktreeMode)
         agentService.settingsUnavailableReason(tab.transport, settings, workspace.mode)?.let { reason ->
             timeline.showStatus(reason)
-            return
+            return false
+        }
+        val context = try {
+            if (queued == null) composer.promptContext.snapshot()
+            else queued.context ?: com.cursoragent.ui.composer.context.PromptContextSnapshot(emptyList(), emptyList(), true)
+        } catch (error: IllegalArgumentException) {
+            timeline.showStatus(error.message ?: "追加したcontextを確認してください。")
+            return false
         }
         val generation = turnGeneration + 1
         sessions.updateComposer(tabId, settings.mode, settings.model, userText, userText.length)
-        val sessionTurn = sessions.beginTurn(tabId) ?: return
+        val sessionTurn = sessions.beginTurn(tabId, hasAttachment = sourceImage != null) ?: return false
         activeToken = sessionTurn.token
         recorder.conversation = recorder.conversation.copy(transport = tab.transport)
-        recorder.begin(sessionTurn.token.turnId, userText)
+        recorder.begin(sessionTurn.token.turnId, displayText)
+        timeline.runStatus.begin()
+        changes.beginTurn(sessionTurn.token.turnId)
         lateinit var run: AgentRun
-        val turn = agentService.prepareTurn(workspace, settings) {
-            val usageTicket = composer.contextUsage.beginTurn()
-            turnListenerFactory.create(
-                usageTicket,
-                isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
-                onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
-                isStopped = { run.wasStopped },
-                restoreTarget = { workspace.restoreTarget },
-            )
+        var preparationFailure = RestorePolicy.BUSY
+        val usageTicket = composer.contextUsage.beginTurn(settings.model)
+        val turn = try {
+            agentService.prepareTurn(workspace, settings) {
+                turnListenerFactory.create(
+                    usageTicket,
+                    turnId = sessionTurn.token.turnId,
+                    isCurrent = { !disposed && turnGeneration == generation && sessions.accepts(sessionTurn.token) },
+                    onSession = { id -> sessions.bindChat(sessionTurn.token, id) },
+                    isStopped = { run.wasStopped },
+                    restoreTarget = { workspace.restoreTarget },
+                    onPrintRequestId = { sessions.confirmRequestId(sessionTurn.token, it) },
+                )
+            }
+        } catch (_: Exception) {
+            preparationFailure = "送信の準備を開始できませんでした。"
+            null
         }
         if (turn == null) {
+            timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.FAILED)
+            composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
             recorder.finish("failed")
+            if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
             sessions.finishTurn(sessionTurn.token)
             activeToken = null
-            timeline.showStatus(RestorePolicy.BUSY)
-            return
+            timeline.showStatus(preparationFailure)
+            return false
+        }
+        val sentImage = if (queued == null) imageDraft.retain() else sourceImage
+        if (sentImage != null) {
+            val retry = queued ?: QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command, image = sentImage)
+            finishImage = { successful ->
+                if (successful || disposed) agentService.releaseImage(sentImage)
+                else SwingUtilities.invokeLater {
+                    if (disposed || project.isDisposed) agentService.releaseImage(sentImage)
+                    else {
+                        queue.restoreUnsent(retry.copy(retryUnsentImage = !turn.promptDispatched))
+                        refreshQueue()
+                        timeline.showStatus(if (turn.promptDispatched) "画像付き入力を予約一覧へ保持しました。送信先へ届いた可能性があります。確認してから再開してください。"
+                            else "未送信の画像付き入力を予約一覧へ保持しました。確認してから再開してください。")
+                    }
+                }
+            }
         }
         run = turn.run
         activeRun = run
+        if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) {
+            releaseUnsentTransport = { if (!turn.promptDispatched) sessions.abortUnsentAcpTurn(sessionTurn.token) }
+        }
         turnGeneration = generation
-        composer.clearInput()
+        if (queued == null) composer.clearInput()
+        else sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, composer.inputArea.text, composer.inputArea.editor?.caretModel?.offset ?: 0)
+        if (command != null && sentImage == null) {
+            val emptyStamp = composer.inputArea.document.modificationStamp
+            recoverUnsentCommand = {
+                if (!turn.promptDispatched) {
+                    if (queued != null) SwingUtilities.invokeLater {
+                        if (!disposed && !project.isDisposed) { queue.restoreUnsent(queued); refreshQueue() }
+                    }
+                    else if (composer.inputArea.document.modificationStamp == emptyStamp && composer.commands.selectedName == null && !composer.promptContext.draft.hasExplicit) {
+                        composer.inputArea.text = arguments
+                        composer.commands.restoreSelection(command)
+                        context.selections.forEach(composer.promptContext::addSelection)
+                        context.mentions.forEach(composer.promptContext::addMention)
+                    } else {
+                        queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command))
+                        timeline.showStatus("送信前に失敗した入力を予約一覧へ保持しました。内容を確認してから再開してください。")
+                    }
+                }
+            }
+        }
         composer.setInputEnabled(true)
         composer.setRunning(true)
 
         timeline.clearStatus()
         timeline.finalizeAssistantMessage()
-        val userBubble = timeline.addUserMessage(userText)
-        timeline.showStatus("送信を準備中…")
+        val userBubble = timeline.addUserMessage(displayText)
 
         val edtContext = try {
-            promptContextBuilder.buildEdtContext(userText)
+            promptContextBuilder.buildEdtContext(userText, context)
         } catch (error: Exception) {
             run.reportError("送信の準備に失敗しました: ${error.message}")
             run.complete(-1)
             turn.preparation.close()
-            return
+            return true
         }
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                if (!run.isActive) return@executeOnPooledThread
-                val commandTarget = workspace.commandTarget
-                check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
-                    "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
-                }
-                runOnEdt { if (!disposed && sessions.accepts(sessionTurn.token)) recorder.provenance(commandTarget.rootPath, workspace.mode) }
-                val target = workspace.restoreTarget
-                val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
-                val checkpointReason = if (checkpointId == null) {
-                    checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
-                } else null
-                if (!run.isActive) return@executeOnPooledThread
-                val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
-                val fullContext = listOfNotNull(edtContext, backgroundContext)
-                    .joinToString("\n\n")
-                    .takeIf { it.isNotBlank() }
-                val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
-
-                if (!run.isActive) return@executeOnPooledThread
-                runOnEdt {
-                    if (disposed || project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
-                    userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
-                    if (checkpointId != null) {
-                        userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+        try {
+            ApplicationManager.getApplication().executeOnPooledThread {
+                try {
+                    if (!run.isActive) return@executeOnPooledThread
+                    val imagePayload = sentImage?.let { com.cursoragent.ui.composer.image.ValidatedImage(it.bytes(), it.width, it.height) }
+                    imagePayload?.thumbnail()?.let { thumbnail ->
+                        runOnEdt {
+                            if (!disposed && !project.isDisposed && turnGeneration == generation && sessions.accepts(sessionTurn.token)) {
+                                userBubble.setImageThumbnail(thumbnail)
+                            }
+                        }
                     }
-                    timeline.showStatus("実行中…")
-                }
+                    val commandTarget = workspace.commandTarget
+                    check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                        "保存時と現在の作業場所が異なるため会話を再開できません。新しい会話を開始してください。"
+                    }
+                    runOnEdt { if (!disposed && sessions.accepts(sessionTurn.token)) recorder.provenance(commandTarget.rootPath, workspace.mode) }
+                    val target = workspace.restoreTarget
+                    val checkpointId = checkpointService.createSnapshot(userText, workspace.resumeId, target)
+                    val checkpointReason = if (checkpointId == null) {
+                        checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
+                    } else null
+                    if (!run.isActive) return@executeOnPooledThread
+                    val backgroundContext = promptContextBuilder.buildBackgroundContext(userText, context)
+                    val fullContext = listOfNotNull(edtContext, backgroundContext)
+                        .joinToString("\n\n")
+                        .takeIf { it.isNotBlank() }
+                    val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
 
-                // Context/checkpoint preparation may take time; do not trust the earlier path check.
-                check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
-                    "準備中に作業場所が変わったため会話を再開しません。"
+                    if (!run.isActive) return@executeOnPooledThread
+                    runOnEdt {
+                        if (disposed || project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
+                        userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
+                        if (checkpointId != null) {
+                            userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                        }
+                    }
+
+                    // Context/checkpoint preparation may take time; do not trust the earlier path check.
+                    check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
+                        "準備中に作業場所が変わったため会話を再開しません。"
+                    }
+                    agentService.sendPrompt(
+                        if (command != null) fullContext.orEmpty() else fullPrompt,
+                        turn, tabId, sessionTurn.transport, commandText = userText.takeIf { command != null }, commandName = command,
+                        image = imagePayload,
+                    )
+                } catch (error: Exception) {
+                    run.reportError("送信の準備に失敗しました: ${error.message}")
+                    run.complete(-1)
+                } finally {
+                    turn.preparation.close()
                 }
-                agentService.sendPrompt(fullPrompt, turn, tabId, sessionTurn.transport)
-            } catch (error: Exception) {
-                run.reportError("送信の準備に失敗しました: ${error.message}")
-                run.complete(-1)
-            } finally {
-                turn.preparation.close()
             }
+        } catch (_: Exception) {
+            run.reportError("送信の準備を開始できませんでした。")
+            run.complete(-1)
+            turn.preparation.close()
         }
+        return true
     }
 
     private fun requestRollback(checkpointId: String) {
+        pauseQueue()
         val confirmed = Messages.showYesNoDialog(
             project,
             "このプロンプトを送信する直前の状態までファイルを復元します。この操作は取り消せません。続行しますか？",
@@ -265,16 +554,35 @@ class AgentUiController(
     }
 
     fun stopRun() {
-        composer.contextUsage.reset()
-        activeRun?.stop()
+        pauseQueue()
+        val run = activeRun ?: return
+        try {
+            run.stop()
+        } finally {
+            // An already-observed exit wins over a later Stop click.
+            if (run.wasStopped) {
+                composer.contextUsage.stop()
+                timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.STOPPING)
+            }
+        }
     }
 
-    private fun finishRun() {
+    private fun finishRun(successful: Boolean) {
+        finishImage?.invoke(successful)
+        finishImage = null
+        if (!successful) releaseUnsentTransport?.invoke()
+        releaseUnsentTransport = null
+        if (!successful) recoverUnsentCommand?.invoke()
+        recoverUnsentCommand = null
+        if (!successful) queue.pause()
         activeToken?.let(sessions::finishTurn)
         activeToken = null
         activeRun = null
         composer.setInputEnabled(true)
         composer.setRunning(false)
+        composer.commands.update(commandConnection.catalog, !transportState().second)
+        refreshQueue()
+        if (successful) scheduleNextQueuedPrompt()
     }
 
     private fun runOnEdt(block: () -> Unit) {
