@@ -37,7 +37,7 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
             add(imageThumbnail, BorderLayout.NORTH)
             add(MessageTextPane().apply {
                 this.text = "<html><body>${escapeHtml(text).replace("\n", "<br>")}</body></html>"
-            }, BorderLayout.CENTER)
+            }.scrollable(), BorderLayout.CENTER)
             add(rollbackButton.apply {
                 preferredSize = JBUI.size(24, 24)
                 minimumSize = preferredSize

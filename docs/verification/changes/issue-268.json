@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "issue": 268,
+  "gui_required": true,
+  "reason": "会話文字サイズと折返しの保存・反映、実機表示/選択/入力保持を固定buildで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
+    "純依存base48a1a17392d3817c09a0522f53e73ff057d665f2との差分と実target全差分の独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "DISPLAY-268-SETTINGS",
+      "issue": 268,
+      "change": "標準・指定サイズ・保存と全会話反映",
+      "preconditions": "指定GUI担当がleaseを取得し、#268と実依存を含む固定候補のHEAD/ZIP SHA256/loaded全JARを照合する。使い捨てproject/公開可能な合成応答だけを使う。",
+      "steps": [
+        "旧設定が欠損した使い捨て環境で標準/折返し無効を確認する。設定画面で標準、8、16、36 ptと折返しを変更してApplyする。表示中の複数project/会話と非表示から戻した会話、新規会話、保存から復元した会話へ反映されることを確認する。",
+        "Apply前の変更をCancel/resetし、保存済み値へ戻ることを確認する。IDE再起動後も保存値を復元する。隔離XMLの不正整数-1/37を標準へ戻し、送信キー/権限など既存設定を維持する。",
+        "標準に戻した状態でIDE UI文字・拡大率を変え、会話本文が追従することを確認する。通常editor/composer/ツールカードの文字設定を本設定が上書きしないことを確認する。"
+      ],
+      "expected": "保存・復元・Apply/Cancelが正しく、既存/非表示/新規会話が最新値を使う。標準はIDE表示設定へ追従する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。旧Case passを流用しない。",
+      "next_action": "PMが統合後に全Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/268"
+      ]
+    },
+    {
+      "id": "DISPLAY-268-LAYOUT",
+      "issue": 268,
+      "change": "コード折返しとテーマ・狭幅・高DPI",
+      "preconditions": "指定GUI担当がleaseを取得し、#268と実依存を含む固定候補のHEAD/ZIP SHA256/loaded全JARを照合する。使い捨てproject/公開可能な合成応答だけを使う。",
+      "steps": [
+        "日本語、見出し/リスト/inline code、インデント/タブ/空白/空行と空白なしの長いコードを含む合成応答を表示する。幅を狭め、折返し有効時はコードの全ての文字へ縦方向に到達できることを確認する。",
+        "折返し無効時は長い行の横スクロールが可能で、通常wheelは会話の縦スクロール、Shift+wheelは本文の横移動になることを確認する。コピー/復元ボタンと選択操作を確認する。",
+        "Dark/Light、通常/Compact、高DPIと拡大率変更を標準/8/36 ptで照合し、本文とコードの可読性、操作対象の欠落や余分な縦スクロールがないことを確認する。未実施環境をpassにしない。"
+      ],
+      "expected": "原文を改変せず長い行が読め、テーマや拡大率変更でも文字と操作対象を確認できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。旧Case passを流用しない。",
+      "next_action": "PMが統合後に全Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/268"
+      ]
+    },
+    {
+      "id": "DISPLAY-268-STATE",
+      "issue": 268,
+      "change": "実行中の選択・原文コピー・出力を保持",
+      "preconditions": "指定GUI担当がleaseを取得し、#268と実依存を含む固定候補のHEAD/ZIP SHA256/loaded全JARを照合する。使い捨てproject/公開可能な合成応答だけを使う。",
+      "steps": [
+        "合成serverで応答の途中を保持し、既存応答で逆向きの範囲選択を作って表示設定をApplyする。選択文字・方向・本文とタブ/run所属が保たれ、送信/Stop/再開が余計に起きないことを確認する。",
+        "同じ応答のMarkdown原文を変更前後にコピーして、改行・空白・タブ・HTML風文字列・画像Markdownを含め完全一致させる。保存/利用可能な出力経路でも元message.textが変わらず、画像URLへ自動通信しないことを確認する。",
+        "別タブへの切替・閉じる/再表示・テーマ変更を繰り返し、閉じたviewへの遅着や別会話への混入がなく、元の送信状態と既存の入力/選択操作を維持する。"
+      ],
+      "expected": "本文・コード原文・コピー/保存/出力・選択・送信状態が表示変更により変更されない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。旧Case passを流用しない。",
+      "next_action": "PMが統合後に全Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/268"
+      ]
+    }
+  ]
+}

@@ -182,3 +182,8 @@ MV-037の「入力付近に説明を常時表示」は2026-09-06のユーザー�
 | PERM-300-SCOPE | 共有保存値・次回適用・メニュー/Settings | pending / pending |
 | PERM-300-ACP | 選択候補の案内・18組合せ・既存拒否 | pending / pending |
 | PERM-300-REQUEST | permissionのscope・回答/取消/遅着 | pending / pending |
+
+## S. 会話本文の表示設定（#268）
+
+正本: [Case268](../verification/changes/issue-268.json)。DISPLAY-268-SETTINGS / LAYOUT / STATEはGPT・人間ともpending。
+標準/8〜36 ptとコード折返しの保存、既存/新規へのApply、Dark/Light/通常Compact/高DPI/狭幅、選択と原文コピー保持を固定buildで確認する。合成JUnitをGUI passへ流用しない。

@@ -100,7 +100,7 @@ class AssistantMessageCopyTest {
         assertTrue(bubble.height > wideHeight)
         button.doClick(0)
         transcript.doLayout()
-        val pane = bubble.components.filterIsInstance<MessageTextPane>().single()
+        val pane = (bubble.components.filterIsInstance<javax.swing.JScrollPane>().single().viewport.view as MessageTextPane)
         val footer = button.parent
         assertTrue(footer.y >= pane.y + pane.height)
         assertTrue(button.x >= 0 && button.x + button.width <= footer.width)
