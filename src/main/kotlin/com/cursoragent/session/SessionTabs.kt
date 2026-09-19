@@ -139,13 +139,13 @@ class SessionTabs(
 
     /**
      * Atomically snapshots the original user text and settings and clears the submitted draft.
-     * A blank draft or already-running tab cannot start another turn. The caller snapshots
+     * A draft without text or an explicit attachment, or an already-running tab, cannot start another turn. The caller snapshots
      * execution policy/workspace separately before background preparation (#65).
      */
     @Synchronized
-    fun beginTurn(id: String): SessionTurn? {
+    fun beginTurn(id: String, hasAttachment: Boolean = false): SessionTurn? {
         val tab = tabs.firstOrNull { it.id == id } ?: return null
-        if (tab.run != null || tab.draft.isBlank()) return null
+        if (tab.run != null || tab.draft.isBlank() && !hasAttachment) return null
         val token = SessionRunToken(id)
         update(id) { it.copy(run = token, draft = "", caret = 0, transportLocked = true, requestId = null) }
         return SessionTurn(token, tab.chatId, tab.mode, tab.modelId, tab.draft, tab.transport)

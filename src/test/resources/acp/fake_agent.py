@@ -46,7 +46,10 @@ for line in sys.stdin:
     method = request.get("method")
     if method == "initialize":
         assert request["params"]["clientCapabilities"] == {"fs": {"readTextFile": False, "writeTextFile": False}, "terminal": False}
-        response(request["id"], {"protocolVersion": 1.5 if scenario == "version-fraction" else "1" if scenario == "version-string" else 1})
+        initialized = {"protocolVersion": 1.5 if scenario == "version-fraction" else "1" if scenario == "version-string" else 1}
+        if scenario.startswith("image-"):
+            initialized["agentCapabilities"] = {"promptCapabilities": {"image": {"image-true": True, "image-false": False, "image-string": "true"}[scenario]}}
+        response(request["id"], initialized)
     elif method == "session/new":
         assert request["params"]["cwd"] == str(root.resolve())
         if scenario == "commands-delayed":
