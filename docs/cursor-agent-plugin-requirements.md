@@ -328,7 +328,7 @@ ACP session IDと保存済みprint chat IDの互換性や復元は #115で検証
 
 ## 13. 未確定事項(要検証リスト)
 
-- [x] `[有限probe完了 2026-09-12 / 索引更新 2026-09-19]` [#10画像入力](research/issue-10-image-contract.md) — 固定CLI/modelのACP bytes/print path読取、正答/欠損等の失敗を確認し、ACP採用とUXを定義。P7の正しい絶対pathによるroot外アクセスは未判定。製品添付UIとGUI受入は#277で未完了(F-60)。
+- [x] `[有限probe完了 2026-09-12 / 索引更新 2026-09-19]` [#10画像入力](research/issue-10-image-contract.md) — 固定CLI/modelのACP bytes/print path読取、正答/欠損等の失敗を確認し、ACP採用とUXを定義。P7の正しい絶対pathによるroot外アクセスは未判定。製品添付UIの実装は#277（F-60参照）、GUI受入は未完了。
 - [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
 - [x] `[検証済 2026-09-04]` stream-jsonのイベントスキーマ(実機) — `system/init`, `user`, `connection`, `retry`, `assistant`(累積/差分混在), `tool_call`(started/completed、`readToolCall`/`editToolCall`/`shellToolCall`)。`editToolCall` completed に `beforeFullFileContent`/`afterFullFileContent`/`diffString` を確認。fixture: `src/test/resources/stream-json-fixtures/`
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値 — デフォルト15日で実装済みだが、ユーザーが変更できる設定UIは未実装
