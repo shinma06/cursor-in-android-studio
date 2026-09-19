@@ -1,0 +1,8 @@
+{
+  "name": "qa49-memory-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/server-memory": "2026.8.31"
+  }
+}
