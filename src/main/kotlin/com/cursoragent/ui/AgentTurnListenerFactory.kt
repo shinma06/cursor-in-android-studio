@@ -7,6 +7,7 @@ import com.cursoragent.parser.taskKey
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentProcessListener
 import com.cursoragent.service.RestoreTarget
+import com.cursoragent.service.displayText
 import com.cursoragent.service.taskStatusText
 import com.cursoragent.history.ConversationRecorder
 import com.cursoragent.ui.composer.context.UsagePhase
@@ -66,6 +67,12 @@ internal class AgentTurnListenerFactory(
                 update {
                     when (event) {
                         is AgentEvent.Text -> assistantText.acpDelta(event)
+                        is AgentEvent.Content -> {
+                            assistantText.interrupt()
+                            val text = event.summary.displayText()
+                            timeline.addAssistantContent(text)
+                            recorder.assistantContent(text)
+                        }
                         is AgentEvent.Thought -> timeline.showStatus("考え中: ${event.text.take(80)}")
                         is AgentEvent.Tool -> {
                             changes.acp(turnId, event.state, restoreTarget())
@@ -73,7 +80,7 @@ internal class AgentTurnListenerFactory(
                                 DiffViewerHelper.showFileEditDiff(project, diff.path, diff.before.orEmpty(), diff.after)
                             }
                             recorder.tool(displayed.id, if (displayed.task != null) taskSavedSummary(displayed)
-                                else "ツール: ${safeToolKind(displayed.kind)} (${safeToolStatus(displayed.status)})")
+                                else "ツール: ${safeToolKind(displayed.kind)} (${safeToolStatus(displayed.status)})" + safeContentSummary(displayed))
                         }
                         is AgentEvent.Input -> timeline.addInputRequest(event.request)
                         is AgentEvent.Plan -> timeline.showPlan(event.entries)
@@ -304,6 +311,11 @@ internal class TurnAssistantText(
         printStarted = true
     }
 
+    fun interrupt() {
+        acpText.clear()
+        startMessage()
+    }
+
     fun acpDelta(event: AgentEvent.Text) {
         if (event.startsMessage) {
             acpText.clear()
@@ -331,3 +343,13 @@ internal fun safeToolStatus(status: String?): String = when (status) {
 
 internal fun taskSavedSummary(tool: com.cursoragent.service.AgentTool): String =
     "ツール: 子Task (${taskStatusText(tool.status, tool.task?.isBackground)})"
+
+/** Retain categories/support states, never provider URI/name/text or arbitrary unknown type strings. */
+internal fun safeContentSummary(tool: com.cursoragent.service.AgentTool): String {
+    val summaries = tool.content.filterIsInstance<com.cursoragent.service.AgentToolContent.Summary>().map {
+        val type = it.type.takeIf { value -> value in setOf("image", "audio", "resource_link", "resource", "resource (text)", "resource (blob)", "text", "diff") }
+            ?: "内容"
+        "$type: ${it.state.label}"
+    }.distinct()
+    return if (summaries.isEmpty()) "" else "\n内容情報（詳細は保存しません）: " + summaries.joinToString(" / ")
+}

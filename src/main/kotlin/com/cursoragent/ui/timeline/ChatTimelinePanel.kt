@@ -42,7 +42,10 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
             turn.messages.forEach { message ->
                 when (message.role) {
                     "user" -> addUserMessage(message.text)
-                    "assistant" -> { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    "assistant" -> {
+                        if (message.presentation == "acp_content") addAssistantContent(message.text)
+                        else { finalizeAssistantMessage(); setAssistantText(message.text); finalizeAssistantMessage() }
+                    }
                     "tool" -> addToolCallSummary(null, message.text)
                     "error" -> showError(message.text)
                 }
@@ -108,6 +111,13 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun setAssistantText(text: String) {
         ensureAssistantBubble().setContent(text)
         scrollToBottom()
+    }
+
+    fun addAssistantContent(text: String) {
+        finalizeAssistantMessage()
+        clearStatus()
+        hideEmptyState()
+        addRow(AssistantContentRow(text))
     }
 
     fun finalizeAssistantMessage() {
@@ -272,7 +282,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     fun scrollToHistoryMatch(conversation: com.cursoragent.history.Conversation, messageId: String, query: String): Boolean {
         val bodies = conversation.turns.flatMap { it.messages }.filter { it.role == "user" || it.role == "assistant" }
         val index = bodies.indexOfFirst { it.id == messageId && it.text.contains(query, ignoreCase = true) }
-        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble }
+        val rows = messagesPanel.components.filter { it is UserMessageBubble || it is AssistantMessageBubble || it is AssistantContentRow }
         if (index < 0 || rows.size != bodies.size) {
             setSaveStatus("検索後に本文が変わりました。履歴を開き直して検索してください。")
             return false
