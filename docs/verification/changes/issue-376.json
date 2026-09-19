@@ -7,7 +7,7 @@
     "git diff --check",
     "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "実fixture関数とcancel分岐で待機/解放/timeoutと送信/worker開始の順序を固定し、旧実装5subcase失敗・修正後成功を確認"
+    "実fixture関数とcancel分岐で待機/解放/timeoutと送信/worker開始の順序を固定し、旧実装4subcase失敗・修正後成功を確認"
   ],
   "cases": []
 }
