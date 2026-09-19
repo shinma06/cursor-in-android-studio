@@ -11,6 +11,11 @@ on:
         description: Branch to build (empty checks all live branch HEADs)
         required: false
         type: string
+      cleanup:
+        description: Delete verified orphan branch ZIPs (false only reports dry-run)
+        required: false
+        type: boolean
+        default: false
       force_build:
         description: Build even when impact classification would skip
         required: false
@@ -114,3 +119,49 @@ jobs:
           BRANCH: ${{ matrix.branch }}
           SOURCE_SHA: ${{ matrix.sha }}
         run: python3 scripts/workflow/branch_zip.py publish --branch "$BRANCH" --sha "$SOURCE_SHA"
+
+  cleanup-plan:
+    # Destructive reconciliation is scheduled/manual on the default branch only.
+    if: github.event_name != 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    outputs:
+      candidates: ${{ steps.cleanup.outputs.candidates }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ inputs.branch }}
+          APPLY: ${{ github.event_name == 'schedule' || inputs.cleanup || false }}
+        run: |
+          candidates=$(python3 scripts/workflow/branch_zip.py cleanup-plan --branch "$BRANCH")
+          if [ "$APPLY" != true ]; then candidates='[]'; fi
+          echo "candidates=$candidates" >> "$GITHUB_OUTPUT"
+  cleanup:
+    needs: cleanup-plan
+    if: needs.cleanup-plan.outputs.candidates != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include: ${{ fromJSON(needs.cleanup-plan.outputs.candidates) }}
+    concurrency:
+      group: ${{ matrix.tag }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Recheck and remove the orphan release and distribution tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ matrix.branch }}
+          SOURCE_SHA: ${{ matrix.sha }}
+          RELEASE_ID: ${{ matrix.release_id }}
+        run: python3 scripts/workflow/branch_zip.py cleanup --branch "$BRANCH" --sha "$SOURCE_SHA" --release-id "$RELEASE_ID"

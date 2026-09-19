@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "issue": 296,
+  "gui_required": true,
+  "reason": "ACP-CONTENT-UPDATE / ACP-CONTENT-LIMITS / ACP-CONTENT-RESTOREを固定IDEで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *AcpContent*Test --tests *AcpSessionTest --tests *Conversation*Test --tests *MarkdownImageSafetyTest",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューで受信・置換・順序・保存・非取得を照合"
+  ],
+  "cases": [
+    {
+      "id": "ACP-CONTENT-UPDATE",
+      "issue": 296,
+      "change": "ACP非テキスト内容の表示と部分更新",
+      "preconditions": "指定GUI担当がleaseを取得し、#296を含む固定候補のHEAD/ZIP hash/loaded JAR/transportを照合する。使い捨てprojectと公開可能な合成ACP serverだけを使う。",
+      "steps": [
+        "公開可能な合成ACP serverでtext、image、audio、resource_link、resource text/blob、diff、terminal、未知型を混在させる。種類・名前・URI・申告MIME・既知/不明サイズと受信順を確認する。",
+        "同一session/tool IDへcontent/locations省略、全置換、空配列、null/非配列の順に送信し、古い内容の残留・重複行がないことを確認する。",
+        "完了/失敗/実行中のツールへ未対応・不正内容を送り、ツール状態と表示状態が独立していること、既存diffの表示ボタンが正確な差分を開くことを確認する。",
+        "別session、Stop、close、終了後の遅着を送る。別会話への混入・自動再送がないことを確認する。Task詳細内の標準contentも照合する。"
+      ],
+      "expected": "認識済みの非テキスト内容は情報を表示し、省略は維持、明示配列は全置換、空配列は消去。不正要素が他の正常要素を消さず、Tool/Taskの実状態と終端保護を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/296",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/290"
+      ]
+    },
+    {
+      "id": "ACP-CONTENT-LIMITS",
+      "issue": 296,
+      "change": "不正入力と有限表示",
+      "preconditions": "指定GUI担当がleaseを取得し、#296を含む固定候補のHEAD/ZIP hash/loaded JAR/transportを照合する。使い捨てprojectと公開可能な合成ACP serverだけを使う。",
+      "steps": [
+        "null要素、primitive、欠落type/必須項目、不正size、未知型と正常textを同じcontent配列へ送信する。正常要素が残り、不正・未対応が区別されることを確認する。",
+        "合成データで配列64件、metadata 2048文字、本文32768文字と各超過、ターン射影1 Mi文字、応答非テキスト512件と各超過を確認する。省略表示と後続通常本文の保持を確認する。",
+        "巨大diff/pathが部分値で操作可能にならないこと、HTML/JavaScript/URI/pathがplain文字であること、base64本体が表示・保存されないことを確認する。",
+        "既存のwire 1 MiB、ターン受信4 Mi文字、512ツールの上限を維持し、不確定終了を成功と表示しないことを確認する。"
+      ],
+      "expected": "表示量を制限し、超過を明示する。MIME/サイズを検証済みとせず、取得・decode・再生・保存操作・permission対象化を行わない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/296",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/290"
+      ]
+    },
+    {
+      "id": "ACP-CONTENT-RESTORE",
+      "issue": 296,
+      "change": "応答本文と内容情報の順序・保存復元",
+      "preconditions": "指定GUI担当がleaseを取得し、#296を含む固定候補のHEAD/ZIP hash/loaded JAR/transportを照合する。使い捨てprojectと公開可能な合成ACP serverだけを使う。",
+      "steps": [
+        "同一message IDで通常text→画像/埋め込みtext→通常textを送信し、前後の原文・反復deltaが欠落せず、内容情報が別のplain行に現れることを確認する。",
+        "元のMarkdown本文をCopyし、内容情報が原文へ混入しないことを確認する。内容情報のHTML風文字列・画像URLが通信や実行を開始しないことを確認する。",
+        "保存・再表示・IDE再起動で通常本文と内容情報の順序を照合する。保存済みversion 1の通常会話も読み戻せることを確認する。",
+        "ツールの再表示はカテゴリ・表示状態の要約であり、名前/URI/本文/Task指示/バイナリを復元しないことを確認する。既存Markdown画像抑止と静止復元を確認する。"
+      ],
+      "expected": "通常原文はそのまま保持し、assistantの内容情報だけを識別付きplain表示として保存する。Tool詳細の保存制約を守り、live/復元のどちらでも自動取得・再実行しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品failは専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定候補で実施し、未実施/未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストは固定buildの実IDE表示・通知・停止観測を代替しない。指定担当の確認待ち。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/296",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/290"
+      ]
+    }
+  ]
+}
