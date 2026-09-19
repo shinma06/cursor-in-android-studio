@@ -18,9 +18,8 @@ import javax.swing.SwingUtilities
 /** Grow by actual editor visual lines (including soft wraps), then let the editor scroll. */
 class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     private var resizePending = false
-    var isComposing = false
-        private set
-    private var imeRevision = 0L
+    private val ime = PromptImeGuard()
+    val isComposing: Boolean get() = ime.isComposing
 
     init {
         setOneLineMode(false)
@@ -40,15 +39,8 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         // Disable the IDE's Tab indentation action and use local Swing traversal keys.
         editor.isEmbeddedIntoDialogWrapper = true
         installPromptFocusTraversal(editor.contentComponent)
-        editor.contentComponent.addInputMethodListener(object : java.awt.event.InputMethodListener {
-            override fun inputMethodTextChanged(event: java.awt.event.InputMethodEvent) {
-                val revision = ++imeRevision
-                val pending = event.text?.let { it.endIndex - it.beginIndex > event.committedCharacterCount } == true
-                isComposing = true
-                if (!pending) SwingUtilities.invokeLater { if (revision == imeRevision) isComposing = false }
-            }
-            override fun caretPositionChanged(event: java.awt.event.InputMethodEvent) = Unit
-        })
+        ime.reset()
+        editor.contentComponent.addInputMethodListener(ime)
         editor.setBackgroundColor(AgentUiColors.composerBackground)
         editor.settings.apply {
             isUseSoftWraps = true
