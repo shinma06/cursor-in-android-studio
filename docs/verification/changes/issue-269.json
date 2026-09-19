@@ -6,7 +6,7 @@
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
     "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
-    "固定base43 16165ecとの差分と実targetD997の独立レビュー"
+    "原作者の固定base43 16165ecとの差分を分離し、現在の実target/baseへ同期した最終候補を独立レビュー（原作者時点のtargetはD997）"
   ],
   "cases": [
     {
