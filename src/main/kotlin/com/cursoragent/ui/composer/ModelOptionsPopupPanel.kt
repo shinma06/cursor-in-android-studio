@@ -120,7 +120,7 @@ internal class ModelOptionsPopupPanel(
         if (optionControls.isNotEmpty() || currentId == "auto") {
             rows.add(JSeparator().apply { alignmentX = Component.LEFT_ALIGNMENT })
         }
-        modelRow = menuRow("Model", family?.name ?: "Auto", "ホバーまたはクリックでモデル一覧を開きます。") { showModels() }
+        modelRow = menuRow("Model", family?.name ?: if (currentId == "auto") "Auto" else currentId.ifEmpty { "既定モデル" }, "ホバーまたはクリックでモデル一覧を開きます。") { showModels() }
         modelRow.addMouseListener(object : java.awt.event.MouseAdapter() {
             override fun mouseEntered(e: java.awt.event.MouseEvent) = showModels(requestFocus = false)
         })

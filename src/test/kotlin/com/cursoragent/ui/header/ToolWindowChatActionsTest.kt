@@ -36,7 +36,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("新規チャット", "履歴", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
+        assertEquals(listOf("新規チャット", "履歴", "会話を書き出す…", "ファイルの変更…", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -54,6 +54,26 @@ class ToolWindowChatActionsTest {
         assertEquals(PermissionMode.AUTO_REVIEW, settings.permissionMode)
         assertEquals(SandboxMode.ENABLED, settings.sandboxMode)
         assertEquals(WorktreeMode.ISOLATED, settings.worktreeMode)
+    }
+
+    @Test
+    fun `changes action resolves selected conversation on click and rejects a disposed panel`() = SwingUtilities.invokeAndWait {
+        var available = true
+        var selected = "first"
+        val opened = mutableListOf<String>()
+        val actions = ToolWindowChatActions(AgentSettingsState(), { available }, { true }, { AgentTransport.PRINT to true },
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, { false }, {}, {}, {}, {}, onChanges = { opened.add(selected) })
+        val action = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "ファイルの変更…" }
+        action.update(event(action))
+        selected = "second"
+        action.actionPerformed(event(action))
+        assertEquals(listOf("second"), opened)
+        available = false
+        val event = event(action)
+        action.update(event)
+        assertFalse(event.presentation.isEnabled)
+        action.actionPerformed(event)
+        assertEquals(listOf("second"), opened)
     }
 
     @Test
@@ -89,7 +109,7 @@ class ToolWindowChatActionsTest {
             { calls.add("summary:$selected") }, { calls.add("new") }, { calls.add("history") },
             { calls.add("mcp") }, { calls.add("settings") }, { calls.add("notice") },
             { calls.add("opened") }, { calls.add("closeAll") }, { calls.add(it) },
-            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") }, { calls.add("browser") })
+            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") }, { calls.add("browser") }, { calls.add("export:$selected") })
         val summary = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "このセッションの内容を要約" }
         val event = event(summary)
         summary.update(event)
@@ -130,6 +150,14 @@ class ToolWindowChatActionsTest {
         val browserEvent = event(browser)
         browser.update(browserEvent)
         assertTrue(browserEvent.presentation.isEnabled, "Manual browsing does not require an idle Agent")
+        val export = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "会話を書き出す…" }
+        export.update(event(export))
+        assertTrue(event(export).presentation.isEnabled)
+        export.actionPerformed(event(export))
+        assertEquals("export:1", calls.last())
+        selected = 0
+        export.actionPerformed(event(export))
+        assertEquals("export:0", calls.last())
         available = false
         val before = calls.toList()
         fun leaves(group: DefaultActionGroup): List<AnAction> = group.childActionsOrStubs.flatMap {
@@ -352,7 +380,7 @@ class ToolWindowChatActionsTest {
             )
         }
         val actions = ToolWindowChatActions(settings, { available }, { running }, { transport to false },
-            { transport = it }, {}, {}, {}, {}, {}, {}, {}, {}, {}, { false }, {}, {}, {}, {}, ::reason)
+            { transport = it }, {}, {}, {}, {}, {}, {}, {}, {}, {}, { false }, {}, {}, {}, {}, settingsUnavailableReason = ::reason)
         try {
             for (permission in PermissionMode.entries) for (sandbox in SandboxMode.entries) for (worktree in WorktreeMode.entries) {
                 settings.permissionMode = permission
