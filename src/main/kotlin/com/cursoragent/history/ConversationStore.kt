@@ -90,6 +90,7 @@ class ConversationStore(private val directory: Path) {
             turn.messages.forEach { message ->
                 require(UUID.fromString(message.id).toString() == message.id && ids.add(message.id))
                 require(message.role in setOf("user", "assistant", "tool", "error"))
+                require(message.presentation == null || message.presentation == "acp_content" && message.role == "assistant")
                 require(message.text.length <= MAX_BYTES)
             }
         }

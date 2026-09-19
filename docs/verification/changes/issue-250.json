@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 250,
+  "gui_required": false,
+  "reason": "固定候補の同期PR履歴を検査するPython gateと回帰テスト・運用文書のみ。製品UIや既存GUI観察を変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_sync_promotion.py: 実Git DAGで同期帰属、内部edge、全Case、各拒否条件を検証",
+    "python3 scripts/workflow/change_impact.py --run-tests: 共通分類に従う必要チェック",
+    "固定main/developとPR226 APIの実履歴で全commit/固定merge Caseを収集し、未登録GUI結果による拒否を確認"
+  ],
+  "cases": []
+}
