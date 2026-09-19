@@ -11,11 +11,12 @@ class TaskPayloadTest {
     private fun projected(): List<JsonObject> = JsonParser.parseString(javaClass.getResource("/task/issue-118-projection.json")!!.readText())
         .asJsonObject.getAsJsonArray("print").map { it.asJsonObject.deepCopy().apply {
             val payload = remove("taskToolCall")
-            add("tool_call", JsonObject().apply { add("taskToolCall", payload) })
+            val id = get("call_id").asString
+            add("tool_call", JsonObject().apply { addProperty("toolCallId", id); add("taskToolCall", payload) })
         } }
 
     @Test fun `print public projection separates request IDs results and child failure from parent success`() {
-        // The fixed legacy projection flattens tool_call; restore that known envelope for the parser.
+        // The legacy projection omits the envelope/alias; restore the documented call_id alias for testing.
         val states = projected().map { ToolCallPayloadParser.parse(it)!! }
         assertEquals(listOf("print-parent-1"), states.map { it.parentSessionId }.distinct())
         assertEquals("print-argument-agent-1", states[1].task!!.task!!.requestedAgentId)
@@ -77,4 +78,25 @@ class TaskPayloadTest {
         assertEquals("visible", task.resultText)
         assertNull(task.isBackground)
     }
+
+    @Test fun `only object errors override success and nested IDs must match exactly`() {
+        val source = projected().last()
+        val payload = source.getAsJsonObject("tool_call").getAsJsonObject("taskToolCall")
+        for (invalid in listOf("null", "false", "1", "[]", "\"error\"")) {
+            payload.add("result", json("""{"error":$invalid}"""))
+            assertNull(ToolCallPayloadParser.parse(source)!!.task!!.status)
+            payload.add("result", json("""{"error":$invalid,"success":{"agentId":"valid"}}"""))
+            assertEquals("completed", ToolCallPayloadParser.parse(source)!!.task!!.status)
+        }
+        payload.add("result", json("""{"error":{},"success":{"agentId":"must-not-win"}}"""))
+        assertEquals("failed", ToolCallPayloadParser.parse(source)!!.task!!.status)
+        assertNull(ToolCallPayloadParser.parse(source)!!.task!!.task!!.agentId)
+        for (invalid in listOf("null", "17", "{}", "[]", "\"\"", "\"different\"", "\"${"x".repeat(2049)}\"")) {
+            val mismatch = source.deepCopy().apply { getAsJsonObject("tool_call").add("toolCallId", JsonParser.parseString(invalid)) }
+            assertNull(ToolCallPayloadParser.parse(mismatch), invalid)
+        }
+        source.getAsJsonObject("tool_call").remove("toolCallId")
+        assertNull(ToolCallPayloadParser.parse(source))
+    }
+
 }

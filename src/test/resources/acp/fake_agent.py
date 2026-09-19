@@ -78,7 +78,13 @@ for line in sys.stdin:
             send({"method": "cursor/task", "params": {"toolCallId": "missing", "model": "ignore-before-tool"}})
             update(sessionUpdate="tool_call", toolCallId="task-one", kind="other", status="pending", rawInput={"_toolName": "task", "description": "synthetic child", "subagentType": {"custom": {"name": "reader"}}})
             update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
-            if scenario != "task-stop":
+            if scenario.startswith("task-background"):
+                update(sessionUpdate="tool_call_update", toolCallId="task-one", status="completed", rawOutput={"isBackground": True})
+                update(sessionUpdate="tool_call_update", toolCallId="task-one", status="completed", rawOutput={"isBackground": None})
+                (root / "background-ready").touch()
+                if scenario != "task-background-stop":
+                    response(prompt_id, {"stopReason": "cancelled" if scenario == "task-background-cancelled" else "end_turn"})
+            elif scenario != "task-stop":
                 update(sessionUpdate="tool_call_update", toolCallId="task-one", status="failed" if scenario == "task-failed" else "completed", rawOutput={"durationMs": 12, "isBackground": False})
                 if scenario == "task-reopened":
                     update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")

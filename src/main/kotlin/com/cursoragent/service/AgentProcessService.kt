@@ -174,9 +174,18 @@ class AgentProcessService(private val project: Project) : Disposable {
             return
         }
 
+        val backgroundTaskObserved = java.util.concurrent.atomic.AtomicBoolean()
         try {
             var chatId = turn.workspace.resumeId
             val parser = StreamJsonParser { event ->
+                val taskPayload = when (event) {
+                    is StreamEvent.ToolCallStarted -> event.payload
+                    is StreamEvent.ToolCallCompleted -> event.payload
+                    else -> null
+                }
+                if (taskPayload?.belongsToPrintSession(chatId) == true && taskPayload.task?.task?.isBackground == true) {
+                    backgroundTaskObserved.set(true)
+                }
                 run.emit { listener ->
                     when (event) {
                         StreamEvent.OutputLimitExceeded -> {
@@ -200,9 +209,13 @@ class AgentProcessService(private val project: Project) : Disposable {
 
                         is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
 
-                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallStarted(event.payload)
+                        is StreamEvent.ToolCallStarted -> if (event.payload.belongsToPrintSession(chatId)) {
+                            listener.onToolCallStarted(event.payload)
+                        }
 
-                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) listener.onToolCallCompleted(event.payload)
+                        is StreamEvent.ToolCallCompleted -> if (event.payload.belongsToPrintSession(chatId)) {
+                            listener.onToolCallCompleted(event.payload)
+                        }
 
                         is StreamEvent.Result -> {
                             listener.onTokenUsage(event.usage)
@@ -242,7 +255,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     runs.remove(run)
                     try {
                         parser.finish()
-                        run.complete(event.exitCode, stderr.toString().trim())
+                        finishPrintTaskRun(run, operations, backgroundTaskObserved.get(), event.exitCode, stderr.toString().trim())
                     } finally {
                         processReservation.close()
                     }
@@ -259,7 +272,7 @@ class AgentProcessService(private val project: Project) : Disposable {
             handler.process.onExit().thenRun {
                 runs.remove(run)
                 try {
-                    run.complete(-1)
+                    finishPrintTaskRun(run, operations, backgroundTaskObserved.get(), -1)
                 } finally {
                     processReservation.close()
                 }
@@ -367,3 +380,11 @@ internal fun probePrintVersion(command: GeneralCommandLine, run: AgentRun): Stri
     val output = handler.runProcess(3000)
     output.stdout.trim().takeIf { output.exitCode == 0 && !output.isTimeout && !output.isCancelled }
 }.getOrNull()
+
+/** Physical parent exit cannot confirm a provider-managed background child's termination. */
+internal fun finishPrintTaskRun(run: AgentRun, operations: WorkspaceOperationGate, backgroundObserved: Boolean, exitCode: Int, errorOutput: String? = null) {
+    if (backgroundObserved) {
+        operations.markUncertain()
+        run.completeUncertain("背景Taskの終了を確認できません。復元を停止しました。")
+    } else run.complete(exitCode, errorOutput)
+}

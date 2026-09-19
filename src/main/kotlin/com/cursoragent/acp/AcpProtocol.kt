@@ -28,6 +28,9 @@ internal class AcpProtocol {
     private var payloadSize = 0
     private var messageId: String? = null
     private var interrupted = true
+    // No verified child-completion signal exists for a provider-managed background Task.
+    var hasBackgroundTasks = false
+        private set
 
     fun interruptMessage() { interrupted = true }
 
@@ -36,12 +39,13 @@ internal class AcpProtocol {
         if (retiredToolIds.size + tools.size <= 4_096 && !metadataCorrelationExhausted) retiredToolIds.addAll(tools.keys)
         else { metadataCorrelationExhausted = true; retiredToolIds.clear() }
         tools.clear()
+        hasBackgroundTasks = false
         payloadSize = 0
         interrupted = true
     }
 
     val hasUnfinishedTools: Boolean
-        get() = tools.values.any { it.status != "completed" && it.status != "failed" }
+        get() = hasBackgroundTasks || tools.values.any { it.status != "completed" && it.status != "failed" }
 
     fun update(update: JsonObject): AgentEvent? {
         acceptPayload(update)
@@ -64,6 +68,7 @@ internal class AcpProtocol {
                 val id = update.requiredString("toolCallId")
                 require(tools.size < 512 || id in tools)
                 val tool = tool(update, tools[id] ?: AgentTool(id))
+                hasBackgroundTasks = hasBackgroundTasks || tool.task?.isBackground == true
                 tools[id] = tool
                 AgentEvent.Tool(tool)
             }
@@ -86,6 +91,7 @@ internal class AcpProtocol {
         val old = tools[id] ?: return null
         if (old.task == null && old.kind != "other") return null
         val next = old.copy(task = (old.task ?: AgentTask()).withTaskMetadata(params))
+        hasBackgroundTasks = hasBackgroundTasks || next.task?.isBackground == true
         tools[id] = next
         return AgentEvent.Tool(next)
     }

@@ -418,4 +418,23 @@ class AcpSessionTest {
         while (!Files.exists(path) && System.nanoTime() < deadline) Thread.sleep(10)
         assertTrue(Files.exists(path))
     }
+
+    @Test fun `background Tasks block restore after end_turn cancellation and intentional Stop`() {
+        for (scenario in listOf("task-background", "task-background-cancelled", "task-background-stop")) {
+            Harness(temp.resolve(scenario), scenario).use { h ->
+                h.send()
+                if (scenario.endsWith("-stop")) {
+                    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+                    while (h.events.filterIsInstance<AgentEvent.Tool>().none { it.state.task?.isBackground == true } && System.nanoTime() < deadline) Thread.sleep(10)
+                    assertTrue(h.events.filterIsInstance<AgentEvent.Tool>().any { it.state.task?.isBackground == true })
+                    h.run.stop()
+                }
+                h.finish()
+                assertEquals(listOf("uncertain"), h.outcomes, scenario)
+                assertTrue(h.gate.isUncertain)
+                assertNull(h.gate.tryRestore())
+            }
+        }
+    }
+
 }

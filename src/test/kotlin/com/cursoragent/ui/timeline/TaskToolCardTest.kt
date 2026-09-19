@@ -110,4 +110,20 @@ class TaskToolCardTest {
             assertTrue(descendants(restored).filterIsInstance<javax.swing.JLabel>().any { it.text == "ツール: 子Task (失敗)" })
         }
     }
+
+    @Test fun `background completion stays unconfirmed across parent finish and metadata clearing`() = SwingUtilities.invokeAndWait {
+        val timeline = ChatTimelinePanel()
+        timeline.upsertTask(tool("completed", AgentTask(isBackground = true)), "parent")
+        val card = cards(timeline).single()
+        assertEquals("unconfirmed", card.tool.status)
+        timeline.upsertTask(tool("completed", AgentTask(isBackground = null)), "parent")
+        assertEquals("unconfirmed", card.tool.status)
+        assertEquals(1, timeline.finishTasks().size)
+        assertTrue(taskSavedSummary(card.tool).contains("終了を確認できません"))
+        timeline.upsertTask(tool("failed", AgentTask(errorText = "confirmed child failure")), "parent")
+        timeline.upsertTask(tool("completed", AgentTask(isBackground = false)), "parent")
+        assertEquals("failed", card.tool.status)
+        assertEquals("confirmed child failure", card.tool.task!!.errorText)
+    }
+
 }

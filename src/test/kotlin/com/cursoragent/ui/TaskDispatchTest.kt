@@ -86,4 +86,30 @@ class TaskDispatchTest {
             SwingUtilities.invokeAndWait { assertTrue(cards(timeline).isEmpty(), reason) }
         }
     }
+
+    @Test fun `print physical exit cannot release background restoration or report success after Stop`() {
+        for (stopped in listOf(false, true)) for (background in listOf(false, true)) {
+            val gate = com.cursoragent.service.WorkspaceOperationGate()
+            val preparation = gate.tryPrepare()!!
+            val process = preparation.launchingProcess()
+            preparation.close()
+            val outcomes = mutableListOf<String>()
+            val run = AgentRun(object : AgentProcessListener {
+                override fun onCompleted(exitCode: Int) { outcomes += "completed" }
+                override fun onStopped() { outcomes += "stopped" }
+                override fun onUncertain(message: String) {
+                    assertTrue(gate.isUncertain)
+                    assertNull(gate.tryRestore())
+                    outcomes += "uncertain"
+                }
+            })
+            run.attachProcess({}, { false })
+            if (stopped) run.stop()
+            com.cursoragent.service.finishPrintTaskRun(run, gate, background, 0)
+            process.close()
+            assertEquals(listOf(if (background) "uncertain" else if (stopped) "stopped" else "completed"), outcomes)
+            if (background) assertNull(gate.tryRestore()) else gate.tryRestore()!!.close()
+        }
+    }
+
 }
