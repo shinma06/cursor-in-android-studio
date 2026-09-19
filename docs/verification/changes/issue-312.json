@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 312,
+  "gui_required": false,
+  "reason": "公式Memory serverの専用package/lock・準備と単体stdio疎通・未配置templateのみ。Plugin本体/GUI/実Cursor/通常設定を変更・操作しない。QA49/MV028とmain反映は未実施として追跡する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/loop -p test_mcp_memory_fixture.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "専用rootで固定npm ci/配布integrity、initialize/initialized/read_graph空、stdin EOF/exit0/data無変更を実測",
+    "固定独立レビュー・必要CI・QA49/MV028のsettings scope/非TTY/認証/保存範囲/停止を未確定として引継ぐ"
+  ],
+  "cases": []
+}
