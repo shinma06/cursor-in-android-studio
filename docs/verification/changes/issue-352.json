@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 352,
+  "gui_required": false,
+  "reason": "公開調査fixtureのenvelope・注釈・error伏字と説明だけを修正。製品コードと既存GUI結果は変更しない。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公開JSON 2ブロックの構文、print 4要素のtool_call/taskToolCall階層・対応ID・順序・error型・伏字、加工を逆変換した既存値の保持をオフラインassert照合"
+  ],
+  "cases": []
+}

@@ -1,0 +1,152 @@
+package com.cursoragent.ui
+
+import com.cursoragent.parser.ParsedToolCall
+import com.cursoragent.parser.belongsToPrintSession
+import com.cursoragent.service.AgentEvent
+import com.cursoragent.service.AgentProcessListener
+import com.cursoragent.service.AgentRun
+import com.cursoragent.service.AgentTask
+import com.cursoragent.service.AgentTool
+import com.cursoragent.session.SessionTabs
+import com.cursoragent.settings.AgentMode
+import com.cursoragent.ui.timeline.ChatTimelinePanel
+import com.cursoragent.ui.timeline.TaskToolCard
+import java.awt.Component
+import java.awt.Container
+import javax.swing.SwingUtilities
+import kotlin.concurrent.thread
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+
+class TaskDispatchTest {
+    private fun cards(component: Component): List<TaskToolCard> =
+        (if (component is TaskToolCard) listOf(component) else emptyList()) +
+            if (component is Container) component.components.flatMap(::cards) else emptyList()
+
+    @Test fun `same task IDs in different runs route to their owning timeline and ignore terminal delivery`() {
+        val tabs = SessionTabs()
+        val a = tabs.snapshot().selected
+        val b = tabs.open()
+        lateinit var timelines: List<ChatTimelinePanel>
+        SwingUtilities.invokeAndWait { timelines = listOf(ChatTimelinePanel(), ChatTimelinePanel()) }
+        val runs = listOf(a, b).mapIndexed { index, tab ->
+            tabs.updateComposer(tab.id, AgentMode.AGENT, "", "synthetic", 0)
+            val token = tabs.beginTurn(tab.id)!!.token
+            val parent = "parent-$index"
+            lateinit var run: AgentRun
+            run = AgentRun(object : AgentProcessListener {
+                override fun onToolCallCompleted(payload: ParsedToolCall) {
+                    if (!payload.belongsToPrintSession(parent)) return
+                    updateCurrentTurnOnEdt({ false }, { tabs.accepts(token) }, { run.wasStopped }) {
+                        timelines[index].upsertTask(payload.task!!, payload.parentSessionId)
+                    }
+                }
+            })
+            run
+        }
+        val child = AgentTool("same-call", status = "failed", task = AgentTask(errorText = "child failure"))
+        runs.forEachIndexed { index, run ->
+            run.emit { it.onToolCallCompleted(ParsedToolCall("same-call", "completed", "task", "Task", parentSessionId = "wrong", task = child)) }
+            run.emit { it.onToolCallCompleted(ParsedToolCall("same-call", "completed", "task", "Task", parentSessionId = "parent-$index", task = child)) }
+        }
+        SwingUtilities.invokeAndWait {
+            assertEquals(listOf(1, 1), timelines.map { cards(it).size })
+            assertNotSame(cards(timelines[0]).single(), cards(timelines[1]).single())
+        }
+        runs[0].complete(0)
+        runs[0].emit { it.onToolCallCompleted(ParsedToolCall("late", "completed", "task", "late", parentSessionId = "parent-0", task = child.copy(id = "late"))) }
+        SwingUtilities.invokeAndWait { assertEquals(1, cards(timelines[0]).size) }
+    }
+
+    @Test fun `queued Task delivery rechecks Stop closed tab and disposed view on EDT`() {
+        for (reason in listOf("stop", "close", "dispose")) {
+            val tabs = SessionTabs()
+            val tab = tabs.snapshot().selected
+            tabs.updateComposer(tab.id, AgentMode.AGENT, "", "synthetic", 0)
+            val token = tabs.beginTurn(tab.id)!!.token
+            lateinit var timeline: ChatTimelinePanel
+            SwingUtilities.invokeAndWait { timeline = ChatTimelinePanel() }
+            var disposed = false
+            lateinit var run: AgentRun
+            run = AgentRun(object : AgentProcessListener {
+                override fun onStructuredEvent(event: AgentEvent) {
+                    updateCurrentTurnOnEdt({ disposed }, { tabs.accepts(token) }, { run.wasStopped }) {
+                        timeline.upsertStructuredTool((event as AgentEvent.Tool).state) {}
+                    }
+                }
+            })
+            SwingUtilities.invokeAndWait {
+                thread { run.emit { it.onStructuredEvent(AgentEvent.Tool(AgentTool("late", task = AgentTask()))) } }.join()
+                when (reason) {
+                    "stop" -> run.stop()
+                    "close" -> { tabs.close(tab.id); run.detachListener() }
+                    else -> disposed = true
+                }
+            }
+            SwingUtilities.invokeAndWait { assertTrue(cards(timeline).isEmpty(), reason) }
+        }
+    }
+
+    @Test fun `print physical exit cannot release background restoration or report success after Stop`() {
+        for (stopped in listOf(false, true)) for (background in listOf(false, true)) {
+            val gate = com.cursoragent.service.WorkspaceOperationGate()
+            val preparation = gate.tryPrepare()!!
+            val process = preparation.launchingProcess()
+            preparation.close()
+            val outcomes = mutableListOf<String>()
+            val run = AgentRun(object : AgentProcessListener {
+                override fun onCompleted(exitCode: Int) { outcomes += "completed" }
+                override fun onStopped() { outcomes += "stopped" }
+                override fun onUncertain(message: String) {
+                    assertTrue(gate.isUncertain)
+                    assertNull(gate.tryRestore())
+                    outcomes += "uncertain"
+                }
+            })
+            run.attachProcess({}, { false })
+            if (stopped) run.stop()
+            com.cursoragent.service.finishPrintTaskRun(run, gate, background, 0)
+            process.close()
+            assertEquals(listOf(if (background) "uncertain" else if (stopped) "stopped" else "completed"), outcomes)
+            if (background) assertNull(gate.tryRestore()) else gate.tryRestore()!!.close()
+        }
+    }
+
+
+    @Test fun `buffered print initialization remains observable after Stop or listener detachment`() {
+        for (initialization in listOf(
+            """{"type":"system","subtype":"init","session_id":"parent"}""",
+            """{"type":"result","subtype":"success","session_id":"parent","is_error":false}""",
+        )) for (detached in listOf(false, true)) {
+            val gate = com.cursoragent.service.WorkspaceOperationGate()
+            val preparation = gate.tryPrepare()!!
+            val process = preparation.launchingProcess()
+            preparation.close()
+            var deliveries = 0
+            val run = AgentRun(object : AgentProcessListener {})
+            run.attachProcess({}, { false })
+            if (detached) run.detachListener() else run.stop()
+            val state = com.cursoragent.service.PrintTaskState(null)
+            val parser = com.cursoragent.parser.StreamJsonParser { event ->
+                state.observe(event)
+                run.emit { deliveries++ }
+            }
+            val task = """{"type":"tool_call","subtype":"completed","session_id":"parent","call_id":"t","tool_call":{"toolCallId":"t","taskToolCall":{"result":{"success":{"isBackground":true}}}}}"""
+            parser.parseLine(task)
+            assertFalse(state.backgroundObserved, "Task payload cannot invent a confirmed parent")
+            parser.parseLine(initialization)
+            parser.parseLine(task.replace("\"parent\"", "\"foreign\""))
+            assertFalse(state.backgroundObserved)
+            parser.parseLine(task)
+            parser.finish()
+            assertEquals("parent", state.sessionId)
+            assertTrue(state.backgroundObserved)
+            assertEquals(0, deliveries)
+            com.cursoragent.service.finishPrintTaskRun(run, gate, state.backgroundObserved, 0)
+            process.close()
+            assertTrue(gate.isUncertain)
+            assertNull(gate.tryRestore())
+        }
+    }
+
+}

@@ -7,7 +7,8 @@
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
     "./gradlew test",
     "./gradlew buildPlugin",
-    "固定HEAD/baseの独立レビューで実run終端・queue世代・会話所有・保存不変を照合"
+    "固定HEAD/baseの独立レビューで実run終端・queue世代・会話所有・保存不変を照合",
+    "PromptQueueTest: 実listenerのFileEditCard Revert前にpauseし、待機EDT ticketを無効化。予約本文・別tab実行・明示再開後の旧ticket拒否を確認。"
   ],
   "cases": [
     {
@@ -65,7 +66,8 @@
         "print Resultのみ/0exit+error/非0exit、ACP end_turn/refusal/max_tokens/max_turn_requests/cancelled/uncertainを使い捨てfixtureで確認し、成功終端だけが次の予約へ進むことを確認する。",
         "成功callbackから次のEDT配送までにStop→再開・別tab切替・NewChat・履歴を開く・編集/削除/並べ替え・close確認を行い、古いticketから送信されないことを確認する。戻ったtabは明示再開まで停止中。",
         "予約の準備/CLI起動を失敗させ、本文と失敗を表示し残りがpauseされ、自動retryや別provider新規会話への流入がないことを確認する。provider ID欠落でも予約を保持してpauseする。",
-        "単独/bulk closeの予約消失確認をキャンセルし保持を確認した後、確定してclose/IDE終了する。履歴再表示・再起動で未送信予約が自動再送されず、送信済み本文は通常の保存turnとして残ることを確認する。"
+        "単独/bulk closeの予約消失確認をキャンセルし保持を確認した後、確定してclose/IDE終了する。履歴再表示・再起動で未送信予約が自動再送されず、送信済み本文は通常の保存turnとして残ることを確認する。",
+        "同じ固定候補で変更一覧を開き、一覧と個別カードのRevertを試す。確認取消・復元拒否後も予約が一時停止し、明示再開まで次turnを送らないこと、予約本文と別tab実行を保持することを確認する。"
       ],
       "expected": "同tab単一run/別tab並行を維持。Stop・エラー・選択移動・close・dispose後に無断配送/再試行が起こらない。消失する未送信予約をclose確認に含める。",
       "history": [],

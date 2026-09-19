@@ -1,5 +1,6 @@
 package com.cursoragent.ui.composer
 
+import com.cursoragent.service.ModelCatalogState
 import com.cursoragent.service.ModelOption
 import com.cursoragent.settings.AgentSettingsState
 import com.intellij.openapi.ui.popup.JBPopup
@@ -11,15 +12,20 @@ class ModelSelector(
     private val popupController = SelectorPopupController(this, ownsChildPopups = true)
     private var models: List<ModelOption> = emptyList()
     private var acp = false
+    var onRetry: () -> Unit = {}
+    private var catalog: ModelCatalogState = ModelCatalogState.Loading
+    private var printModelId: String? = null
     private var families: List<ModelFamily> = emptyList()
     private var lastManualModelId: String? = settings.selectedModel.takeUnless { it == "auto" || it.isEmpty() }
 
     init {
         showsChevron = true
-        isEnabled = false
-        text = "Loading models…"
-        toolTipText = text
+        showCatalog(ModelCatalogState.Loading)
         addActionListener {
+            if (!acp && (catalog == ModelCatalogState.Failed || (catalog as? ModelCatalogState.Loaded)?.models?.isEmpty() == true)) {
+                onRetry()
+                return@addActionListener
+            }
             if (acp) {
                 popupController.toggle {
                     JBPopupFactory.getInstance().createPopupChooserBuilder(models)
@@ -70,17 +76,21 @@ class ModelSelector(
     }
 
     fun waitForAcp() {
+        if (!acp) printModelId = settings.selectedModel
+        settings.selectedModel = ""
         acp = true
         models = emptyList()
         families = emptyList()
         text = "ACPの既定モデル"
         toolTipText = "初回送信時に接続先の設定を確認します。現在のCLIモデル選択は引き継ぎません。"
-        accessibleContext.accessibleName = toolTipText
+        getAccessibleContext().accessibleName = toolTipText
         isEnabled = false
     }
 
     fun setAcpModels(models: List<ModelOption>, selected: String) {
+        if (!acp) printModelId = settings.selectedModel
         acp = true
+        showsChevron = models.isNotEmpty()
         this.models = models
         families = emptyList()
         settings.selectedModel = selected
@@ -88,22 +98,44 @@ class ModelSelector(
         isEnabled = models.isNotEmpty()
     }
 
-    fun setModels(models: List<ModelOption>) {
-        acp = false
-        this.models = models
-        families = modelFamilies(models)
-        if (models.isEmpty()) {
-            isEnabled = false
-            text = "Default model"
-            toolTipText = "No models available (agent --list-models failed)"
-            getAccessibleContext().accessibleName = toolTipText
-            return
+    fun setModels(models: List<ModelOption>) = showCatalog(ModelCatalogState.Loaded(models))
+
+    fun showCatalog(state: ModelCatalogState) {
+        if (acp) {
+            settings.selectedModel = printModelId.orEmpty()
+            printModelId = null
         }
-        val selected = models.find { it.id == settings.selectedModel } ?: models.first()
-        settings.selectedModel = selected.id
-        if (selected.id != "auto") lastManualModelId = selected.id
-        showSelection(selected)
-        isEnabled = true
+        acp = false
+        catalog = state
+        showsChevron = state is ModelCatalogState.Loaded && state.models.isNotEmpty()
+        when (state) {
+            ModelCatalogState.Loading -> showCatalogStatus("モデルを取得中…", retry = false)
+            ModelCatalogState.Failed -> showCatalogStatus("モデル取得に失敗 · 再試行", retry = true)
+            is ModelCatalogState.Loaded -> {
+                models = state.models
+                families = modelFamilies(models)
+                if (models.isEmpty()) {
+                    showCatalogStatus("モデルなし · 再試行", retry = true)
+                } else {
+                    val saved = settings.selectedModel
+                    val selected = models.find { it.id == saved } ?: ModelOption(saved, saved.ifEmpty { "既定モデル" })
+                    if (saved.isNotEmpty() && saved != "auto") lastManualModelId = saved
+                    showSelection(selected)
+                    if (models.none { it.id == saved }) toolTipText += " — 保存済み選択を保持（今回の一覧にはありません）"
+                    isEnabled = true
+                }
+            }
+        }
+    }
+
+    private fun showCatalogStatus(label: String, retry: Boolean) {
+        text = label
+        val saved = settings.selectedModel.ifEmpty { "既定モデル" }
+        toolTipText = "$label。選択を保持: $saved" + if (retry) "。クリックまたはSpaceで再取得します。" else ""
+        getAccessibleContext().accessibleName = toolTipText
+        isEnabled = retry
+        revalidate()
+        repaint()
     }
 
     private fun showSelection(option: ModelOption) {

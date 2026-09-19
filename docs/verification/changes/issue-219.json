@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 219,
+  "gui_required": false,
+  "reason": "GitHub配布残存物の識別と定期/手動cleanupのみ。製品src/Gradle設定/UI変更なし。回帰テストと初回dry-run、Actionsの実削除/保持/配布継続readbackで検証する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain",
+    "cleanup-planの全候補/保留理由を記録後、main Actionsでcleanupを実行しRelease/Assets/tagとmain/develop配布をreadbackする"
+  ],
+  "cases": []
+}
