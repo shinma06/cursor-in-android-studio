@@ -74,7 +74,7 @@ MV-032はこの幅での表示結果。ツールチップ等で補完する仕�
 
 - `./gradlew test`（パーサー・BranchDiffBuilder 等）
 - Teams プランでの CLI スパイク（stream-json 形状、force なしでも即書き込み）
-- CLI `--help` に画像添付フラグなし（F-60 は CLI 非対応と判断、2026-09-04）
+- 2026-09-04のCLI `--help`に画像添付フラグがないという観測は履歴。そこからF-60非対応とした判定は撤回済み。2026-09-19追補: [#10の9/12有限probe](../research/issue-10-image-contract.md)でACP画像bytes入力とprint path読取の成功を確認した。固定CLI/modelのみの実測であり、P7の正しい絶対pathによるroot外アクセスは未判定。製品画像UIは本調査PRでは未実装、#277のGUI受入はpending。既存QAのStatusは変更しない。
 
 ## F. ループ基盤の試運転（#29）
 

@@ -84,7 +84,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 ### 4.2 制約
 - 復元・Browser・音声入力は、現方式BでIDEと同じ入力/出力・UI契約を利用できるかを個別検証する。CLI interactiveの`/rewind`やBrowser subagent等の公開能力と、pluginの復元/画像表示/操作UIを分け、CLI全体に機能が存在しないとは断定しない（§6 機能要件・最新比較参照）。
 - 現プラグインの`@Docs`/`@Web`はMCP利用のヒント文字列を注入する実装。CLI自身のWeb能力やBrowser subagentとは分け、MCP追加だけが唯一の経路とは扱わない（[最新比較](research/cursor-agent-capability-matrix-2026-09-08.md)）。
-- 画像は[公式headless資料](https://cursor.com/docs/cli/headless)にprompt内のファイルパスを読む経路がある。installed helpの`--image`不在だけで非対応と断定しない。#10で識別画像・空白/日本語path・resume/Worktreeのlive検証を行ってからUI受入を決める。
+- 画像は[公式headless資料](https://cursor.com/docs/cli/headless)にprompt内のファイルパスを読む経路がある。installed helpの`--image`不在だけで非対応と断定しない。2026-09-12の[#10有限probe](research/issue-10-image-contract.md)でACP bytes入力と補助printを実測しACPを採用。画像UI・GUI受入は#277へ分離した（2026-09-19索引更新）。
 
 ---
 
@@ -190,7 +190,7 @@ AgentToolWindowRootPanel / SessionTabs
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-60 | 画像添付 | P3(公開経路あり・live未検証) | [headless資料](https://cursor.com/docs/cli/headless)はprompt内の画像path読取を説明。CLI `2026.09.02-c22c1a3`のhelpに`--image`はないが非対応の証明にはならない。#10で非TTY実証後、添付/paste/D&D/preview/remove/失敗UIを設計する |
+| F-60 | 画像添付 | P3(有限probe完了・製品UI未実装) | 2026-09-19更新: [#10の9/12結果](research/issue-10-image-contract.md)は固定CLI `2026.09.10-fd3934a` / `composer-2.5[fast=true]`でACP画像3枚18マス識別とprint path読取を確認。ACPを採用し自動print fallbackはしない。添付/paste/D&D/preview/remove/失敗保持は#277、GUI pending。P7のroot外アクセスや全モデル対応は未判定 |
 | F-61 | 音声入力 | P3(未検証) | 専用録音/送信UIは未実装。#99でOS標準音声入力がEditorTextFieldへ文字入力できるか検証する。音声ファイル解析とdictationを別機能にする |
 | F-62 | ブラウザ視覚検証 | P3(未実装・調査) | [Browser](https://cursor.com/docs/agent/tools/browser)と[Subagents](https://cursor.com/docs/subagents)の公開経路を調査する。MCP利用も候補だが汎用tool summaryだけでは画像描画/視覚検証は成立しない。方式Bでのevent・表示・操作契約は #25で確認 |
 
@@ -309,7 +309,7 @@ ACP session IDと保存済みprint chat IDの互換性や復元は #115で検証
 2. **チェックポイント機構の複雑性**:Gitのステージング状態と自前スナップショットが衝突するケースの設計が甘いと、ユーザーの実コミット履歴を壊すリスクがある
 3. **認証情報の引き継ぎ失敗**:サブプロセスの環境変数継承がOSによって異なり、認証エラーが頻発する可能性
 4. **UIスレッドブロッキング**:ストリーミング処理をEDTで直接処理すると、Android Studio全体がカクつくリスク
-5. **画像添付・音声入力のCLI対応状況不明**:機能要件確定前に公式ドキュメントでの検証が必須
+5. **画像添付の製品受入・音声入力**: 2026-09-19更新: 画像入力は[#10の有限probe](research/issue-10-image-contract.md)を完了。製品UI・GUI受入は#277、音声は#99で別途検証する。
 
 ---
 
@@ -328,7 +328,7 @@ ACP session IDと保存済みprint chat IDの互換性や復元は #115で検証
 
 ## 13. 未確定事項(要検証リスト)
 
-- [ ] `[公開経路あり・要実測 2026-09-08]` CLI画像path読取 — helpの画像flag不在による旧非対応判定を訂正。#10で識別画像を非TTY送信し、正答/失敗とUI要件を確認する(F-60)
+- [x] `[有限probe完了 2026-09-12 / 索引更新 2026-09-19]` [#10画像入力](research/issue-10-image-contract.md) — 固定CLI/modelのACP bytes/print path読取、正答/欠損等の失敗を確認し、ACP採用とUXを定義。P7の正しい絶対pathによるroot外アクセスは未判定。製品添付UIとGUI受入は#277で未完了(F-60)。
 - [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
 - [x] `[検証済 2026-09-04]` stream-jsonのイベントスキーマ(実機) — `system/init`, `user`, `connection`, `retry`, `assistant`(累積/差分混在), `tool_call`(started/completed、`readToolCall`/`editToolCall`/`shellToolCall`)。`editToolCall` completed に `beforeFullFileContent`/`afterFullFileContent`/`diffString` を確認。fixture: `src/test/resources/stream-json-fixtures/`
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値 — デフォルト15日で実装済みだが、ユーザーが変更できる設定UIは未実装
@@ -363,7 +363,7 @@ ACP session IDと保存済みprint chat IDの互換性や復元は #115で検証
 ## 次のアクション
 
 `[2026-09-05訂正]` M0の即時書込み検証、F-30〜32、sandbox基本選択、通知は PR #18 までに完了している。
-旧来のブロッカー記述を次の作業選択に使わない。既存の残作業はGitHubの現行Issue一覧で管理する。#10は画像path、#99はOS音声入力、製品変更後のQAは #102〜#108へ分離済み。
+旧来のブロッカー記述を次の作業選択に使わない。既存の残作業はGitHubの現行Issue一覧で管理する。2026-09-19更新: #10の有限画像調査は[結果](research/issue-10-image-contract.md)を参照し、画像UI・GUI受入は#277、#99はOS音声入力、製品変更後のQAは #102〜#108へ分離済み。
 
 現在の順序は [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)、機能別ACP契約・互換性は #115へ進む。[旧計画書](plans/cursor-agent-ui-gap-plan.md)のCLI限定ゲートや当時の順序を新規設計へ転用しない。構造化イベント、IDE API/MCP、補助CLIの境界を検証してから実装を分割する。計画作成は機能実装・実行検証の完了ではない。
 
