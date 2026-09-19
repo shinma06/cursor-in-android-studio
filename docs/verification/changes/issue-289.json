@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "issue": 289,
+  "gui_required": true,
+  "reason": "Request ID取得・確定・tab所有・明示clipboard操作を既存メニューで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューでparser→process termination→Factory→SessionTabs→menu接続を確認"
+  ],
+  "cases": [
+    {
+      "id": "REQUEST-ID-289-Q1",
+      "issue": 289,
+      "change": "正常print・resume・明示コピー",
+      "preconditions": "指定GUI担当がleaseを取得し、#289と必要依存を含む固定HEAD/ZIP SHA256/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを使用する。",
+      "steps": [
+        "指定担当が合成fixtureと実providerの別記録を用意し、正常printのResult受信時にはまだ利用不可、実exit 0後に有効化することを確認する。",
+        "メニューから明示コピーしてOS clipboard原文一致を確認する。同sessionでresumeし、新turn中は旧ID無効、正常終了後は新しいRequest IDとなることを確認する。"
+      ],
+      "expected": "実exit 0を確認した最新応答だけが対象。session IDはコピーせず、clipboard・provider2turn・製品GUIを別々に記録する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/289",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/286"
+      ]
+    },
+    {
+      "id": "REQUEST-ID-289-Q2",
+      "issue": 289,
+      "change": "optional不正・原文・本文/usage保持",
+      "preconditions": "指定GUI担当がleaseを取得し、#289と必要依存を含む固定HEAD/ZIP SHA256/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを使用する。",
+      "steps": [
+        "合成fixtureでabsent/null/number/bool/object/array/空/前後空白/control/孤立surrogate/UTF-8過長を流し、本文とusageと通常終了を確認する。",
+        "有効な非UUID opaque文字列、大小文字、Unicode、内部spaceとUTF-8 1,024 bytes境界をコピーして無変換の一致を確認する。"
+      ],
+      "expected": "不正fieldだけ未取得。有効IDを正確にコピーし、本文や他IDを代用しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/289",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/286"
+      ]
+    },
+    {
+      "id": "REQUEST-ID-289-Q3",
+      "issue": 289,
+      "change": "失敗・Stop・矛盾Result・遅着",
+      "preconditions": "指定GUI担当がleaseを取得し、#289と必要依存を含む固定HEAD/ZIP SHA256/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを使用する。",
+      "steps": [
+        "正常完了後に欠損・起動失敗・通信失敗・Stop・未確定・Result後異常exitを発生させ、旧IDが利用不可のままであることを確認する。",
+        "同じResult再送と異なるID/本文/session等の矛盾Resultを区別する。次turn・dispose・閉じた会話への遅着でIDが復活しないことを確認する。"
+      ],
+      "expected": "失敗/Stop/矛盾/未確定から前turnへfallbackせず、通常の本文/終了/queue/復元処理を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/289",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/286"
+      ]
+    },
+    {
+      "id": "REQUEST-ID-289-Q4",
+      "issue": 289,
+      "change": "複数tab・メニュー中変更・keyboard・狭幅",
+      "preconditions": "指定GUI担当がleaseを取得し、#289と必要依存を含む固定HEAD/ZIP SHA256/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを使用する。",
+      "steps": [
+        "A/B tabを完了させ、切替/並べ替え/closeで各tabのID所有を確認する。メニューを開いた後でA→BおよびA→B→A、次turnを発生させ旧操作がclipboardを変更しないことを確認する。",
+        "keyboardだけで「その他の操作」からコピーへ到達する。狭幅、Light/Darkで利用不可理由と成功/失敗feedbackを確認し、コピー失敗時もID/例外詳細を画面へ表示しないことを確認する。"
+      ],
+      "expected": "選択tabと同一完了snapshotを実行直前に再検査。並べ替えで所有を移さず、古いメニュー操作で別応答をコピーしない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/289",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/286"
+      ]
+    },
+    {
+      "id": "REQUEST-ID-289-Q5",
+      "issue": 289,
+      "change": "未取得・ACP・保存本文・非保存境界",
+      "preconditions": "指定GUI担当がleaseを取得し、#289と必要依存を含む固定HEAD/ZIP SHA256/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを使用する。",
+      "steps": [
+        "空会話、ACP、保存本文だけを開き直した会話で理由付き無効を確認し、既存clipboardを保持する。RPC ID、モデル本文UUID、session IDで有効化しないことを確認する。",
+        "コピー後に会話を閉じ再表示し、履歴/export/通常ログ/通知へIDを追加していないことを確認する。追加prompt・ACP slash・feedback送信が発生しないことを確認する。"
+      ],
+      "expected": "メモリ内の最新正常print応答だけを扱う。Q6 ACP取得は公式の構造化供給契約確認後の再評価条件のまま。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成・実ローカルプロセステストとは別に、指定担当による固定buildの実IDE/OS clipboard受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/289",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/286"
+      ]
+    }
+  ]
+}
