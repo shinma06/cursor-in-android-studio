@@ -15,6 +15,7 @@ import javax.swing.JTextArea
 internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentToolContent.Diff) -> Unit) : JPanel(BorderLayout()) {
     var tool: AgentTool = initial
         private set
+    private var backgroundObserved = false
     private val summary = textArea()
     private val bodyText = textArea()
     private val details = JPanel(BorderLayout()).apply {
@@ -22,7 +23,8 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
         isVisible = false
         add(bodyText, BorderLayout.NORTH)
     }
-    private var standardContent: JPanel? = null
+    private var standardContent: StructuredToolCard? = null
+    private var standardExpanded = true
     private val toggle = JButton("詳細を表示").apply {
         addActionListener {
             details.isVisible = !details.isVisible
@@ -48,10 +50,12 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
     }
 
     fun update(incoming: AgentTool) {
+        backgroundObserved = backgroundObserved || incoming.task?.isBackground == true
         // Retain the observed result, but do not hide contradictory activity behind "completed".
         if (tool.status == "failed" && incoming.status != "failed") return
         val status = taskStatus(tool.status, incoming.status)
         tool = if (status == "unconfirmed") tool.copy(status = status) else incoming.copy(status = status)
+        if (backgroundObserved && tool.status != "failed") tool = tool.copy(status = "unconfirmed")
         val task = requireNotNull(tool.task)
         val title = "子Task: ${task.name ?: task.description ?: "名前は未取得"}\n${taskStatusText(tool.status, task.isBackground)}"
         if (summary.text != title) summary.text = title
@@ -70,8 +74,8 @@ internal class TaskToolCard(initial: AgentTool, private val viewDiff: (AgentTool
             append("\n${task.resultText?.let { "提供された子の結果（取得できた範囲）:\n$it" } ?: "子の結果本文は取得できません"}")
         }
         if (bodyText.text != body) bodyText.text = body
-        standardContent?.let(details::remove)
-        standardContent = if (tool.content.isNotEmpty() || tool.locations.isNotEmpty() || tool.locationsNotice != null) StructuredToolCard(tool, viewDiff, initiallyExpanded = true) else null
+        standardContent?.let { standardExpanded = it.expanded; details.remove(it) }
+        standardContent = if (tool.content.isNotEmpty() || tool.locations.isNotEmpty() || tool.locationsNotice != null) StructuredToolCard(tool, viewDiff, initiallyExpanded = standardExpanded) else null
         standardContent?.let { details.add(it, BorderLayout.CENTER) }
         revalidate()
         repaint()

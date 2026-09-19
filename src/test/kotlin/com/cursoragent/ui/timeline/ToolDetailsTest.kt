@@ -41,4 +41,30 @@ class ToolDetailsTest {
         assertFalse(next.expanded)
         assertTrue(descendants(next).filterIsInstance<JTextArea>().single().text.endsWith("出力はありません"))
     }
+
+    @Test fun `nested task details keep collapsed state across updates content replacement and parent finish`() = SwingUtilities.invokeAndWait {
+        val timeline = ChatTimelinePanel()
+        val tool = com.cursoragent.service.AgentTool("task", "Task", "other", "in_progress",
+            content = listOf(com.cursoragent.service.AgentToolContent.Text("first")),
+            task = com.cursoragent.service.AgentTask(name = "synthetic"))
+        timeline.upsertTask(tool, "parent")
+        val card = descendants(timeline).filterIsInstance<TaskToolCard>().single()
+        val outer = descendants(card).filterIsInstance<JButton>().single { it.text == "詳細を表示" }
+        outer.doClick(0)
+        fun inner() = descendants(card).filterIsInstance<StructuredToolCard>().single()
+        assertTrue(inner().expanded)
+        descendants(inner()).filterIsInstance<JButton>().single().doClick(0)
+        assertFalse(inner().expanded)
+        timeline.upsertTask(tool.copy(content = listOf(com.cursoragent.service.AgentToolContent.Text("updated"))), "parent")
+        assertFalse(inner().expanded)
+        timeline.upsertTask(tool.copy(content = emptyList()), "parent")
+        assertTrue(descendants(card).filterIsInstance<StructuredToolCard>().isEmpty())
+        timeline.upsertTask(tool, "parent")
+        assertFalse(inner().expanded)
+        timeline.finishTasks()
+        assertFalse(inner().expanded)
+        assertEquals("詳細を閉じる", outer.text)
+        assertSame(card, descendants(timeline).filterIsInstance<TaskToolCard>().single())
+    }
+
 }

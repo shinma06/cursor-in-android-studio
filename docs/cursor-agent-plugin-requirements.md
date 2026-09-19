@@ -120,7 +120,7 @@ AgentToolWindowRootPanel / SessionTabs
 |---|---|---|---|
 | F-01 | テキストプロンプト送信 | MVP | `agent -p --output-format stream-json "<prompt>"` |
 | F-02 | ストリーミング応答表示(トークン単位) | MVP | `--stream-partial-output`イベントを逐次パースしUI更新 |
-| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。develop #44は今後観測した本文を保存・再表示（再起動GUIは別QA）、検索/exportは #45で未実装 |
+| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。develop #44は今後観測した本文を保存・再表示（再起動GUIは別QA）、検索/Markdown出力は #45で接続（固定build GUIは別QA） |
 | F-04 | セッション再開(前回の続きから) | MVP | `--resume [chatId]` |
 | F-05 | 新規チャット開始 | MVP | セッションID未指定で新規起動 |
 | F-06 | コンテキスト圧縮 | P2 | `/summarize`をプロンプト経由で送信 |

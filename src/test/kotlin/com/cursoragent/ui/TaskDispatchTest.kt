@@ -86,4 +86,67 @@ class TaskDispatchTest {
             SwingUtilities.invokeAndWait { assertTrue(cards(timeline).isEmpty(), reason) }
         }
     }
+
+    @Test fun `print physical exit cannot release background restoration or report success after Stop`() {
+        for (stopped in listOf(false, true)) for (background in listOf(false, true)) {
+            val gate = com.cursoragent.service.WorkspaceOperationGate()
+            val preparation = gate.tryPrepare()!!
+            val process = preparation.launchingProcess()
+            preparation.close()
+            val outcomes = mutableListOf<String>()
+            val run = AgentRun(object : AgentProcessListener {
+                override fun onCompleted(exitCode: Int) { outcomes += "completed" }
+                override fun onStopped() { outcomes += "stopped" }
+                override fun onUncertain(message: String) {
+                    assertTrue(gate.isUncertain)
+                    assertNull(gate.tryRestore())
+                    outcomes += "uncertain"
+                }
+            })
+            run.attachProcess({}, { false })
+            if (stopped) run.stop()
+            com.cursoragent.service.finishPrintTaskRun(run, gate, background, 0)
+            process.close()
+            assertEquals(listOf(if (background) "uncertain" else if (stopped) "stopped" else "completed"), outcomes)
+            if (background) assertNull(gate.tryRestore()) else gate.tryRestore()!!.close()
+        }
+    }
+
+
+    @Test fun `buffered print initialization remains observable after Stop or listener detachment`() {
+        for (initialization in listOf(
+            """{"type":"system","subtype":"init","session_id":"parent"}""",
+            """{"type":"result","subtype":"success","session_id":"parent","is_error":false}""",
+        )) for (detached in listOf(false, true)) {
+            val gate = com.cursoragent.service.WorkspaceOperationGate()
+            val preparation = gate.tryPrepare()!!
+            val process = preparation.launchingProcess()
+            preparation.close()
+            var deliveries = 0
+            val run = AgentRun(object : AgentProcessListener {})
+            run.attachProcess({}, { false })
+            if (detached) run.detachListener() else run.stop()
+            val state = com.cursoragent.service.PrintTaskState(null)
+            val parser = com.cursoragent.parser.StreamJsonParser { event ->
+                state.observe(event)
+                run.emit { deliveries++ }
+            }
+            val task = """{"type":"tool_call","subtype":"completed","session_id":"parent","call_id":"t","tool_call":{"toolCallId":"t","taskToolCall":{"result":{"success":{"isBackground":true}}}}}"""
+            parser.parseLine(task)
+            assertFalse(state.backgroundObserved, "Task payload cannot invent a confirmed parent")
+            parser.parseLine(initialization)
+            parser.parseLine(task.replace("\"parent\"", "\"foreign\""))
+            assertFalse(state.backgroundObserved)
+            parser.parseLine(task)
+            parser.finish()
+            assertEquals("parent", state.sessionId)
+            assertTrue(state.backgroundObserved)
+            assertEquals(0, deliveries)
+            com.cursoragent.service.finishPrintTaskRun(run, gate, state.backgroundObserved, 0)
+            process.close()
+            assertTrue(gate.isUncertain)
+            assertNull(gate.tryRestore())
+        }
+    }
+
 }

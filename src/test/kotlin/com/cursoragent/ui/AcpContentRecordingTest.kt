@@ -28,6 +28,7 @@ class AcpContentRecordingTest {
         val p = AcpProtocol()
         SwingUtilities.invokeAndWait {
             val timeline = ChatTimelinePanel()
+            timeline.addUserMessage("入力")
             val assistant = TurnAssistantText({ timeline.setAssistantText(it); recorder.assistant(it) }, {
                 timeline.finalizeAssistantMessage(); recorder.newAssistant()
             })
@@ -55,6 +56,16 @@ class AcpContentRecordingTest {
             assertTrue(messages[2].text.contains(literal))
             val restored = ChatTimelinePanel()
             restored.restore(store.load().conversations.single())
+            for (panel in listOf(timeline, restored)) {
+                messages.forEach { message ->
+                    assertTrue(panel.scrollToHistoryMatch(recorder.conversation, message.id, message.text))
+                }
+                assertFalse(panel.scrollToHistoryMatch(recorder.conversation, "deleted-message", "後"))
+                assertFalse(panel.scrollToHistoryMatch(recorder.conversation, messages.last().id, "変更後"))
+                panel.isActiveTab = false
+                assertFalse(panel.scrollToHistoryMatch(recorder.conversation, messages[2].id, literal))
+                panel.isActiveTab = true
+            }
             val rows = descendants(restored).filter { it is AssistantMessageBubble || it is AssistantContentRow }
             assertEquals(listOf(AssistantMessageBubble::class.java, AssistantContentRow::class.java, AssistantMessageBubble::class.java), rows.map { it.javaClass })
             val metadataRow = rows[1]

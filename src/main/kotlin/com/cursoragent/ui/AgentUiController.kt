@@ -36,7 +36,6 @@ class AgentUiController(
     private var turnGeneration = 0L
     private var disposed = false
     private var activeRun: AgentRun? = null
-    private var modelLoad: java.util.concurrent.Future<*>? = null
     private var activeToken: SessionRunToken? = null
     private var releaseUnsentTransport: (() -> Unit)? = null
     private var recoverUnsentCommand: (() -> Unit)? = null
@@ -157,7 +156,7 @@ class AgentUiController(
         project = project,
         timeline = timeline,
         onUsage = composer.contextUsage::update,
-        onUsageFinished = { ticket, phase -> composer.contextUsage.finish(ticket, phase) },
+        onUsageFinish = composer.contextUsage::finish,
         onConfiguration = composer::showAcpConfiguration,
         recorder = recorder,
         changes = changes,
@@ -165,9 +164,21 @@ class AgentUiController(
         onRunFinished = ::finishRun,
         onShowConversation = onShowConversation,
     )
+    private val modelLoader = ModelCatalogLoader(
+        fetch = agentService::listModels,
+        execute = { ApplicationManager.getApplication().executeOnPooledThread(it) },
+        dispatch = ::runOnEdt,
+        isActive = {
+            !disposed && !project.isDisposed &&
+                sessions.snapshot().tabs.any { it.id == tabId && it.transport == AgentTransport.PRINT }
+        },
+        show = composer.modelSelector::showCatalog,
+    )
+
     init {
         checkpointService.pruneExpired()
-        loadModels()
+        composer.modelSelector.onRetry = modelLoader::load
+        if (transportState().first == AgentTransport.ACP) composer.useAcp() else modelLoader.load()
         composer.commands.onRetry = { refreshAcpConnection(force = true) }
         composer.addHierarchyListener {
             if (composer.isShowing && !disposed) { refreshAcpConnection(); commandSettingsWatch.start() }
@@ -204,12 +215,8 @@ class AgentUiController(
         }
     }
 
-    private fun loadModels() {
-        modelLoad = ApplicationManager.getApplication().executeOnPooledThread {
-            val models = agentService.listModels()
-            runOnEdt { if (!disposed && !project.isDisposed && transportState().first == AgentTransport.PRINT) composer.modelSelector.setModels(models) }
-        }
-    }
+    /** EDT-only immutable value; callers freeze it before opening modal UI. */
+    fun conversationSnapshot(): Conversation? = recorder.conversation.takeUnless { disposed || legacyOnly }
 
     fun showChanges() = changesReview.show()
 
@@ -222,7 +229,7 @@ class AgentUiController(
         if (disposed || !sessions.selectTransport(tabId, transport)) return
         composer.contextUsage.reset()
         if (transport == AgentTransport.ACP) {
-            modelLoad?.cancel(false)
+            modelLoader.cancel()
             composer.useAcp()
             timeline.showStatus("ACPを選択しました。初回は接続先の既定モデルを使い、確定後に一覧から選べます。標準設定でも即時編集が起こり得ます。")
             refreshAcpConnection()
@@ -231,7 +238,7 @@ class AgentUiController(
             agentService.closeSession(tabId)
             composer.commands.update(commandConnection.catalog, false)
             composer.usePrint()
-            loadModels()
+            modelLoader.load()
         }
     }
 
@@ -249,8 +256,8 @@ class AgentUiController(
         queueDialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
         queueDialog = null
         changesReview.dispose()
-        modelLoad?.cancel(true)
-        modelLoad = null
+        modelLoader.cancel()
+        composer.modelSelector.onRetry = {}
         turnGeneration++
         activeToken?.let(sessions::finishTurn)
         activeRun?.detachListener()

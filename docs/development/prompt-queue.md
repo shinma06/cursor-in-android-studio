@@ -4,8 +4,8 @@
 
 ## snapshotと寿命
 
-- 登録時: 元の入力本文、選択中のmode/modelをimmutable entryへ保持。内部の予約IDはSavedTurn IDと別で、実際に送信が始まると既存SessionRunTokenから新しいturn IDを発行する。編集は本文だけを更新しID・mode/modelを保持する。
-- 次turnの開始時: 実行ファイル・permission・sandbox・worktree設定を既存TurnSettings/TurnWorkspaceへ固定。ファイル・選択範囲とVFS mentionはEDTで、その送信のGit等のcontextとcheckpointは背景準備で取得する。登録時の古いファイル内容を再利用しない。時点は登録ボタンのtooltipと予約一覧で説明する。
+- 登録時: 元の入力本文、選択中のmode/model、明示選択・mentionのsnapshotをimmutable entryへ保持。明示選択が追加後に変わっていれば再追加または削除を促す。内部の予約IDはSavedTurn IDと別で、実際に送信が始まると既存SessionRunTokenから新しいturn IDを発行する。編集は本文だけを更新しID・mode/model・明示contextを保持する。
+- 次turnの開始時: 実行ファイル・permission・sandbox・worktree設定を既存TurnSettings/TurnWorkspaceへ固定。自動ファイル・選択範囲とVFS mentionの参照内容はEDTで、その送信のGit等のcontextとcheckpointは背景準備で取得する。明示選択の本文は登録時のsnapshotを使い、別draftの添付へ置き換えない。時点は登録ボタンのtooltipと予約一覧で説明する。詳細は[明示context](explicit-prompt-context.md)を参照。
 - 継続先は送信開始時の同tab provider ID。IDを取得できなければ予約を保持してpauseし、別の新規CLI会話へ自動送信しない。ACP設定不一致、準備の予約不可も残キューを一時停止する。
 - 未登録の下書き・caret・選択mode/modelは予約送信で消さない。実行中のACPによる確定mode/model表示は従来どおり反映する。送った予約本文は既存の通常turnとして保存されるが、未送信予約はcontroller内だけに保持し、履歴再表示・再起動では再送しない。
 
@@ -67,3 +67,5 @@ Factoryのusage/configは同じComposer更新callbackを渡し、IDEの入力Edi
 既存`ConversationChangesTest`はsnapshot/after/root/未保存の拒否、`PromptQueueTest`はcheckpointで使うpause・明示再開・generation/entry/revisionを確認する。
 Controllerからの一覧表示/一覧Revert/checkpoint確認と手動/予約送信の実IDE操作は
 [組合せCase](../verification/changes/issue-308.json)でpendingとして追跡する。
+
+既存`PromptQueueTest`のカードRevert前pause回帰と、PR330の`TurnEdtUpdates`によるprint本文通知集約も維持する。

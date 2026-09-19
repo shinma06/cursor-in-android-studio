@@ -124,7 +124,7 @@ internal class AcpSession(
                         else -> throw AcpException("ACPの終了理由を確認できません")
                     }
                     synchronized(lock) {
-                        if (reason != "cancelled" && protocol.hasUnfinishedTools) throw AcpException("ACPツールの停止を確認できません")
+                        if (protocol.hasBackgroundTasks || reason != "cancelled" && protocol.hasUnfinishedTools) throw AcpException("ACPツールの停止を確認できません")
                         current.outcome = outcome
                         current.terminal = true
                     }
