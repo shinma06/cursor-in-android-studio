@@ -36,7 +36,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("新規チャット", "履歴", "ファイルの変更…", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "Request IDをコピー", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
+        assertEquals(listOf("新規チャット", "履歴", "会話を書き出す…", "ファイルの変更…", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "Request IDをコピー", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -109,7 +109,7 @@ class ToolWindowChatActionsTest {
             { calls.add("summary:$selected") }, { calls.add("new") }, { calls.add("history") },
             { calls.add("mcp") }, { calls.add("settings") }, { calls.add("notice") },
             { calls.add("opened") }, { calls.add("closeAll") }, { calls.add(it) },
-            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") }, { calls.add("browser") })
+            { false }, { calls.add("preview:$it") }, { calls.add("editorSettings") }, { calls.add("icons") }, { calls.add("browser") }, { calls.add("export:$selected") })
         val summary = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "このセッションの内容を要約" }
         val event = event(summary)
         summary.update(event)
@@ -150,6 +150,14 @@ class ToolWindowChatActionsTest {
         val browserEvent = event(browser)
         browser.update(browserEvent)
         assertTrue(browserEvent.presentation.isEnabled, "Manual browsing does not require an idle Agent")
+        val export = actions.gearActions.childActionsOrStubs.first { it.templatePresentation.text == "会話を書き出す…" }
+        export.update(event(export))
+        assertTrue(event(export).presentation.isEnabled)
+        export.actionPerformed(event(export))
+        assertEquals("export:1", calls.last())
+        selected = 0
+        export.actionPerformed(event(export))
+        assertEquals("export:0", calls.last())
         available = false
         val before = calls.toList()
         fun leaves(group: DefaultActionGroup): List<AnAction> = group.childActionsOrStubs.flatMap {
@@ -348,6 +356,88 @@ class ToolWindowChatActionsTest {
         } finally {
             JBUIScale.setUserScaleFactorForTest(previousScale)
         }
+    }
+
+    @Test
+    fun `ACP guidance reuses service validation for each candidate and preserves shared selection`() = SwingUtilities.invokeAndWait {
+        val project = java.lang.reflect.Proxy.newProxyInstance(com.intellij.openapi.project.Project::class.java.classLoader,
+            arrayOf(com.intellij.openapi.project.Project::class.java)) { _, method, _ ->
+            when (method.name) {
+                "getBasePath" -> "/synthetic-project"
+                "isDisposed" -> false
+                else -> error("Unexpected project access: ${method.name}")
+            }
+        } as com.intellij.openapi.project.Project
+        val service = com.cursoragent.service.AgentProcessService(project)
+        val settings = AgentSettingsState()
+        var transport = AgentTransport.ACP
+        var running = true
+        var available = true
+        fun reason(permission: PermissionMode, sandbox: SandboxMode, worktree: WorktreeMode): String? {
+            check(available) { "A disposed view must not acquire its service" }
+            return service.settingsUnavailableReason(
+                AgentTransport.ACP, com.cursoragent.service.TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
+            )
+        }
+        val actions = ToolWindowChatActions(settings, { available }, { running }, { transport to false },
+            { transport = it }, {}, {}, {}, {}, {}, {}, {}, {}, {}, { false }, {}, {}, {}, {}, settingsUnavailableReason = ::reason)
+        try {
+            for (permission in PermissionMode.entries) for (sandbox in SandboxMode.entries) for (worktree in WorktreeMode.entries) {
+                settings.permissionMode = permission
+                settings.sandboxMode = sandbox
+                settings.worktreeMode = worktree
+                val before = com.intellij.util.xmlb.XmlSerializer.serialize(settings)
+                for ((caption, options) in listOf(
+                    "操作の確認" to PermissionMode.entries,
+                    "実行範囲" to SandboxMode.entries,
+                    "作業場所" to WorktreeMode.entries,
+                )) {
+                    val group = actions.group(caption)
+                    val groupEvent = event(group)
+                    group.update(groupEvent)
+                    assertTrue(groupEvent.presentation.description!!.contains("全プロジェクト"))
+                    assertTrue(groupEvent.presentation.description!!.contains("次回の送信準備"))
+                    assertTrue(groupEvent.presentation.description!!.contains("進行中"))
+                    assertTrue(groupEvent.presentation.isEnabled, "Running turns do not block next-turn settings")
+                    group.childActionsOrStubs.forEachIndexed { index, action ->
+                        val candidate = options[index]
+                        val expected = reason(candidate as? PermissionMode ?: permission,
+                            candidate as? SandboxMode ?: sandbox, candidate as? WorktreeMode ?: worktree)
+                        val e = event(action)
+                        action.update(e)
+                        assertEquals(expected != null, e.presentation.text!!.contains("ACP要設定変更"))
+                        if (expected != null) assertTrue(e.presentation.description!!.contains(expected))
+                        assertTrue(e.presentation.isEnabled, "An unsupported current ACP combination must not destroy other print tabs' shared settings")
+                        (action as ToggleAction).setSelected(e, false)
+                    }
+                }
+                assertEquals(com.intellij.openapi.util.JDOMUtil.writeElement(before),
+                    com.intellij.openapi.util.JDOMUtil.writeElement(com.intellij.util.xmlb.XmlSerializer.serialize(settings)))
+            }
+            actions.choose("操作の確認", 1)
+            assertEquals(PermissionMode.AUTO_REVIEW, settings.permissionMode)
+            transport = AgentTransport.PRINT
+            running = false
+            actions.group("操作の確認").childActionsOrStubs.forEach {
+                val e = event(it); it.update(e)
+                assertFalse(e.presentation.text!!.contains("ACP要設定変更"))
+            }
+            val standard = actions.group("操作の確認").childActionsOrStubs[0]
+            assertTrue(standard.templatePresentation.description!!.contains("保存済みCLI設定"))
+            assertTrue(standard.templatePresentation.description!!.contains("毎回事前確認"))
+            assertTrue(actions.group("操作の確認").childActionsOrStubs[2].templatePresentation.description!!.contains("拒否設定"))
+            assertTrue(actions.group("実行範囲").childActionsOrStubs[0].templatePresentation.description!!.contains("無効を保証"))
+            assertTrue(actions.group("実行範囲").childActionsOrStubs[1].templatePresentation.description!!.contains("実行経路"))
+            available = false
+            transport = AgentTransport.ACP
+            for (caption in listOf("操作の確認", "実行範囲", "作業場所", "接続方法")) {
+                val group = actions.group(caption)
+                for (action in listOf(group) + group.childActionsOrStubs) {
+                    val e = event(action); action.update(e)
+                    assertFalse(e.presentation.isEnabled)
+                }
+            }
+        } finally { service.dispose() }
     }
 
     private fun actions(settings: AgentSettingsState): ToolWindowChatActions {

@@ -28,3 +28,13 @@ object ModelListParser {
             .toList()
     }
 }
+
+/** Shared catalog states for print metadata consumers; ACP configuration remains separate. */
+sealed interface ModelCatalogState {
+    data object Loading : ModelCatalogState
+    data object Failed : ModelCatalogState
+    data class Loaded(val models: List<ModelOption>) : ModelCatalogState
+}
+
+internal fun modelCatalogResult(output: String?): ModelCatalogState =
+    if (output == null) ModelCatalogState.Failed else ModelCatalogState.Loaded(ModelListParser.parse(output))

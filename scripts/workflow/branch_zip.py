@@ -158,16 +158,127 @@ def publish(branch, sha, directory):
     print(f'https://github.com/{repo}/releases/tag/{tag}')
 
 
+def cleanup_identity(release):
+    """Require the publisher's complete identity, never a tag prefix alone."""
+    try:
+        markers = re.findall(r'<!-- branch-zip:(\{[^\n]*\}) -->', release.get('body') or '')
+        if len(markers) != 1:
+            return None
+        data = json.loads(markers[0])
+        branch = data['branch']
+        sha = published_sha(branch, release)
+        if (not isinstance(branch, str) or not branch or release['tag_name'] != tag_for(branch)
+                or release.get('name') != f'Plugin ZIP — {branch}'
+                or release.get('prerelease') is not True or release.get('immutable')
+                or not sha or sha != data['sha']):
+            return None
+        return {'branch': branch, 'sha': data['sha'], 'tag': release['tag_name'],
+                'release_id': release['id']}
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def cleanup_report(branch=None):
+    releases = pages('releases')
+    branches = {b['name'] for b in pages('branches')}
+    protected = {'main', 'master', 'develop', api('')['default_branch']}
+    tags = {r['ref'].removeprefix('refs/tags/'): r['object']
+            for r in api('git/matching-refs/tags/branch-zip-')}
+    candidates, kept = [], []
+    for release in releases:
+        tag = release['tag_name']
+        identity = cleanup_identity(release)
+        reason = None
+        if not identity:
+            reason = 'unmanaged, draft, immutable, or incomplete publisher identity'
+        elif identity['branch'] in protected:
+            reason = 'protected integration/default branch'
+        elif identity['branch'] in branches:
+            reason = 'branch exists (age is irrelevant)'
+        elif branch is not None and identity['branch'] != branch:
+            reason = 'outside requested branch'
+        elif sum(r['tag_name'] == tag for r in releases) != 1:
+            reason = 'ambiguous duplicate release tag'
+        elif tag not in tags:
+            reason = 'release tag missing; inspect history before retry'
+        if reason:
+            kept.append({'tag': tag, 'release_id': release['id'], 'reason': reason})
+        else:
+            candidates.append(identity)
+    release_tags = {r['tag_name'] for r in releases}
+    kept.extend({'tag': tag, 'reason': 'tag only; ownership cannot be inferred'}
+                for tag in tags.keys() - release_tags)
+    if len(candidates) > 256:
+        raise ValueError('More than 256 cleanup candidates; select a branch for manual dispatch')
+    return {'candidates': candidates, 'kept': kept}
+
+
+def cleanup_note(record):
+    message = json.dumps(record, ensure_ascii=True)
+    print(message, file=sys.stderr)
+    if os.environ.get('GITHUB_STEP_SUMMARY'):
+        with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+            summary.write('```json\n' + message + '\n```\n')
+
+
+def cleanup(branch, sha, release_id):
+    expected = {'branch': branch, 'sha': sha, 'tag': tag_for(branch), 'release_id': release_id}
+    # Called only under the same Actions tag concurrency group as publish.
+    # Re-plan after acquiring that lock; an old plan cannot authorize deletion.
+    if expected not in cleanup_report(branch)['candidates']:
+        cleanup_note({**expected, 'result': 'held', 'next': 'inspect current dry-run; candidate changed'})
+        return
+    tag_path = 'git/matching-refs/tags/' + expected['tag']
+    tag_ref = 'refs/tags/' + expected['tag']
+    refs = [r for r in api(tag_path) if r['ref'] == tag_ref]
+    if len(refs) != 1 or current_head(branch) is not None:
+        cleanup_note({**expected, 'result': 'held', 'next': 'branch recreated or tag changed; re-plan'})
+        return
+    receipt = {**expected, 'tag_object': refs[0]['object']}
+    # The receipt precedes deletion. If tag deletion fails, never guess ownership
+    # from the remaining tag: keep it for an operator to reconcile with this run.
+    cleanup_note({**receipt, 'result': 'verified', 'next': 'delete release/assets, then unchanged tag'})
+    api(f'releases/{release_id}', 'DELETE')
+    remaining = pages('releases')
+    refs = [r for r in api(tag_path) if r['ref'] == tag_ref]
+    if (any(r['tag_name'] == expected['tag'] for r in remaining)
+            or current_head(branch) is not None
+            or (refs and (len(refs) != 1 or refs[0]['object'] != receipt['tag_object']))):
+        cleanup_note({**receipt, 'result': 'tag held',
+                      'next': 'inspect recreation/change; live branch publisher recovers its release'})
+        return
+    try:
+        if refs:
+            api('git/refs/tags/' + expected['tag'], 'DELETE')
+    except Exception:
+        cleanup_note({**receipt, 'result': 'release deleted; tag deletion unconfirmed',
+                      'next': 'operator compares this receipt with fresh branch/ref APIs; tag-only is held on rerun'})
+        raise
+    if (any(r['tag_name'] == expected['tag'] for r in pages('releases'))
+            or any(r['ref'] == tag_ref for r in api(tag_path))):
+        raise RuntimeError('Cleanup readback changed; inspect receipt and re-run dry-run')
+    cleanup_note({**receipt, 'result': 'deleted', 'next': 'none'})
+
+
 def main():
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument('command', choices=['plan', 'publish'])
+    parser.add_argument('command', choices=['plan', 'publish', 'cleanup-plan', 'cleanup'])
     parser.add_argument('--branch')
     parser.add_argument('--sha')
+    parser.add_argument('--release-id', type=int)
     parser.add_argument('--directory', default='delivery')
     parser.add_argument('--force-build', action='store_true')
     args = parser.parse_args()
     if args.command == 'plan':
         print(json.dumps(plan(args.branch or None, args.force_build), ensure_ascii=True))
+    elif args.command == 'cleanup-plan':
+        report = cleanup_report(args.branch or None)
+        cleanup_note(report)
+        print(json.dumps(report['candidates'], ensure_ascii=True))
+    elif args.command == 'cleanup':
+        if not args.branch or not args.sha or not args.release_id:
+            parser.error('cleanup needs --branch, --sha and --release-id')
+        cleanup(args.branch, args.sha, args.release_id)
     else:
         if not args.branch or not args.sha:
             parser.error('publish needs --branch and --sha')

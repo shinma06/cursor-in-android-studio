@@ -123,6 +123,9 @@ class NaturalFocusPaintTest {
                 mode.model.isRollover = true
                 assertArrayEquals(focused, pixels(mode))
                 assertFalse(normal.contentEquals(focused), "Fixed-color pill must identify focus: $value")
+                val sample = mode.width * 2 + mode.width / 2
+                val contrast = ColorUtil.calculateContrastRatio(Color(normal[sample]), Color(focused[sample]))
+                assertTrue(contrast >= 1.25, "Mode focus disappears: dark=$dark mode=$value contrast=$contrast")
                 assertEquals(value, settings.mode)
                 assertEquals(label, mode.text)
                 assertSame(icon, mode.icon)
@@ -149,6 +152,24 @@ class NaturalFocusPaintTest {
                 focus(null)
                 button.model.isRollover = true
                 assertArrayEquals(focused, pixels(button, background = AgentUiColors.composerBackground))
+            }
+        }
+    }
+
+    @Test
+    fun `toggle focus keeps a visible track difference in both states and themes`() = withFocus { focus ->
+        for (dark in listOf(false, true)) {
+            theme(dark)
+            for (selected in listOf(false, true)) {
+                val toggle = AutoToggle().apply { size = preferredSize; isSelected = selected }
+                focus(null)
+                val normal = pixels(toggle, background = AgentUiColors.composerBackground)
+                focus(toggle)
+                val focused = pixels(toggle, background = AgentUiColors.composerBackground)
+                val sampleX = if (selected) 6 else toggle.width - 6
+                val sample = toggle.width * (toggle.height / 2) + sampleX
+                val contrast = ColorUtil.calculateContrastRatio(Color(normal[sample]), Color(focused[sample]))
+                assertTrue(contrast >= 1.25, "Toggle focus disappears: dark=$dark selected=$selected contrast=$contrast")
             }
         }
     }

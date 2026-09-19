@@ -14,8 +14,9 @@ raw prompt、任意のraw JSON、推定したモデル・usageは保持しない
   標準toolより先に来た補足は保留キューを作らず破棄する。標準toolが後から来ても架空の結果で補わない。
   前turnで使ったIDの再利用は、遅着との区別ができないため補足を結合しない。接続内の履歴は4,096 IDまで保持し、上限後は補足の結合を停止する。標準tool表示は継続する。
   requestは既存の未対応エラー`-32601`を一度返し、notificationには返信しない。入力カード・成功応答・子実行は生成しない。
-- **print:** 確定済みの親sessionとcall_idを照合し、同一行を更新。初期化前/別session/欠損・不正IDはTaskへ配送しない。
-  `result.error`を子失敗として扱い、親のresult.successやexit 0と区別する。successとerrorの両方がある場合は失敗を優先し、矛盾する成功結果を使用しない。
+- **print:** 確定済みの親sessionとcall_id、tool_call内のtoolCallIdの一致を照合し、同一行を更新。初期化前/別session/欠損・不正IDはTaskへ配送しない。
+  object型の`result.error`だけを子失敗として扱い、親のresult.successやexit 0と区別する。successとerrorの両方がある場合は失敗を優先し、矛盾する成功結果を使用しない。
+  errorがnull/配列/文字列/数値の場合は確定失敗にせず、妥当なsuccessがなければ未取得とする。
   `conversationSteps[].assistantMessage.text`だけを取得できた子の結果として表示し、完全transcriptと呼ばない。
 
 要求のagentId、resume ID、成功結果のagentIdは別項目。cursor/task.params.agentIdは公式の再開引数説明と実測順序の解釈が一致しないため、**「cursor/taskのagent ID（用途未確認）」**として別欄にする。再開やリンクに転用しない。
@@ -26,7 +27,7 @@ durationMsは数字だけの整数number/整数string、0〜31,536,000,000 ms（
 
 [TaskToolCard](../../src/main/kotlin/com/cursoragent/ui/timeline/TaskToolCard.kt) は既存timeline内の安定した1行。更新時も詳細の開閉と行位置を保つ。本文・エラーはJTextAreaの文字表示でHTML/画像/リンクを実行しない。
 標準content/locationsがあれば既存StructuredToolCardと差分操作を詳細内で再利用する。未取得の子本文、モデル、usage、内部進捗を推定しない。
-背景開始のtool完了は「背景実行（子の終了は未確認）」と表示する。親Stop/失敗/完了で未完了の子は「終了を確認できません」へ移し、子の失敗表示は親成功で上書きしない。完了後に再び進行中が届いた場合は過去の結果を保持しつつ「終了を確認できません」と表示し、最新wireが未終了なら既存の不確定終了/復元拒否へ進む。
+背景開始のtool完了も「終了を確認できません」と表示する。同turnでisBackground=trueを観測した事実は後続null/falseや親終了で解除しない。子の終了確認手段が未検証のため、ACPのend_turn/cancelledとprintの物理終了は既存の終了不確定へ進み、復元とキューの自動継続を拒否する。親Stop/失敗/完了で未完了の子は「終了を確認できません」へ移し、子の失敗表示は親成功で上書きしない。完了後に再び進行中が届いた場合は過去の結果を保持しつつ「終了を確認できません」と表示し、最新wireが未終了なら既存の不確定終了/復元拒否へ進む。
 
 [Factory](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt) は既存run token/EDT/Stop/dispose検査の内側で配送し、子ごとの開始通知を増やさず既存の親完了/エラー通知を使う。
 #98の未実装APIを仮定しない。将来の共通折畳み・通知整理では、この安定した行と親通知の経路を接続対象にする。
@@ -36,7 +37,7 @@ durationMsは数字だけの整数number/整数string、0〜31,536,000,000 ms（
 ## 根拠・比較・検証範囲
 
 [調査#118の固定契約](https://github.com/shinma06/cursor-in-android-studio/blob/44ce1defbf092d514f6d203c7488c134602cba37/docs/research/issue-118-subagent-contract.md) と公開投影を再利用する。
-[test fixture](../../src/test/resources/task/issue-118-projection.json) は同固定版のJSON投影2配列の値を保持し、テストでprintの既知tool_call envelopeだけを復元する。新たなprovider実行・認証・原本取得はしていない。
+[test fixture](../../src/test/resources/task/issue-118-projection.json) は同固定版のJSON投影2配列を再利用し、providerエラー文だけを`<redacted provider error>`へ伏せる。その他の値・型・順序は保持し、テストで旧投影のprintの既知tool_call envelopeとcall_idに一致するtoolCallId aliasを復元する。`run`はwire外の注釈である。伏字の文言をprovider分類や再開成功の根拠にせず、エラー構造と文字列の保持を検査する。新たなprovider実行・認証・原本取得はしていない。
 2026-09-12に [Cursor Subagents](https://cursor.com/docs/subagents)、[Cursor ACP](https://cursor.com/docs/cli/acp)、[ACP tool calls](https://agentclientprotocol.com/protocol/v1/tool-calls)、[JetBrains ACP](https://www.jetbrains.com/help/ai-assistant/acp.html) を再確認した。
 Cursor IDE内panelの委譲・親への結果返却、JetBrains AI Assistant + Cursor ACP + configured MCP + IntelliJ MCP Serverの既存連携能力を比較対象にする。子実行やtool詳細そのものを独自機能と呼ばない。本変更の対象は親会話・タブ・停止・保存に整合した結果表示であり、競合GUIの同等以上UXは未受入。
 

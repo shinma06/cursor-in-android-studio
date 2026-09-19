@@ -101,4 +101,21 @@ class TaskProtocolTest {
         assertFalse(task.toString().contains("private"))
         assertFalse(task.toString().contains("never retain"))
     }
+
+    @Test fun `background observation survives null false and completed until the turn ends`() {
+        for (metadata in listOf(false, true)) {
+            val protocol = AcpProtocol().apply { beginTurn(); update(initial()) }
+            if (metadata) protocol.taskMetadata(json("""{"toolCallId":"t","isBackground":true}"""))
+            else protocol.update(update(""""status":"completed","rawOutput":{"isBackground":true}"""))
+            for (value in listOf("null", "false")) {
+                protocol.update(update(""""status":"completed","rawOutput":{"isBackground":$value}"""))
+                protocol.taskMetadata(json("""{"toolCallId":"t","isBackground":$value}"""))
+                assertTrue(protocol.hasBackgroundTasks)
+                assertTrue(protocol.hasUnfinishedTools)
+            }
+            protocol.beginTurn()
+            assertFalse(protocol.hasUnfinishedTools)
+        }
+    }
+
 }

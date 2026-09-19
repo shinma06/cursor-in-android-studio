@@ -69,7 +69,7 @@ class RunProgressDispatchTest {
                 project, timeline, { _, _ -> }, {}, ConversationRecorder(Conversation()) {},
                 { success -> finished.add(success); sessions.finishTurn(if (id == first.turnId) first else other) },
                 ConversationChanges(id), {},
-                onToolNotice = { notices.add("start:$it") },
+                onUsageFinish = { _, _ -> }, onToolNotice = { notices.add("start:$it") },
                 onTerminalNotice = { turn, phase -> notices.add("$phase:$turn") },
             )
             listenerA = factory(firstTimeline, first.turnId).create(1, first.turnId,
@@ -117,7 +117,7 @@ class RunProgressDispatchTest {
                 if (method.name == "isDisposed") false else error("Unexpected Project access")
             } as Project
             val listener = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, ConversationRecorder(Conversation()) {},
-                { current = false }, ConversationChanges("one"), {}, onToolNotice = {},
+                { current = false }, ConversationChanges("one"), {}, onUsageFinish = { _, _ -> }, onToolNotice = {},
                 onTerminalNotice = { _, phase -> notices.add(phase) },
             ).create(1, "one", { current }, { false }, { true }, { RestoreTarget.UNKNOWN })
             if (uncertain) listener.onUncertain("終了未確認") else listener.onError("synthetic failure")
@@ -137,7 +137,7 @@ class RunProgressDispatchTest {
             if (method.name == "isDisposed") false else error("Unexpected Project access")
         } as Project
         val listener = AgentTurnListenerFactory(project, timeline, { _, _ -> }, {}, ConversationRecorder(Conversation()) {},
-            {}, ConversationChanges("one"), {}, onToolNotice = notices::add, onTerminalNotice = { _, _ -> },
+            {}, ConversationChanges("one"), {}, onUsageFinish = { _, _ -> }, onToolNotice = notices::add, onTerminalNotice = { _, _ -> },
         ).create(1, "one", { true }, { false }, { true }, { RestoreTarget.UNKNOWN })
         val parser = StreamJsonParser { event ->
             if (event is StreamEvent.ToolCall) listener.onToolCall(event.toolName)

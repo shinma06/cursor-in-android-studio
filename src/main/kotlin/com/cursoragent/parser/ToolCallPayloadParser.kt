@@ -45,14 +45,16 @@ object ToolCallPayloadParser {
 
     private fun parseTask(json: JsonObject, callId: String, subtype: String, payload: JsonObject): ParsedToolCall? {
         if (subtype !in setOf("started", "completed") ||
-            (json.taskId("call_id") ?: json.taskId("callId")) != callId) return null
+            (json.taskId("call_id") ?: json.taskId("callId")) != callId ||
+            json.objectValue("tool_call")?.taskId("toolCallId") != callId) return null
         val parent = json.taskId("session_id") ?: return null
         val result = payload.objectValue("result")
-        val failed = result?.has("error") == true
+        val error = result?.objectValue("error")
+        val failed = error != null
         val success = if (failed) null else result?.objectValue("success")
         val details = com.cursoragent.service.AgentTask().withTaskInput(payload.objectValue("args"))
             .withTaskOutput(success, includeSteps = true).copy(
-                errorText = if (failed) result.objectValue("error")?.taskString("error", 8_192) else null,
+                errorText = error?.taskString("error", 8_192),
             )
         val status = when {
             failed -> "failed"

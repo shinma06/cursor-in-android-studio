@@ -1,0 +1,15 @@
+# モデル一覧の取得状態（#43）
+
+printのモデル一覧取得はModelCatalogStateのLoading / Failed / Loadedで共有する。Loaded(emptyList())は成功した空一覧として失敗と区別する。#269などの後続consumerはこの契約を再利用し、ACPのConfigurationと混同しない。
+
+AgentProcessService.listModelsは既存CLI解決・作業場所を使う。非0終了・起動失敗・タイムアウト・キャンセルはFailed、正常終了だけを既存ModelListParserで解析する。printの一覧取得だけに15秒上限を設け、応答しないプロセスでLoadingに固定されないようにする。SDKのExecUtil/ProcessOutputのtimeout・cancelled契約をローカルで確認した。MCP呼出は従来どおり上限なし。stderrや例外内容をUIへ転載せず、プラン制限や未観測Router IDは推測しない。
+
+ModelSelectorはLoadingを無効な「モデルを取得中…」、失敗を「モデル取得に失敗 · 再試行」、空を「モデルなし · 再試行」として区別する。失敗/空の同じボタンはクリックまたは標準Spaceで非同期再取得する。取得中の連打は無効。文字が狭幅で省略されてもtooltip/accessibility名に状態と保存済み選択を残す。非空一覧では既存の系列・variant・Auto・検索・選択チェック・Escape経路を使う。
+
+一覧取得は保存済みIDを変更しない。未掲載IDや既定（空ID）も維持し、勝手に先頭モデルへ切り替えない。未掲載IDは親popupでもAutoと偽らず表示する。ACPへ切り替える時はprint選択を一時保存し、ACP既定/公開IDを独立して扱い、printへ戻したLoadingで元のIDを復元する。タブごとに既存のdetached settingsを使用する。
+
+ModelCatalogLoaderはControllerごとのリクエスト世代とFutureを所有する。pooled threadで取得し、EDTに戻してから世代・dispose・project・所有tab存在・print接続を再確認する。retry/ACP切替/disposeで旧Futureをcancelし、すでにキューに入った古い結果も無視する。別tabの選択だけでは元tabの有効な結果を失わない。dispose時はretry callbackも解除する。送信、Stop、IME、history、normalize、settingsの保存形式は変更しない。
+
+自動テストは状態/再試行、保存ID/Auto/variant、ACP往復、tab選択とclose、破棄、例外、世代が変わる前にキューへ入った遅延結果を検証する。既存Composer/selector/ModelOptions/Sessionの回帰も実行する。GUI・実CLIでの失敗/遅延fixtureは未実施でCase43をpendingのまま引き継ぐ。Android Lifecycle/Context/DB/coroutineはSwing/IDE metadata処理のため対象外。非同期所有権とEDTは上記で検証する。
+
+#215のfocus描画はこのbranchに複製しない。#47 timeline/変更集約、#28 settings/build、#254 normalizeは編集しない。developの統合凍結を維持し、固定HEAD/ZIP/installed全JAR/ロード実体を揃えた指定GUI担当へ引き継ぐ。#27の旧Case結果を新buildのpassとして扱わない。
