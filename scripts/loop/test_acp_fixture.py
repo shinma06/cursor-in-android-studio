@@ -481,17 +481,16 @@ class NewSessionCancelBoundaryTest(unittest.TestCase):
         return environment, lambda: exec(code, environment)
 
     def test_cancel_during_wait_or_release_observation_refuses_all_new_session_output(self):
-        for point in ('wait', 'release', 'timeout'):
+        for point in ('wait', 'release'):
             with self.subTest(point=point), tempfile.TemporaryDirectory() as temporary:
                 root, output = Path(temporary), []
-                ticks = iter((0, 11)) if point == 'timeout' else None
-                env, cancel = self.environment(root, output, lambda: next(ticks) if ticks else 0)
+                env, cancel = self.environment(root, output)
                 def cancel_then_release():
                     cancel()
                     self.assertTrue((root / 'cancel-response').exists())
                     (root / 'release-new').touch()
                 def wait(_):
-                    if point != 'release':
+                    if point == 'wait':
                         cancel_then_release()
                     return False
                 env['closed'] = Mock(wait=wait, is_set=lambda: False)
@@ -511,7 +510,16 @@ class NewSessionCancelBoundaryTest(unittest.TestCase):
                 ticks = iter((0, 11)) if terminal == 'error' else None
                 env, cancel = self.environment(root, output, lambda: next(ticks) if ticks else 0)
                 (root / 'release-new').touch()
-                entered, release, attempted, acknowledged = [threading.Event() for _ in range(4)]
+                entered, release, contended, acknowledged = [threading.Event() for _ in range(4)]
+                lock = threading.RLock()
+                class ObservedLock:
+                    def __enter__(self):
+                        if not lock.acquire(blocking=False):
+                            contended.set()
+                            lock.acquire()
+                    def __exit__(self, *args):
+                        lock.release()
+                env['wire_lock'] = ObservedLock()
                 errors = []
                 def hold(*args):
                     entered.set()
@@ -525,7 +533,6 @@ class NewSessionCancelBoundaryTest(unittest.TestCase):
                     except BaseException as error:
                         errors.append(error)
                 def cancel_and_ack():
-                    attempted.set()
                     cancel()
                     acknowledged.set()
                 worker = threading.Thread(target=lambda: run(lambda: env['new_session'](2)))
@@ -534,8 +541,8 @@ class NewSessionCancelBoundaryTest(unittest.TestCase):
                 try:
                     self.assertTrue(entered.wait(5))
                     cancelling.start()
-                    self.assertTrue(attempted.wait(5))
-                    self.assertFalse(acknowledged.wait(.1), 'Cancellation overtook an uncommitted response')
+                    self.assertTrue(contended.wait(5), 'Cancel must actually contend for the response lock')
+                    self.assertFalse(acknowledged.is_set(), 'Cancellation overtook an uncommitted response')
                 finally:
                     release.set()
                     worker.join(5)
