@@ -135,6 +135,47 @@ class BrowserFixtureTest(unittest.TestCase):
                     if directory.exists():
                         fixture.cleanup(directory)
 
+    def test_thread_start_failure_returns_original_error_and_reclaims_started_and_unstarted_servers(self):
+        script = r"""
+import importlib.util, sys
+from pathlib import Path
+from unittest.mock import patch
+spec = importlib.util.spec_from_file_location('fixture', sys.argv[1])
+fixture = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fixture)
+directory = Path(sys.argv[2])
+directory.mkdir(mode=0o700)
+servers, threads = [], []
+original_server, original_start = fixture.Server, fixture.threading.Thread.start
+class ObservedServer(original_server):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        servers.append(self)
+def start(thread):
+    threads.append(thread)
+    if len(threads) == int(sys.argv[3]):
+        raise RuntimeError('synthetic thread start failure')
+    original_start(thread)
+with patch.object(fixture, 'Server', ObservedServer), patch.object(fixture.threading.Thread, 'start', start), patch.object(fixture.tempfile, 'mkdtemp', return_value=str(directory)):
+    try:
+        fixture.Fixture(ipv6=False)
+    except RuntimeError as error:
+        assert str(error) == 'synthetic thread start failure', error
+    else:
+        raise AssertionError('Original thread error must be returned')
+assert servers and all(server.socket.fileno() == -1 for server in servers)
+assert threads and all(not thread.is_alive() for thread in threads)
+assert not directory.exists(), 'owned setup keys must be reclaimed'
+print('reclaimed')
+"""
+        for fail_at in (1, 2):
+            with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as temporary:
+                result = subprocess.run([sys.executable, '-c', script, str(SOURCE),
+                                         str(Path(temporary) / 'browser-qa-thread-failure'), str(fail_at)],
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual('reclaimed', result.stdout.strip())
+
     def test_setup_preserves_unknown_files_and_reports_directory_without_hiding_original_error(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary) / 'browser-qa-preserved'

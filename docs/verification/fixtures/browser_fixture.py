@@ -50,6 +50,7 @@ class Server(ThreadingHTTPServer):
             raise ValueError('loopback only')
         self.address_family = socket.AF_INET6 if ':' in host else socket.AF_INET
         self.owner, self.tls = owner, tls
+        self.serving_thread = None
         super().__init__((host, 0), Handler)
 
     def server_bind(self):
@@ -203,8 +204,9 @@ class Fixture:
                         server = Server(self, host, context)
                         self.servers[name] = server
                         thread = threading.Thread(target=server.serve_forever, daemon=True)
-                        thread.start()
+                        server.serving_thread = thread
                         self.threads.append(thread)
+                        thread.start()
                         literal = '[' + host + ']' if family == '6' else host
                         self.manifest['urls'][name] = f'{scheme}://{literal}:{server.server_port}'
                 except OSError as error:
@@ -255,10 +257,12 @@ class Fixture:
             for release in self.holds.values():
                 release.set()
         for server in self.servers.values():
-            server.shutdown()
+            if server.serving_thread is not None and server.serving_thread.ident is not None:
+                server.shutdown()
             server.server_close()
         for thread in self.threads:
-            thread.join(5)
+            if thread.ident is not None:
+                thread.join(5)
         self.manifest['state'] = 'stopped'
         self.write_manifest()
         self.log('stopped')

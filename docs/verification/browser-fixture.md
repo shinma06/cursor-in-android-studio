@@ -86,3 +86,5 @@ CLI確認は管理入力の到達・値・順序だけ。実Browser/GUI/lease、
 ## 準備失敗時の片付け
 
 証明書生成やlistener準備に失敗した場合、開始済みlistenerを停止して既知の所有ファイルを削除する。未知ファイル・symlink・終了/削除エラーがある場合は保全し、stderrへ残存ディレクトリを示して元の準備エラーを返す。示された場所を担当者が確認し、正常なstopped/所有markerと既知ファイルの条件が整ってから既存cleanupを使う。残存を経過時間や名前だけで一括削除しない。
+
+スレッド開始失敗時は開始済みlistenerだけをshutdownし、未開始socketもserver_closeで回収する。未開始threadはjoinしない。[Pythonのshutdown契約](https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.shutdown)に従い、serve_foreverを開始していないserverの終了待ちを発生させない。
