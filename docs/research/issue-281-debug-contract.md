@@ -64,7 +64,7 @@
 
 - [AcpSession](../../src/main/kotlin/com/cursoragent/acp/AcpSession.kt) は1 active turn、prompt前の設定、`session/prompt` の元request応答とtool静止を扱う。`session/cancel` 後の未確定終端を成功にせず、未解決質問はcancelする。Debug用の別promptやStop後の自動再送を足さない。
 - [AgentRun](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt) は停止・失敗・未確定・完了を1回だけ通知する。`end_turn` はそのpromptの終了であり、計測・受信server・ログの削除証明ではない。これは [ACP prompt lifecycle](https://agentclientprotocol.com/protocol/v1/prompt-turn) の完了と、アプリ側resource寿命を区別する判断である。
-- [AgentTurnListenerFactory](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt) のprint編集cardは完了toolのbefore/afterが必要。即時編集後のDiff/Revertであり、計測を事前承認で止めた表示にしない。ACP通知が同じbefore/afterを持つとも仮定しない。
+- [AgentTurnListenerFactory](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt) は完了print編集toolからbefore/after snapshotが欠けても編集cardを作る。snapshot欠落時はView Diffが空内容を代入し、Revertは拒否する。したがってcardの存在だけでは完全な編集前後の証拠にならず、復元可能なRevertには両snapshotが必要。即時編集後のDiff/Revertであり、計測を事前承認で止めた表示にしない。ACP通知が同じbefore/afterを持つとも仮定しない。
 - [DiffViewerHelper](../../src/main/kotlin/com/cursoragent/ui/DiffViewerHelper.kt) → [FileRevertOperation](../../src/main/kotlin/com/cursoragent/service/FileRevertOperation.kt) はwrite境界で未保存変更と現在内容を検査する。[RestorePolicy](../../src/main/kotlin/com/cursoragent/service/RestoreTarget.kt) はroot/Worktree変更、範囲外・symlink escape等を拒否し、ISOLATEDを復元不可にする。これを迂回しない。
 - 現在のRevertは**ファイル全体をその編集前へ戻す**。計測と修正が同じ編集に入ったら修正まで戻るため、「計測だけ削除」に転用できない。checkpointの全体復元、ログ文字列の一括削除、Stop時の自動Revertも代替にならない。
 
@@ -100,3 +100,5 @@ D1成立後も、未公開の受信port/endpointを推測してserverを作ら�
 変更はこの文書と [GUI不要宣言](../verification/changes/issue-281.json) の2ファイル。新しい実行ロジック・テストfixture・製品設定なし。共通Change Impactの選択をそのまま使用する。既存Caseの状態を変更せず、資料のリンク、help hash、公開広告の表、schema、固定コード境界を照合する。
 
 本Issueの有限調査完了と、未確認のDebug機能/計測cleanupの受入完了は別である。独立レビュー・最終CLI検証・writer停止の固定SHAはPRとIssueのhandoff記録を正本とする。
+
+2026-09-20統合時再照合: 上記card生成とsnapshot欠落時のView Diff/Revertの境界を最新develop `f222d5d1bdea8b0ce1018eaa7c0ce7df332027bc` のToolCallPayloadParser・AgentTurnListenerFactory・DiffViewerHelperで確認した。新しいprovider/GUI観測は行っていない。
