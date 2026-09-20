@@ -14,6 +14,7 @@ import socket
 import socketserver
 import ssl
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -49,6 +50,7 @@ class Server(ThreadingHTTPServer):
             raise ValueError('loopback only')
         self.address_family = socket.AF_INET6 if ':' in host else socket.AF_INET
         self.owner, self.tls = owner, tls
+        self.serving_thread = None
         super().__init__((host, 0), Handler)
 
     def server_bind(self):
@@ -72,6 +74,8 @@ class Server(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+
     def log_message(self, *_):
         pass
 
@@ -137,6 +141,7 @@ class Handler(BaseHTTPRequestHandler):
             tag = path.rsplit('/', 1)[1]
             with run.lock:
                 if run.stopped.is_set():
+                    self.close_connection = True
                     return
                 if len(run.holds) >= 64 and tag not in run.holds:
                     self.send(429)
@@ -145,6 +150,7 @@ class Handler(BaseHTTPRequestHandler):
             run.log('held', tag=tag)
             released = release.wait(120)
             if run.stopped.is_set():
+                self.close_connection = True
                 return
             self.send(200 if released else 504, '明示release後の応答' if released else 'release待ち時間超過')
         else:
@@ -182,9 +188,9 @@ class Fixture:
         self.manifest = {'schema': 1, 'run_id': self.identity, 'state': 'preparing',
                          'control_token': self.token, 'idn': IDN, 'urls': {},
                          'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
-        (self.directory / '.owner').write_text(self.identity)
-        self.write_manifest()
         try:
+            (self.directory / '.owner').write_text(self.identity)
+            self.write_manifest()
             self.certificates()
             self.manifest['cert_sha256'] = {name: hashlib.sha256((self.directory / name).read_bytes()).hexdigest()
                                             for name in ('ca.pem', 'server.pem')}
@@ -198,8 +204,9 @@ class Fixture:
                         server = Server(self, host, context)
                         self.servers[name] = server
                         thread = threading.Thread(target=server.serve_forever, daemon=True)
-                        thread.start()
+                        server.serving_thread = thread
                         self.threads.append(thread)
+                        thread.start()
                         literal = '[' + host + ']' if family == '6' else host
                         self.manifest['urls'][name] = f'{scheme}://{literal}:{server.server_port}'
                 except OSError as error:
@@ -210,7 +217,12 @@ class Fixture:
             self.write_manifest()
             self.log('started', urls=self.manifest['urls'])
         except BaseException:
-            self.close()
+            try:
+                self.close()
+                cleanup(self.directory)
+            except BaseException as cleanup_error:
+                print(f'Browser QA setup failed; retained directory: {self.directory} '
+                      f'(cleanup: {type(cleanup_error).__name__})', file=sys.stderr)
             raise
 
     def certificates(self):
@@ -245,10 +257,12 @@ class Fixture:
             for release in self.holds.values():
                 release.set()
         for server in self.servers.values():
-            server.shutdown()
+            if server.serving_thread is not None and server.serving_thread.ident is not None:
+                server.shutdown()
             server.server_close()
         for thread in self.threads:
-            thread.join(5)
+            if thread.ident is not None:
+                thread.join(5)
         self.manifest['state'] = 'stopped'
         self.write_manifest()
         self.log('stopped')
@@ -276,8 +290,12 @@ def control(directory, path):
         raise ValueError('owned IPv4 loopback required')
     connection = http.client.HTTPConnection('127.0.0.1', url.port, timeout=3)
     try:
+        connection.connect()
+        connection.auto_open = False
         connection.request('GET', '/identity')
-        if connection.getresponse().read().decode() != manifest['run_id']:
+        response = connection.getresponse()
+        identity = response.read().decode()
+        if response.status != 200 or response.will_close or connection.sock is None or identity != manifest['run_id']:
             raise ValueError('listener is no longer this run')
         connection.request('POST', path, headers={'X-Fixture-Token': manifest['control_token']})
         response = connection.getresponse()

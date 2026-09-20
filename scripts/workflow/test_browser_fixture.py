@@ -1,5 +1,10 @@
 """Browser QA input checks only: no IDE, native JCEF, OS trust edits or external hosts."""
 import http.client
+import contextlib
+import io
+import tempfile
+from unittest.mock import patch
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
 import json
 from pathlib import Path
@@ -53,6 +58,140 @@ class BrowserFixtureTest(unittest.TestCase):
                 return response.status, response.read()
         finally:
             raw.close()
+
+    def test_control_never_sends_token_on_a_second_connection(self):
+        for reason in ('http10', 'connection-close', 'lost-socket'):
+            with self.subTest(reason=reason):
+                requests = []
+                class Listener(BaseHTTPRequestHandler):
+                    protocol_version = 'HTTP/1.0' if reason == 'http10' else 'HTTP/1.1'
+                    def log_message(self, *_):
+                        pass
+                    def reply(self, body):
+                        self.send_response(200)
+                        self.send_header('Content-Length', str(len(body)))
+                        if reason == 'connection-close':
+                            self.send_header('Connection', 'close')
+                        self.end_headers()
+                        self.wfile.write(body)
+                    def do_GET(self):
+                        requests.append(('GET', self.client_address))
+                        self.reply(b'owned-run')
+                    def do_POST(self):
+                        requests.append(('POST', self.client_address))
+                        self.reply(b'forged-success')
+                server = ThreadingHTTPServer(('127.0.0.1', 0), Listener)
+                worker = threading.Thread(target=server.serve_forever)
+                worker.start()
+                manifest = {'state': 'running', 'run_id': 'owned-run', 'control_token': 'synthetic-token',
+                            'urls': {'http4': f'http://127.0.0.1:{server.server_port}'}}
+                class LostConnection(http.client.HTTPConnection):
+                    def getresponse(self):
+                        response = super().getresponse()
+                        read = response.read
+                        def read_then_lose(*args, **kwargs):
+                            data = read(*args, **kwargs)
+                            self.close()  # Simulate loss after identity, before the token-bearing request.
+                            return data
+                        response.read = read_then_lose
+                        return response
+                connection_type = LostConnection if reason == 'lost-socket' else http.client.HTTPConnection
+                try:
+                    with patch.object(fixture, 'read_run', return_value=(Path('unused'), manifest)), \
+                         patch.object(fixture.http.client, 'HTTPConnection', connection_type):
+                        with self.assertRaises((ValueError, http.client.NotConnected, ConnectionError)):
+                            fixture.control('unused', '/stop')
+                    self.assertEqual(['GET'], [request[0] for request in requests])
+                finally:
+                    server.shutdown()
+                    server.server_close()
+                    worker.join(3)
+
+    def test_setup_failures_remove_owned_keys_and_stop_started_listeners(self):
+        for stage in ('certificate', 'listener'):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temporary:
+                directory = Path(temporary) / 'browser-qa-failed'
+                directory.mkdir(mode=0o700)
+                servers = []
+                original_server = fixture.Server
+                def fail_certificate(run):
+                    (run.directory / 'ca.key').write_text('synthetic-key')
+                    raise RuntimeError('certificate setup failed')
+                def fail_second_listener(*args, **kwargs):
+                    if servers:
+                        raise RuntimeError('listener setup failed')
+                    server = original_server(*args, **kwargs)
+                    servers.append(server)
+                    return server
+                with patch.object(fixture.tempfile, 'mkdtemp', return_value=str(directory)):
+                    target = patch.object(fixture.Fixture, 'certificates', fail_certificate) if stage == 'certificate' else patch.object(fixture, 'Server', fail_second_listener)
+                    with target, self.assertRaisesRegex(RuntimeError, stage + ' setup failed'):
+                        fixture.Fixture(ipv6=False)
+                try:
+                    self.assertFalse(directory.exists(), 'failed setup must remove owned keys and directory')
+                    for server in servers:
+                        self.assertEqual(-1, server.socket.fileno())
+                finally:
+                    if directory.exists():
+                        fixture.cleanup(directory)
+
+    def test_thread_start_failure_returns_original_error_and_reclaims_started_and_unstarted_servers(self):
+        script = r"""
+import importlib.util, sys
+from pathlib import Path
+from unittest.mock import patch
+spec = importlib.util.spec_from_file_location('fixture', sys.argv[1])
+fixture = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fixture)
+directory = Path(sys.argv[2])
+directory.mkdir(mode=0o700)
+servers, threads = [], []
+original_server, original_start = fixture.Server, fixture.threading.Thread.start
+class ObservedServer(original_server):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        servers.append(self)
+def start(thread):
+    threads.append(thread)
+    if len(threads) == int(sys.argv[3]):
+        raise RuntimeError('synthetic thread start failure')
+    original_start(thread)
+with patch.object(fixture, 'Server', ObservedServer), patch.object(fixture.threading.Thread, 'start', start), patch.object(fixture.tempfile, 'mkdtemp', return_value=str(directory)):
+    try:
+        fixture.Fixture(ipv6=False)
+    except RuntimeError as error:
+        assert str(error) == 'synthetic thread start failure', error
+    else:
+        raise AssertionError('Original thread error must be returned')
+assert servers and all(server.socket.fileno() == -1 for server in servers)
+assert threads and all(not thread.is_alive() for thread in threads)
+assert not directory.exists(), 'owned setup keys must be reclaimed'
+print('reclaimed')
+"""
+        for fail_at in (1, 2):
+            with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as temporary:
+                result = subprocess.run([sys.executable, '-c', script, str(SOURCE),
+                                         str(Path(temporary) / 'browser-qa-thread-failure'), str(fail_at)],
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual('reclaimed', result.stdout.strip())
+
+    def test_setup_preserves_unknown_files_and_reports_directory_without_hiding_original_error(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / 'browser-qa-preserved'
+            directory.mkdir(mode=0o700)
+            def fail_certificate(run):
+                (run.directory / 'keep.txt').write_text('unrelated')
+                raise RuntimeError('original setup failure')
+            output = io.StringIO()
+            with patch.object(fixture.tempfile, 'mkdtemp', return_value=str(directory)), \
+                 patch.object(fixture.Fixture, 'certificates', fail_certificate), contextlib.redirect_stderr(output):
+                with self.assertRaisesRegex(RuntimeError, 'original setup failure'):
+                    fixture.Fixture(ipv6=False)
+            self.assertEqual('unrelated', (directory / 'keep.txt').read_text())
+            self.assertIn(str(directory), output.getvalue())
+            (directory / 'keep.txt').unlink()
+            fixture.cleanup(directory)
 
     def test_fixed_pages_redirects_errors_and_no_file_or_proxy_endpoint(self):
         status, _, body = self.request('/a')

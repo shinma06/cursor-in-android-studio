@@ -33,7 +33,7 @@ python3 -m json.tool "$browser_qa_run/manifest.json"
 python3 docs/verification/fixtures/browser_fixture.py cleanup "$browser_qa_run"
 ```
 
-releaseはそのrunに既に到着したtagだけを解放する。stopはmanifestのportを無条件に使わず、loopback listenerのrun identityを照合する。起動terminalのCtrl+C/SIGTERMも同じ終了処理。終了は保留接続を解放し、待受と処理threadを終了してからstateを`stopped`にする。cleanupは停止後の所有marker・既知fileのみを検査して削除し、symlink/未知file/稼働中状態では削除しない。証拠を抽出してから片付ける。強制終了等で状態を確認できない資材を、経過時間だけで削除しない。
+releaseはそのrunに既に到着したtagだけを解放する。stop/releaseはloopback listenerのrun identityをHTTP/1.1の同じ接続上で照合してから送る。自動再接続は無効で、identity応答が接続を閉じる場合やsocketを失った場合はtokenを次の接続へ送らず失敗する。起動terminalのCtrl+C/SIGTERMも同じ終了処理。終了は保留接続を解放し、待受と処理threadを終了してからstateを`stopped`にする。cleanupは停止後の所有marker・既知fileのみを検査して削除し、symlink/未知file/稼働中状態では削除しない。証拠を抽出してから片付ける。強制終了等で状態を確認できない資材を、経過時間だけで削除しない。
 
 ## routeとCase対応
 
@@ -82,3 +82,9 @@ curl --noproxy '*' --cacert "$browser_qa_run/ca.pem" \
 P0はprovider不在/disabledの隔離IDE構成、P1は既存静的照合済みのQuail4 `AI-261.26222.65.2614.16204760` / bundled JBR `25.0.3+-15898627-b508.16` / mac-arm64とJCEF provider `261.22158.414-mac-arm64`。provider ZIPの既存SHA256は`923cf9706b7cdc863c4a48bba06d69f50af3ab818c164a67e3e2bcd9691fb64e`。これはnative/描画の成功ではなく、既存配布物・手順の再利用条件。最新版比較・独自JBR差替え・native例外注入を増やさない。
 
 CLI確認は管理入力の到達・値・順序だけ。実Browser/GUI/lease、IDE install/nativeロード、OS clipboard、通常hosts/trust変更、外部サイト試験は行わない。#164の既存製品fail/候補pendingや#182の未実施結果を上書きしない。provider初期化Exception/LinkageError/renderer終了の制御入口を用意したとは報告しない。PMが正式candidateと固定sourceを照合し、独立レビュー/CI/STOPからQA/main・cleanupへ追跡する。
+
+## 準備失敗時の片付け
+
+証明書生成やlistener準備に失敗した場合、開始済みlistenerを停止して既知の所有ファイルを削除する。未知ファイル・symlink・終了/削除エラーがある場合は保全し、stderrへ残存ディレクトリを示して元の準備エラーを返す。示された場所を担当者が確認し、正常なstopped/所有markerと既知ファイルの条件が整ってから既存cleanupを使う。残存を経過時間や名前だけで一括削除しない。
+
+スレッド開始失敗時は開始済みlistenerだけをshutdownし、未開始socketもserver_closeで回収する。未開始threadはjoinしない。[Pythonのshutdown契約](https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.shutdown)に従い、serve_foreverを開始していないserverの終了待ちを発生させない。
