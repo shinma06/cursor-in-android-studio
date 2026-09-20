@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 278,
+  "gui_required": false,
+  "reason": "実行中入力の公開契約と既存queueの境界調査のみ。製品操作を採用する場合は別IssueでGUI Caseを追跡する。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 docs/research/issue-278-check.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公式仕様・installed help/capability・固定queueコード・有限観測結果の独立照合"
+  ],
+  "cases": []
+}
