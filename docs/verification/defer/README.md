@@ -33,7 +33,8 @@ CTX-24-SNAPSHOTは送信操作が戻った最初の機会の次draft変更と既
 3. `python3 docs/verification/defer/defer_fixture.py build <出力ディレクトリ>`。
    必要なら`--platform-path <SDK>`を付ける。既存SDKの参照のみでIDEは起動しない。
 4. `build-identity.json`のHEAD、元source tree、patch/helper SHA256、生成src/mainの各hash、
-   source digest、全build入力hash、ZIPと全JAR SHA256を保存する。ZIP CRCも検査する。
+   source digest、repository内の`src`/`gradle`と所定Gradle設定ファイルのhash、ZIPと全JAR SHA256を保存する。ZIP CRCも検査する。
+   この入力hashは外部SDK/JDK/解決済み依存の同一性を保証しない。GUI担当は実行対象IDE/build、参照SDK/JDK版と依存記録も別途固定する。
    通常ZIPには`com/cursoragent/verification/`がなく、検証ZIPにはあることを照合する。
    最終候補へ変更を加えたら新しい未作成出力へ再生成し、古い証拠と混同しない。
 
@@ -100,3 +101,5 @@ Stop終端の独立配送・準備Stopの送信0件・timeout/close/interruption
 `test_defer_fixture.py`は通常source不変、限定3ファイルへのpatchと別helper配置、
 専用directoryと未確認command再送拒否を確認する。
 これらの成功は実IDEのCase PASSではない。
+
+検証variantの隔離Git repositoryは元のreviewed HEADとindexを取り込み、その上にoverlayを適用する。埋込診断の`source.commit`はreviewed HEAD、`source.state`は計測差分による`dirty`となる。通常ZIPのclean identityと区別し、variant版・patch/helper/source digest・ZIP/JAR hashを合わせて固定する。元repositoryの変更や履歴への新規commitは行わない。

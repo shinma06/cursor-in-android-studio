@@ -48,6 +48,8 @@ def prepare(repo, output):
     with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
         tar.extractall(source, filter='data')
     subprocess.run(['git', 'init', '-q'], cwd=source, check=True)
+    subprocess.run(['git', 'fetch', '--quiet', '--no-tags', '--depth=1', str(repo), head], cwd=source, check=True)
+    subprocess.run(['git', 'reset', '--mixed', '--quiet', head], cwd=source, check=True)
     subprocess.run(['git', 'apply', '--check', str(PATCH)], cwd=source, check=True)
     subprocess.run(['git', 'apply', str(PATCH)], cwd=source, check=True)
     helper = source / HELPER
@@ -143,7 +145,8 @@ def main():
     elif args.operation == 'build':
         result = build(args.output, args.platform_path)
     elif args.operation == 'init':
-        result = {'directory': str(initialize()), 'vm_option': '-Dcursor.verification.directory=<directory>'}
+        directory = initialize()
+        result = {'directory': str(directory), 'vm_option': '-Dcursor.verification.directory=' + str(directory)}
     elif args.operation == 'arm':
         result = command(args.directory, 'arm', owner=args.owner, point=args.point, token=args.token)
     elif args.operation == 'release':

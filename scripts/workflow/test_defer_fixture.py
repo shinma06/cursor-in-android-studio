@@ -1,5 +1,8 @@
 """Verify the fixed source overlay without starting an IDE or changing normal sources."""
 import importlib.util
+import contextlib
+import io
+from unittest.mock import patch
 import json
 from pathlib import Path
 import subprocess
@@ -19,6 +22,9 @@ class DeferFixtureTest(unittest.TestCase):
             target = Path(temporary) / 'variant'
             manifest = fixture.prepare(ROOT, target)
             source = target / 'source'
+            self.assertEqual(manifest['head'], subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip())
+            self.assertEqual(subprocess.check_output(['git', 'ls-files'], cwd=ROOT), subprocess.check_output(['git', 'ls-files'], cwd=source))
+            self.assertTrue(subprocess.check_output(['git', 'status', '--porcelain'], cwd=source).strip())
             self.assertEqual(manifest['helper_sha256'], fixture.digest((ROOT / fixture.HELPER).read_bytes()))
             self.assertFalse((source / fixture.HELPER).exists())
             self.assertTrue((source / str(fixture.HELPER).replace('src/test/', 'src/main/', 1)).is_file())
@@ -41,6 +47,12 @@ class DeferFixtureTest(unittest.TestCase):
     def test_owned_control_initialization_and_missing_previous_ack(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = fixture.initialize(temporary)
+            output = io.StringIO()
+            with patch.object(fixture, 'initialize', return_value=root), patch('sys.argv', ['defer_fixture.py', 'init']), contextlib.redirect_stdout(output):
+                fixture.main()
+            initialized = json.loads(output.getvalue())
+            self.assertEqual(initialized['directory'], str(root))
+            self.assertEqual(initialized['vm_option'], '-Dcursor.verification.directory=' + str(root))
             self.assertEqual(root.stat().st_mode & 0o777, 0o700)
             directory, run = fixture.control_root(root)
             self.assertEqual(directory, root)

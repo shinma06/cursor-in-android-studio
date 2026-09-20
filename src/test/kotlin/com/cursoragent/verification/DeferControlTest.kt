@@ -159,8 +159,28 @@ class DeferControlTest {
                 assertFalse(worker.isAlive, reason)
                 assertEquals(1, aborted.get(), reason)
                 assertEquals(0, launches.get(), reason)
+                assertFalse(state().has("pending"), reason)
+                assertEquals(when (reason) {
+                    "close" -> "closed"
+                    "interruption" -> "interrupted"
+                    else -> "timeout"
+                }, state().get("result").asString, reason)
                 gate.tryRestore()!!.close()
             }
+        }
+    }
+
+    @Test
+    fun `poll timeout clears published pending without executing the held callback`() {
+        control(1).use { control ->
+            arm(control, "popup")
+            var aborted = 0
+            control.hold("popup", owner, "popup", { fail("timed out callback must not run") }, { aborted++ })
+            Thread.sleep(5)
+            control.poll()
+            assertEquals(1, aborted)
+            assertFalse(state().has("pending"))
+            assertEquals("timeout", state().get("result").asString)
         }
     }
 

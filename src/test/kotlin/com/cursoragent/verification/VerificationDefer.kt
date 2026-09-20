@@ -179,7 +179,9 @@ class DeferControl(private val directory: Path, private val timeoutMillis: Long 
         val item = pending ?: return
         if (id != null && item.id != id) return
         pending = null
-        try { event("aborted", item.point, item.owner, item.token, reason) } finally { item.abort() }
+        try { event("aborted", item.point, item.owner, item.token, reason) } finally {
+            try { writeState(commandId, reason) } finally { item.abort() }
+        }
     }
 
     @Synchronized
