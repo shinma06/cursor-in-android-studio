@@ -45,7 +45,7 @@ child = None
 cancelled = threading.Event()
 closed = threading.Event()
 
-wire_lock = threading.Lock()
+wire_lock = threading.RLock()
 
 def record(direction, payload):
     if capture is not None:
@@ -85,16 +85,23 @@ def new_session(identifier):
         (control / "new-ready").touch()
         deadline = time.monotonic() + 10  # Below AcpSession session/new timeout (20 seconds).
         while True:
-            if cancelled.is_set() or closed.wait(.01):
+            if closed.wait(.01):
                 return
-            if time.monotonic() >= deadline:
-                send({"id": identifier, "error": {"code": -32000, "message": "Synthetic release timeout"}})
-                return
-            if (control / "release-new").exists():
-                break
-    response(identifier, {"sessionId": "session-one", "configOptions": config})
-    if scenario in ("commands", "commands-delayed"):
-        threading.Thread(target=command_updates, daemon=True).start()
+            with wire_lock:
+                if cancelled.is_set():
+                    return
+                if time.monotonic() >= deadline:
+                    send({"id": identifier, "error": {"code": -32000, "message": "Synthetic release timeout"}})
+                    return
+                if (control / "release-new").exists():
+                    break
+    # Cancellation acknowledgement and response/worker creation have one ordering.
+    with wire_lock:
+        if cancelled.is_set() or closed.is_set():
+            return
+        response(identifier, {"sessionId": "session-one", "configOptions": config})
+        if scenario in ("commands", "commands-delayed"):
+            threading.Thread(target=command_updates, daemon=True).start()
 
 
 def finish(reason="end_turn", identifier=None):
@@ -227,9 +234,10 @@ for line in sys.stdin:
                 update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": text})
             finish(scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn")
     elif method == "session/cancel":
-        cancelled.set()
-        finish("cancelled")
-        (control / "cancel-response").touch()
+        with wire_lock:
+            cancelled.set()
+            finish("cancelled")
+            (control / "cancel-response").touch()
         if scenario == "content-stop":
             update(sessionUpdate="agent_message_chunk", content={"type": "image", "mimeType": "after-stop", "data": "x"})
         if scenario == "task-stop":

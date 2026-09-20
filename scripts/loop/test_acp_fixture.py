@@ -1,4 +1,7 @@
+import ast
 import json
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 import queue
 import shlex
 from pathlib import Path
@@ -455,6 +458,102 @@ class ScenarioProcessTest(unittest.TestCase):
         self.assertIsNone(peers[1][0].poll())
         peers[1][0].terminate()
         self.assertNotEqual(0, peers[1][0].wait(timeout=5))
+
+
+
+class NewSessionCancelBoundaryTest(unittest.TestCase):
+    def environment(self, root, output, clock=lambda: 0):
+        # Execute the actual fixture function/cancel branch without a provider or subprocess.
+        source = Path(__file__).resolve().parents[2] / 'src/test/resources/acp/fake_agent.py'
+        tree = ast.parse(source.read_text())
+        function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'new_session')
+        cancel = next(n.body for n in ast.walk(tree) if isinstance(n, ast.If)
+                      and ast.unparse(n.test) == "method == 'session/cancel'")
+        environment = dict(scenario='commands-delayed', control=root, config=[],
+            cancelled=threading.Event(), closed=threading.Event(), wire_lock=threading.RLock(),
+            time=SimpleNamespace(monotonic=clock), command_updates=lambda: None,
+            send=lambda value: output.append('error'),
+            response=lambda *args: output.append('response'),
+            finish=lambda *args: output.append('cancelled'),
+            threading=SimpleNamespace(Thread=lambda **kw: SimpleNamespace(start=lambda: output.append('worker'))))
+        exec(compile(ast.Module(body=[function], type_ignores=[]), str(source), 'exec'), environment)
+        code = compile(ast.Module(body=cancel, type_ignores=[]), str(source), 'exec')
+        return environment, lambda: exec(code, environment)
+
+    def test_cancel_during_wait_or_release_observation_refuses_all_new_session_output(self):
+        for point in ('wait', 'release'):
+            with self.subTest(point=point), tempfile.TemporaryDirectory() as temporary:
+                root, output = Path(temporary), []
+                env, cancel = self.environment(root, output)
+                def cancel_then_release():
+                    cancel()
+                    self.assertTrue((root / 'cancel-response').exists())
+                    (root / 'release-new').touch()
+                def wait(_):
+                    if point == 'wait':
+                        cancel_then_release()
+                    return False
+                env['closed'] = Mock(wait=wait, is_set=lambda: False)
+                exists = Path.exists
+                def observe(path):
+                    if point == 'release' and path == root / 'release-new':
+                        cancel_then_release()
+                    return exists(path)
+                with patch.object(Path, 'exists', observe):
+                    env['new_session'](2)
+                self.assertEqual(['cancelled'], output)
+
+    def test_cancel_ack_cannot_overtake_committed_response_or_worker_start(self):
+        for terminal in ('response', 'error'):
+            with self.subTest(terminal=terminal), tempfile.TemporaryDirectory() as temporary:
+                root, output = Path(temporary), []
+                ticks = iter((0, 11)) if terminal == 'error' else None
+                env, cancel = self.environment(root, output, lambda: next(ticks) if ticks else 0)
+                (root / 'release-new').touch()
+                entered, release, contended, acknowledged = [threading.Event() for _ in range(4)]
+                lock = threading.RLock()
+                class ObservedLock:
+                    def __enter__(self):
+                        if not lock.acquire(blocking=False):
+                            contended.set()
+                            lock.acquire()
+                    def __exit__(self, *args):
+                        lock.release()
+                env['wire_lock'] = ObservedLock()
+                errors = []
+                def hold(*args):
+                    entered.set()
+                    if not release.wait(5):
+                        raise TimeoutError('Test response gate was not released')
+                    output.append(terminal)
+                env['response' if terminal == 'response' else 'send'] = hold
+                def run(action):
+                    try:
+                        action()
+                    except BaseException as error:
+                        errors.append(error)
+                def cancel_and_ack():
+                    cancel()
+                    acknowledged.set()
+                worker = threading.Thread(target=lambda: run(lambda: env['new_session'](2)))
+                cancelling = threading.Thread(target=lambda: run(cancel_and_ack))
+                worker.start()
+                try:
+                    self.assertTrue(entered.wait(5))
+                    cancelling.start()
+                    self.assertTrue(contended.wait(5), 'Cancel must actually contend for the response lock')
+                    self.assertFalse(acknowledged.is_set(), 'Cancellation overtook an uncommitted response')
+                finally:
+                    release.set()
+                    worker.join(5)
+                    if cancelling.ident is not None:
+                        cancelling.join(5)
+                self.assertFalse(worker.is_alive())
+                self.assertFalse(cancelling.is_alive())
+                self.assertEqual([], errors)
+                self.assertTrue(acknowledged.is_set())
+                self.assertEqual([terminal] + (['worker'] if terminal == 'response' else []) + ['cancelled'], output)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 376,
+  "gui_required": false,
+  "reason": "合成ACP fixtureの遅延session/newとcancel確認の競合だけを修正する。製品src/main、実Cursor/provider、GUIの変更や操作はなく、既存QAの未達とmain未反映は維持する。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "実fixture関数とcancel分岐で待機/解放/timeoutと送信/worker開始の順序を固定し、旧実装4subcase失敗・修正後成功を確認"
+  ],
+  "cases": []
+}
