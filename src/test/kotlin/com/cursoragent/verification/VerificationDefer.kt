@@ -114,8 +114,13 @@ class DeferControl(private val directory: Path, private val timeoutMillis: Long 
                     val item = pending
                     check(item != null && command.get("pending").asString == item.id)
                     pending = null
-                    event("released", item.point, item.owner, item.token, item.id)
-                    item.release()
+                    try {
+                        event("released", item.point, item.owner, item.token, item.id)
+                        item.release()
+                    } catch (error: Exception) {
+                        try { writeState(commandId, "aborted") } finally { item.abort() }
+                        throw error
+                    }
                 }
                 "close" -> close()
                 else -> error("unknown operation")
@@ -146,6 +151,7 @@ class DeferControl(private val directory: Path, private val timeoutMillis: Long 
         try {
             if (!latch.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
                 synchronized(this) { abort("timeout", heldId) }
+                error("Verification trial timed out")
             }
             check(!aborted.get()) { "Verification trial aborted" }
         } catch (error: InterruptedException) {

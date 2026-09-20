@@ -171,6 +171,51 @@ class DeferControlTest {
     }
 
     @Test
+    fun `failed release logging aborts preparation and releases reservation without launch`() {
+        for (failure in listOf("symlink", "limit", "io")) {
+            Files.deleteIfExists(directory.resolve("command.json"))
+            Files.deleteIfExists(directory.resolve("state.json"))
+            Files.deleteIfExists(directory.resolve("events.jsonl"))
+            control(1000).use { control ->
+                if (failure == "limit") repeat(9998) { control.event("filler", "preparation", owner, "turn") }
+                arm(control, "preparation")
+                val gate = WorkspaceOperationGate()
+                val reservation = gate.tryPrepare()!!
+                val launches = AtomicInteger()
+                val aborted = AtomicInteger()
+                val worker = thread {
+                    try { control.awaitPreparation(owner, "turn"); launches.incrementAndGet() }
+                    catch (_: Exception) { aborted.incrementAndGet() }
+                    finally { reservation.close() }
+                }
+                try {
+                    val id = pending()
+                    when (failure) {
+                        "limit" -> Unit
+                        else -> {
+                            Files.delete(directory.resolve("events.jsonl"))
+                            if (failure == "symlink") Files.createSymbolicLink(directory.resolve("events.jsonl"), directory.resolve("manifest.json"))
+                            else Files.createDirectory(directory.resolve("events.jsonl"))
+                        }
+                    }
+                    if (failure == "io") assertThrows(java.io.IOException::class.java) { command(control, "release", "pending" to id) }
+                    else command(control, "release", "pending" to id)
+                    worker.join(3000)
+                    assertFalse(worker.isAlive, failure)
+                    assertEquals(0, launches.get(), failure)
+                    assertEquals(1, aborted.get(), failure)
+                    assertFalse(state().has("pending"), failure)
+                    assertEquals(if (failure == "io") "aborted" else "rejected", state().get("result").asString, failure)
+                    gate.tryRestore()!!.close()
+                } finally {
+                    worker.interrupt()
+                    worker.join(3000)
+                }
+            }
+        }
+    }
+
+    @Test
     fun `poll timeout clears published pending without executing the held callback`() {
         control(1).use { control ->
             arm(control, "popup")
