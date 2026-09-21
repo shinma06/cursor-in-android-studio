@@ -1,0 +1,47 @@
+{
+  "verifier_version": "1.410",
+  "targets": {
+    "quail1": {
+      "version": "2026.1.1.8",
+      "build": "AI-261.23567.138.2611.15503007",
+      "java_version": "21.0.10",
+      "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.1.1.8/android-studio-quail1-linux.tar.gz",
+      "sha256": "0c1fa4ba3cfabd07e48a90e00a5fa2ea2a82cd5870833dada5b0290c817d83d3"
+    },
+    "quail4": {
+      "version": "2026.1.4.8",
+      "build": "AI-261.26222.65.2614.16379836",
+      "java_version": "25.0.3",
+      "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.1.4.8/android-studio-quail4-patch1-linux.tar.gz",
+      "sha256": "25c97ca6c6b505f2a20bff962dfd28718327f61e25b09a9bc915f1dae7b1e534"
+    }
+  },
+  "optional_absences": {
+    "com.intellij.modules.jcef": "本Pluginが明示した任意provider。SDKのJCEF APIは検査済みで、provider不在時は既存のisSupported確認と復旧UIを使う。チャット/復旧UIの登録は必須のまま。実操作は#392の全Caseで確認する。",
+    "XPathView": "IntelliJ Platformのintellij.xml.langInjection.xpathによる任意依存。本Pluginからの直接参照はなく、両SDKで427クラスのAPI検査が完走。",
+    "com.intellij.modules.python": "同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。本PluginはPython機能を必須にせず、Terminal APIの実在は別途検査済み。",
+    "com.intellij.modules.idea.community": "同梱Javaのintellij.java.promoによるIDEA Community用の任意依存。固定したAndroid Studio両配布物にはなく、本PluginのAPI参照ではない。",
+    "training": "同梱Javaのintellij.java.featuresTrainerによる任意学習機能。本Pluginは利用せず、固定両SDKでAPI互換性を確認済み。"
+  },
+  "reviewed_api_reports": {
+    "deprecated-usages.txt": {
+      "sha256": "2f76cb995fecc9df283fe0ed392b2ec6f58250d7ca3651fe35a9503aacbd7fab",
+      "disposition": "Platform 261に実在。設定のファイル選択1件は将来削除予定、残りはToolWindow既定bridge/ProcessAdapter/ReadAction。対象SDK拡張前に置換を再評価する。"
+    },
+    "experimental-api-usages.txt": {
+      "sha256": "a3869d14d89a05597b32723bce6a80b040df7ae0f6b3a7bdf9622047697e06fc",
+      "disposition": "Terminal view/output APIとToolWindowFactoryの既定bridgeの計32利用。既存optional連携とLinkageError防御を維持し、両IDEでAPI実在を確認。GUIは#392。"
+    },
+    "internal-api-usages.txt": {
+      "sha256": "876310368da7e4dc2d08ff37283008b45f522dc8753ba30e978d5ea6411fd255",
+      "disposition": "Plugin設定への誘導とToolWindowヘッダ/メニューの8利用。両261配布物で実在。将来SDK更新時に公開API代替を再評価する。"
+    }
+  },
+  "reviewed_log_warnings": [
+    "Layout component 'intellij.cidr.core' has some nonexistent 'classPath' elements: 'plugins/cidr-debugger/lib/modules/intellij.cidr.core.jar'"
+  ],
+  "optional_absence_builds": [
+    "AI-261.23567.138.2611.15503007",
+    "AI-261.26222.65.2614.16379836"
+  ]
+}

@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -52,6 +53,7 @@ dependencies {
             androidStudio("2026.1.1.8")
         }
         bundledPlugins("org.jetbrains.plugins.terminal")
+        pluginVerifier("1.410")
     }
 }
 
@@ -134,4 +136,27 @@ val generateBuildIdentity = tasks.register<WriteProperties>("generateBuildIdenti
 
 tasks.processResources {
     from(generateBuildIdentity)
+}
+
+// Verification consumes an existing, sealed archive. No buildPlugin dependency:
+// scripts/workflow/plugin_compatibility.py binds the ZIP, SDK and bundled runtime.
+tasks.verifyPlugin {
+    archiveFile.set(layout.file(providers.gradleProperty("verificationArchive").map { file(it) }))
+    ides.setFrom(providers.gradleProperty("verificationIdePath").map { file(it) })
+    runtimeDirectory.set(layout.dir(providers.gradleProperty("verificationRuntime").map { file(it) }))
+    useBundledRuntime.set(false) // Explicit per-job bundled JBR; never a JAVA_HOME fallback.
+    offline.set(true) // Resolve the target distribution, not mutable Marketplace dependencies.
+    doFirst {
+        systemProperty("plugin.verifier.home.dir", verificationReportsDirectory.get().asFile.resolveSibling("verifier-cache"))
+    }
+    verificationReportsDirectory.set(layout.dir(providers.gradleProperty("verificationReports").map { file(it) }))
+    failureLevel.set(listOf(
+        FailureLevel.COMPATIBILITY_PROBLEMS,
+        FailureLevel.COMPATIBILITY_WARNINGS,
+        FailureLevel.MISSING_DEPENDENCIES,
+        FailureLevel.INVALID_PLUGIN,
+        FailureLevel.PLUGIN_STRUCTURE_WARNINGS,
+        FailureLevel.OVERRIDE_ONLY_API_USAGES,
+        FailureLevel.NON_EXTENDABLE_API_USAGES,
+    ))
 }

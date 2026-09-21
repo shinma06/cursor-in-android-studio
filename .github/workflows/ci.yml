@@ -15,12 +15,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  checks:
     # ubuntu, not macos: macOS runner minutes cost 10x on GitHub Actions' free/
     # paid tiers, and nothing here needs macOS -- the JUnit tests are plain JVM
     # code, and Android Studio ships a Linux distribution for exactly this kind
     # of headless/CI use.
     runs-on: ubuntu-latest
+    outputs:
+      plugin_zip: ${{ steps.impact.outputs.plugin_zip }}
+      artifact_sha256: ${{ steps.seal.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,3 +61,87 @@ jobs:
       - name: Run tests
         if: steps.impact.outputs.gradle_test == 'true'
         run: ./gradlew test --console=plain
+
+      - name: Build and validate the standard ZIP once
+        if: steps.impact.outputs.plugin_zip == 'true'
+        run: ./gradlew buildPlugin verifyPluginStructure --console=plain
+
+      - name: Seal ZIP identity and hash
+        id: seal
+        if: steps.impact.outputs.plugin_zip == 'true'
+        run: |
+          sha256=$(python3 scripts/workflow/plugin_compatibility.py seal --source "$(git rev-parse HEAD)")
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.impact.outputs.plugin_zip == 'true'
+        with:
+          name: compatibility-input
+          path: |
+            build/distributions/*.zip
+            build/distributions/manifest.json
+          if-no-files-found: error
+          retention-days: 14
+
+  compatibility:
+    needs: checks
+    if: needs.checks.outputs.plugin_zip == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [quail1, quail4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: compatibility-input
+          path: compatibility-input
+      - name: Verify identical ZIP with the distribution's bundled JBR
+        env:
+          TARGET: ${{ matrix.target }}
+          ZIP_SHA256: ${{ needs.checks.outputs.artifact_sha256 }}
+        run: |
+          archives=(compatibility-input/*.zip)
+          test "${#archives[@]}" -eq 1
+          python3 scripts/workflow/plugin_compatibility.py verify \
+            --target "$TARGET" --archive "${archives[0]}" \
+            --manifest compatibility-input/manifest.json --sha256 "$ZIP_SHA256" \
+            --sdk-cache "$RUNNER_TEMP/compatibility-sdk" --output compatibility-result
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compatibility-${{ matrix.target }}
+          path: compatibility-result
+          if-no-files-found: error
+          retention-days: 14
+
+  # Preserve the required check name. Missing/failed/skipped required verification
+  # cannot be hidden behind a successful compilation or an always() job.
+  test:
+    needs: [checks, compatibility]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce complete CI outcome
+        env:
+          CHECKS: ${{ needs.checks.result }}
+          REQUIRED: ${{ needs.checks.outputs.plugin_zip }}
+          COMPATIBILITY: ${{ needs.compatibility.result }}
+        run: |
+          test "$CHECKS" = success
+          if [ "$REQUIRED" = true ]; then
+            test "$COMPATIBILITY" = success
+          else
+            test "$REQUIRED" = false
+            test "$COMPATIBILITY" = skipped
+            echo 'Compatibility verification skipped: no product/build/distribution impact.'
+          fi

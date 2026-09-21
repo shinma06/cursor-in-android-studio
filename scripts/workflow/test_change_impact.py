@@ -27,6 +27,8 @@ class ClassificationTest(unittest.TestCase):
             (['docs/verification/changes/issue-198.json'], {ci.TOOLING}, False, True, False),
             (['.github/ISSUE_TEMPLATE/task.yml'], {ci.METADATA}, False, False, False),
             (['scripts/workflow/change_impact.py'], {ci.BUILD, ci.TOOLING}, True, True, True),
+            (['scripts/workflow/plugin_compatibility.py'], {ci.BUILD, ci.TOOLING}, True, True, True),
+            (['scripts/workflow/plugin_compatibility.json'], {ci.BUILD, ci.TOOLING}, True, True, True),
             (['docs/codegen.yaml'], {ci.UNKNOWN}, True, True, True),
             (['scripts/new/code.kt'], {ci.UNKNOWN}, True, True, True),
             (['.github/new/input.bin'], {ci.UNKNOWN}, True, True, True),

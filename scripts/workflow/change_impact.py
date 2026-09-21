@@ -30,7 +30,8 @@ def path_impacts(path, modes=('100644',)):
             or p.name in ('libs.versions.toml', 'proguard-rules.pro')):
         return {BUILD}
     if path in ('.gitattributes', '.gitignore', 'scripts/workflow/branch_zip.py',
-                'scripts/workflow/change_impact.py', '.github/workflows/ci.yml', '.github/workflows/branch-zip.yml'):
+                'scripts/workflow/change_impact.py', 'scripts/workflow/plugin_compatibility.py',
+                'scripts/workflow/plugin_compatibility.json', '.github/workflows/ci.yml', '.github/workflows/branch-zip.yml'):
         # These determine build inputs, classification, or artifact generation itself.
         return {BUILD, TOOLING}
     if (path.startswith(('scripts/workflow/', 'scripts/loop/')) and p.suffix in ('.py', '.sh')

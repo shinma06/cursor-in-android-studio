@@ -34,7 +34,7 @@ GitHub公開状態はIssue/PR/Case/Release。host/source・privateログ・worke
 
 pre-push、CI、coordinatorの検証、branch ZIP planは同じclassifierを呼ぶ。`--run-tests`は選択テストを実行し、plugin_zip要否の出力それ自体はZIP生成ではない。製品/build変更なら標準 `./gradlew buildPlugin` または既存ZIP workflowで生成する。手動GUI/buildの明示要求はGit差分skipの対象ではない。
 
-ローカルはgradle.propertiesのplatformPathで実Android Studio SDKを指定する。CI/ZIP runnerはworkflowに固定されたversion/codenameを取得/cacheし、`-PplatformPath`として同じGradle local()経路へ渡す。Kotlin/JDKやSDKの新仕様をこの文書で推定せず、実build/公式release資料の照合は既存[現行実装](../architecture/current-implementation.md)と配布手順から行う。
+標準buildは固定した最古Android Studio SDKをGradleで取得する。明示local SDKは`useLocalPlatform=true`と`platformPath`を併用し、full build guardを通す。旧branch ZIPの復旧だけは既存workflowの旧SDK取得を維持する。Kotlin/JDKやSDKの新仕様をこの文書で推定せず、実build/公式release資料の照合は既存[現行実装](../architecture/current-implementation.md)と配布手順から行う。
 
 ZIPはsource SHAで命名して標準生成物をそのまま転送する。Release本文はsource SHA・asset名・markerを記録し、hashは含まない。新upload応答のasset API digest/size照合と、同SHA既存assetの再利用（内容の再照合なし）、実際にロードしたJARの確認は別である。Knowledge skip時の古い正常ZIPを新HEADの成果物へ改名しない。#249は既存toolingの同期と文書/Case JSON更新で、製品/build入力は変えない。固定Issue差分の共通分類に従い、新ZIP生成の要否を判断する。過去の#231 ZIPや#232のimport試験を別候補の実build/GUI合格と呼ばない。
 
@@ -62,3 +62,33 @@ repository rootから `python3 -m unittest discover -s scripts/workflow -p 'test
 | 配布cleanup | test_branch_zipの `test_cleanup_protects_identity_failures_and_integration_branches`、`test_cleanup_rechecks_candidate_id_sha_and_branch_after_lock`、`test_cleanup_partial_failure_retries_release_but_holds_tag_only`、`test_workflow_cleanup_is_default_branch_only_and_shares_publish_lock`。fake APIで識別・権限/排他・失敗時保持を確認。実削除の結果は#219のreceipt/readbackを別証拠として扱う |
 
 新しい入口・import・依存・分類path・生成入力を変更するwriterと独立reviewerが、対象経路の影響行、副作用の開始点、trusted revision、失敗時保持、classifierと実消費側を同じPRで確認する。既存[Governance Audit](git-governance-audit.md)からこの境界へ辿れる。新CI gate/field/監視は追加しない。今回の合成回帰成功から本番の速度/事故率改善は断定しない。
+
+## 同一ZIPの互換性CI（#390）
+
+[CI](../../.github/workflows/ci.yml)のchecks jobが共通分類に従って標準ZIPを一度生成し、[plugin_compatibility.py](../../scripts/workflow/plugin_compatibility.py)のsealで内包source/clean状態・最古SDK・versionとSHA256を記録する。upload-artifactの同一入力を2つのcompatibility jobへ渡す。必須`test`はchecksと必要な両検証の成功を集約し、文書のみの安全なskipだけ許す。
+
+verify入口は[固定ポリシー](../../scripts/workflow/plugin_compatibility.json)の公式Linux配布物をchecksum付きで取得し、full buildと同梱JBRの実バージョンを確認する。既存`verifyPlugin`へ外部ZIP/対象SDK/同梱JBRを明示し、Gradleの再compile/buildPluginへ依存しない。Verifierのoffline設定と毎回空の専用cacheで対象SDKの同梱依存だけに解決範囲を固定する（Gradleの依存取得は通常どおり）。Marketplaceから別OSのJCEF providerや後日更新された任意Pluginを混入させない。実行前後のZIP hash、唯一の対象verdict、427等の内包クラス数との一致、依存/警告reportを照合しresult.jsonを保存する。既存reportディレクトリの再利用、JBRのfallback、未知結果は拒否する。
+
+API判定は標準VerifierのfailureLevel、成果物/実行の同一性はこの補助CLI、必要性はChange Impactが担当する。新しいchecker/policyもBUILD+TOOLINGへ分類し、独自の差分条件を増やさない。ダウンロード、Gradle子プロセス、report生成はCLI実行時だけでimportに副作用はない。失敗ログとreportはActions artifactへ保存し、成功resultがない状態を認定しない。正式RCの不変性と長期保管/公開は#391、実IDEは#392で別途確認する。
+
+公式根拠: [Verifierの結果/CLI](https://github.com/JetBrains/intellij-plugin-verifier#results)、[Gradle verifyPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#verifyPlugin)、[Google/JetBrains SDK配布一覧](https://jb.gg/android-studio-releases-list.xml)。
+
+### 固定した警告の評価
+
+2026-09-21、同一Phase 2 ZIPの427本体クラスをQ1/Q4で各1件実検査。descriptionを含む構造検査はPhase 2で解消済み、binary verdictは両方Compatible。ただしこれを全受入成功とは呼ばず、依存解決判定と以下の警告を分離する。API警告は3つの実report全体のSHA256をpolicyに固定しており、同じ分類でも内容が変われば失敗する。行番号の追加・削除でも再評価するため、将来の変更で安易にhashを更新しない。
+
+| 対象 | 根拠と扱い |
+| --- | --- |
+| 削除予定1件: TextFieldWithBrowseButton.addBrowseFolderListener | 両261 SDKで実在しAPI互換。設定の参照先選択を維持。対象SDK拡張前に現行公開APIへ置換を再評価する |
+| その他非推奨12件: ToolWindowFactoryの既定bridge、FileChooserDescriptorFactory、ProcessAdapter、ReadAction | コンパイラが生成した既定bridgeを含む既存利用。現範囲で実在し、将来SDK更新時に代替と並行性を再確認する |
+| 実験的32件: Terminal view/output API、ToolWindowFactoryの既定bridge | Terminal optional登録・LinkageError防御と既存ヘッダ動作を維持。将来SDK更新時は両APIの実在検査を再実行する |
+| 内部8件: PluginManagerConfigurable、ToolWindowImpl、InternalDecoratorImpl | Plugin設定への誘導、ツールウィンドウのヘッダ/メニューで利用。両SDKで実在。公開API代替は同じ操作を保てる場合に移行する |
+| IDE layout: intellij.cidr.core.jarの欠落 | 両公式配布物で同一警告。C/C++ debugger componentで本Pluginの必須依存ではなく、427クラスの検査は完走。警告の完全な末尾を限定許容し、新たなlayout欠落は失敗する |
+
+この判定はPlatform 261の固定2配布物に限定する。Marketplaceの全掲載審査、動的unload保証、実IDEの操作・保存・描画成功を証明しない。既存QA #397と全Caseの最終RC検証#392を維持する。
+
+### 任意依存5件の限定例外
+
+ユーザーの保守性を条件とする許可に基づき、JCEF provider / XPathView / Python / IDEA Community / trainingの不在だけを許容する。理由はpolicyの`optional_absences`、検証済みの2つのfull buildは`optional_absence_builds`に固定する。対象IDでも必須依存として失敗している場合は許容しない。未知の依存、API不整合、新規警告、詳細report欠落は引き続き失敗する。
+
+JCEF不在時は既存の検出と復旧UIを使う。残る4件は同梱Platform/Shell Script/Javaの任意連携で、本Pluginの必須機能ではない。例外は依存を導入・有効化せず、Pluginの実装や設定も変更しない。SDK/Verifier更新時は空のcacheで全reportと実IDEの必要Caseを再検証し、例外の根拠・build制限を再レビューする。SDKのbuildだけを更新しても古い例外を自動継承しない。将来のSDK互換性を保証するものではなく、変更時に問題を検出して止める運用で保守する。
