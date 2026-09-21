@@ -111,7 +111,10 @@ jobs:
         run: |
           archives=(compatibility-input/*.zip)
           test "${#archives[@]}" -eq 1
-          python3 scripts/workflow/plugin_compatibility.py verify             --target "$TARGET" --archive "${archives[0]}"             --manifest compatibility-input/manifest.json --sha256 "$ZIP_SHA256"             --sdk-cache "$RUNNER_TEMP/compatibility-sdk" --output compatibility-result
+          python3 scripts/workflow/plugin_compatibility.py verify \
+            --target "$TARGET" --archive "${archives[0]}" \
+            --manifest compatibility-input/manifest.json --sha256 "$ZIP_SHA256" \
+            --sdk-cache "$RUNNER_TEMP/compatibility-sdk" --output compatibility-result
       - uses: actions/upload-artifact@v4
         if: always()
         with:

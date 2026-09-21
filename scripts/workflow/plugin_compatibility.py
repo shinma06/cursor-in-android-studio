@@ -114,6 +114,11 @@ def check_reports(reports, log, target, manifest, policy):
     for line in failures:
         match = re.search(r'\(failed\) ([\w.]+) \(optional\):', line)
         require(match and match[1] in policy['optional_absences'], 'Unresolved dependency: ' + line)
+    for category, name in (('(?:scheduled for removal|deprecated)', 'deprecated-usages.txt'),
+                           ('experimental', 'experimental-api-usages.txt'),
+                           ('internal', 'internal-api-usages.txt')):
+        if re.search(r'\b[1-9]\d* usages? of ' + category + ' API', verdict):
+            require((directory / name).is_file(), 'Missing API detail report: ' + name)
     warning_hashes = {}
     required = {'verification-verdict.txt', 'dependencies.txt', 'telemetry.txt'}
     for report in directory.iterdir():

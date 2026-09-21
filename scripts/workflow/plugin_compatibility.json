@@ -24,7 +24,7 @@
     },
     "experimental-api-usages.txt": {
       "sha256": "a3869d14d89a05597b32723bce6a80b040df7ae0f6b3a7bdf9622047697e06fc",
-      "disposition": "Terminal view/output APIの32利用。既存optional連携とLinkageError防御を維持し、両IDEでAPI実在を確認。GUIは#392。"
+      "disposition": "Terminal view/output APIとToolWindowFactoryの既定bridgeの計32利用。既存optional連携とLinkageError防御を維持し、両IDEでAPI実在を確認。GUIは#392。"
     },
     "internal-api-usages.txt": {
       "sha256": "876310368da7e4dc2d08ff37283008b45f522dc8753ba30e978d5ea6411fd255",

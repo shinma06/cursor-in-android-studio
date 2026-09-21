@@ -72,3 +72,17 @@ verify入口は[固定ポリシー](../../scripts/workflow/plugin_compatibility.
 API判定は標準VerifierのfailureLevel、成果物/実行の同一性はこの補助CLI、必要性はChange Impactが担当する。新しいchecker/policyもBUILD+TOOLINGへ分類し、独自の差分条件を増やさない。ダウンロード、Gradle子プロセス、report生成はCLI実行時だけでimportに副作用はない。失敗ログとreportはActions artifactへ保存し、成功resultがない状態を認定しない。正式RCの不変性と長期保管/公開は#391、実IDEは#392で別途確認する。
 
 公式根拠: [Verifierの結果/CLI](https://github.com/JetBrains/intellij-plugin-verifier#results)、[Gradle verifyPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#verifyPlugin)、[Google/JetBrains SDK配布一覧](https://jb.gg/android-studio-releases-list.xml)。
+
+### 固定した警告の評価
+
+2026-09-21、同一Phase 2 ZIPの427本体クラスをQ1/Q4で各1件実検査。descriptionを含む構造検査はPhase 2で解消済み、binary verdictは両方Compatible。ただしこれを全受入成功とは呼ばず、依存解決判定と以下の警告を分離する。API警告は3つの実report全体のSHA256をpolicyに固定しており、同じ分類でも内容が変われば失敗する。行番号の追加・削除でも再評価するため、将来の変更で安易にhashを更新しない。
+
+| 対象 | 根拠と扱い |
+| --- | --- |
+| 削除予定1件: TextFieldWithBrowseButton.addBrowseFolderListener | 両261 SDKで実在しAPI互換。設定の参照先選択を維持。対象SDK拡張前に現行公開APIへ置換を再評価する |
+| その他非推奨12件: ToolWindowFactoryの既定bridge、FileChooserDescriptorFactory、ProcessAdapter、ReadAction | コンパイラが生成した既定bridgeを含む既存利用。現範囲で実在し、将来SDK更新時に代替と並行性を再確認する |
+| 実験的32件: Terminal view/output API、ToolWindowFactoryの既定bridge | Terminal optional登録・LinkageError防御と既存ヘッダ動作を維持。将来SDK更新時は両APIの実在検査を再実行する |
+| 内部8件: PluginManagerConfigurable、ToolWindowImpl、InternalDecoratorImpl | Plugin設定への誘導、ツールウィンドウのヘッダ/メニューで利用。両SDKで実在。公開API代替は同じ操作を保てる場合に移行する |
+| IDE layout: intellij.cidr.core.jarの欠落 | 両公式配布物で同一警告。C/C++ debugger componentで本Pluginの必須依存ではなく、427クラスの検査は完走。警告の完全な末尾を限定許容し、新たなlayout欠落は失敗する |
+
+この判定はPlatform 261の固定2配布物に限定する。Marketplaceの全掲載審査、動的unload保証、実IDEの操作・保存・描画成功を証明しない。既存QA #397と全Caseの最終RC検証#392を維持する。

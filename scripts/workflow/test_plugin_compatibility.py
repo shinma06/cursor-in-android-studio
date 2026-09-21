@@ -25,6 +25,14 @@ class CompatibilityTest(unittest.TestCase):
             for name, text in files.items():
                 (directory / name).write_text(text)
             self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verified_classes'], 427)
+            for category in ('deprecated', 'experimental', 'internal'):
+                (directory / 'verification-verdict.txt').write_text(f'Compatible. 1 usage of {category} API.')
+                with self.assertRaisesRegex(ValueError, 'Missing API detail report'):
+                    pc.check_reports(reports, log, target, manifest, policy)
+            (directory / 'verification-verdict.txt').write_text('Compatible. 1 usage of scheduled for removal API and 0 usages of deprecated API.')
+            with self.assertRaisesRegex(ValueError, 'Missing API detail report'):
+                pc.check_reports(reports, log, target, manifest, policy)
+            (directory / 'verification-verdict.txt').write_text(files['verification-verdict.txt'])
             for name, text in [('verification-verdict.txt', ''), ('verification-verdict.txt', 'Unavailable'),
                                ('verification-verdict.txt', 'Compatible. Unknown result.'),
                                ('telemetry.txt', 'Verified classes in plugin artifact: 0\n'),
@@ -36,6 +44,14 @@ class CompatibilityTest(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         pc.check_reports(reports, log, target, manifest, policy)
                     (directory / name).write_text(files[name])
+            allowed = copy.deepcopy(policy)
+            allowed['optional_absences'] = {'known': 'reviewed optional dependency'}
+            (directory / 'dependencies.txt').write_text(files['dependencies.txt'] + '+--- (failed) known (optional): not resolved')
+            pc.check_reports(reports, log, target, manifest, allowed)
+            (directory / 'dependencies.txt').write_text(files['dependencies.txt'] + '+--- (failed) known: not resolved')
+            with self.assertRaises(ValueError):
+                pc.check_reports(reports, log, target, manifest, allowed)
+            (directory / 'dependencies.txt').write_text(files['dependencies.txt'])
             for name in files:
                 (directory / name).unlink()
                 with self.assertRaises((ValueError, FileNotFoundError)):
