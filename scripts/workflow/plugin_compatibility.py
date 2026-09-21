@@ -87,7 +87,8 @@ def download_sdk(target, directory):
     archive = directory / 'sdk.tar.gz'
     if not archive.exists():
         temporary = directory / 'sdk.download'
-        subprocess.run(['curl', '-fL', '--retry', '3', '-o', str(temporary), target['url']], check=True)
+        subprocess.run(['curl', '-fL', '--retry', '3', '--connect-timeout', '30', '--max-time', '600',
+                        '-o', str(temporary), target['url']], check=True)
         require(digest(temporary) == target['sha256'], 'SDK archive checksum mismatch')
         temporary.rename(archive)
     require(digest(archive) == target['sha256'], 'Cached SDK checksum mismatch')
