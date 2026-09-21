@@ -48,6 +48,10 @@ class CompatibilityTest(unittest.TestCase):
             allowed['optional_absences'] = {'known': 'reviewed optional dependency'}
             (directory / 'dependencies.txt').write_text(files['dependencies.txt'] + '+--- (failed) known (optional): not resolved')
             pc.check_reports(reports, log, target, manifest, allowed)
+            allowed['optional_absence_builds'] = ['AI-future-build']
+            with self.assertRaisesRegex(ValueError, 'Unresolved dependency'):
+                pc.check_reports(reports, log, target, manifest, allowed)
+            allowed['optional_absence_builds'] = [target['build']]
             (directory / 'dependencies.txt').write_text(files['dependencies.txt'] + '+--- (failed) known: not resolved')
             with self.assertRaises(ValueError):
                 pc.check_reports(reports, log, target, manifest, allowed)

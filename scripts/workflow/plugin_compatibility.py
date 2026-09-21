@@ -114,7 +114,8 @@ def check_reports(reports, log, target, manifest, policy):
     # Optional absences require an explicit, reviewed policy entry; no blanket optional exemption.
     for line in failures:
         match = re.search(r'\(failed\) ([\w.]+) \(optional\):', line)
-        require(match and match[1] in policy['optional_absences'], 'Unresolved dependency: ' + line)
+        require(match and match[1] in policy['optional_absences']
+                and target['build'] in policy['optional_absence_builds'], 'Unresolved dependency: ' + line)
     for category, name in (('(?:scheduled for removal|deprecated)', 'deprecated-usages.txt'),
                            ('experimental', 'experimental-api-usages.txt'),
                            ('internal', 'internal-api-usages.txt')):

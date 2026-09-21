@@ -86,3 +86,9 @@ API判定は標準VerifierのfailureLevel、成果物/実行の同一性はこ�
 | IDE layout: intellij.cidr.core.jarの欠落 | 両公式配布物で同一警告。C/C++ debugger componentで本Pluginの必須依存ではなく、427クラスの検査は完走。警告の完全な末尾を限定許容し、新たなlayout欠落は失敗する |
 
 この判定はPlatform 261の固定2配布物に限定する。Marketplaceの全掲載審査、動的unload保証、実IDEの操作・保存・描画成功を証明しない。既存QA #397と全Caseの最終RC検証#392を維持する。
+
+### 任意依存5件の限定例外
+
+ユーザーの保守性を条件とする許可に基づき、JCEF provider / XPathView / Python / IDEA Community / trainingの不在だけを許容する。理由はpolicyの`optional_absences`、検証済みの2つのfull buildは`optional_absence_builds`に固定する。対象IDでも必須依存として失敗している場合は許容しない。未知の依存、API不整合、新規警告、詳細report欠落は引き続き失敗する。
+
+JCEF不在時は既存の検出と復旧UIを使う。残る4件は同梱Platform/Shell Script/Javaの任意連携で、本Pluginの必須機能ではない。例外は依存を導入・有効化せず、Pluginの実装や設定も変更しない。SDK/Verifier更新時は空のcacheで全reportと実IDEの必要Caseを再検証し、例外の根拠・build制限を再レビューする。SDKのbuildだけを更新しても古い例外を自動継承しない。将来のSDK互換性を保証するものではなく、変更時に問題を検出して止める運用で保守する。

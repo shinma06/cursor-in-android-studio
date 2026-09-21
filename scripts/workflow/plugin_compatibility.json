@@ -16,7 +16,13 @@
       "sha256": "25c97ca6c6b505f2a20bff962dfd28718327f61e25b09a9bc915f1dae7b1e534"
     }
   },
-  "optional_absences": {},
+  "optional_absences": {
+    "com.intellij.modules.jcef": "本Pluginが明示した任意provider。SDKのJCEF APIは検査済みで、provider不在時は既存のisSupported確認と復旧UIを使う。チャット/復旧UIの登録は必須のまま。実操作は#392の全Caseで確認する。",
+    "XPathView": "IntelliJ Platformのintellij.xml.langInjection.xpathによる任意依存。本Pluginからの直接参照はなく、両SDKで427クラスのAPI検査が完走。",
+    "com.intellij.modules.python": "同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。本PluginはPython機能を必須にせず、Terminal APIの実在は別途検査済み。",
+    "com.intellij.modules.idea.community": "同梱Javaのintellij.java.promoによるIDEA Community用の任意依存。固定したAndroid Studio両配布物にはなく、本PluginのAPI参照ではない。",
+    "training": "同梱Javaのintellij.java.featuresTrainerによる任意学習機能。本Pluginは利用せず、固定両SDKでAPI互換性を確認済み。"
+  },
   "reviewed_api_reports": {
     "deprecated-usages.txt": {
       "sha256": "2f76cb995fecc9df283fe0ed392b2ec6f58250d7ca3651fe35a9503aacbd7fab",
@@ -33,5 +39,9 @@
   },
   "reviewed_log_warnings": [
     "Layout component 'intellij.cidr.core' has some nonexistent 'classPath' elements: 'plugins/cidr-debugger/lib/modules/intellij.cidr.core.jar'"
+  ],
+  "optional_absence_builds": [
+    "AI-261.23567.138.2611.15503007",
+    "AI-261.26222.65.2614.16379836"
   ]
 }
