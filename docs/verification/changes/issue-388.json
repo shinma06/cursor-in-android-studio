@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "issue": 388,
+  "gui_required": true,
+  "reason": "更新前baselineの両IDE/Terminal有効・無効のload/chat smokeを記録する。研究文書のHEADや更新後RCへのpass転記はしない。ACP/全既存Caseの最終受入は#392。",
+  "cli_checks": [
+    "未変更source 8cbdc4eaでclean test buildPlugin: 445 tests成功、427本体class major65、内部identity clean、ZIP SHA256記録",
+    "公式下限DMG SHA256と両IDE product-info/JBR release/IDE stdlibの実測",
+    "Verifier 1.410: 同ZIPを両IDEに指定、description失敗でAPI検証0件。失敗分類を#389/#390へ引継ぎ",
+    "python3 scripts/workflow/change_impact.py --run-tests、Case schema検証、git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "BASELINE-388-Q1-TERMINAL-ON",
+      "issue": 388,
+      "change": "更新前Q1のTerminal有効時のloadとprint送受信",
+      "required_execution": "computer_use",
+      "preconditions": "固定baseline source 8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43 / ZIP eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86。対象AI-261.23567.138.2611.15503007・同梱JBR 21.0.10+-117844308-b1163.108。GUI leaseと指定operator、IDE別の専用設定/使い捨てfixture、認証済み既存Cursor CLIを使う。",
+      "steps": [
+        "元ZIPと専用plugins領域の全JAR hashを照合し、専用IDEを起動。実logのbuild/JBR/custom pluginと画面のfixtureを確認する。",
+        "Terminalを専用profileで有効にする。無効化は所有IDE停止後に行い、再起動ログとTerminal入口の有無を確認する。",
+        "チャットに「Reply BASELINE-388-OK only. Do not use tools or change files.」を送信し、回答・完了・入力が空・予約0件を確認する。",
+        "有効時はTerminal tool windowとshell prompt表示も確認する。終了後にfixture不変と所有process停止を確認する。"
+      ],
+      "expected": "本Pluginがloadし、回答と完了が表示される。Terminal無効でもチャット利用可能。provider回答の追加語は実記録へ残し、全機能受入とは区別する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pass",
+        "reason": "AI-261.23567.138.2611.15503007 / JBR 21.0.10+-117844308-b1163.108で同ZIPの全配置JAR一致、起動ログ/画面を照合。Terminal有効でPlugin load、print回答「BASELINE-388-OK」と完了を観察。短い送受信smokeのpassのみ。 atは観察結果の記録時刻。",
+        "head": "8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43",
+        "artifact_sha256": "eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86",
+        "observer": "codex-388-modernization-phase1 / baseline-388-r1",
+        "at": "2026-09-21T01:58:19Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513",
+        "loaded_identity": "AI-261.23567.138.2611.15503007; JBR 21.0.10+-117844308-b1163.108; ZIP全JAR一致; packaged source.commit=8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43; source.state=clean; 起動logのcustom pluginと実画面を照合",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間による独立実施はなし。画面操作可能という承認を受入passにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新後のRCは新source/hashで#392の全必要Caseを実行する。このbaseline passを転記しない。",
+      "next_action": "#389/#390の更新・API検証へbaselineを渡し、ACP/全機能/最終RCの両IDE確認は#392で追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513"
+      ]
+    },
+    {
+      "id": "BASELINE-388-Q1-TERMINAL-OFF",
+      "issue": 388,
+      "change": "更新前Q1のTerminal無効時のloadとprint送受信",
+      "required_execution": "computer_use",
+      "preconditions": "固定baseline source 8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43 / ZIP eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86。対象AI-261.23567.138.2611.15503007・同梱JBR 21.0.10+-117844308-b1163.108。GUI leaseと指定operator、IDE別の専用設定/使い捨てfixture、認証済み既存Cursor CLIを使う。",
+      "steps": [
+        "元ZIPと専用plugins領域の全JAR hashを照合し、専用IDEを起動。実logのbuild/JBR/custom pluginと画面のfixtureを確認する。",
+        "Terminalを専用profileで無効にする。無効化は所有IDE停止後に行い、再起動ログとTerminal入口の有無を確認する。",
+        "チャットに「Reply BASELINE-388-NO-TERMINAL-OK only. Do not use tools or change files.」を送信し、回答・完了・入力が空・予約0件を確認する。",
+        "有効時はTerminal tool windowとshell prompt表示も確認する。終了後にfixture不変と所有process停止を確認する。"
+      ],
+      "expected": "本Pluginがloadし、回答と完了が表示される。Terminal無効でもチャット利用可能。provider回答の追加語は実記録へ残し、全機能受入とは区別する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pass",
+        "reason": "AI-261.23567.138.2611.15503007 / JBR 21.0.10+-117844308-b1163.108で同ZIPの全配置JAR一致、起動ログ/画面を照合。Terminal無効でPlugin load、print回答「BASELINE-388-NO-TERMINAL-OK」と完了を観察。短い送受信smokeのpassのみ。Gemini等はTerminal依存警告を出すが本Pluginは継続。 atは観察結果の記録時刻。",
+        "head": "8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43",
+        "artifact_sha256": "eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86",
+        "observer": "codex-388-modernization-phase1 / baseline-388-r1",
+        "at": "2026-09-21T01:58:19Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513",
+        "loaded_identity": "AI-261.23567.138.2611.15503007; JBR 21.0.10+-117844308-b1163.108; ZIP全JAR一致; packaged source.commit=8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43; source.state=clean; 起動logのcustom pluginと実画面を照合",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間による独立実施はなし。画面操作可能という承認を受入passにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新後のRCは新source/hashで#392の全必要Caseを実行する。このbaseline passを転記しない。",
+      "next_action": "#389/#390の更新・API検証へbaselineを渡し、ACP/全機能/最終RCの両IDE確認は#392で追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513"
+      ]
+    },
+    {
+      "id": "BASELINE-388-Q4-TERMINAL-ON",
+      "issue": 388,
+      "change": "更新前Q4のTerminal有効時のloadとprint送受信",
+      "required_execution": "computer_use",
+      "preconditions": "固定baseline source 8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43 / ZIP eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86。対象AI-261.26222.65.2614.16379836・同梱JBR 25.0.3+-15898627-b508.16。GUI leaseと指定operator、IDE別の専用設定/使い捨てfixture、認証済み既存Cursor CLIを使う。",
+      "steps": [
+        "元ZIPと専用plugins領域の全JAR hashを照合し、専用IDEを起動。実logのbuild/JBR/custom pluginと画面のfixtureを確認する。",
+        "Terminalを専用profileで有効にする。無効化は所有IDE停止後に行い、再起動ログとTerminal入口の有無を確認する。",
+        "チャットに「Reply BASELINE-388-OK only. Do not use tools or change files.」を送信し、回答・完了・入力が空・予約0件を確認する。",
+        "有効時はTerminal tool windowとshell prompt表示も確認する。終了後にfixture不変と所有process停止を確認する。"
+      ],
+      "expected": "本Pluginがloadし、回答と完了が表示される。Terminal無効でもチャット利用可能。provider回答の追加語は実記録へ残し、全機能受入とは区別する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pass",
+        "reason": "AI-261.26222.65.2614.16379836 / JBR 25.0.3+-15898627-b508.16で同ZIPの全配置JAR一致、起動ログ/画面を照合。Terminal有効でPlugin load、print回答「BASELINE-388-OK only.」と完了を観察。短い送受信smokeのpassのみ。 atは観察結果の記録時刻。",
+        "head": "8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43",
+        "artifact_sha256": "eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86",
+        "observer": "codex-388-modernization-phase1 / baseline-388-r1",
+        "at": "2026-09-21T01:58:19Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513",
+        "loaded_identity": "AI-261.26222.65.2614.16379836; JBR 25.0.3+-15898627-b508.16; ZIP全JAR一致; packaged source.commit=8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43; source.state=clean; 起動logのcustom pluginと実画面を照合",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間による独立実施はなし。画面操作可能という承認を受入passにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新後のRCは新source/hashで#392の全必要Caseを実行する。このbaseline passを転記しない。",
+      "next_action": "#389/#390の更新・API検証へbaselineを渡し、ACP/全機能/最終RCの両IDE確認は#392で追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513"
+      ]
+    },
+    {
+      "id": "BASELINE-388-Q4-TERMINAL-OFF",
+      "issue": 388,
+      "change": "更新前Q4のTerminal無効時のloadとprint送受信",
+      "required_execution": "computer_use",
+      "preconditions": "固定baseline source 8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43 / ZIP eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86。対象AI-261.26222.65.2614.16379836・同梱JBR 25.0.3+-15898627-b508.16。GUI leaseと指定operator、IDE別の専用設定/使い捨てfixture、認証済み既存Cursor CLIを使う。",
+      "steps": [
+        "元ZIPと専用plugins領域の全JAR hashを照合し、専用IDEを起動。実logのbuild/JBR/custom pluginと画面のfixtureを確認する。",
+        "Terminalを専用profileで無効にする。無効化は所有IDE停止後に行い、再起動ログとTerminal入口の有無を確認する。",
+        "チャットに「Reply BASELINE-388-NO-TERMINAL-OK only. Do not use tools or change files.」を送信し、回答・完了・入力が空・予約0件を確認する。",
+        "有効時はTerminal tool windowとshell prompt表示も確認する。終了後にfixture不変と所有process停止を確認する。"
+      ],
+      "expected": "本Pluginがloadし、回答と完了が表示される。Terminal無効でもチャット利用可能。provider回答の追加語は実記録へ残し、全機能受入とは区別する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pass",
+        "reason": "AI-261.26222.65.2614.16379836 / JBR 25.0.3+-15898627-b508.16で同ZIPの全配置JAR一致、起動ログ/画面を照合。Terminal無効でPlugin load、print回答「BASELINE-388-NO-TERMINAL-OK」と完了を観察。短い送受信smokeのpassのみ。Gemini等はTerminal依存警告を出すが本Pluginは継続。 atは観察結果の記録時刻。",
+        "head": "8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43",
+        "artifact_sha256": "eefa900aa7b109d67843a1d12a9e02a7df63076a3ebaf2693bbb378d694c7d86",
+        "observer": "codex-388-modernization-phase1 / baseline-388-r1",
+        "at": "2026-09-21T01:58:19Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513",
+        "loaded_identity": "AI-261.26222.65.2614.16379836; JBR 25.0.3+-15898627-b508.16; ZIP全JAR一致; packaged source.commit=8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43; source.state=clean; 起動logのcustom pluginと実画面を照合",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間による独立実施はなし。画面操作可能という承認を受入passにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新後のRCは新source/hashで#392の全必要Caseを実行する。このbaseline passを転記しない。",
+      "next_action": "#389/#390の更新・API検証へbaselineを渡し、ACP/全機能/最終RCの両IDE確認は#392で追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513"
+      ]
+    }
+  ]
+}
