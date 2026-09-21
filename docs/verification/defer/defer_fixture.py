@@ -75,7 +75,7 @@ def build(output, platform_path=None):
         raise ValueError('Prepared build inputs changed; generate a new fixed variant')
     args = ['./gradlew', 'test', 'buildPlugin', '--console=plain']
     if platform_path:
-        args.append('-PplatformPath=' + platform_path)
+        args.extend(['-PuseLocalPlatform=true', '-PplatformPath=' + platform_path])
     subprocess.run(args, cwd=output / 'source', check=True)
     plugin = output / 'source/build/distributions/cursor-in-android-studio-0.1.0-verification-313.zip'
     if source_inputs(output / 'source') != manifest['build_inputs']:
