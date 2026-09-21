@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "issue": 404,
+  "gui_required": true,
+  "reason": "新規入力欄の遅延Document生成でlistenerが実Documentへ接続されない。共通初期化を修正し実IDEの候補/IME/再生成を確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew buildPlugin verifyPluginStructure",
+    "実Quail1 SDKの独立再現: Document生成前に登録すると実listener 0、先にDocumentを渡すと1。GUIなしでSDK登録境界を確認。",
+    "独立固定HEAD/baseレビュー。構造テストだけで実IDE popup/IME合格にしない。"
+  ],
+  "cases": [
+    {
+      "change": "入力欄の文書を生成してから変更listenerを登録する",
+      "expected": "初回入力から@と/で候補が開く。通知が多重登録されず、IME保護、本文/選択、送信/停止と入力再生成を維持する。",
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "id": "PROMPT-DOCUMENT-EVENTS",
+      "issue": 404,
+      "preconditions": "修正source HEAD・ZIP SHA256・全ロードJARを照合。Quail 1とQuail 4の各同梱JBRを使い、専用profile/使い捨てfixture・host共通GUI leaseで実施。Ask・認証済みPro/Teams、通常送信はIDEごとに1回まで。日本語IMEを使う。",
+      "steps": [
+        "初回New Agentで半角@を入力し、候補内Tab、検索、選択とEscape取消を確認する。",
+        "/を入力しSkills候補が開くこと、未取得候補を実行しないことと取消を確認する。",
+        "日本語IME変換途中/Enter確定とShift+Enter改行で誤送信しない。複数行入力で入力欄が伸縮する。",
+        "短いAsk応答1回の完了後、再有効化した入力欄で@と/の候補を確認する。新規チャットでも確認する。",
+        "#205修正と統合した候補で、空欄/単行/複数行、選択あり/なしのTabとShift+Tab、通常editor字下げを確認する。"
+      ],
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/404",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/205#issuecomment-5761724196"
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "next_action": "新固定buildをQuail1/4で検証。#205と統合した新候補でTab回帰も再確認し、#392の全候補受入へ引継ぐ。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正buildの実IDE未実施。SDK登録境界の再現をGUI passにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正buildの実IDE未実施。SDK登録境界の再現をGUI passにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

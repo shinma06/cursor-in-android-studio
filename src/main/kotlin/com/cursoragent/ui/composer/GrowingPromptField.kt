@@ -16,7 +16,8 @@ import java.awt.event.ComponentEvent
 import javax.swing.SwingUtilities
 
 /** Grow by actual editor visual lines (including soft wraps), then let the editor scroll. */
-class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
+// Create the document before composer listeners are registered; lazy creation does not attach them.
+class GrowingPromptField(project: Project) : EditorTextField("", project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
     private var resizePending = false
     private val ime = PromptImeGuard()
