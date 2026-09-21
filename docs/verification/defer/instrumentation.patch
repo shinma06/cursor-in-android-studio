@@ -254,7 +254,7 @@
 +++ b/build.gradle.kts
 @@ -8,7 +8,7 @@
  }
- 
+
  group = "com.cursoragent"
 -version = providers.gradleProperty("pluginVersion").get()
 +version = "0.1.0-verification-313"
@@ -262,7 +262,7 @@
      "pluginVersion must be a numeric major.minor.patch with an optional qualifier"
  }
 @@ -70,7 +70,7 @@
- 
+
  intellijPlatform {
      pluginConfiguration {
 -        name = "Cursor in Android Studio"
