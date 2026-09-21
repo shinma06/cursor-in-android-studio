@@ -34,7 +34,7 @@ GitHub公開状態はIssue/PR/Case/Release。host/source・privateログ・worke
 
 pre-push、CI、coordinatorの検証、branch ZIP planは同じclassifierを呼ぶ。`--run-tests`は選択テストを実行し、plugin_zip要否の出力それ自体はZIP生成ではない。製品/build変更なら標準 `./gradlew buildPlugin` または既存ZIP workflowで生成する。手動GUI/buildの明示要求はGit差分skipの対象ではない。
 
-ローカルはgradle.propertiesのplatformPathで実Android Studio SDKを指定する。CI/ZIP runnerはworkflowに固定されたversion/codenameを取得/cacheし、`-PplatformPath`として同じGradle local()経路へ渡す。Kotlin/JDKやSDKの新仕様をこの文書で推定せず、実build/公式release資料の照合は既存[現行実装](../architecture/current-implementation.md)と配布手順から行う。
+標準buildは固定した最古Android Studio SDKをGradleで取得する。明示local SDKは`useLocalPlatform=true`と`platformPath`を併用し、full build guardを通す。旧branch ZIPの復旧だけは既存workflowの旧SDK取得を維持する。Kotlin/JDKやSDKの新仕様をこの文書で推定せず、実build/公式release資料の照合は既存[現行実装](../architecture/current-implementation.md)と配布手順から行う。
 
 ZIPはsource SHAで命名して標準生成物をそのまま転送する。Release本文はsource SHA・asset名・markerを記録し、hashは含まない。新upload応答のasset API digest/size照合と、同SHA既存assetの再利用（内容の再照合なし）、実際にロードしたJARの確認は別である。Knowledge skip時の古い正常ZIPを新HEADの成果物へ改名しない。#249は既存toolingの同期と文書/Case JSON更新で、製品/build入力は変えない。固定Issue差分の共通分類に従い、新ZIP生成の要否を判断する。過去の#231 ZIPや#232のimport試験を別候補の実build/GUI合格と呼ばない。
 
@@ -62,3 +62,13 @@ repository rootから `python3 -m unittest discover -s scripts/workflow -p 'test
 | 配布cleanup | test_branch_zipの `test_cleanup_protects_identity_failures_and_integration_branches`、`test_cleanup_rechecks_candidate_id_sha_and_branch_after_lock`、`test_cleanup_partial_failure_retries_release_but_holds_tag_only`、`test_workflow_cleanup_is_default_branch_only_and_shares_publish_lock`。fake APIで識別・権限/排他・失敗時保持を確認。実削除の結果は#219のreceipt/readbackを別証拠として扱う |
 
 新しい入口・import・依存・分類path・生成入力を変更するwriterと独立reviewerが、対象経路の影響行、副作用の開始点、trusted revision、失敗時保持、classifierと実消費側を同じPRで確認する。既存[Governance Audit](git-governance-audit.md)からこの境界へ辿れる。新CI gate/field/監視は追加しない。今回の合成回帰成功から本番の速度/事故率改善は断定しない。
+
+## 同一ZIPの互換性CI（#390）
+
+[CI](../../.github/workflows/ci.yml)のchecks jobが共通分類に従って標準ZIPを一度生成し、[plugin_compatibility.py](../../scripts/workflow/plugin_compatibility.py)のsealで内包source/clean状態・最古SDK・versionとSHA256を記録する。upload-artifactの同一入力を2つのcompatibility jobへ渡す。必須`test`はchecksと必要な両検証の成功を集約し、文書のみの安全なskipだけ許す。
+
+verify入口は[固定ポリシー](../../scripts/workflow/plugin_compatibility.json)の公式Linux配布物をchecksum付きで取得し、full buildと同梱JBRの実バージョンを確認する。既存`verifyPlugin`へ外部ZIP/対象SDK/同梱JBRを明示し、Gradleの再compile/buildPluginへ依存しない。実行前後のZIP hash、唯一の対象verdict、427等の内包クラス数との一致、依存/警告reportを照合しresult.jsonを保存する。既存reportディレクトリの再利用、JBRのfallback、未知結果は拒否する。
+
+API判定は標準VerifierのfailureLevel、成果物/実行の同一性はこの補助CLI、必要性はChange Impactが担当する。新しいchecker/policyもBUILD+TOOLINGへ分類し、独自の差分条件を増やさない。ダウンロード、Gradle子プロセス、report生成はCLI実行時だけでimportに副作用はない。失敗ログとreportはActions artifactへ保存し、成功resultがない状態を認定しない。正式RCの不変性と長期保管/公開は#391、実IDEは#392で別途確認する。
+
+公式根拠: [Verifierの結果/CLI](https://github.com/JetBrains/intellij-plugin-verifier#results)、[Gradle verifyPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#verifyPlugin)、[Google/JetBrains SDK配布一覧](https://jb.gg/android-studio-releases-list.xml)。
