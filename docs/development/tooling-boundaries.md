@@ -67,7 +67,7 @@ repository rootから `python3 -m unittest discover -s scripts/workflow -p 'test
 
 [CI](../../.github/workflows/ci.yml)のchecks jobが共通分類に従って標準ZIPを一度生成し、[plugin_compatibility.py](../../scripts/workflow/plugin_compatibility.py)のsealで内包source/clean状態・最古SDK・versionとSHA256を記録する。upload-artifactの同一入力を2つのcompatibility jobへ渡す。必須`test`はchecksと必要な両検証の成功を集約し、文書のみの安全なskipだけ許す。
 
-verify入口は[固定ポリシー](../../scripts/workflow/plugin_compatibility.json)の公式Linux配布物をchecksum付きで取得し、full buildと同梱JBRの実バージョンを確認する。既存`verifyPlugin`へ外部ZIP/対象SDK/同梱JBRを明示し、Gradleの再compile/buildPluginへ依存しない。実行前後のZIP hash、唯一の対象verdict、427等の内包クラス数との一致、依存/警告reportを照合しresult.jsonを保存する。既存reportディレクトリの再利用、JBRのfallback、未知結果は拒否する。
+verify入口は[固定ポリシー](../../scripts/workflow/plugin_compatibility.json)の公式Linux配布物をchecksum付きで取得し、full buildと同梱JBRの実バージョンを確認する。既存`verifyPlugin`へ外部ZIP/対象SDK/同梱JBRを明示し、Gradleの再compile/buildPluginへ依存しない。Verifierのoffline設定と毎回空の専用cacheで対象SDKの同梱依存だけに解決範囲を固定する（Gradleの依存取得は通常どおり）。Marketplaceから別OSのJCEF providerや後日更新された任意Pluginを混入させない。実行前後のZIP hash、唯一の対象verdict、427等の内包クラス数との一致、依存/警告reportを照合しresult.jsonを保存する。既存reportディレクトリの再利用、JBRのfallback、未知結果は拒否する。
 
 API判定は標準VerifierのfailureLevel、成果物/実行の同一性はこの補助CLI、必要性はChange Impactが担当する。新しいchecker/policyもBUILD+TOOLINGへ分類し、独自の差分条件を増やさない。ダウンロード、Gradle子プロセス、report生成はCLI実行時だけでimportに副作用はない。失敗ログとreportはActions artifactへ保存し、成功resultがない状態を認定しない。正式RCの不変性と長期保管/公開は#391、実IDEは#392で別途確認する。
 

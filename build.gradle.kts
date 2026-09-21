@@ -145,6 +145,10 @@ tasks.verifyPlugin {
     ides.setFrom(providers.gradleProperty("verificationIdePath").map { file(it) })
     runtimeDirectory.set(layout.dir(providers.gradleProperty("verificationRuntime").map { file(it) }))
     useBundledRuntime.set(false) // Explicit per-job bundled JBR; never a JAVA_HOME fallback.
+    offline.set(true) // Resolve the target distribution, not mutable Marketplace dependencies.
+    doFirst {
+        systemProperty("plugin.verifier.home.dir", verificationReportsDirectory.get().asFile.resolveSibling("verifier-cache"))
+    }
     verificationReportsDirectory.set(layout.dir(providers.gradleProperty("verificationReports").map { file(it) }))
     failureLevel.set(listOf(
         FailureLevel.COMPATIBILITY_PROBLEMS,
