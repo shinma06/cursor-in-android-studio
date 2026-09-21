@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "issue": 205,
+  "gui_required": true,
+  "reason": "SDKのIDE key dispatcherと選択字下げactionの競合を修正する。単体テストだけでは実IDEのfocus/IME/popup/再生成/通常editorの回帰を保証できない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（選択された製品JUnitを実行）",
+    "./gradlew buildPlugin verifyPluginStructure（最古SDK/JDK21の標準ZIP）",
+    "PromptFocusTraversalTest: IDE local shortcutの両方向、空欄/単行/複数行/選択、本文保持、popup等へのfocus移動後・disabled状態で無操作、既存Swing traversalとEnter非消費",
+    "新しい固定HEAD/baseの独立レビュー。共有ActionManagerテスト補助を再利用した既存headerテストも維持。"
+  ],
+  "cases": [
+    {
+      "change": "選択中でもTab/Shift+Tabが入力本文を変更せずfocusを移動する",
+      "expected": "本文や選択を変えず入力外の次・前の操作へfocusが移る。改行・IME確定・mentionで誤送信しない。候補popupにfocusがある間は入力欄のTab処理を強制しない。再生成後も同じ挙動を保ち、通常エディタの字下げは維持する。",
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "id": "PROMPT-TAB-FIX",
+      "issue": 205,
+      "preconditions": "修正source HEAD・ZIP SHA256・全ロードJARを照合。Quail 1とQuail 4の各同梱JBRを使い、専用profile/使い捨てfixture・host共通GUI leaseで実施。Ask・認証済みPro/Teams、通常送信はIDEごとに1回まで。日本語IMEを使う。",
+      "steps": [
+        "各IDEで選択なし、単行選択、日本語を含む複数行選択、空欄を用意し、TabとShift+Tabをそれぞれ入力欄から実行する。本文と選択、移動先を操作前後で照合する。",
+        "Shift+Enterで改行し、日本語IMEで変換してEnter確定する。確定による誤送信がないことを確認する。",
+        "@候補を開き、候補内でTabを押しても入力欄のfocus移動処理が奪わないこと、候補選択と取消ができることを確認する。",
+        "短いAsk応答を1回完了し、再有効化した入力欄でも選択あり/なしのTabとShift+Tabを再確認する。新規チャットでも同じ操作を試す。",
+        "通常のコードエディターでTab字下げとShift+Tabを確認し、入力欄の修正によってIDE全体の操作が変わっていないことを確認する。"
+      ],
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/205",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/103",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315"
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "next_action": "新しい修正buildで両IDEを実観察し、#103/#392へsource/hashと部分観察を引き継ぐ。旧RCのfailや旧buildのpassを上書きしない。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正buildの実IDE操作は未実施。headlessのaction登録/本文・選択保持テストをGUI passへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正buildの実IDE操作は未実施。headlessのaction登録/本文・選択保持テストをGUI passへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}
