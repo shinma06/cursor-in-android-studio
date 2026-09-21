@@ -420,49 +420,49 @@
   "results": {
     "389:MODERN-Q1-TERMINAL-ON": {
       "status": "blocked",
-      "reason": "print送受信・完了・保存、Terminal shell/@terminal内容取得を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "reason": "print送受信・完了・保存、Terminal shell/@terminal内容取得を観察。r2で同一保存ZIPを人間がInstall Plugin from Diskで選び、CUAがrestartと更新完了を確認。両IDEの全5ロードJAR/hash/実JBRを再照合（Terminal ONの別control profile）。installer部分は人間補助で確認済みであり、CUA単独のchooser成功ではない。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
       "actor": "gpt",
       "observer": "codex-392-modernization-phase5",
-      "at": "2026-09-21T21:20:00+09:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "at": "2026-09-21T22:05:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315",
       "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR 21.0.10; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
       "execution": "computer_use"
     },
     "389:MODERN-Q1-TERMINAL-OFF": {
       "status": "blocked",
-      "reason": "Terminal無効後に再起動、本体load、保存本文の復元、print会話再開・完了を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "reason": "Terminal無効後に再起動、本体load、保存本文の復元、print会話再開・完了を観察。r2で同一保存ZIPを人間がInstall Plugin from Diskで選び、CUAがrestartと更新完了を確認。両IDEの全5ロードJAR/hash/実JBRを再照合（Terminal ONの別control profile）。installer部分は人間補助で確認済みであり、CUA単独のchooser成功ではない。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
       "actor": "gpt",
       "observer": "codex-392-modernization-phase5",
-      "at": "2026-09-21T21:20:00+09:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "at": "2026-09-21T22:05:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315",
       "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR 21.0.10; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
       "execution": "computer_use"
     },
     "389:MODERN-Q4-TERMINAL-ON": {
       "status": "blocked",
-      "reason": "print送受信・完了・保存、Terminal shell/@terminal内容取得を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "reason": "print送受信・完了・保存、Terminal shell/@terminal内容取得を観察。r2で同一保存ZIPを人間がInstall Plugin from Diskで選び、CUAがrestartと更新完了を確認。両IDEの全5ロードJAR/hash/実JBRを再照合（Terminal ONの別control profile）。installer部分は人間補助で確認済みであり、CUA単独のchooser成功ではない。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
       "actor": "gpt",
       "observer": "codex-392-modernization-phase5",
-      "at": "2026-09-21T21:20:00+09:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "at": "2026-09-21T22:05:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315",
       "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR 25.0.3; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
       "execution": "computer_use"
     },
     "389:MODERN-Q4-TERMINAL-OFF": {
       "status": "blocked",
-      "reason": "Terminal無効後に再起動、本体load、保存本文の復元、print会話再開・完了を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "reason": "Terminal無効後に再起動、本体load、保存本文の復元、print会話再開・完了を観察。r2で同一保存ZIPを人間がInstall Plugin from Diskで選び、CUAがrestartと更新完了を確認。両IDEの全5ロードJAR/hash/実JBRを再照合（Terminal ONの別control profile）。installer部分は人間補助で確認済みであり、CUA単独のchooser成功ではない。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
       "actor": "gpt",
       "observer": "codex-392-modernization-phase5",
-      "at": "2026-09-21T21:20:00+09:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "at": "2026-09-21T22:05:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315",
       "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR 25.0.3; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
       "execution": "computer_use"
     },
@@ -1187,10 +1187,17 @@
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "42:PROMPT-TAB-1": {
-      "status": "pending",
-      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "status": "fail",
+      "reason": "Quail 4のAsk未送信入力「日本ご」で、選択中Tabが字下げした。選択中・先頭4 spacesからTab単独操作で8 spacesへ増加し選択を維持したことをAXで再確認。通常Tab/Shift+Tabのfocus移動は部分観察。人間はIME確定で誤送信なしと回答したが、複数行・残手順全体のpassは推定しない。既存修正Issue #205 / QA #103へ引継ぎ、修正を含む新候補で再確認する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
-      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
+      "actor": "gpt",
+      "observer": "codex-392-modernization-phase5",
+      "at": "2026-09-21T22:01:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315",
+      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR 25.0.3; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
+      "execution": "computer_use",
+      "fix_issue": 205
     },
     "46:STOP-UX-1-STOP": {
       "status": "pending",
