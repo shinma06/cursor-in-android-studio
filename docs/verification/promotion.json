@@ -1086,49 +1086,49 @@
     },
     "147:ACP-START": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-STREAM": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-TOOLS": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-REQUESTS": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-CANCEL": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-RESTORE": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-SETTINGS": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
     "147:ACP-UI": {
       "status": "blocked",
-      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "reason": "正式RC 0.1.0は生成・保存・両Verifier確認済み。#146の既存公開承認待ちが当該Caseの前提であり、この固定RCでのACP実IDE手順は未実施。既存owner/承認条件を維持する。",
       "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
       "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
     },
