@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 392,
+  "gui_required": false,
+  "reason": "固定RC 0.1.0の候補範囲と部分観察を既存promotion形式へ記録するメタデータだけの変更。製品・成果物を変更しない。元PRの全128必要Caseと必須Computer Useは維持し、未完了のためDraftのままmain昇格を止める。実際の統合・正式公開は#393。",
+  "cli_checks": [
+    "103commitと97 merged develop PRの実履歴を既存source_commitsで照合し、固定merge時点の全128Caseを収集する",
+    "正式RCのversion/source/ZIPと両Verifier・保存後再取得hash、実IDE配置の全5JARを照合する",
+    "promotion結果を全必要Caseと照合し、未実施116件/blocked12件を保持して既存main gateが拒否することを確認する",
+    "candidate以降の差分がpromotion.jsonとissue-392.jsonだけであること、共通Change Impactの選択検証を確認する"
+  ],
+  "cases": []
+}

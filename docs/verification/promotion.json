@@ -1,0 +1,1217 @@
+{
+  "schema": 1,
+  "base": "041a58255f2f432b290bb6956333c064677d803e",
+  "candidate": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+  "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
+  "changes": [
+    {
+      "commit": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "pr": 400
+    },
+    {
+      "commit": "af75cebe0570947cf250ded91c61c3f598286938",
+      "pr": 398
+    },
+    {
+      "commit": "826b53c98ceed05268662aea0050902e2a1c55b1",
+      "pr": 396
+    },
+    {
+      "commit": "efa65e7365062c248b62160046563f900c880172",
+      "pr": 395
+    },
+    {
+      "commit": "8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43",
+      "pr": 384
+    },
+    {
+      "commit": "07d27af5f7571310c211aa32a6995f17c139f68e",
+      "pr": 377
+    },
+    {
+      "commit": "f4d9d98fa27fd4aecb62c930ebc30e7631cfa871",
+      "pr": 354
+    },
+    {
+      "commit": "cfce74acd46b928f1ddde3e92645cae9c7fa36a8",
+      "pr": 344
+    },
+    {
+      "commit": "f7e2cd7cbc8e2e55683f2cd833c9a2c68a5d01a6",
+      "pr": 336
+    },
+    {
+      "commit": "3861ea083e353ba19fb642e73653a506f51e6020",
+      "pr": 335
+    },
+    {
+      "commit": "3e96384fb126ab23017b74a0fb4ea5f3067a785e",
+      "pr": 330
+    },
+    {
+      "commit": "01e5b71d92f655767f779a0165dbc2ca7fb8bd1c",
+      "pr": 323
+    },
+    {
+      "commit": "731ff8e06fe86207d4bb4fab563cdd641df4cb6b",
+      "pr": 322
+    },
+    {
+      "commit": "363055046999868de14bcb75247d78718f45ec3b",
+      "pr": 321
+    },
+    {
+      "commit": "da4e5ab94368e64c326261c78df9c1fdaa099ca9",
+      "pr": 320
+    },
+    {
+      "commit": "2c8eaa46c7a156bf5c38ce216bcf1becf6575ccd",
+      "pr": 319
+    },
+    {
+      "commit": "0a98b915384f53ad106b356671055765b88074d0",
+      "pr": 318
+    },
+    {
+      "commit": "c96ce6a8d78e57ec442e82adcbc26f862670dfb2",
+      "pr": 317
+    },
+    {
+      "commit": "aa99bde190b7e5c30a339e83d87ae32d7ac570ca",
+      "pr": 316
+    },
+    {
+      "commit": "1d205b47a0cd7432fcda01beaacefc0f939583d7",
+      "pr": 315
+    },
+    {
+      "commit": "2a05e73eb64d296a0496ae38dc5a699872ec6a27",
+      "pr": 314
+    },
+    {
+      "commit": "a1348d6d144723d3e04eb384a0d4ce91969fd4bb",
+      "pr": 309
+    },
+    {
+      "commit": "1c5d632ff4a72bb2baafcd44be0bcc37288e9f35",
+      "pr": 307
+    },
+    {
+      "commit": "93d7f52ffbaac038c471934ab0c7ddc5583fae1a",
+      "pr": 306
+    },
+    {
+      "commit": "333b1cd65fdd3a87514f8cac315784c2c72797ad",
+      "pr": 304
+    },
+    {
+      "commit": "3895cd66f6b1839b289b9e3587651698d84a1678",
+      "pr": 303
+    },
+    {
+      "commit": "fca27d99a5f1d2f1b953afc15966e06a1b69e64d",
+      "pr": 302
+    },
+    {
+      "commit": "6c3819056f4dc709f532ca56c4e27edefd763102",
+      "pr": 299
+    },
+    {
+      "commit": "81e4491a01b8c90f1af5744b8af87380a21ad2ea",
+      "pr": 298
+    },
+    {
+      "commit": "160e07afb1dd0c912dcf9282e521c40820437b5f",
+      "pr": 294
+    },
+    {
+      "commit": "a53b8d257b28d140fb6b086cba3385f74cff9dad",
+      "pr": 293
+    },
+    {
+      "commit": "7cef8522ddd39bb1a9330abf85f756e49fcd980f",
+      "pr": 292
+    },
+    {
+      "commit": "0b325729aa8cde7fed2129d99365497ff9bf70d7",
+      "pr": 291
+    },
+    {
+      "commit": "1b23aae102dca582978f6ce52fdd727f2874e70b",
+      "pr": 286
+    },
+    {
+      "commit": "2eb12cb145bb3f8b48a46bf6ea36be8fcbd7663f",
+      "pr": 285
+    },
+    {
+      "commit": "5eb6f786eac492b0a7402fc2e547bb02944f0166",
+      "pr": 283
+    },
+    {
+      "commit": "364b87cdfea9cea24e4b58029950ae8cc94d8cdd",
+      "pr": 282
+    },
+    {
+      "commit": "f222d5d1bdea8b0ce1018eaa7c0ce7df332027bc",
+      "pr": 280
+    },
+    {
+      "commit": "ed915db35db46c6e7783d4af3988b75a77188d7a",
+      "pr": 279
+    },
+    {
+      "commit": "7022fb27c7b977d4627da4ad71e81ab88346dc49",
+      "pr": 276
+    },
+    {
+      "commit": "b1502d1035ac59cf0bffc623e6a5bb5c3b0b4042",
+      "pr": 275
+    },
+    {
+      "commit": "4e80a388aad9379b3f45d432407e354c015bf2a2",
+      "pr": 274
+    },
+    {
+      "commit": "4f2bd5337e62078332d5ceba30d79b5a8cf4ea1f",
+      "pr": 273
+    },
+    {
+      "commit": "00f2f4397a80ecddcca34ebd16031aec3388484e",
+      "pr": 272
+    },
+    {
+      "commit": "b23b928b6488374caed60170dac86be0c5bca7ce",
+      "pr": 270
+    },
+    {
+      "commit": "3c152be4e3829fa6c4d6c9403205e96ff43eec5a",
+      "pr": 267
+    },
+    {
+      "commit": "9266408db995233451efc280ae290e7d25038ece",
+      "pr": 266
+    },
+    {
+      "commit": "039cb74128e14a9ab0a969e227a3334b251041cd",
+      "pr": 265
+    },
+    {
+      "commit": "51804dff860831136a143426f62409887519f08d",
+      "pr": 264
+    },
+    {
+      "commit": "138c985bae0a81eae99eebff9f8dc3335a0f1d2b",
+      "pr": 262
+    },
+    {
+      "commit": "80d9712f680cd553febe45bf612d9a13b992bd2a",
+      "pr": 261
+    },
+    {
+      "commit": "81ca8efb3e482aa504f76c5061cff09fd3fb21c5",
+      "pr": 261
+    },
+    {
+      "commit": "af163162e1a92161760346f9d0912dfb2397aa24",
+      "pr": 261
+    },
+    {
+      "commit": "fbba400b9883770bdb64e7f08d5c42e6a4126d1d",
+      "pr": 261
+    },
+    {
+      "commit": "4256aa2fa8edb45d58e1facf8a56430b5b8e0a6c",
+      "pr": 260
+    },
+    {
+      "commit": "afa67edefb93317d396c540c24c67f64e27cb018",
+      "pr": 256
+    },
+    {
+      "commit": "9979266b4e99e7d4dc46689dac1f61f33f09b88a",
+      "pr": 255
+    },
+    {
+      "commit": "7675d586606e3eb4184c29c62483c13b0537718d",
+      "pr": 252
+    },
+    {
+      "commit": "f1d84cbc4006f76805fda22904a91fa1b490c841",
+      "pr": 245
+    },
+    {
+      "commit": "91c428005505dda04a56c67601e736ac40dc5f8d",
+      "pr": 243
+    },
+    {
+      "commit": "33f9edcddd84df4032826e17deb87ba2ef92787f",
+      "pr": 240
+    },
+    {
+      "commit": "2e3006f3a52efa7808ac36c19a56d4888550f3d0",
+      "pr": 238
+    },
+    {
+      "commit": "029060104ff8b077fea9868e50dd678445b60827",
+      "pr": 236
+    },
+    {
+      "commit": "4d1514d8fa6c020d41ad9c0205b9ea24268bef57",
+      "pr": 234
+    },
+    {
+      "commit": "53813c29053bcbaa75909fd0d10ea18949205bc4",
+      "pr": 226
+    },
+    {
+      "commit": "54d2a67c4de76d2282869399683863674fcc7f80",
+      "pr": 226
+    },
+    {
+      "commit": "562942ecc1ef06321434d69c07b18eba9be5da89",
+      "pr": 226
+    },
+    {
+      "commit": "dbd7a36aa515f4f3fbe7518282de41bcd3be3cf9",
+      "pr": 226
+    },
+    {
+      "commit": "e786d197b3edd44ae4488c7ec536f496b5552440",
+      "pr": 224
+    },
+    {
+      "commit": "23807d4bea07d3fd1b390ef4d1c466b9b36f54ca",
+      "pr": 216
+    },
+    {
+      "commit": "f86548701326f94cb4ae8d17bc0b69e95b0579cf",
+      "pr": 207
+    },
+    {
+      "commit": "34235165e4f34b22c5200542bfec758cd0ff256a",
+      "pr": 202
+    },
+    {
+      "commit": "9089e792f8fad10680098df9ce3c36307fb82d96",
+      "pr": 199
+    },
+    {
+      "commit": "39f97b018a08d08c6172f9042d76bcd1572c3805",
+      "pr": 196
+    },
+    {
+      "commit": "138037a81f7a31f06c9fb7501cd87e143853f893",
+      "pr": 193
+    },
+    {
+      "commit": "4c1cbebddc22e07200d794066677608f25af9380",
+      "pr": 190
+    },
+    {
+      "commit": "5dc2c940b5c004dc10eedbf7737cd3eb06a52541",
+      "pr": 187
+    },
+    {
+      "commit": "e64e8427f26c40d17ee5737abb711d923ca465c7",
+      "pr": 184
+    },
+    {
+      "commit": "0562f9bc0dbaaeda9af3780ee30daedfb0c50e9d",
+      "pr": 181
+    },
+    {
+      "commit": "73cf5b726f15ea73f2b6fb89f0872fac909b4c6b",
+      "pr": 178
+    },
+    {
+      "commit": "f70e9785e16868f8aa66c5f3602e9f292868c0ff",
+      "pr": 175
+    },
+    {
+      "commit": "1b8057b31bc103e2ec68992744b6debb629a136a",
+      "pr": 172
+    },
+    {
+      "commit": "fefd1d35a0b644a4740549556718e7323ae1a35c",
+      "pr": 169
+    },
+    {
+      "commit": "503e6bc0a1afa85e27e2c9a4bbc067a92f500b36",
+      "pr": 166
+    },
+    {
+      "commit": "f30c2851263fb6484eabcc2a82167ed5e210f791",
+      "pr": 162
+    },
+    {
+      "commit": "bee09fd9d45e8c6ebd7b09ebbf09ab51be5711b7",
+      "pr": 159
+    },
+    {
+      "commit": "4ba17ebefc9f340a29cce014f8a43d657144d8e5",
+      "pr": 158
+    },
+    {
+      "commit": "a55ea6ddd8dffecb27352cf5b3166ca53e72c1a1",
+      "pr": 155
+    },
+    {
+      "commit": "97d06820596b7089cf6309557634200f4ed9ba4a",
+      "pr": 151
+    },
+    {
+      "commit": "84f495d9aa26aa483aa0959db4b6603c3897c428",
+      "pr": 145
+    },
+    {
+      "commit": "8aa71a8fb38edf45fe0f22eaf8b7da3e0194d432",
+      "pr": 143
+    },
+    {
+      "commit": "71c316c9eba125f505759fb093edf445168bee48",
+      "pr": 139
+    },
+    {
+      "commit": "8b7a2087c3c6c6aa1f7581ee90d1cfba26345267",
+      "pr": 130
+    },
+    {
+      "commit": "9e3cb85d192831e5a447086abb3345993e647049",
+      "pr": 123
+    },
+    {
+      "commit": "5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe",
+      "pr": 110
+    },
+    {
+      "commit": "e13c6caa1031eee42e1520193afe505b0808c137",
+      "pr": 95
+    },
+    {
+      "commit": "cabed1617aa7a99847a825e25dcd296d796aa576",
+      "pr": 94
+    },
+    {
+      "commit": "5d8b3ee76eab3ecfb1af776bd044454cf4868364",
+      "pr": 82
+    },
+    {
+      "commit": "e3f33a9efc6cd0c08819dc1a232ffc8c321f77fe",
+      "pr": 81
+    },
+    {
+      "commit": "be86ff39b6d88227330d277e7f8feb419532fa93",
+      "pr": 77
+    },
+    {
+      "commit": "efb158e8299797cdd224e3529d729e0097e10a62",
+      "pr": 75
+    },
+    {
+      "commit": "ef2ed539ad6a16d38615fada3416afb499d421a8",
+      "pr": 74
+    },
+    {
+      "commit": "c0b084959280001402da167866ef468e9a387125",
+      "pr": 72
+    }
+  ],
+  "results": {
+    "389:MODERN-Q1-TERMINAL-ON": {
+      "status": "blocked",
+      "reason": "print送受信・完了・保存、Terminal shell/@terminal内容取得を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
+      "actor": "gpt",
+      "observer": "codex-392-modernization-phase5",
+      "at": "2026-09-21T21:20:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR 21.0.10; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
+      "execution": "computer_use"
+    },
+    "389:MODERN-Q1-TERMINAL-OFF": {
+      "status": "blocked",
+      "reason": "Terminal無効後に再起動、本体load、保存本文の復元、print会話再開・完了を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
+      "actor": "gpt",
+      "observer": "codex-392-modernization-phase5",
+      "at": "2026-09-21T21:20:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR 21.0.10; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
+      "execution": "computer_use"
+    },
+    "389:MODERN-Q4-TERMINAL-ON": {
+      "status": "blocked",
+      "reason": "print送受信・完了・保存、Terminal shell/@terminal内容取得を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
+      "actor": "gpt",
+      "observer": "codex-392-modernization-phase5",
+      "at": "2026-09-21T21:20:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR 25.0.3; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
+      "execution": "computer_use"
+    },
+    "389:MODERN-Q4-TERMINAL-OFF": {
+      "status": "blocked",
+      "reason": "Terminal無効後に再起動、本体load、保存本文の復元、print会話再開・完了を観察。GUI installはネイティブfile chooserのCUA入力障害で未達（同一ZIP展開によるload試験）。ACP前提#146の承認待ち、旧版保存fixtureと他の全必要Caseも未完了。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4",
+      "actor": "gpt",
+      "observer": "codex-392-modernization-phase5",
+      "at": "2026-09-21T21:20:00+09:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760408794",
+      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR 25.0.3; plugin 0.1.0; loaded main JAR SHA-256 8a005084da560a87f186b9604825d5cee3a48dc47c2a61273444cb3319fab6e8; 全5配置JARを保存RCと照合、private PID/設定path/実JBR/開かれたJARを確認。",
+      "execution": "computer_use"
+    },
+    "343:CTX-343-ATTACHMENTS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "327:PRINT-OUTPUT-BOUNDS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I2": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I3": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I4": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I5": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I6": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I7": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "277:IMAGE-277-I8": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "98:RUN-STATE-TIME": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "98:RUN-TOOL-DETAILS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "98:RUN-NOTICE-OWNERSHIP": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "305:ISOLATED-305-GUIDANCE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "269:DEFAULT-269-SETTINGS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "269:DEFAULT-269-LOAD": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "269:DEFAULT-269-SCOPE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "268:DISPLAY-268-SETTINGS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "268:DISPLAY-268-LAYOUT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "268:DISPLAY-268-STATE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "308:QUEUE-REVIEW-PAUSE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "308:QUEUE-REVERT-GUARDS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "308:QUEUE-CHANGE-TURNS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "289:REQUEST-ID-289-Q1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "289:REQUEST-ID-289-Q2": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "289:REQUEST-ID-289-Q3": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "289:REQUEST-ID-289-Q4": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "289:REQUEST-ID-289-Q5": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "296:ACP-CONTENT-UPDATE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "296:ACP-CONTENT-LIMITS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "296:ACP-CONTENT-RESTORE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "263:TASK-RESULT-CORRELATION": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "263:TASK-FAILURE-STOP": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "263:TASK-SAFE-RESTORE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "300:PERM-300-SCOPE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "300:PERM-300-ACP": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "300:PERM-300-REQUEST": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "97:KEYS-97-SETTINGS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "97:KEYS-97-IME": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "97:KEYS-97-DRAFT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "97:KEYS-97-RUNNING": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "295:MARKDOWN-IMAGE-NO-FETCH": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "258:SKILLS-258-CONNECT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "258:SKILLS-258-PICK": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "258:SKILLS-258-SEND": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "258:SKILLS-258-LIFETIME": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "287:USAGE-NOT-PROVIDED": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "287:USAGE-PRINT-COUNTERS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "287:USAGE-LATE-DELIVERY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "41:RESPONSE-RAW-COPY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "24:CTX-24-SELECTION": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "24:CTX-24-MENTIONS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "24:CTX-24-SNAPSHOT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "24:CTX-24-LIFETIME": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "48:QUEUE-ORDER": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "48:QUEUE-CANCEL": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "43:MODEL-CATALOG-STATES": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "43:MODEL-CATALOG-SELECTION": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "43:MODEL-CATALOG-OWNERSHIP": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "215:FOCUS-MODEL-MODE-OPTIONS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "215:FOCUS-OPTION-TOGGLES": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "215:FOCUS-SEND-STOP-TOKENS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "47:CHANGES-LIST": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "47:CHANGES-REVERT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "45:HISTORY-SEARCH": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "45:HISTORY-EXPORT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "28:DIAGNOSTICS-BUILD-IDENTITY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "28:DIAGNOSTICS-CLI-COPY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "254:PRINT-DELTA-FLUSH": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "208:BROWSER-ENTRY-NAVIGATION": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "208:BROWSER-URL-BOUNDARY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "208:BROWSER-ERROR-SUPPORT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "208:BROWSER-LIFECYCLE-PROJECT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "44:HISTORY-RESTART": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "44:HISTORY-INTERRUPT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "44:HISTORY-FAILURE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "230:TEXT-CONTRACTS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "229:SETTINGS-BOUNDARY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "231:LIFECYCLE-EDT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "201:TOOLWINDOW-ICON-SELECTED-COLOR": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "192:HEADER-ICON-SCALE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "189:TAB-HEADER-DIVIDER": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "186:SELECTED-TAB-CHAT-BACKGROUND": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "183:HEADER-ACTION-WIDTH": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "180:COMPACT-HEADER-LAYOUT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "180:COMPACT-HEADER-BACKGROUND": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "180:COMPACT-HEADER-ACTIONS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "180:COMPACT-HEADER-LIFECYCLE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "177:TOOLWINDOW-ICON-NATIVE-STYLE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "174:TOOLWINDOW-ICON-SCALE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "156:CHAT-MENU-OPENED": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "156:CHAT-MENU-CLOSE-ALL": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "156:CHAT-MENU-FEEDBACK": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "156:CHAT-MENU-FILE-EDITOR": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "156:CHAT-MENU-ICONS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "157:BROWSER-ENTRY-NAVIGATION": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "157:BROWSER-URL-BOUNDARY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "157:BROWSER-ERROR-SUPPORT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "157:BROWSER-LIFECYCLE-PROJECT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "153:TOOLWINDOW-HEADER": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "153:TOOLWINDOW-OPTIONS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "153:TOOLWINDOW-SELECTED-RUN": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "153:TOOLWINDOW-LIFECYCLE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-START": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-STREAM": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-TOOLS": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-REQUESTS": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-CANCEL": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-RESTORE": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-SETTINGS": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "147:ACP-UI": {
+      "status": "blocked",
+      "reason": "RC未生成。加えて#146の公開wire証拠は既存ownerの公開承認待ち。承認や公開を本QAで代行せず、解決後に固定RCで実施。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "128:PONYTAIL-CHAT": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "128:PONYTAIL-CLI": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "65:SESSION-TABS-INTEGRATION": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "65:SESSION-TABS-RUNS": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "65:SESSION-TABS-HISTORY": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "65:SESSION-TABS-RESTORE": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "80:SWING-PROBE-REPORT-1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "0028b99c3b75052368347246758050c35d8c6bff6d160e78036b480536faabf5"
+    },
+    "39:RESTORE-TARGET-1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "76:CLI-PATH-1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "42:PROMPT-TAB-1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "46:STOP-UX-1-STOP": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "46:STOP-UX-1-ERROR": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    },
+    "71:TOKEN-PANEL-HIERARCHY-1": {
+      "status": "pending",
+      "reason": "固定RCは生成・保存・両Verifier確認済み。このCaseの全手順は同一候補で未実施。過去buildの結果は転記しない。",
+      "head": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "artifact_sha256": "e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4"
+    }
+  },
+  "artifacts": {
+    "swing_probe": "0028b99c3b75052368347246758050c35d8c6bff6d160e78036b480536faabf5"
+  }
+}
