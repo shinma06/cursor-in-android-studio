@@ -91,14 +91,14 @@ under the mission and ACP First policy. Read these before adding features.
 [Change Impact](docs/development/change-impact.md)をCI・hook・coordinator・ZIP生成で共通利用する。push前は `python3 scripts/workflow/change_impact.py --run-tests`。混在/unknownの検証、明示buildとGUI、独立review/Acceptance gateは維持し、`--no-verify`・保護無効化を使わない。
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 python3 scripts/workflow/change_impact.py --run-tests
 ./gradlew test          # 製品・Kotlinテスト変更のJUnit
 ./gradlew buildPlugin   # 標準Plugin ZIPの明示生成
 ./gradlew runIde        # GUI leaseが必要
 ```
 
-Gradle自体はJDK17+、KotlinはJDK21 toolchain。`gradle.properties`の`platformPath`にローカルAndroid StudioのContentsを指定する。CIは取得したSDKのpathを同じ`local()`へ渡す。SDK取得/ZIPの詳細と過去の回避理由は[現行実装のビルド](docs/architecture/current-implementation.md#ビルドと実行環境)。bootstrap/Gradleが `.githooks` を設定し、pre-pushはbranch/dirty/fast-forward保護後に共通分類のテストを実行する。
+Gradle実行・Kotlin toolchain・JVM targetは21。SDKは`androidStudio("2026.1.1.8")`でQuail 1初版へ固定し、CI/branch ZIPも同じ経路を使う。local SDKは`-PuseLocalPlatform=true -PplatformPath=...`で明示し、full build不一致/確認不能はbuildを失敗させる。SDK取得/ZIPの詳細と過去の回避理由は[現行実装のビルド](docs/architecture/current-implementation.md#ビルドと実行環境)。bootstrap/Gradleが `.githooks` を設定し、pre-pushはbranch/dirty/fast-forward保護後に共通分類のテストを実行する。
 
 開発・検証はPro/Teamsを使う。Free tierの旧resource_exhaustedを通常作業のblockerとして再採用せず、Freeが明示的に再導入された場合だけ再評価する。インストールはSettings → Plugins → ⚙ → Install Plugin from Disk、ZIP選択後restart。[配布ZIPとbuildの識別](docs/development/plugin-zip-delivery.md)とGUI leaseに従う。
 

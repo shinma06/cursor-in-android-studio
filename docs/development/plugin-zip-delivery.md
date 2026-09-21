@@ -18,6 +18,8 @@ Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選�
 - buildは読取権限のみのrunner、publishは別runner。Actions Artifactは両者間の**1日限りの転送**だけで、配布先ではない。PRイベントではZIPを作らない。
 - `build/` はGit管理対象外。ZIPのコミットやcommit別のReleaseを追加する必要はない。
 
+新構成のsourceはGradleが固定Quail 1 SDKを取得する。旧構成branchの復旧では、checkoutしたgradle.propertiesに有効なplatformPath代入がある場合だけ従来のQuail 3 Patch 1を取得・指定する。コメント行だけの例は旧構成と判定せず、新構成には旧SDKを渡さない。
+
 ## 既存ブランチと復旧
 
 新workflowを持つすべてのブランチでpushに反応する。ブランチ名の固定フィルターはない。
@@ -51,7 +53,7 @@ GitHubの複数APIは原子的ではなく、人間のbranch再作成や直接Re
 
 初回移行では全生存ブランチのReleaseを確認してから、旧 `plugin-build-<SHA>` Releaseと同名タグ、`plugin-source-<SHA>` タグを限定削除する。過去のIssue/QA証拠は書き換えず、削除済み配布物のリンクは履歴として扱う。
 
-`verifyPluginStructure` も調査したが、既存の日本語descriptionが「先頭に40文字以上のLatin文字」を求める検査で失敗する。このMarketplace向けメタデータ条件を満たすために既存ブランチのソースを変更せず、配布は標準 `buildPlugin` と実ZIP/IDEの確認で検証する。Marketplace公開は今回の対象外。
+旧baselineの `verifyPluginStructure` は日本語descriptionのLatin文字条件で停止した（[Phase 1記録](../research/modernization-baseline-2026-09-21.md)）。#389では日本語説明を保持して英語概要を先頭へ追加する。構造検査の成功と両IDEのAPI/GUI互換性は別判定で、後者は #390/#392で確認する。Marketplace公開は対象外。
 
 ## 方式の選択
 

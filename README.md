@@ -27,15 +27,15 @@ Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE 
 ```bash
 git clone https://github.com/shinma06/cursor-in-android-studio.git
 cd cursor-in-android-studio
-export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+が必要(Kotlinコンパイル自体はJDK21ツールチェーンを自動取得)
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"   # macOS。ほかのOSもJDK 21を使用
 ./gradlew buildPlugin
 ```
 
 ## 前提
 
-- Android Studio 2026.1 以降(build 261+)
+- 正式対応対象はAndroid Studio 2026.1系（Platform 261系）のStable。下限はQuail 1初版 / 2026.1.1.8、最新Stableの検証対象はQuail 4 Patch 1。更新後RCの受入は [#392](https://github.com/shinma06/cursor-in-android-studio/issues/392) で追跡する。
 - `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
-- `gradle.properties` の `platformPath` をローカルのAndroid Studio SDKパスに合わせて設定(マシン依存、コメントに例あり)
+- GradleがQuail 1初版SDKを固定取得する。通常IDEのインストール先設定は不要。明示local SDKとversion指定は [ビルド手順](docs/architecture/current-implementation.md#ビルドと実行環境) を参照。
 
 ## Android Studio へのインストール
 

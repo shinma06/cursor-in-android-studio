@@ -101,9 +101,19 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 
 ## ビルドと実行環境
 
-[build.gradle.kts](../../build.gradle.kts)はIntelliJ Platformの`local(platformPath)`を利用し、[gradle.properties](../../gradle.properties)がローカルSDKを指定する。[CI](../../.github/workflows/ci.yml)はAndroid Studioを取得して同じpropertyへ渡す。JDK17+でGradle、JDK21 toolchainでKotlinを実行する。SDKは実際のpathとversion/codenameを照合し、値を変える際は[公式一覧](https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html)で対を確認する。
+[build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.1.1.8")` で最古の対応StableであるQuail 1初版を固定取得する。[CI](../../.github/workflows/ci.yml) と [branch ZIP](../../.github/workflows/branch-zip.yml) も新構成のsourceでは同じGradle経路を使う。branch ZIPのschedule/manualが旧構成sourceを扱う場合だけ、tracked gradle.propertiesの有効なplatformPath代入を検出して従来Quail 3 Patch 1の取得・local指定を維持する。Gradle実行・Java/Kotlin toolchain・bytecode targetは21。Gradle 9.7.1 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.3、stdlibはIDEの2.3.20を使ってZIPへ同梱しない。
 
-`androidStudio()`のURL解決失敗とGradle9移行の旧調査は[固定版のCommands](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#commands)にある。この回避経路は現在のbuild/CIで確認できるが、旧plugin版での失敗を新版でも未修正と断定しない。変更時は現在の依存と解決結果を再検証する。標準buildPluginと配布物の識別は[ZIP配布](../development/plugin-zip-delivery.md)を正本とする。
+`verifyBuildSdk` は解決したproduct-infoのproductCode/full buildを `AI-261.23567.138.2611.15503007` と照合し、compile/resources/sandbox/ZIP生成前に不一致・確認不能を失敗にする。通常IDEや利用者共通の `platformPath` propertyは暗黙に使わない。local SDKが必要なときだけ両propertyを指定する（パスは各自の非公開設定に保持）。
+
+```bash
+./gradlew clean test buildPlugin -PuseLocalPlatform=true -PplatformPath="<Quail 1 SDKのルート（macOSはContents）>"
+./gradlew buildPlugin -PpluginVersion=0.2.0-rc.1
+python3 scripts/workflow/check_build_inputs.py --local-sdk "<Quail 1 SDK>" --wrong-sdk "<別版の有効なSDK>"
+```
+
+versionの既定は `gradle.properties` の `pluginVersion`。上の版は入力例であり正式版の決定ではない。正式候補はversionをcommit・develop統合してsourceを固定後に生成する。`-PpluginVersion` の明示入力でも内部plugin.xml、元ZIP名と内包identityのplugin.versionを揃える。source.commit/state、sdk.build、jvm.targetもZIP内へ記録し、ローカルパス・hostは含めない。正式RCの不変保存・公開は #391/#393、最終GUI受入は #392で追跡する。
+
+標準 `buildPlugin` と配布物の識別は [ZIP配布](../development/plugin-zip-delivery.md) が正本。旧2.10.5の `androidStudio()` URL解決失敗は [固定版のCommands](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#commands) に保全し、新版での結果と混同しない。対象IDE・配布元・checksumと候補選定は [Phase 1記録](../research/modernization-baseline-2026-09-21.md) を参照。
 
 送信前の設定利用可否と実行境界のvalidation、同一snapshotの捕捉/受け渡しは [設定検証の境界](settings-boundary.md)を参照。設定/準備変更のwriterと独立reviewerが早期拒否位置と通信側防御を照合する。
 
