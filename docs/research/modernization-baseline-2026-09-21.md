@@ -111,12 +111,35 @@ CLIの正常終了だけで成功と判定してはいけない。
 GUIは `baseline-388-r1`、指定operator `codex-388-modernization-phase1`、host共通lease下で実施。
 使い捨てproject・IDE別config/system/pluginsを使い、通常プロファイルを上書きしない。
 ZIPと配置した全JARのhash、起動ログのIDE/JBR/custom plugin、実画面を照合する。
-結果の正本は [Case JSON](../verification/changes/issue-388.json) と [#388の結果コメント](https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513)。
+更新前の実測記録は本節と [#388の結果コメント](https://github.com/shinma06/cursor-in-android-studio/issues/388#issuecomment-5754419513) に保全する。
+この文書変更の [受入定義](../verification/changes/issue-388.json) はGUI不要・Caseなし。過去の固定ZIPの試験を将来のpromotion必須Caseへ登録しない。
 両IDE × Terminal有効/無効の4条件でloadとprint送受信smokeがpass。Cursor CLIは2026.09.18-9a7762b。
 Terminal無効時はGemini/App Links Assistant等の同梱pluginから依存警告が出たが、本Pluginは送受信を完了した。
 配置全JARの一致とfixtureマーカー不変を再照合し、所有IDEを終了、GUI leaseとDMG mountを解放済み。
 送受信smokeは既定print経路の無変更・ツール不要の短い回答であり、ACP・Diff/Revert・全既存機能の受入ではない。
 最終RCは #392で全必要Caseを改めて同一候補に対して確認する。
+
+### 更新前GUIの観察記録
+
+全件のsource/hashは上記固定baseline。実行方式はcomputer_use、observerは `codex-388-modernization-phase1 / baseline-388-r1`。
+観察結果の記録時刻は `2026-09-21T01:58:19Z`（操作開始時刻ではない）。人間による独立実施はpendingであり、画面操作の承認を受入passにはしていない。
+
+| 記録ID | 実IDE / JBR | Terminal | 実際の回答 / 完了 | 結果 |
+| --- | --- | --- | --- | --- |
+| BASELINE-388-Q1-TERMINAL-ON | AI-261.23567.138.2611.15503007; JBR 21.0.10+-117844308-b1163.108 | 有効 | `BASELINE-388-OK / 13秒` | GPT smoke pass |
+| BASELINE-388-Q1-TERMINAL-OFF | AI-261.23567.138.2611.15503007; JBR 21.0.10+-117844308-b1163.108 | 無効 | `BASELINE-388-NO-TERMINAL-OK / 8秒` | GPT smoke pass |
+| BASELINE-388-Q4-TERMINAL-ON | AI-261.26222.65.2614.16379836; JBR 25.0.3+-15898627-b508.16 | 有効 | `BASELINE-388-OK only. / 9秒` | GPT smoke pass |
+| BASELINE-388-Q4-TERMINAL-OFF | AI-261.26222.65.2614.16379836; JBR 25.0.3+-15898627-b508.16 | 無効 | `BASELINE-388-NO-TERMINAL-OK / 8秒` | GPT smoke pass |
+
+共通の前提・手順・期待結果:
+
+1. 認証済み既存Cursor CLIとIDE別の専用設定・使い捨てfixtureを用意し、元ZIPと配置した全7 JARのhash一致を確認する。起動ログのfull build/JBR/custom plugin、内部source.commit/source.state=clean、画面のfixtureを照合する。
+2. Terminal有効時はtool windowとshell promptを確認する。無効時は所有IDE停止後に専用profileだけを変更し、再起動ログとTerminal入口がないことを確認する。
+3. 有効時は `Reply BASELINE-388-OK only. Do not use tools or change files.`、無効時は `Reply BASELINE-388-NO-TERMINAL-OK only. Do not use tools or change files.` を送信する。回答・完了・入力が空・予約0件を観察する。
+4. 期待結果は本Pluginのloadと短いprint送受信の完了。Quail 4有効時の追加語 `only.` も上表へそのまま残す。終了後、fixtureマーカー不変と配置JAR一致、所有process停止を確認する。
+
+各記録の再確認先は #389/#390、更新後RCは #392。修正Issue/PRはこのsmokeには発生しておらず、履歴は初回実施のみ。
+この4件は更新前の履歴であり、mainへの受入証拠ではない。新source/hashの候補に対する全必要Caseを #392で定義・実行し、baseline passを転記しない。
 
 ## 後続への具体的な引継ぎ
 
