@@ -40,6 +40,24 @@ def source_inputs(source):
     return {name: hashlib.sha256(git_read('show', f'{source}:{name}').encode()).hexdigest() for name in INPUTS}
 
 
+def java_version(output):
+    match = re.search(r'^(?:openjdk|java) version "([0-9][0-9.+-]*)"', output, re.M)
+    pc.require(match, 'Missing numeric Java version')
+    return match[1]
+
+
+def public_jbr(output):
+    runtime = re.search(r'^OpenJDK Runtime Environment \(build ([0-9][0-9.b+-]*)\)', output, re.M)
+    vm = re.search(r'^OpenJDK 64-Bit Server VM \(build ([0-9][0-9.b+-]*),', output, re.M)
+    pc.require(runtime and vm, 'Missing bundled JBR build identity')
+    return f'openjdk version "{java_version(output)}"\nOpenJDK Runtime Environment (build {runtime[1]})\nOpenJDK 64-Bit Server VM (build {vm[1]}, mixed mode)'
+
+
+def build_command(version):
+    return ['./gradlew', 'clean', 'test', 'buildPlugin', 'verifyPluginStructure', '--console=plain',
+            '-PpluginVersion=' + version, '-PuseLocalPlatform=false']
+
+
 def build(source, version, directory):
     name = version_name(version)
     pc.require(re.fullmatch('[0-9a-f]{40}', source), 'Full source SHA required')
@@ -49,11 +67,10 @@ def build(source, version, directory):
     pc.require(not directory.is_relative_to(ROOT), 'Candidate output must be outside the source checkout')
     java = Path(os.environ['JAVA_HOME']) / 'bin/java'
     runtime = subprocess.check_output([str(java), '-version'], stderr=subprocess.STDOUT, text=True).strip()
-    pc.require(re.search(r'version \"21\.', runtime), 'Gradle runtime JDK 21 required')
+    pc.require(java_version(runtime).startswith('21.'), 'Gradle runtime JDK 21 required')
     directory.mkdir(parents=True, exist_ok=False)
-    args = ['./gradlew', 'clean', 'test', 'buildPlugin', 'verifyPluginStructure', '--console=plain',
-            '-PpluginVersion=' + version, '-PuseLocalPlatform=false']
-    inputs = {'source': source, 'version': version, 'command': args, 'files': source_inputs(source), 'java_runtime': runtime}
+    args = build_command(version)
+    inputs = {'source': source, 'version': version, 'command': args, 'files': source_inputs(source), 'java_version': java_version(runtime)}
     write(directory / 'inputs.json', inputs)  # Freeze version and inputs BEFORE building.
     env = {k: v for k, v in os.environ.items() if not k.endswith(('TOKEN', 'API_KEY'))}
     subprocess.run(args, cwd=ROOT, env=env, check=True)
@@ -77,6 +94,9 @@ def candidate(directory, expected_hash):
     version = manifest['identity']['plugin.version']
     source = manifest['identity']['source.commit']
     pc.require(re.fullmatch('[0-9a-f]{40}', source), 'Invalid source')
+    pc.require(set(inputs) == {'source', 'version', 'command', 'files', 'java_version', 'libraries'}
+               and re.fullmatch(r'21\.[0-9.+-]+', inputs['java_version'])
+               and inputs['command'] == build_command(version), 'Invalid public build inputs')
     pc.require(inputs['source'] == source and inputs['version'] == version, 'Candidate inputs differ')
     pc.require(inputs['files'] == source_inputs(source), 'Build input files differ from fixed source')
     archive = directory / version_name(version)
@@ -96,6 +116,8 @@ def check_evidence(directory, key, manifest, policy, sealed=False):
                result['target']['build'] == target['build'] and result['target']['java_version'] == target['java_version'] and
                result['target']['distribution_version'] == target['version'] and
                f'"{target["java_version"]}"' in result['target']['java_runtime'], 'Wrong verifier/SDK/JBR receipt')
+    if sealed:
+        pc.require(result['target']['java_runtime'] == public_jbr(result['target']['java_runtime']), 'Raw/private JVM output in public receipt')
     log = (directory / ('verifier-summary.txt' if sealed else 'verifier.log')).read_text()
     pc.require('Starting the IntelliJ Plugin Verifier ' + policy['verifier_version'] in log, 'Missing verifier identity')
     pc.require(not re.search(r'> Task :(?:compile\w+|buildPlugin|jar|prepareSandbox)\b', log), 'Verification rebuilt the ZIP')
@@ -105,22 +127,35 @@ def check_evidence(directory, key, manifest, policy, sealed=False):
 
 def bundle(directory, expected_hash, evidence):
     manifest, policy = candidate(directory, expected_hash)
+    pc.require(set(evidence) == {'quail1', 'quail4'}, 'Both IDE reports required')
     for key, source in evidence.items():
         check_evidence(source, key, manifest, policy)
-        destination = directory / f'compatibility-{key}.zip'
-        # Only verifier reports are archived; the product ZIP is never repackaged.
-        with zipfile.ZipFile(destination, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
-            # Raw logs contain SDK/host paths. Publish only the checked completion markers.
-            log = (source / 'verifier.log').read_text()
-            summary = '\n'.join(re.findall(r'Starting the IntelliJ Plugin Verifier [0-9.]+|Scheduled verifications \(1\):|Finished 1 of 1 verifications', log)) + '\n'
-            archive.writestr('verifier-summary.txt', summary)
-            for path in [source / 'result.json', *sorted((source / 'reports').rglob('*.txt'))]:
-                text = path.read_text()
-                pc.require(not re.search(r'/(?:Users|home|private|tmp|Applications)/|[A-Za-z]:\\', text), 'Private paths in public report; retain locally')
-                archive.writestr(path.relative_to(source).as_posix(), text)
-    files = [version_name(manifest['identity']['plugin.version']), 'manifest.json', 'inputs.json',
-             'compatibility-quail1.zip', 'compatibility-quail4.zip']
-    write(directory / 'bundle.json', {name: pc.digest(directory / name) for name in files})
+    with tempfile.TemporaryDirectory(dir=directory) as temporary:
+        staging = Path(temporary)
+        for key, source in evidence.items():
+            # Deterministic report archives make an interrupted transfer retryable.
+            with zipfile.ZipFile(staging / f'compatibility-{key}.zip', 'x') as archive:
+                log = (source / 'verifier.log').read_text()
+                summary = '\n'.join(re.findall(r'Starting the IntelliJ Plugin Verifier [0-9.]+|Scheduled verifications \(1\):|Finished 1 of 1 verifications', log)) + '\n'
+                archive.writestr(zipfile.ZipInfo('verifier-summary.txt'), summary, compress_type=zipfile.ZIP_DEFLATED)
+                for path in [source / 'result.json', *sorted((source / 'reports').rglob('*.txt'))]:
+                    text = path.read_text()
+                    if path.name == 'result.json':
+                        receipt = json.loads(text)
+                        receipt['target']['java_runtime'] = public_jbr(receipt['target']['java_runtime'])
+                        text = json.dumps(receipt, ensure_ascii=False, indent=2) + '\n'
+                    pc.require(not re.search(r'/(?:Users|home|private|tmp|Applications)/|[A-Za-z]:\\', text), 'Private paths in public report; retain locally')
+                    archive.writestr(zipfile.ZipInfo(path.relative_to(source).as_posix()), text, compress_type=zipfile.ZIP_DEFLATED)
+        files = [version_name(manifest['identity']['plugin.version']), 'manifest.json', 'inputs.json']
+        hashes = {name: pc.digest(directory / name) for name in files}
+        hashes.update({path.name: pc.digest(path) for path in staging.iterdir()})
+        write(staging / 'bundle.json', hashes)
+        for path in staging.iterdir():
+            destination = directory / path.name
+            if destination.exists():
+                pc.require(pc.digest(destination) == pc.digest(path), 'Existing bundle differs; no overwrite allowed')
+            else:
+                os.link(path, destination)  # Atomic create, never truncate an existing file.
     validate_bundle(directory, expected_hash)
 
 

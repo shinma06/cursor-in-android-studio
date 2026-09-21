@@ -28,7 +28,7 @@ class ReleaseTest(unittest.TestCase):
             with zipfile.ZipFile(product, 'w') as outer: outer.writestr('plugin/lib/plugin.jar', jar.getvalue())
             manifest=pc.seal(product, source, policy)
             rc.write(directory/'manifest.json',manifest)
-            rc.write(directory/'inputs.json',{'source':source,'version':'1.2.3','files':{},'libraries':['plugin.jar']})
+            rc.write(directory/'inputs.json',{'source':source,'version':'1.2.3','files':{},'libraries':['plugin.jar'],'command':rc.build_command('1.2.3'),'java_version':'21.0.11'})
             evidence={}
             for key,target in policy['targets'].items():
                 path=root/key; reports=path/'reports'/target['build']/'plugins'/pc.PLUGIN_ID/'1.2.3'; reports.mkdir(parents=True)
@@ -39,14 +39,25 @@ class ReleaseTest(unittest.TestCase):
                 (path/'verifier.log').write_text(log)
                 result={'status':'passed','artifact':manifest,'verifier_version':'1.410',
                         'target':{'build':target['build'],'java_version':target['java_version'], 'distribution_version':target['version'],
-                                  'java_runtime':'version "'+target['java_version']+'"'},
+                                  'java_runtime':'Picked up JAVA_TOOL_OPTIONS: -Dsecret=fake-test-value\nopenjdk version "'+target['java_version']+'"\nOpenJDK Runtime Environment (build 21.0.10+-123-b1.1)\nOpenJDK 64-Bit Server VM (build 21.0.10+-123-b1.1, mixed mode)'},
                         **pc.check_reports(path/'reports',log,target,manifest,policy)}
                 rc.write(path/'result.json',result); evidence[key]=path
             with patch.object(rc,'source_inputs',return_value={}),patch.object(rc,'git_read',return_value=json.dumps(policy)):
                 rc.bundle(directory,manifest['sha256'],evidence)
+                original = pc.digest(product)
+                rc.bundle(directory,manifest['sha256'],evidence)  # Same reports can safely retry.
+                (directory/'compatibility-quail4.zip').unlink()  # Simulate interrupted copy.
+                (directory/'bundle.json').unlink()
+                rc.bundle(directory,manifest['sha256'],evidence)
+                self.assertEqual(pc.digest(product),original)
                 self.assertEqual(rc.validate_bundle(directory,manifest['sha256']),manifest)
                 with zipfile.ZipFile(directory/'compatibility-quail1.zip') as report:
                     self.assertNotIn('/Users/',report.read('verifier-summary.txt').decode())
+                    self.assertNotIn('fake-test-value',report.read('result.json').decode())
+                inputs=rc.read(directory/'inputs.json'); inputs['java_version']='21.0.11\nPicked up JAVA_TOOL_OPTIONS: fake-test-value'
+                rc.write(directory/'inputs.json',inputs)
+                with self.assertRaisesRegex(ValueError,'public build inputs'):rc.candidate(directory,manifest['sha256'])
+                inputs['java_version']='21.0.11'; rc.write(directory/'inputs.json',inputs)
                 with self.assertRaises(ValueError):rc.validate_bundle(directory,'0'*64)
                 product.write_bytes(b'changed')
                 with self.assertRaises(ValueError):rc.validate_bundle(directory,manifest['sha256'])
