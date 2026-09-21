@@ -71,3 +71,5 @@ skip時はReleaseやassetを変更せず、古いZIPへ新HEADの名前を付け
 `test_change_impact.py`の必須8例とGit差分境界、`test_pre_push.py`の実push、`test_agent_loop.py`、`test_branch_zip.py`で、混在・unknown・rename/delete/mode・初回/手動・旧ZIP保全/復旧を検証する。GitHub Actions構文は[actionlint](https://github.com/rhysd/actionlint)で検証する。
 
 GitHubの仕様: [required jobを安全にskipする方法](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions)、[workflowのpath filterとPendingの注意](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpull_requestpull_request_targetpathspaths-ignore)、[比較APIの件数制限](https://docs.github.com/en/rest/commits/commits#compare-two-commits)。
+
+正式RCの`release_candidate.py`もBUILD/TOOLINGに分類し、配布入力/公開判定の変更では既存テスト・両IDE CIを実行する。RCの明示buildは差分skip対象外で、正式公開操作自体は自動push処理へ接続しない。
