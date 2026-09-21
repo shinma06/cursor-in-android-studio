@@ -37,6 +37,10 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 21)"   # macOS。ほかのOSもJDK
 - `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
 - GradleがQuail 1初版SDKを固定取得する。通常IDEのインストール先設定は不要。明示local SDKとversion指定は [ビルド手順](docs/architecture/current-implementation.md#ビルドと実行環境) を参照。
 
+## 配布版の選択
+
+開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを両IDEと全必要Caseで検証してから公開します。正式RC/GUI/mainの受入は未完了で、Phase 4の仕組みの実装と正式公開済みを区別してください。
+
 ## Android Studio へのインストール
 
 1. **Settings → Plugins → ⚙ → Install Plugin from Disk...**

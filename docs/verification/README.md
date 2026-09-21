@@ -53,6 +53,8 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。G
 
 #226の履歴では外側mergeと内部3commitを#226へ、他の製品/tooling commitをそれぞれのmerged PRへ対応付けます。実候補のGUI結果を登録しない診断はCase/証拠不足で拒否されることが正しく、履歴照合成功だけでpromotion合格にはしません。#250統合後、#249でmainをdevelopへ同期してから候補/全Caseを再収集します。
 
+正式Plugin配布を伴う候補では、先に[RC保存手順](../development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)で正式version・source・ZIP hashを固定する。GUIとpromotion.jsonは保存済みRCの同じhashを参照し、main昇格後も再buildしない。RCのAPI検査成功と全CaseのGUI passは別判定。
+
 ### promotion.jsonの形式
 
 以下は説明用の値です。SHA/hashや観察は実際の値へ置換し、未実施をpassにしないでください。
