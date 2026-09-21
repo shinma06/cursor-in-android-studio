@@ -51,7 +51,7 @@ GitHubの複数APIは原子的ではなく、人間のbranch再作成や直接Re
 
 初回移行では全生存ブランチのReleaseを確認してから、旧 `plugin-build-<SHA>` Releaseと同名タグ、`plugin-source-<SHA>` タグを限定削除する。過去のIssue/QA証拠は書き換えず、削除済み配布物のリンクは履歴として扱う。
 
-`verifyPluginStructure` も調査したが、既存の日本語descriptionが「先頭に40文字以上のLatin文字」を求める検査で失敗する。このMarketplace向けメタデータ条件を満たすために既存ブランチのソースを変更せず、配布は標準 `buildPlugin` と実ZIP/IDEの確認で検証する。Marketplace公開は今回の対象外。
+旧baselineの `verifyPluginStructure` は日本語descriptionのLatin文字条件で停止した（[Phase 1記録](../research/modernization-baseline-2026-09-21.md)）。#389では日本語説明を保持して英語概要を先頭へ追加する。構造検査の成功と両IDEのAPI/GUI互換性は別判定で、後者は #390/#392で確認する。Marketplace公開は対象外。
 
 ## 方式の選択
 

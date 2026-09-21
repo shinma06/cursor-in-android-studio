@@ -1,11 +1,17 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.3.0"
-    id("org.jetbrains.intellij.platform") version "2.10.5"
+    id("org.jetbrains.kotlin.jvm") version "2.4.20"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
 group = "com.cursoragent"
-version = "0.1.0-SNAPSHOT"
+version = providers.gradleProperty("pluginVersion").get()
+require(version.toString().matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9][A-Za-z0-9.-]*)?"))) {
+    "pluginVersion must be a numeric major.minor.patch with an optional qualifier"
+}
 
 // Self-installing safety net: point this repo's git hooks at the versioned
 // .githooks/ directory (unversioned hooks under .git/hooks/ never survive a
@@ -30,20 +36,21 @@ repositories {
 }
 
 dependencies {
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:2.14.0")
     implementation("org.commonmark:commonmark:0.30.0")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testImplementation(platform("org.junit:junit-bom:5.14.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     intellijPlatform {
-        // Always local(): the intellijPlatform Gradle plugin's own androidStudio()
-        // dependency resolution (v2.10.5) constructs a broken download URL --
-        // verified directly, the artifact exists and downloads fine by hand, but
-        // Gradle's own resolution 404s on it. CI works around this by downloading
-        // Android Studio itself (see .github/workflows/ci.yml) and passing the
-        // extracted path as -PplatformPath, reusing this exact same code path
-        // instead of maintaining a second, broken resolution mechanism.
-        local(providers.gradleProperty("platformPath"))
+        // Local use must be explicitly enabled; a user-wide platformPath cannot
+        // silently change the SDK used by the default build.
+        if (providers.gradleProperty("useLocalPlatform").orNull == "true") {
+            local(providers.gradleProperty("platformPath"))
+        } else {
+            androidStudio("2026.1.1.8")
+        }
         bundledPlugins("org.jetbrains.plugins.terminal")
     }
 }
@@ -54,6 +61,11 @@ tasks.withType<Test> {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+        languageVersion.set(KotlinVersion.KOTLIN_2_3)
+        apiVersion.set(KotlinVersion.KOTLIN_2_3)
+    }
 }
 
 intellijPlatform {
@@ -61,7 +73,8 @@ intellijPlatform {
         name = "Cursor in Android Studio"
         version = project.version.toString()
         ideaVersion {
-            sinceBuild = "261"
+            sinceBuild = "261.23567.138"
+            untilBuild = "261.*"
         }
     }
 }
@@ -70,6 +83,27 @@ tasks {
     buildSearchableOptions {
         enabled = false
     }
+}
+
+// Validate the resolved SDK, including explicit local overrides, before producing
+// any classes/resources or assembling a distribution. There is no release bypass.
+val sdkBuild = providers.provider {
+    val info = intellijPlatform.productInfo
+    "${info.productCode}-${info.buildNumber.removePrefix("${info.productCode}-")}"
+}
+val verifyBuildSdk = tasks.register("verifyBuildSdk") {
+    group = "verification"
+    description = "Verify the resolved oldest supported Android Studio SDK."
+    inputs.property("sdkBuild", sdkBuild)
+    doLast {
+        check(sdkBuild.get() == "AI-261.23567.138.2611.15503007") {
+            "Compile SDK must be Quail 1 2026.1.1.8 (AI-261.23567.138.2611.15503007); resolved ${sdkBuild.get()}"
+        }
+        logger.lifecycle("Compile SDK verified: ${sdkBuild.get()}")
+    }
+}
+tasks.matching { it.name in setOf("compileKotlin", "compileJava", "processResources", "prepareSandbox", "buildPlugin") }.configureEach {
+    dependsOn(verifyBuildSdk)
 }
 
 // Build identity belongs to the packaged binary, never the IDE's current checkout.
@@ -83,7 +117,7 @@ fun buildGitValue(vararg arguments: String): String? = runCatching {
     if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim() else null
 }.getOrNull()
 
-val generateBuildIdentity by tasks.registering(WriteProperties::class) {
+val generateBuildIdentity = tasks.register<WriteProperties>("generateBuildIdentity") {
     destinationFile.set(layout.buildDirectory.file("generated/diagnostics/cursor-agent-build.properties"))
     property("source.commit", providers.provider { buildGitValue("rev-parse", "HEAD").orEmpty() })
     property("source.state", providers.provider {
@@ -93,6 +127,9 @@ val generateBuildIdentity by tasks.registering(WriteProperties::class) {
             else -> "dirty"
         }
     })
+    property("plugin.version", project.version.toString())
+    property("sdk.build", sdkBuild)
+    property("jvm.target", "21")
 }
 
 tasks.processResources {

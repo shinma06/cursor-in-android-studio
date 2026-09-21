@@ -3,6 +3,7 @@
     <name>Cursor in Android Studio</name>
     <vendor email="dev@example.com">SelfRegi</vendor>
     <description><![CDATA[
+        Use Cursor Agent inside Android Studio with an integrated chat tool window.
         Android Studio 上で Cursor Agent CLI を利用するツールウィンドウプラグイン。
         agent -p --output-format stream-json をサブプロセス実行し、チャット UI にストリーミング表示します。
     ]]></description>
