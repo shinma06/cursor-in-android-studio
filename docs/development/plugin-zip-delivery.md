@@ -18,6 +18,8 @@ Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選�
 - buildは読取権限のみのrunner、publishは別runner。Actions Artifactは両者間の**1日限りの転送**だけで、配布先ではない。PRイベントではZIPを作らない。
 - `build/` はGit管理対象外。ZIPのコミットやcommit別のReleaseを追加する必要はない。
 
+新構成のsourceはGradleが固定Quail 1 SDKを取得する。旧構成branchの復旧では、checkoutしたgradle.propertiesに有効なplatformPath代入がある場合だけ従来のQuail 3 Patch 1を取得・指定する。コメント行だけの例は旧構成と判定せず、新構成には旧SDKを渡さない。
+
 ## 既存ブランチと復旧
 
 新workflowを持つすべてのブランチでpushに反応する。ブランチ名の固定フィルターはない。

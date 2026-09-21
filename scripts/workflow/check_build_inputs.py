@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Exercise real Gradle input guards; SDK paths remain local command arguments."""
 import argparse
+import os
+import textwrap
 from pathlib import Path
 import subprocess
 import tempfile
@@ -16,11 +18,36 @@ def gradle(arguments, succeeds, diagnostic):
         raise AssertionError(result.stdout)
 
 
+
+def check_legacy_sdk_selection():
+    workflow = (ROOT / '.github/workflows/branch-zip.yml').read_text()
+    select = textwrap.dedent(workflow.split('        id: sdk\n        run: |\n', 1)[1].split('      - ', 1)[0])
+    build = textwrap.dedent(workflow.split('          LEGACY_SDK: ${{ steps.sdk.outputs.legacy }}\n        run: |\n', 1)[1].split('      - ', 1)[0])
+    for properties, legacy in [('platformPath=/old/sdk\n', 'true'),
+                               ('  platformPath = /old/sdk\n', 'true'),
+                               ('# platformPath=/comment\npluginVersion=0.1.0-SNAPSHOT\n', 'false')]:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'gradle.properties').write_text(properties)
+            output = root / 'output'
+            subprocess.run(['bash', '-e', '-c', select], cwd=root, check=True,
+                           env=dict(os.environ, GITHUB_OUTPUT=str(output)))
+            assert output.read_text().strip() == 'legacy=' + legacy
+            (root / 'gradlew').write_text('#!/bin/sh\nprintf "%s\n" "$@" > arguments\n')
+            (root / 'gradlew').chmod(0o700)
+            subprocess.run(['bash', '-e', '-c', build], cwd=root, check=True,
+                           env=dict(os.environ, LEGACY_SDK=legacy))
+            arguments = (root / 'arguments').read_text().splitlines()
+            assert arguments == ['buildPlugin', '--console=plain'] + (
+                ['-PplatformPath=/tmp/android-studio'] if legacy == 'true' else [])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--local-sdk', required=True, help='Verified Quail 1 SDK root')
     parser.add_argument('--wrong-sdk', required=True, help='Another valid installed SDK root')
     args = parser.parse_args()
+    check_legacy_sdk_selection()
     gradle(['verifyBuildSdk'], True, 'Compile SDK verified: ' + EXPECTED)
     gradle(['verifyBuildSdk', '-PuseLocalPlatform=true', '-PplatformPath=' + args.local_sdk],
            True, 'Compile SDK verified: ' + EXPECTED)

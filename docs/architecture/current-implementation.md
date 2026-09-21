@@ -101,7 +101,7 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 
 ## ビルドと実行環境
 
-[build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.1.1.8")` で最古の対応StableであるQuail 1初版を固定取得する。[CI](../../.github/workflows/ci.yml) と [branch ZIP](../../.github/workflows/branch-zip.yml) も同じGradle経路を使い、SDK手動取得の重複を持たない。Gradle実行・Java/Kotlin toolchain・bytecode targetは21。Gradle 9.7.1 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.3、stdlibはIDEの2.3.20を使ってZIPへ同梱しない。
+[build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.1.1.8")` で最古の対応StableであるQuail 1初版を固定取得する。[CI](../../.github/workflows/ci.yml) と [branch ZIP](../../.github/workflows/branch-zip.yml) も新構成のsourceでは同じGradle経路を使う。branch ZIPのschedule/manualが旧構成sourceを扱う場合だけ、tracked gradle.propertiesの有効なplatformPath代入を検出して従来Quail 3 Patch 1の取得・local指定を維持する。Gradle実行・Java/Kotlin toolchain・bytecode targetは21。Gradle 9.7.1 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.3、stdlibはIDEの2.3.20を使ってZIPへ同梱しない。
 
 `verifyBuildSdk` は解決したproduct-infoのproductCode/full buildを `AI-261.23567.138.2611.15503007` と照合し、compile/resources/sandbox/ZIP生成前に不一致・確認不能を失敗にする。通常IDEや利用者共通の `platformPath` propertyは暗黙に使わない。local SDKが必要なときだけ両propertyを指定する（パスは各自の非公開設定に保持）。
 
