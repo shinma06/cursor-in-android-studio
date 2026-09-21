@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 404,
   "gui_required": true,
-  "reason": "新規入力欄の遅延Document生成でlistenerが実Documentへ接続されない。共通初期化を修正し実IDEの候補/IME/再生成を確認する。",
+  "reason": "入力Documentの生成をlistener登録より先に行い、従来PSI-backed Documentを維持する。@と/候補選択の本文削除をIDE command内で行う。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests",
     "./gradlew buildPlugin verifyPluginStructure",
@@ -11,7 +11,7 @@
   ],
   "cases": [
     {
-      "change": "入力欄の文書を生成してから変更listenerを登録する",
+      "change": "入力文書の初期化と候補選択時の編集境界を整える",
       "expected": "初回入力から@と/で候補が開く。通知が多重登録されず、IME保護、本文/選択、送信/停止と入力再生成を維持する。",
       "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
       "id": "PROMPT-DOCUMENT-EVENTS",
@@ -26,16 +26,17 @@
       ],
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/404",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/205#issuecomment-5761724196"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/205#issuecomment-5761724196",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/404#issuecomment-5762029921"
       ],
       "fix_issue": null,
       "fix_pr": null,
-      "next_action": "新固定buildをQuail1/4で検証。#205と統合した新候補でTab回帰も再確認し、#392の全候補受入へ引継ぐ。",
+      "next_action": "ユーザー方針によりmain受入はTODO。修正後のQuail1/4で@・/の初回表示/選択/取消とIME/再生成を確認し、#205を含む新固定候補の全Case受入を#392で再開する。",
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "修正buildの実IDE未実施。SDK登録境界の再現をGUI passにしない。",
+        "reason": "cdf69a5の試行buildはQuail1の候補選択でcommand外Document変更例外を観測（Issue終了記録参照）。その結果を受けPSI-backed Document維持とWriteCommandActionへ修正。新しい差分のGUIは未実施、main受入はTODO。旧failをpassへ移さない。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -46,7 +47,7 @@
       "human": {
         "actor": "human",
         "status": "pending",
-        "reason": "修正buildの実IDE未実施。SDK登録境界の再現をGUI passにしない。",
+        "reason": "人間はcdf69a5で入力時の開閉が不安定な可能性を報告。改訂後buildの実GUIはTODO。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,

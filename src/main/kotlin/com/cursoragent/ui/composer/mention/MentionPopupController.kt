@@ -2,6 +2,7 @@ package com.cursoragent.ui.composer.mention
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -60,7 +61,7 @@ class MentionPopupController(
             if (!project.isDisposed && field.isShowing && document.modificationStamp == stamp &&
                 (triggerOffset == null || triggerOffset in 0 until document.textLength && document.charsSequence[triggerOffset] == '@')
             ) {
-                if (triggerOffset != null) ApplicationManager.getApplication().runWriteAction {
+                if (triggerOffset != null) WriteCommandAction.runWriteCommandAction(project) {
                     document.deleteString(triggerOffset, triggerOffset + 1)
                 }
                 onAttach(mention)

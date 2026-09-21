@@ -17,6 +17,14 @@
 
 対応ソース: [root](../../src/main/kotlin/com/cursoragent/ui/AgentToolWindowRootPanel.kt)、[状態](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、[controller](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)、[service](../../src/main/kotlin/com/cursoragent/service/AgentProcessService.kt)、[run](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt)、[listener](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt)。
 
+## 入力文書と候補popupの境界
+
+Platform 261の`EditorTextField(Project, FileType)`はDocumentを遅延生成する。Document生成前の`addDocumentListener`はfield内の一覧に保持されるが、後の`getDocument()`による生成では実Documentへの接続が行われない。`GrowingPromptField`は従来のPSI-backed Documentを初期化時に取得してから、`CommandInputPanel`と`MentionPopupController`がlistenerを登録する。入力通知を各consumerで複製して回避しない。Quail1/4の実SDKでlazy生成時の接続0件・先行生成時1件を確認した登録境界の再現と、実GUIの候補表示成功は別の証拠である（[#404](https://github.com/shinma06/cursor-in-android-studio/issues/404)）。
+
+候補選択で本文の`@`や`/`を削除するときは、write actionだけでなくIDEのcommand境界も必要。両選択処理は`WriteCommandAction`を使い、既存のdocument stamp・project dispose・候補の有効性確認を保つ。[公式Document規約](https://plugins.jetbrains.com/docs/intellij/documents.html#what-are-the-rules-of-working-with-documents)と、Quail1の固定試験buildで発生した[候補選択例外](https://github.com/shinma06/cursor-in-android-studio/issues/404#issuecomment-5762029921)が根拠。通常Documentへ変更した試行で観測された例外であり、従来のPSI-backed Documentでの再現を確認したとはしない。
+
+popupが消えた後の画面だけで「一度も開かなかった」と判定しない。入力直後・候補選択・取消・別アプリへのfocus移動を分け、IME変換中/確定EnterとShift+Enter、入力再生成後も同じ固定buildで確認する。修正後の両IDE GUIと、#205のTab修正を含む統合候補でのmain受入は[Case #404](../verification/changes/issue-404.json) / [Phase5 #392](https://github.com/shinma06/cursor-in-android-studio/issues/392)で未完了として追跡する。
+
 ## printの送信から終了まで
 
 1. controllerが入力を保存し、`beginTurn`でtokenとprompt/mode/model/chat IDを固定。同じタブでの重複送信を拒否する。Composerのmode/modelは生成時にアプリ設定からコピーしたタブ別選択値であり、切替のたびに全体設定へ書き戻さない。

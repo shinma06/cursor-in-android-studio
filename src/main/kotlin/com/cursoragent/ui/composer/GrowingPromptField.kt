@@ -16,14 +16,16 @@ import java.awt.event.ComponentEvent
 import javax.swing.SwingUtilities
 
 /** Grow by actual editor visual lines (including soft wraps), then let the editor scroll. */
-// Create the document before composer listeners are registered; lazy creation does not attach them.
-class GrowingPromptField(project: Project) : EditorTextField("", project, PlainTextFileType.INSTANCE) {
+class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
 
     init {
+        // Keep the PSI-backed document, but create it before composer listeners are registered.
+        // EditorTextField does not attach earlier listeners when its lazy getter creates it.
+        document
         setOneLineMode(false)
         font = AgentUiMetrics.textFont()
         setPlaceholder("Plan, Build, / for skills, @ for context")
