@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 388,
+  "gui_required": false,
+  "reason": "研究文書と受入定義のみの変更。更新前の固定ZIPで実施した4条件GUI smokeはresearch文書に保全し、将来のpromotion必須Caseへ登録しない。更新後RCの全必要Caseは#392で別途定義・実行する。",
+  "cli_checks": [
+    "未変更source 8cbdc4eaでclean test buildPlugin: 445 tests成功、427本体class major65、内部identity clean、ZIP SHA256記録",
+    "公式下限DMG SHA256と両IDE product-info/JBR release/IDE stdlibの実測",
+    "Verifier 1.410: 同ZIPを両IDEに指定、description失敗でAPI検証0件。失敗分類を#389/#390へ引継ぎ",
+    "python3 scripts/workflow/change_impact.py --run-tests、Case schema検証、git diff --check"
+  ],
+  "cases": []
+}
