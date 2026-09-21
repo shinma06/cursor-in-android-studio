@@ -147,6 +147,8 @@ def verify(args, policy):
     output.mkdir(parents=True, exist_ok=False)  # Stale reports cannot make a new invocation pass.
     sdk = args.sdk.resolve() if args.sdk else download_sdk(target, args.sdk_cache.resolve())
     runtime, info = sdk_identity(sdk, target)
+    inputs = {'artifact': manifest, 'target': info, 'verifier_version': policy['verifier_version']}
+    (output / 'input.json').write_text(json.dumps(inputs, indent=2) + '\n')
     reports = output / 'reports'
     command = ['./gradlew', 'verifyPlugin', '--console=plain',
                '-PverificationArchive=' + str(archive), '-PverificationIdePath=' + str(sdk),
@@ -159,8 +161,7 @@ def verify(args, policy):
     require('Starting the IntelliJ Plugin Verifier ' + policy['verifier_version'] in log, 'Wrong/missing Verifier version')
     require(not re.search(r'> Task :(?:compile\w+|buildPlugin|jar|prepareSandbox)\b', log), 'Verification unexpectedly rebuilt the plugin')
     outcome = check_reports(reports, log, target, manifest, policy)
-    receipt = {'schema': 1, 'status': 'passed', 'artifact': manifest, 'target': info,
-               'verifier_version': policy['verifier_version'], **outcome}
+    receipt = {'schema': 1, 'status': 'passed', **inputs, **outcome}
     (output / 'result.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt, indent=2))
 
