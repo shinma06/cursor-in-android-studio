@@ -93,7 +93,7 @@ def git_read(*args, cwd=None):
 
 
 def tooling_path(path):
-    return path.startswith(TOOLING) or path in ('CLAUDE.md', 'AGENTS.md')
+    return path.startswith(TOOLING) or path in ('CLAUDE.md', 'AGENTS.md', 'README.md')
 
 
 def source_commits(source, base, git):

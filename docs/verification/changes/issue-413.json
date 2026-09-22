@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "issue": 413,
+  "gui_required": false,
+  "reason": "main文書受入ゲートのルートREADME.mdの分類だけを是正。製品コード、build入力、ZIP、IDE操作に変更なし。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 scripts/workflow/change_impact.py --run-tests"
+  ],
+  "cases": []
+}
