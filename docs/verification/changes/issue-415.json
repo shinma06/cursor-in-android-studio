@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 415,
+  "gui_required": false,
+  "reason": "GitHub正式Releaseの説明生成・検査と本文更新のみ。製品画面、build入力、公開ZIPとtagは変更しない。公開ページは別途表示確認する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_release_candidate.py",
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "正式v0.1.0の本文・tag・全assetの更新前後readback（main反映後に実施）"
+  ],
+  "cases": []
+}

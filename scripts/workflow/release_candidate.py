@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlsplit
 import zipfile
 
 import branch_zip as github
@@ -20,6 +20,61 @@ ROOT = Path(__file__).resolve().parents[2]
 INPUTS = ('build.gradle.kts', 'settings.gradle.kts', 'gradle.properties',
           'gradle/wrapper/gradle-wrapper.properties', 'scripts/workflow/plugin_compatibility.json')
 MARKER = '<!-- release-candidate:v1 -->'
+NOTES_START = '<!-- release-notes:start -->'
+NOTES_END = '<!-- release-notes:end -->'
+
+
+def validate_notes(notes, version):
+    repo = os.environ['GITHUB_REPOSITORY']
+    sections = re.findall(r'^## ([^\n]+)\n(.*?)(?=^## |\Z)', notes, re.M | re.S)
+    pc.require([title for title, _ in sections] == ['主な変更', '対応環境', 'インストール', '制約・詳細']
+               and all(text.strip() for _, text in sections), 'Release notes need four non-empty Japanese sections')
+    pc.require(not re.search(r'TODO|TBD|未記入|<!--', notes, re.I), 'Unfinished or hidden release notes')
+    # Keep the authoring format small instead of maintaining a partial Markdown parser.
+    pc.require('<' not in notes and '\\' not in notes and
+               not re.search(r'^\s*\[[^\]\n]+\]\s*:|\]\s*\[', notes, re.M),
+               'Use inline Markdown links; HTML, reference links and escapes are unsupported')
+    expected = {f'https://github.com/{repo}/releases/download/v{version}/{version_name(version)}',
+                f'https://github.com/{repo}/blob/main/docs/releases/{version}.md'}
+    urls = set(re.findall(r'https?://[^\s<>()\[\]`]+', notes, re.I))
+    links = re.findall(r'\]\s*\(\s*([^\s)]+)', notes)
+    pc.require(all(urlsplit(link).scheme == 'https' and urlsplit(link).netloc for link in links),
+               'Release notes need only this version download and report links; use absolute HTTPS links')
+    urls.update(links)
+    release_links = {url for url in urls if any(part in '/' + unquote(urlsplit(url).path).lstrip('/')
+                     for part in ('/releases/download/', '/docs/releases/'))}
+    pc.require(expected <= urls and release_links == expected,
+               'Release notes need only this version download and report links')
+
+
+def release_notes(version):
+    version_name(version)
+    # publication() fetched main before calling us; never read unreviewed local HEAD notes.
+    main = git_read('rev-parse', 'origin/main')
+    pc.require(re.fullmatch('[0-9a-f]{40}', main), 'Verified main SHA required for notes')
+    document = git_read('show', f'{main}:docs/releases/{version}.md')
+    pc.require(document.count(NOTES_START) == document.count(NOTES_END) == 1,
+               'Reviewed version document needs one release-notes block')
+    before, after = document.split(NOTES_START)
+    pc.require(NOTES_END not in before and NOTES_END in after, 'Invalid release-notes block order')
+    notes = after.split(NOTES_END)[0].strip()
+    validate_notes(notes, version)
+    return notes
+
+
+def formal_record(body):
+    """Read the old JSON-only body or the hidden record after public notes."""
+    pc.require(body.count('release-candidate:v1') == 1, 'Missing or ambiguous release record')
+    if body.startswith(MARKER + '\n'):
+        return json.loads(body[len(MARKER):]), ''
+    match = re.fullmatch(r'(.*?)\n<!-- release-candidate:v1\n([^\n]+)\n-->\s*', body, re.S)
+    pc.require(match, 'Invalid formal release record')
+    return json.loads(match[2]), match[1].strip()
+
+
+def formal_body(notes, record):
+    validate_notes(notes, record['candidate']['identity']['plugin.version'])
+    return notes + '\n\n<!-- release-candidate:v1\n' + json.dumps(record, sort_keys=True) + '\n-->\n'
 
 
 def read(path):
@@ -213,11 +268,25 @@ def fetch(tag, expected_hash, directory):
     return manifest
 
 
-def preserve(tag, target, directory, names, prerelease, body):
+def preserve(tag, target, directory, names, prerelease, body, update_notes=False):
     """Create only, or resume an identical draft; never replace/delete an asset."""
     release = release_for(tag)
+    pc.require(not update_notes or (release and not release['draft'] and not prerelease),
+               'Notes update requires an existing published formal release')
+    migrate_draft = False
+    if not prerelease:
+        record, notes = formal_record(body)
+        version = record['candidate']['identity']['plugin.version']
+        validate_notes(notes, version)
+        if release:
+            old_record, old_notes = formal_record(release['body'])
+            pc.require(old_record == record, 'Immutable release identity differs')
+            migrate_draft = release['draft'] and not old_notes
+            if not update_notes and not migrate_draft:
+                validate_notes(old_notes, version)
+                body = release['body']  # Preserve editorial changes on an ordinary retry.
     if release:
-        pc.require(release['body'] == body and release['prerelease'] == prerelease and
+        pc.require((update_notes or migrate_draft or release['body'] == body) and release['prerelease'] == prerelease and
                    release['target_commitish'] == target, 'Existing release differs; refuse replacement')
     else:
         release = github.api('releases', 'POST', {'tag_name': tag, 'target_commitish': target,
@@ -237,10 +306,17 @@ def preserve(tag, target, directory, names, prerelease, body):
                 f'https://uploads.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/releases/{release["id"]}/assets?name={quote(name)}',
                 '-H', 'Content-Type: application/octet-stream', '--input', str(directory / name)))
             pc.require(uploaded.get('digest') == 'sha256:' + pc.digest(directory / name), 'Upload digest mismatch')
+    if (update_notes or migrate_draft) and release['body'] != body:
+        # Only after every existing asset passed byte comparison; never patch identity/assets.
+        current = release_for(tag)
+        pc.require(current and all(current[k] == release[k] for k in
+                   ('id', 'body', 'target_commitish', 'draft', 'prerelease')), 'Release changed during notes verification')
+        github.api(f'releases/{release["id"]}', 'PATCH', {'body': body})
     if release['draft']:
         github.api(f'releases/{release["id"]}', 'PATCH', {'draft': False, 'make_latest': 'false'})
     published = release_for(tag)
-    pc.require(published and not published['draft'] and published['body'] == body and published['prerelease'] == prerelease, 'Publication readback differs')
+    pc.require(published and not published['draft'] and published['body'] == body and published['prerelease'] == prerelease
+               and published['target_commitish'] == target, 'Publication readback differs')
     assets = github.pages(f'releases/{release["id"]}/assets')
     pc.require(len(assets) == len(names) and {a['name'] for a in assets} == set(names), 'Published asset set differs')
     with tempfile.TemporaryDirectory() as temporary:
@@ -283,8 +359,9 @@ def publication(directory, expected_hash, number):
     return manifest, merge
 
 
-def publish(directory, expected_hash, number):
+def publish(directory, expected_hash, number, update_notes=False):
     manifest, merge = publication(directory, expected_hash, number)
+    notes = release_notes(manifest['identity']['plugin.version'])
     # Re-fetch the preserved RC, not a caller-provided replacement of equal-looking metadata.
     with tempfile.TemporaryDirectory() as temporary:
         saved = Path(temporary) / 'saved'
@@ -292,10 +369,13 @@ def publish(directory, expected_hash, number):
         tag = 'v' + manifest['identity']['plugin.version']
         refs = github.api('git/matching-refs/tags/' + tag)
         matching = [r for r in refs if r['ref'] == 'refs/tags/' + tag]
-        pc.require(not matching or (matching[0]['object']['type'] == 'commit' and matching[0]['object']['sha'] == merge),
+        pc.require((matching or not update_notes) and
+                   (not matching or (matching[0]['object']['type'] == 'commit' and matching[0]['object']['sha'] == merge)),
                    'Existing final tag does not identify the promotion merge')
-        body = MARKER + '\n' + json.dumps({'candidate': manifest, 'promotion_pr': number, 'main_merge': merge}, sort_keys=True)
-        preserve(tag, merge, saved, [*read(saved / 'bundle.json'), 'bundle.json'], False, body)
+        body = formal_body(notes, {'candidate': manifest, 'promotion_pr': number, 'main_merge': merge})
+        preserve(tag, merge, saved, [*read(saved / 'bundle.json'), 'bundle.json'], False, body, update_notes)
+        ref = github.api('git/ref/tags/' + tag)
+        pc.require(ref['object']['type'] == 'commit' and ref['object']['sha'] == merge, 'Published tag differs')
 
 
 def main():
@@ -313,13 +393,15 @@ def main():
         if command == 'bundle':
             s.add_argument('--quail1', type=Path, required=True); s.add_argument('--quail4', type=Path, required=True)
         if command == 'fetch': s.add_argument('--tag', required=True)
-        if command == 'publish': s.add_argument('--promotion-pr', type=int, required=True)
+        if command == 'publish':
+            s.add_argument('--promotion-pr', type=int, required=True)
+            s.add_argument('--update-notes', action='store_true', help='Update only reviewed notes after verifying the published identity and all assets')
     args = p.parse_args()
     if args.command == 'build': build(args.source, args.version, args.directory.resolve(), args.scope_issue)
     elif args.command == 'bundle': bundle(args.directory, args.sha256, {'quail1': args.quail1, 'quail4': args.quail4})
     elif args.command == 'store': store(args.directory, args.sha256)
     elif args.command == 'fetch': fetch(args.tag, args.sha256, args.directory)
-    else: publish(args.directory, args.sha256, args.promotion_pr)
+    else: publish(args.directory, args.sha256, args.promotion_pr, args.update_notes)
 
 
 if __name__ == '__main__':
