@@ -22,20 +22,27 @@ class ReleaseTest(unittest.TestCase):
         document, notes = self.notes()
         record = {'candidate': {'identity': {'plugin.version': '0.1.0'}}, 'main_merge': 'a' * 40, 'promotion_pr': 411}
         with patch.dict(rc.os.environ, {'GITHUB_REPOSITORY': 'shinma06/cursor-in-android-studio'}):
-            with patch.object(rc, 'git_read', return_value=document) as git:
+            with patch.object(rc, 'git_read', side_effect=lambda *a: 'a' * 40 if a[0] == 'rev-parse' else document) as git:
                 self.assertEqual(rc.release_notes('0.1.0'), notes)
-                git.assert_called_once_with('show', 'HEAD:docs/releases/0.1.0.md')
+                self.assertEqual([c.args for c in git.call_args_list], [('rev-parse', 'origin/main'),
+                                 ('show', 'a' * 40 + ':docs/releases/0.1.0.md')])
             body = rc.formal_body(notes, record)
             self.assertEqual(rc.formal_record(body), (record, notes))
             self.assertNotIn('"candidate"', body.split('<!--')[0])
             for bad in (document.replace(rc.NOTES_START, ''), document + rc.NOTES_START,
                         document.replace('## 主な変更', '## TODO'),
                         document.replace('/download/v0.1.0/', '/download/v0.2.0/')):
-                with self.subTest(bad=bad[:30]), patch.object(rc, 'git_read', return_value=bad):
+                with self.subTest(bad=bad[:30]), patch.object(rc, 'git_read', side_effect=lambda *a: 'a' * 40 if a[0] == 'rev-parse' else bad):
                     with self.assertRaises(ValueError): rc.release_notes('0.1.0')
             for bad in ('', '{"candidate":{}}', notes.replace('## 対応環境', '## 対象'),
                         notes[:notes.index('## 制約・詳細')] + '## 制約・詳細\n', notes + '\nTODO'):
                 with self.assertRaises(ValueError): rc.validate_notes(bad, '0.1.0')
+            correct = 'https://github.com/shinma06/cursor-in-android-studio/releases/download/v0.1.0/cursor-in-android-studio-0.1.0.zip'
+            for wrong in (correct.replace('v0.1.0', 'v0.2.0'), correct.replace('shinma06', 'someone'),
+                          '../../releases/download/v0.2.0/plugin.zip',
+                          'https://github.com/shinma06/cursor-in-android-studio/blob/main/docs/releases/0.2.0.md'):
+                with self.assertRaisesRegex(ValueError, 'only this version'):
+                    rc.validate_notes(notes + '\n[別リンク](' + wrong + ')', '0.1.0')
             for bad in (body + rc.MARKER, body.replace('release-candidate:v1', 'unknown')):
                 with self.assertRaises(ValueError): rc.formal_record(bad)
 
@@ -92,6 +99,41 @@ class ReleaseTest(unittest.TestCase):
                     rc.preserve('v0.1.0', 'a' * 40, path, ['a.zip'], False, body, update_notes=True)
                 self.assertEqual(len(writes), 1); upload.assert_not_called()
 
+    def test_legacy_formal_draft_retries_after_partial_upload_and_body_patch_failure(self):
+        _, notes = self.notes()
+        record = {'candidate': {'identity': {'plugin.version': '0.1.0'}}, 'main_merge': 'a' * 40, 'promotion_pr': 411}
+        legacy = rc.MARKER + '\n' + json.dumps(record)
+        with tempfile.TemporaryDirectory() as temp, patch.dict(rc.os.environ, {'GITHUB_REPOSITORY': 'shinma06/cursor-in-android-studio'}):
+            path = Path(temp); (path / 'a.zip').write_bytes(b'original')
+            state = {'release': {'id': 1, 'body': legacy, 'draft': True, 'prerelease': False, 'target_commitish': 'a' * 40},
+                     'assets': [], 'bytes': b'', 'fail_patch': True}
+            writes = []
+            def api(endpoint, method='GET', data=None):
+                self.assertEqual((endpoint, method), ('releases/1', 'PATCH'))
+                if 'body' in data and state['fail_patch']:
+                    raise RuntimeError('interrupted body patch')
+                writes.append(data); state['release'].update(data)
+                return copy.deepcopy(state['release'])
+            def upload(*args):
+                self.assertFalse(state['assets']); state['bytes'] = (path / 'a.zip').read_bytes()
+                item = {'id': 2, 'name': 'a.zip', 'digest': 'sha256:' + pc.digest(path / 'a.zip')}
+                state['assets'].append(item); return json.dumps(item)
+            def download(item, destination): destination.write_bytes(state['bytes'])
+            body = rc.formal_body(notes, record)
+            with patch.object(rc, 'release_for', side_effect=lambda _: copy.deepcopy(state['release'])), \
+                    patch.object(rc.github, 'api', side_effect=api), \
+                    patch.object(rc.github, 'pages', side_effect=lambda _: list(state['assets'])), \
+                    patch.object(rc.github, 'gh', side_effect=upload) as uploads, patch.object(rc, 'download_asset', side_effect=download):
+                with self.assertRaisesRegex(RuntimeError, 'interrupted body patch'):
+                    rc.preserve('v0.1.0', 'a' * 40, path, ['a.zip'], False, body)
+                self.assertTrue(state['release']['draft']); self.assertEqual(state['release']['body'], legacy)
+                state['fail_patch'] = False
+                rc.preserve('v0.1.0', 'a' * 40, path, ['a.zip'], False, body)
+                self.assertEqual(uploads.call_count, 1)
+                self.assertFalse(state['release']['draft']); self.assertEqual(state['release']['body'], body)
+                self.assertEqual(writes, [{'body': body}, {'draft': False, 'make_latest': 'false'}])
+                self.assertEqual(state['bytes'], b'original')
+
     def test_publish_checks_notes_and_existing_tag_before_any_write(self):
         _, notes = self.notes()
         manifest = {'identity': {'plugin.version': '0.1.0'}, 'sha256': 'c' * 64}
@@ -110,7 +152,7 @@ class ReleaseTest(unittest.TestCase):
             with patch.object(rc, 'release_notes', return_value=notes), patch.object(rc, 'fetch', return_value=manifest), \
                     patch.object(rc.github, 'api', side_effect=tag_api), patch.object(rc, 'read', return_value={}):
                 rc.publish(Path('.'), 'c' * 64, 411)
-                body = preserve.call_args.args[6 - 1]
+                body = preserve.call_args.args[5]
                 actual, visible = rc.formal_record(body)
                 self.assertEqual(visible, notes)
                 self.assertEqual(actual, {'candidate': manifest, 'main_merge': 'a' * 40, 'promotion_pr': 411})

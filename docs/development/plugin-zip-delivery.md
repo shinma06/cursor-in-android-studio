@@ -133,7 +133,7 @@ python3 scripts/workflow/release_candidate.py fetch \
 
 公開前に `docs/releases/<version>.md` の `<!-- release-notes:start -->` と `<!-- release-notes:end -->` の間へ日本語の説明を用意し、tooling PRで独立レビューしてmainへ反映する。見出しは `## 主な変更`・`## 対応環境`・`## インストール`・`## 制約・詳細` の順。各節の本文と、そのversionのインストール用ZIP/詳細報告リンクを必須とし、TODOや未記入を残さない。対応環境・変更点・制約が固定成果物の実測と一致するかはレビュアーが確認する。機械検査は内容の正しさを保証しない。
 
-公開処理は**実行中のレビュー済みtoolingのcommit（HEAD）**からこの説明を読み、欠落・空欄・別versionへのリンク・未完成の説明をRelease作成前に拒否する。手元の未commit編集は公開しない。公開後はReleaseページの表示で、取得リンク・必要4節が見え、生JSONが本文に露出しないことを確認する。既存CIの公開toolingテストでも生成・欠落拒否・旧形式移行を回帰検証する。
+公開処理は**promotion検証で取得したorigin/mainをSHAへ固定**してこの説明を読み、欠落・空欄・別versionへのリンク・未完成の説明をRelease作成前に拒否する。手元のHEADが別の作業branchでも、未commit/未統合の説明は公開しない。正しいリンクを残していても、別versionや別repositoryの配布/版別報告リンクが混在すれば拒否する。公開後はReleaseページの表示で、取得リンク・必要4節が見え、生JSONが本文に露出しないことを確認する。既存CIの公開toolingテストでも生成・欠落拒否・旧形式移行を回帰検証する。
 
 
 Phase 6担当は通常のpromotion PRをmerge commitでmainへ統合してから、次を実行する。Phase 4ではこの実公開を行わない。
@@ -159,6 +159,6 @@ python3 scripts/workflow/release_candidate.py publish --directory "$DOWNLOADED_R
   --sha256 "$HASH" --promotion-pr "$PROMOTION_PR" --update-notes
 ```
 
-通常公開と同じpromotion/Case/4checksと保存RCを検証し、既存の識別情報・tag・全assetの実bytesが一致した後に、本文だけをPATCHする。旧JSONだけの正式Releaseも識別情報が完全一致する場合だけ移行できる。新規Release・RC・異なる識別情報・欠損/改変assetは説明更新として受け入れない。更新後も本文と全assetを再取得して照合し、失敗を成功にしない。通常のpublish再実行は有効な既存説明を保持し、説明の更新には明示した `--update-notes` を使う。
+通常公開と同じpromotion/Case/4checksと保存RCを検証し、既存の識別情報・tag・全assetの実bytesが一致した後に、本文だけをPATCHする。旧JSONだけの正式Releaseも識別情報が完全一致する場合だけ移行できる。旧形式の未公開draftは通常のpublish再実行で既存asset照合と不足分の追加を行い、本文を移行して公開を再開できる。本文更新後の失敗も同じbytesで再試行する。新規Release・RC・異なる識別情報・欠損/改変assetは説明更新として受け入れない。更新後も本文と全assetを再取得して照合し、失敗を成功にしない。通常のpublish再実行は有効な既存説明を保持し、説明の更新には明示した `--update-notes` を使う。
 
 記録には対象Release/PR、更新前後の本文、変わらなかったasset/hash/tagを残す。本文更新のためにRC/正式ZIPを再build・再圧縮・再uploadしない。[GitHubのRelease本文更新API](https://docs.github.com/en/rest/releases/releases#update-a-release)を使い、asset削除やtag更新は行わない。

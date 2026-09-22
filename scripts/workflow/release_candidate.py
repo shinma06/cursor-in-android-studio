@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlsplit
 import zipfile
 
 import branch_zip as github
@@ -30,14 +30,22 @@ def validate_notes(notes, version):
     pc.require([title for title, _ in sections] == ['主な変更', '対応環境', 'インストール', '制約・詳細']
                and all(text.strip() for _, text in sections), 'Release notes need four non-empty Japanese sections')
     pc.require(not re.search(r'TODO|TBD|未記入|<!--', notes, re.I), 'Unfinished or hidden release notes')
-    pc.require(f'https://github.com/{repo}/releases/download/v{version}/{version_name(version)}' in notes
-               and f'https://github.com/{repo}/blob/main/docs/releases/{version}.md' in notes,
-               'Release notes need this version download and report links')
+    expected = {f'https://github.com/{repo}/releases/download/v{version}/{version_name(version)}',
+                f'https://github.com/{repo}/blob/main/docs/releases/{version}.md'}
+    urls = set(re.findall(r'https?://[^\s<>()\[\]`]+', notes, re.I))
+    urls.update(re.findall(r'\[[^\]]*\]\(([^\s)]+)', notes))
+    release_links = {url for url in urls if any(part in '/' + unquote(urlsplit(url).path).lstrip('/')
+                     for part in ('/releases/download/', '/docs/releases/'))}
+    pc.require(expected <= urls and release_links == expected,
+               'Release notes need only this version download and report links')
 
 
 def release_notes(version):
     version_name(version)
-    document = git_read('show', f'HEAD:docs/releases/{version}.md')
+    # publication() fetched main before calling us; never read unreviewed local HEAD notes.
+    main = git_read('rev-parse', 'origin/main')
+    pc.require(re.fullmatch('[0-9a-f]{40}', main), 'Verified main SHA required for notes')
+    document = git_read('show', f'{main}:docs/releases/{version}.md')
     pc.require(document.count(NOTES_START) == document.count(NOTES_END) == 1,
                'Reviewed version document needs one release-notes block')
     before, after = document.split(NOTES_START)
@@ -258,6 +266,7 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
     release = release_for(tag)
     pc.require(not update_notes or (release and not release['draft'] and not prerelease),
                'Notes update requires an existing published formal release')
+    migrate_draft = False
     if not prerelease:
         record, notes = formal_record(body)
         version = record['candidate']['identity']['plugin.version']
@@ -265,11 +274,12 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
         if release:
             old_record, old_notes = formal_record(release['body'])
             pc.require(old_record == record, 'Immutable release identity differs')
-            if not update_notes:
+            migrate_draft = release['draft'] and not old_notes
+            if not update_notes and not migrate_draft:
                 validate_notes(old_notes, version)
                 body = release['body']  # Preserve editorial changes on an ordinary retry.
     if release:
-        pc.require((update_notes or release['body'] == body) and release['prerelease'] == prerelease and
+        pc.require((update_notes or migrate_draft or release['body'] == body) and release['prerelease'] == prerelease and
                    release['target_commitish'] == target, 'Existing release differs; refuse replacement')
     else:
         release = github.api('releases', 'POST', {'tag_name': tag, 'target_commitish': target,
@@ -289,7 +299,7 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
                 f'https://uploads.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/releases/{release["id"]}/assets?name={quote(name)}',
                 '-H', 'Content-Type: application/octet-stream', '--input', str(directory / name)))
             pc.require(uploaded.get('digest') == 'sha256:' + pc.digest(directory / name), 'Upload digest mismatch')
-    if update_notes and release['body'] != body:
+    if (update_notes or migrate_draft) and release['body'] != body:
         # Only after every existing asset passed byte comparison; never patch identity/assets.
         current = release_for(tag)
         pc.require(current and all(current[k] == release[k] for k in
