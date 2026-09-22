@@ -24,7 +24,7 @@ promotion JSONはschema=1、scope="main"、base=固定main SHA、candidate=固�
 
 main受入後は既存 `release_candidate.py publish` が同じvalidatorを実行する。公開時の計画はpromotion mergeの第1親に固定し、公開後にmainが進んでもその候補を別のmainで再解釈しない。正式tagはmain merge、実build sourceはmanifestのcandidate。保存RCの同一bytesを公開し、全assetを再取得してhash照合する。再build・再resolve・再圧縮・version書換えは禁止。
 
-Phase 5 #392はこの限定候補の互換性/必要Case、Phase 6 #393は限定候補のmain反映/同一ZIP公開/最終報告・#394監査を追跡する。develop全体の未反映機能/全Case受入は別TODOとして維持し、この限定公開の必須条件に戻さない。既存QAをまとめてcloseせず、実際に反映した変更だけを照合する。既存owner/enrollment/PAUSED定期処理は自動変更しない。
+限定候補の互換性/4Case/main受入は#409 / PR #411で完了。Phase 6 #393が同一ZIP公開/最終報告、#394が監査を追跡する。[正式0.1.0の結果](../releases/0.1.0.md)を参照。旧Phase 5 #392 / PR #402はsupersededの履歴で、develop全体の未反映機能/全Case受入は別TODOとして維持する。この限定公開の必須条件に戻さず、既存QAをまとめてcloseしない。既存owner/enrollment/PAUSED定期処理は自動変更しない。
 
 ## main候補の警告policy
 

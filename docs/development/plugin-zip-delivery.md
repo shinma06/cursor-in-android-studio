@@ -1,4 +1,12 @@
-# ブランチごとの最新Plugin ZIP
+# Plugin ZIPの配布
+
+## 正式版0.1.0
+
+[正式Release](https://github.com/shinma06/cursor-in-android-studio/releases/tag/v0.1.0)の `cursor-in-android-studio-0.1.0.zip` を取得し、Settings → Plugins → ⚙ → Install Plugin from Disk... で選択して再起動する。Source code (zip)はインストール用ではない。
+
+SHA-256は `0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70`。Quail 1/JBR21・Quail 4 Patch 1/JBR25の4Caseを確認した同じZIPを公開済み。[正式版の最終報告](../releases/0.1.0.md)に対応範囲・source/tag・依存・残warningを記載する。以下のbranch prereleaseは開発用で、正式版とは別に更新・掃除する。
+
+## ブランチごとの最新Plugin ZIP
 
 [GitHub Releases](https://github.com/shinma06/cursor-in-android-studio/releases) の **Plugin ZIP — ブランチ名** を開き、Assets の `cursor-in-android-studio-<実buildの40桁SHA>.zip` を取得する。
 Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選択できる。GitHubが自動生成する **Source code (zip)** はソース一式であり、インストール用ではない。
@@ -51,7 +59,7 @@ GitHubの複数APIは原子的ではなく、人間のbranch再作成や直接Re
 
 初回移行では全生存ブランチのReleaseを確認してから、旧 `plugin-build-<SHA>` Releaseと同名タグ、`plugin-source-<SHA>` タグを限定削除する。過去のIssue/QA証拠は書き換えず、削除済み配布物のリンクは履歴として扱う。
 
-`verifyPluginStructure` も調査したが、既存の日本語descriptionが「先頭に40文字以上のLatin文字」を求める検査で失敗する。このMarketplace向けメタデータ条件を満たすために既存ブランチのソースを変更せず、配布は標準 `buildPlugin` と実ZIP/IDEの確認で検証する。Marketplace公開は今回の対象外。
+旧ブランチでは `verifyPluginStructure` が日本語descriptionの先頭条件で失敗したため、当時は標準 `buildPlugin` と実ZIP/IDEで確認した。これは旧運用の記録である。正式0.1.0ではdescriptionを整え、構造検査・両IDEのVerifierも成功している。Marketplace公開は今回の対象外。
 
 ## 方式の選択
 
@@ -119,7 +127,7 @@ python3 scripts/workflow/release_candidate.py fetch \
   --tag "$RC_TAG" --sha256 "$HASH" --directory "$DOWNLOADED_RC"
 ```
 
-取得処理は6 assetsと全hash、内部version/source/SDK、両Verifier結果を照合する。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。対象両IDE・Terminal有効/無効も#397/#392のCaseへ記録する。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
+取得処理は6 assetsと全hash、内部version/source/SDK、両Verifier結果を照合する。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。main限定0.1.0の両IDE・Terminal有効/無効は#409の4Caseへ記録済み。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
 
 ### 4. main昇格後、同じbytesを正式公開する
 
