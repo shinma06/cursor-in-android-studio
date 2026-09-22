@@ -131,7 +131,7 @@ python3 scripts/workflow/release_candidate.py fetch \
 
 ### 4. main昇格後、同じbytesを正式公開する
 
-公開前に `docs/releases/<version>.md` の `<!-- release-notes:start -->` と `<!-- release-notes:end -->` の間へ日本語の説明を用意し、tooling PRで独立レビューしてmainへ反映する。見出しは `## 主な変更`・`## 対応環境`・`## インストール`・`## 制約・詳細` の順。各節の本文と、そのversionのインストール用ZIP/詳細報告リンクを必須とし、TODOや未記入を残さない。対応環境・変更点・制約が固定成果物の実測と一致するかはレビュアーが確認する。機械検査は内容の正しさを保証しない。
+公開前に `docs/releases/<version>.md` の `<!-- release-notes:start -->` と `<!-- release-notes:end -->` の間へ日本語の説明を用意し、tooling PRで独立レビューしてmainへ反映する。見出しは `## 主な変更`・`## 対応環境`・`## インストール`・`## 制約・詳細` の順。各節の本文と、そのversionのインストール用ZIP/詳細報告リンクを必須とし、TODOや未記入を残さない。 リンクは絶対HTTPS URLの通常の `[ラベル](URL)` 形式に限定する。HTML（山括弧のautolinkを含む）・参照形式リンク・バックスラッシュのescapeは検査対象形式に含めず、公開前に拒否する。複雑な記述は詳細報告の掲載範囲外へ置き、公開説明に持ち込まない。対応環境・変更点・制約が固定成果物の実測と一致するかはレビュアーが確認する。機械検査は内容の正しさを保証しない。
 
 公開処理は**promotion検証で取得したorigin/mainをSHAへ固定**してこの説明を読み、欠落・空欄・別versionへのリンク・未完成の説明をRelease作成前に拒否する。手元のHEADが別の作業branchでも、未commit/未統合の説明は公開しない。正しいリンクを残していても、別versionや別repositoryの配布/版別報告リンクが混在すれば拒否する。公開後はReleaseページの表示で、取得リンク・必要4節が見え、生JSONが本文に露出しないことを確認する。既存CIの公開toolingテストでも生成・欠落拒否・旧形式移行を回帰検証する。
 

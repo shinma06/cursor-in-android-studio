@@ -43,6 +43,13 @@ class ReleaseTest(unittest.TestCase):
                           'https://github.com/shinma06/cursor-in-android-studio/blob/main/docs/releases/0.2.0.md'):
                 with self.assertRaisesRegex(ValueError, 'only this version'):
                     rc.validate_notes(notes + '\n[別リンク](' + wrong + ')', '0.1.0')
+            for unsupported in ('[旧版][old]\n\n[old]: ../../releases/download/v0.2.0/plugin.zip',
+                                '<a href="../../releases/download/v0.2.0/plugin.zip">旧版</a>',
+                                '[旧版](https://github.com/a/b/releases\\/download/v0.2.0/a.zip)'):
+                with self.assertRaisesRegex(ValueError, 'inline Markdown'):
+                    rc.validate_notes(notes + '\n' + unsupported, '0.1.0')
+            with self.assertRaisesRegex(ValueError, 'only this version'):
+                rc.validate_notes(notes + '\n[旧版](\n ../../releases/download/v0.2.0/plugin.zip\n)', '0.1.0')
             for bad in (body + rc.MARKER, body.replace('release-candidate:v1', 'unknown')):
                 with self.assertRaises(ValueError): rc.formal_record(bad)
 

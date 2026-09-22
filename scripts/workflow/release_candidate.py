@@ -30,10 +30,17 @@ def validate_notes(notes, version):
     pc.require([title for title, _ in sections] == ['主な変更', '対応環境', 'インストール', '制約・詳細']
                and all(text.strip() for _, text in sections), 'Release notes need four non-empty Japanese sections')
     pc.require(not re.search(r'TODO|TBD|未記入|<!--', notes, re.I), 'Unfinished or hidden release notes')
+    # Keep the authoring format small instead of maintaining a partial Markdown parser.
+    pc.require('<' not in notes and '\\' not in notes and
+               not re.search(r'^\s*\[[^\]\n]+\]\s*:|\]\s*\[', notes, re.M),
+               'Use inline Markdown links; HTML, reference links and escapes are unsupported')
     expected = {f'https://github.com/{repo}/releases/download/v{version}/{version_name(version)}',
                 f'https://github.com/{repo}/blob/main/docs/releases/{version}.md'}
     urls = set(re.findall(r'https?://[^\s<>()\[\]`]+', notes, re.I))
-    urls.update(re.findall(r'\[[^\]]*\]\(([^\s)]+)', notes))
+    links = re.findall(r'\]\s*\(\s*([^\s)]+)', notes)
+    pc.require(all(urlsplit(link).scheme == 'https' and urlsplit(link).netloc for link in links),
+               'Release notes need only this version download and report links; use absolute HTTPS links')
+    urls.update(links)
     release_links = {url for url in urls if any(part in '/' + unquote(urlsplit(url).path).lstrip('/')
                      for part in ('/releases/download/', '/docs/releases/'))}
     pc.require(expected <= urls and release_links == expected,
