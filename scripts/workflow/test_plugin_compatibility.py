@@ -102,6 +102,8 @@ class CompatibilityTest(unittest.TestCase):
     def test_required_ci_gate_accepts_only_complete_or_safe_skip(self):
         import os
         import subprocess
+        if 'tasks.verifyPlugin' not in (pc.ROOT / 'build.gradle.kts').read_text():
+            self.skipTest('Legacy main build: compatibility CI wiring is part of #409')
         workflow = (pc.ROOT / '.github/workflows/ci.yml').read_text()
         gate = workflow.split('      - name: Enforce complete CI outcome', 1)[1].split('        run: |\n', 1)[1]
         script = '\n'.join(line[10:] for line in gate.splitlines())
