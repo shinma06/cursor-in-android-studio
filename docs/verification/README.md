@@ -82,3 +82,7 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。G
 初期7ファイルは現在のIssueコメントと固定runから登録しています。過去の部分passは`history`のみで、候補結果は未登録です。PMは各PRのwriter/既存enrollmentを確認した後、導入済みdevelopを同期し、必要な受入JSONとPR metadataを付けてretargetします。#81の未接続をGUI環境blockedとして扱わないでください。
 
 候補後のcommitも個別検査します。後続developを取り込んで製品差分だけRevertする操作は、最終treeが一致しても未確認履歴の混入として拒否されます。
+
+## main起点の限定候補（#408）
+
+モダン化だけをmainへ取り込むユーザー承認済み経路は[限定取り込み手順](../development/main-scoped-release.md)に従う。trusted mainに先行保存した計画の全必要Caseを同一候補/ZIPで確認する。develop全体のpromotion、GUI不要tooling、4必須checksと独立レビューは維持する。

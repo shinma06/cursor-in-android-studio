@@ -124,3 +124,7 @@ PMは導入main SHAからdevelopを作成し、両rulesetへAcceptance gateを�
 題名はtypeに対応する `[機能]` / `[修正]` / `[調査]` / `[試験]` / `[運用]` / `[追跡]` と簡潔な要約。QAは `[試験] #元Issue番号 要約`。優先度は題名に重ねません。
 必須labelは各軸ちょうど1つ: `type:feature|bug|research|qa|maintenance|tracking`、`priority:P0|P1|P2`、`status:ready|in-progress|review|blocked|deferred|done`。closedはdone、openはdone以外。本文に受入・依存・次操作を記載し、PR policyが命名と3軸を検査します。
 元実装に未実装受入が残る場合は別実装Issueに分離・linkしてから実装完了を判定します。単にPR scopeが済んだだけではcloseしません。元IssueのcloseはGUI pass/main反映済みを意味しません。QA Caseと固定候補promotion gateは従来どおり維持します。
+
+## main起点の限定候補（#408）
+
+モダン化だけをmainへ取り込むユーザー承認済み経路は[限定取り込み手順](main-scoped-release.md)に従う。trusted mainに先行保存した計画の全必要Caseを同一候補/ZIPで確認する。develop全体のpromotion、GUI不要tooling、4必須checksと独立レビューは維持する。

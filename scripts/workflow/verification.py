@@ -131,6 +131,63 @@ def source_commits(source, base, git):
     return covered
 
 
+def regular_json(ref, path, git):
+    entry = git('ls-tree', ref, '--', path).split()
+    if len(entry) != 4 or entry[0] != '100644' or entry[1] != 'blob' or entry[3] != path:
+        raise ValueError('Scope plan must be a regular JSON file in trusted main')
+    def unique_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate key in trusted scope plan')
+            result[key] = value
+        return result
+    return json.loads(git('show', f'{ref}:{path}'), object_pairs_hook=unique_pairs)
+
+
+def scoped_history(base, head, allowed, git):
+    """Inspect every edge, including changes later reverted; never follow symlinks."""
+    previous = base
+    commits = git('rev-list', '--reverse', f'{base}..{head}').splitlines()
+    for commit in commits:
+        if git('rev-list', '--parents', '-n', '1', commit).split() != [commit, previous]:
+            raise ValueError('Scoped candidate and result history must be linear from the fixed base')
+        raw = git('diff', '--raw', '--no-abbrev', '--no-renames', '--ignore-submodules=none', '-z', previous, commit)
+        fields = raw.split('\0')
+        if fields[-1] != '':
+            raise ValueError('Malformed scoped diff')
+        for index in range(0, len(fields) - 1, 2):
+            header, path = fields[index].split(), fields[index + 1]
+            if (len(header) != 5 or path not in allowed or header[0] not in (':000000', ':100644', ':100755')
+                    or header[1] != allowed[path] or header[4] not in ('A', 'M')):
+                raise ValueError('Path or file mode outside trusted scope: ' + path)
+        previous = commit
+    if previous != head:
+        raise ValueError('Scoped candidate is not descended from the fixed base')
+    return commits
+
+
+def scoped_candidate(base, candidate, issue, git=git_read):
+    if not SHA.fullmatch(base or '') or not SHA.fullmatch(candidate or '') or type(issue) is not int or issue <= 0:
+        raise ValueError('Invalid scoped candidate identity')
+    path = f'docs/verification/scopes/issue-{issue}.json'
+    plan = regular_json(base, path, git)
+    if plan.get('schema') != 1 or plan.get('issue') != issue:
+        raise ValueError('Trusted scope Issue mismatch')
+    allowed = plan.get('files')
+    if (not isinstance(allowed, dict) or not allowed or
+            any(not isinstance(p, str) or p.startswith(('/', 'scripts/workflow/', 'docs/verification/')) or
+                any(part in ('', '.', '..') for part in p.split('/')) or '\\' in p or m not in ('100644', '100755') for p, m in allowed.items())):
+        raise ValueError('Scope cannot modify its plan, acceptance or release gates')
+    protected = {'.github/workflows/acceptance.yml', '.github/workflows/pr-policy.yml', '.github/workflows/agent-review.yml'}
+    if set(allowed) & protected:
+        raise ValueError('Scope cannot modify trusted check workflows')
+    change = validate_change(plan['acceptance'], issue, True)
+    if not scoped_history(base, candidate, allowed, git):
+        raise ValueError('Scoped candidate has no changes')
+    return change
+
+
 def verify_pr(pr, api, git=git_read):
     """api(path) uses the same repo; git sees fetched PR/candidate objects only as data."""
     issue, path, mode = metadata(pr)
@@ -154,62 +211,75 @@ def verify_pr(pr, api, git=git_read):
     promotion = json.loads(git('show', f'{head}:{PROMOTION}'))
     candidate = promotion.get('candidate')
     if promotion.get('schema') != 1 or promotion.get('base') != base or not SHA.fullmatch(candidate or ''):
-        raise ValueError('Promotion must bind the current main base and fixed develop candidate')
-    # Later develop work belongs to the next batch. The fixed candidate must still be its ancestor.
-    ref = api('git/ref/heads/develop')
-    develop = ref.get('object', {}).get('sha')
-    if not SHA.fullmatch(develop or ''):
-        raise ValueError('Invalid develop reference')
-    git('fetch', '--no-tags', 'origin', develop)
-    git('merge-base', '--is-ancestor', candidate, develop)
-    git('merge-base', '--is-ancestor', candidate, head)
-    git('merge-base', '--is-ancestor', base, head)
-    # Metadata-only changes after the tested candidate. No untested product edits or main conflict resolutions.
-    allowed = {PROMOTION, path}
-    if any(p not in allowed for p in git('diff', '--name-only', candidate, head).splitlines()):
-        raise ValueError('Promotion tree differs from tested candidate outside acceptance metadata')
-    # A net-zero revert must not smuggle later/unobserved commits into main ancestry.
-    # Every new promotion commit is metadata-only; the only allowed merge parent is current main.
-    for commit in git('rev-list', head, '--not', candidate, base).splitlines():
-        parents = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
-        if not parents or len(parents) > 2 or (len(parents) == 2 and parents[1] != base):
-            raise ValueError('Unexpected promotion ancestry; only the current main merge is allowed')
-        changed = git('diff', '--name-only', parents[0], commit).splitlines()
-        if any(p not in allowed for p in changed):
-            raise ValueError('Untested commit in promotion history, even if later reverted')
-    commits = git('rev-list', f'{base}..{candidate}').splitlines()
-    if not commits or len(commits) != len(set(commits)):
-        raise ValueError('No candidate changes or duplicate commits')
-    changes = promotion.get('changes', [])
-    if not isinstance(changes, list) or {x.get('commit') for x in changes} != set(commits) or len(changes) != len(commits):
-        raise ValueError('Promotion must cover EVERY candidate commit absent from main exactly once')
-    by_pr = {}
-    for item in changes:
-        number = item.get('pr')
-        if type(number) is not int or number <= 0:
-            raise ValueError('Each candidate commit needs its merged develop PR')
-        by_pr.setdefault(number, set()).add(item['commit'])
-    required = {}
-    for number, covered in by_pr.items():
-        source = api(f'pulls/{number}')
-        if (not source.get('merged') or source['base']['ref'] != 'develop' or
-                source['merge_commit_sha'] not in covered or
-                source['base']['repo']['full_name'] != pr['base']['repo']['full_name'] or
-                source['head']['repo'] is None or source['head']['repo']['full_name'] != pr['base']['repo']['full_name']):
-            raise ValueError('Commit is not the identified same-repository merged develop PR')
-        if covered != source_commits(source, base, git):
-            raise ValueError('Candidate commits do not exactly match their merged develop PR provenance')
-        source_issue, source_path, source_mode = metadata(source)
-        if source_mode != 'develop':
-            raise ValueError('Missing develop acceptance provenance')
-        source_gui = field(source['body'], 'GUI') == 'required'
-        change = validate_change(json.loads(git('show', f'{source["merge_commit_sha"]}:{source_path}')), source_issue, source_gui)
-        for case in change['cases']:
-            key = f'{source_issue}:{case["id"]}'
-            requirement = (case.get('required_execution'), case.get('artifact', 'plugin'))
-            if key in required and required[key] != requirement:
-                raise ValueError('Case execution requirement changed across candidate commits')
-            required[key] = requirement
+        raise ValueError('Promotion must bind the current main base and fixed candidate')
+    scope = promotion.get('scope', 'develop')
+    if scope not in ('develop', 'main'):
+        raise ValueError('Unknown promotion scope')
+    if scope == 'main':
+        if not gui or 'changes' in promotion:
+            raise ValueError('Scoped promotion requires GUI and uses trusted plan, not develop changes')
+        change = scoped_candidate(base, candidate, issue, git)
+        if data != change:
+            raise ValueError('Scoped acceptance must equal the trusted plan; observations belong in results')
+        scoped_history(candidate, head, {PROMOTION: '100644', path: '100644'}, git)
+        required = {f'{issue}:{case["id"]}': (case.get('required_execution'), case.get('artifact', 'plugin'))
+                    for case in change['cases']}
+    else:
+        # Later develop work belongs to the next batch. The fixed candidate must still be its ancestor.
+        ref = api('git/ref/heads/develop')
+        develop = ref.get('object', {}).get('sha')
+        if not SHA.fullmatch(develop or ''):
+            raise ValueError('Invalid develop reference')
+        git('fetch', '--no-tags', 'origin', develop)
+        git('merge-base', '--is-ancestor', candidate, develop)
+        git('merge-base', '--is-ancestor', candidate, head)
+        git('merge-base', '--is-ancestor', base, head)
+        # Metadata-only changes after the tested candidate. No untested product edits or main conflict resolutions.
+        allowed = {PROMOTION, path}
+        if any(p not in allowed for p in git('diff', '--name-only', candidate, head).splitlines()):
+            raise ValueError('Promotion tree differs from tested candidate outside acceptance metadata')
+        # A net-zero revert must not smuggle later/unobserved commits into main ancestry.
+        # Every new promotion commit is metadata-only; the only allowed merge parent is current main.
+        for commit in git('rev-list', head, '--not', candidate, base).splitlines():
+            parents = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
+            if not parents or len(parents) > 2 or (len(parents) == 2 and parents[1] != base):
+                raise ValueError('Unexpected promotion ancestry; only the current main merge is allowed')
+            changed = git('diff', '--name-only', parents[0], commit).splitlines()
+            if any(p not in allowed for p in changed):
+                raise ValueError('Untested commit in promotion history, even if later reverted')
+        commits = git('rev-list', f'{base}..{candidate}').splitlines()
+        if not commits or len(commits) != len(set(commits)):
+            raise ValueError('No candidate changes or duplicate commits')
+        changes = promotion.get('changes', [])
+        if not isinstance(changes, list) or {x.get('commit') for x in changes} != set(commits) or len(changes) != len(commits):
+            raise ValueError('Promotion must cover EVERY candidate commit absent from main exactly once')
+        by_pr = {}
+        for item in changes:
+            number = item.get('pr')
+            if type(number) is not int or number <= 0:
+                raise ValueError('Each candidate commit needs its merged develop PR')
+            by_pr.setdefault(number, set()).add(item['commit'])
+        required = {}
+        for number, covered in by_pr.items():
+            source = api(f'pulls/{number}')
+            if (not source.get('merged') or source['base']['ref'] != 'develop' or
+                    source['merge_commit_sha'] not in covered or
+                    source['base']['repo']['full_name'] != pr['base']['repo']['full_name'] or
+                    source['head']['repo'] is None or source['head']['repo']['full_name'] != pr['base']['repo']['full_name']):
+                raise ValueError('Commit is not the identified same-repository merged develop PR')
+            if covered != source_commits(source, base, git):
+                raise ValueError('Candidate commits do not exactly match their merged develop PR provenance')
+            source_issue, source_path, source_mode = metadata(source)
+            if source_mode != 'develop':
+                raise ValueError('Missing develop acceptance provenance')
+            source_gui = field(source['body'], 'GUI') == 'required'
+            change = validate_change(json.loads(git('show', f'{source["merge_commit_sha"]}:{source_path}')), source_issue, source_gui)
+            for case in change['cases']:
+                key = f'{source_issue}:{case["id"]}'
+                requirement = (case.get('required_execution'), case.get('artifact', 'plugin'))
+                if key in required and required[key] != requirement:
+                    raise ValueError('Case execution requirement changed across candidate commits')
+                required[key] = requirement
     results = promotion.get('results', {})
     if not isinstance(results, dict):
         raise ValueError('Candidate results must be an object matching ALL required Cases')
