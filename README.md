@@ -9,15 +9,15 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
 > 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues/1)** — 進捗の一次情報源。GPTが進行・実装・GUI検証と統合、Claude Proが独立レビュー、Cursor ProがGUI検証課題を担当する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗と担当の一次情報源。個別Issueの受入・所有記録・直近コメントを確認し、[開発手順](docs/development/github-workflow.md)に従って着手する。レビューは実装と独立した担当が行い、GUIは予約を持つ指定担当または人間が操作する。
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
-> **GUI QA（Computer Use優先、人間による補完）**: 実画面で確認する項目は [docs/manual-verification/matrix.md](docs/manual-verification/matrix.md) に一覧化する。確認前に Branch 列を参照すること。
+> **GUI QA（Computer Useと人間による確認）**: [確認マトリクス](docs/verification/README.md)の固定候補・Case JSONを正本とする。人間が確認する場合は[試験手順](https://github.com/shinma06/cursor-in-android-studio/blob/28e9c441e8eb7824cb3e193361221f715b929eb2/docs/verification/human-qa.md)から進む。
 
 ## ループ開発
 
-[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [GPT・Claude・Cursorの役割と開発ループ](docs/loop-engineering/README.md)。GPTへIssueを指定すると、GUIで再現→修正→Claudeレビュー→同じ操作で再確認する。
+[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [開発ループ](docs/loop-engineering/README.md)。Issueの対象に応じ、GUIで再現→修正→独立レビュー→同じ操作で再確認する。
 
 ## セットアップ
 
@@ -30,18 +30,20 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 21)"   # Gradle・toolchain・JVM 
 
 ## 前提
 
-- Android Studio 2026.1系（Platform 261系）Stable。下限compile SDKはQuail 1初版2026.1.1.8、検証対象はQuail 1/JBR21とQuail 4 Patch 1/JBR25。限定候補の実IDE受入は#409で追跡する。
+- Android Studio 2026.1系（Platform 261系）Stable。下限compile SDKはQuail 1初版2026.1.1.8。正式0.1.0の同一ZIPをQuail 1/JBR21とQuail 4 Patch 1/JBR25で確認済みです。中間patchの個別実測・262以降の対応は含みません。
 - `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
 - SDKはGradleが固定取得する。local SDKを使う場合だけ `-PuseLocalPlatform=true -PplatformPath=...` を明示し、固定full buildと不一致なら失敗する。
 
 ## 配布と受入
 
-モダン化は現在mainの機能を維持する[限定候補](docs/development/main-scoped-release.md)として受け入れる。develop未反映の新機能を含めず、同じJVM21 ZIPを両IDE/JBRで検証する。正式公開は未完了。取得・同一ZIP公開は[配布手順](docs/development/plugin-zip-delivery.md)を参照。
+**[正式版0.1.0をダウンロード](https://github.com/shinma06/cursor-in-android-studio/releases/download/v0.1.0/cursor-in-android-studio-0.1.0.zip)** / [Releaseと検証資料](https://github.com/shinma06/cursor-in-android-studio/releases/tag/v0.1.0)。
+
+mainの既存機能を保ち、ビルド構成・SDK・依存と配布経路をモダン化した正式版です。検証済みJVM21 ZIPを再ビルドせず公開し、公開後も同一hashを確認しました。develop未反映のACP等の新機能は含みません。[対応IDE・更新内容・検証結果と既知の制約](docs/releases/0.1.0.md) / [配布手順](docs/development/plugin-zip-delivery.md)。
 
 ## Android Studio へのインストール
 
 1. **Settings → Plugins → ⚙ → Install Plugin from Disk...**
-2. `build/distributions/cursor-in-android-studio-<version>.zip` を選択
+2. ダウンロードした `cursor-in-android-studio-0.1.0.zip` を選択（**Source code (zip)** はインストール用ではありません）
 3. Restart IDE
 4. **View → Tool Windows → Cursor in Android Studio**
 

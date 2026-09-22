@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 393,
+  "gui_required": false,
+  "reason": "受入済みmainのRCを同一bytesで正式公開し、README・配布案内・最終報告だけを更新する。製品/ビルド入力に変更なし。実IDE4Caseは#409の固定RCで完了済み。",
+  "cli_checks": [
+    "publishがPR411のmerge parents・main包含・candidate/hash・全Case・4必須checksを照合し、保管RCの6assetを再取得して公開する",
+    "正式v0.1.0のtag=main merge、draft/prerelease=false、公開6assetの全bytes/hashと保存RCの一致を独立取得で確認する",
+    "最終報告の依存before/after・SDK/JBR・ZIP内JAR・実検証/未検証の境界を固定sourceと証拠へ照合する",
+    "文書リンク・受入schema・Change Impact、最終HEAD/baseの独立レビューと4必須checksを確認する",
+    "#394で全7領域・全ページの監査、所有資源のcleanup/保全理由を照合し、親#387・Milestone7・Projectの終了状態をreadbackする"
+  ],
+  "cases": []
+}
