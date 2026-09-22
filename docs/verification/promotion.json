@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "scope": "main",
+  "base": "31e864b9e34db54244d2eb77e2c2456bcbfa6093",
+  "candidate": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
+  "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
+  "results": {
+    "409:MODERN-Q1-TERMINAL-ON": {
+      "status": "pending",
+      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+    },
+    "409:MODERN-Q1-TERMINAL-OFF": {
+      "status": "pending",
+      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+    },
+    "409:MODERN-Q4-TERMINAL-ON": {
+      "status": "pending",
+      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+    },
+    "409:MODERN-Q4-TERMINAL-OFF": {
+      "status": "pending",
+      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+    }
+  }
+}
