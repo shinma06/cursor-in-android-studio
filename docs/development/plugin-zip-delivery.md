@@ -135,3 +135,57 @@ python3 scripts/workflow/release_candidate.py publish --directory "$DOWNLOADED_R
 既存promotion validatorで全commit・全必要Caseを再確認し、mergeの実親、mainへの包含、candidate/hash、4必須checkを照合する。不足・別候補ならRelease作成前に失敗する。保管RCをもう一度取得し、`v<version>`をそのmain mergeへ、asset名を`cursor-in-android-studio-<version>.zip`へ対応付ける。ZIP内部versionは初めから正式値のまま。Gradleの再実行・再圧縮・version書換えはしない。公開後に全assetをdownloadして実hashを照合する。同じ正式tagの別commitや別assetは拒否する。
 
 公開済みでもdownload/readbackに失敗したら完了扱いにしない。同じ入力で再照合し、異なるデータなら保持して調査する。RC/正式Releaseの削除やGitHub保護設定変更を復旧手段にしない。公開記録にはsource/version/full build/JBR/hash/公式URL/PRを残し、ローカル絶対パス・host・秘密は記録しない。
+
+## Phase 6の公開準備
+
+2026-09-22 / [#406](https://github.com/shinma06/cursor-in-android-studio/issues/406)。以下は公開説明と最終報告の準備であり、正式Releaseの完了報告ではない。追加GUI・固定候補の全Case試験・main昇格・正式公開は [#393のTODO](https://github.com/shinma06/cursor-in-android-studio/issues/393) に残す。準備文書だけの完了で親IssueやMilestoneを閉じない。
+
+### 更新内容と確認範囲
+
+変更前は [Phase 1 baseline](../research/modernization-baseline-2026-09-21.md)、更新後は固定source [`28e9c441e8eb7824cb3e193361221f715b929eb2`](https://github.com/shinma06/cursor-in-android-studio/tree/28e9c441e8eb7824cb3e193361221f715b929eb2) の宣言と保存RCの入力記録に基づく。将来の最新版を示す表ではない。選定時の公式資料・互換範囲はbaselineのリンクを参照し、ビルド成功を公式保証へ読み替えない。
+
+| 項目 | 変更前 | 更新後 |
+| --- | --- | --- |
+| Gradle Wrapper | 8.13 | 9.7.1 |
+| Kotlin Gradle Plugin | 2.3.0 | 2.4.20、language/API 2.3 |
+| IntelliJ Platform Gradle Plugin | 2.10.5 | 2.19.0 |
+| Foojay resolver | 0.9.0 | 1.0.0 |
+| Gson | 2.11.0 | 2.14.0 |
+| commonmark | 0.30.0 | 0.30.0（維持） |
+| JUnit | 5.11.0 | BOM/Jupiter 5.14.4とPlatform launcher |
+| build実行JDK / toolchain / JVM target | 21 / 21 / 21 | 21 / 21 / 21（維持） |
+| compile SDK | 環境依存のlocal SDK | Quail 1初版2026.1.1.8のfull build固定 |
+| Kotlin stdlib | 2.3.0をZIPへ同梱 | 同梱せずIDE提供2.3.20を使用 |
+
+保存RCのlibは本体・searchableOptions・Gson 2.14.0・commonmark 0.30.0・error_prone_annotations 2.48.0。旧annotations 13.0とKotlin stdlibは含まれず、coroutinesも同梱しない。実一覧はRCの `inputs.json` を正本とし、新候補では再照合する。明示local SDKは既定経路にせず、固定full buildと不一致・確認不能なら失敗させる。
+
+対象方針はAndroid Studio StableのPlatform 261系。検証端点はQuail 1初版 `2026.1.1.8 / AI-261.23567.138.2611.15503007 / JBR 21.0.10` とQuail 4 Patch 1 `2026.1.4.8 / AI-261.26222.65.2614.16379836 / JBR 25.0.3`。メタデータの `sinceBuild=261.23567.138 / untilBuild=261.*` は、この系統の全IDE・全OSで実測済みという意味ではない。単一のJVM target 21 ZIPを両JBRで検証する。
+
+[#392の保存RC](https://github.com/shinma06/cursor-in-android-studio/issues/392) はversion `0.1.0`、sourceは上記固定SHA、ZIP SHA-256は `e0c52cd6e60f254810dd43f2f5903b9f918485945ad2edc4583914fde36cbcb4`。445 JUnit、構造検査、Verifier 1.410による両IDEの427本体クラスのAPI検査は成功した。実IDEのInstall from Disk・再起動・ロード照合とTerminal有効/無効の部分確認はあるが、Tabの製品failと多数の未確認Caseがあり、全受入は未完了である。このRCを正式assetとして公開しない。
+
+残る制約は次のとおり。検証結果を新sourceの結果へ転用しない。
+
+- Gradle 9.7.1は選定時のKGP完全サポート上限9.7.0との差がある。実ビルド成功と公式の完全サポート範囲は分けて記録する。
+- Verifierの任意依存例外は [固定policy](../../scripts/workflow/plugin_compatibility.json) のJCEF・XPathView・Python・IDEA Community・trainingの5件と対象full buildだけ。必須依存や新しい未解決依存を許容しない。非推奨・experimental・internal APIと既知ログwarningの根拠も同policyへ結び付け、対象拡張時に再評価する。
+- 入力のTabは [#205](https://github.com/shinma06/cursor-in-android-studio/issues/205)、`@`候補の通知・文書変更は [#404](https://github.com/shinma06/cursor-in-android-studio/issues/404) で修正と再確認を追跡する。候補の開閉が観測中のフォーカス移動でも変わり得る知見を含め、修正コードの成功を実IDE合格としない。
+- ACPの既存受入・公開承認待ち [#146](https://github.com/shinma06/cursor-in-android-studio/issues/146) は別ownerのまま。今回の文書作業から解除しない。
+
+### 公開説明の下書き
+
+以下は受入完了後、実際の最終候補・正式Release URLへ対応付けて使う文案。未記入の参照や未達条件を残したまま正式公開済みの説明へ切り替えない。公開ツールが生成するRelease本文の識別marker/JSONは保持し、文案で置換しない。
+
+> Cursor in Android Studio 0.1.0は、Android Studio 2026.1系（Platform 261系）向けにビルド構成と配布方法を更新しました。確認済みのIDE・JBRと試験範囲は最終検証記録を参照してください。JVM target 21の単一ZIPを、検証時と同一の内容で配布します。プラグインIDと設定・履歴の保存先は維持しています。
+>
+> 正式ReleaseのAssetsから `cursor-in-android-studio-0.1.0.zip` を取得し、掲載されたSHA-256と照合してください。自動生成されたSource code (zip)はインストール用ではありません。Settings → Plugins → ⚙ → Install Plugin from Disk...でZIPを選択し、IDEを再起動します。
+
+文案に添える確定情報は、正式Release URL、最終検証記録URL、確認済みIDE/OS/JBR、未確認範囲・残制約、ZIP SHA-256。承認済みversionは0.1.0だが、新候補のsource/hashや正式URLはまだ確定しない。正式tag `v0.1.0` はmain promotionのmerge commitを指し、ZIPのbuild sourceはmanifestの固定develop SHAを指す。この違いを公開記録へ残す。
+
+### 再開時の順序と残TODO
+
+1. **修正と残条件を照合する。** #205/#404の修正・独立レビュー・develop統合、#392の直接範囲、#146等の必要Caseの前提を確認する。現RCの結果やPR #402をそのまま合格へ変更しない。
+2. **新候補を固定する。** 必要な実装・文書の統合後に、version/source/対象IDE/全commit・全必要Case一覧を固定する。変更したsourceは新RCとして上の手順1〜3で生成・保存・取得し、同一ZIPで必要検証をやり直す。旧RCは上書きしない。試験中の後続develop変更はこの固定候補へ自動追加しない。
+3. **受入後にmainへ昇格する。** 同一candidate/hashの全必要Case・互換性・独立レビューと最新4必須checkを照合し、通常のpromotion PRをmerge commitで統合する。未達ならここで待つ。追加GUI・全Case試験の再開自体は今回の作業外。
+4. **検証済みZIPを公開し、取得して照合する。** 上の手順4を使う。公開判定の試行として `publish` を実行しない（dry-runではない）。再build・再resolve・再圧縮・version編集はせず、正式assetの全hashを保存RCと照合する。
+5. **最終報告と後片付けを行う。** source/version/tag/main merge/asset/hash、依存・lib・JDK/SDK/JBR、Verifier/GUI/全Case、公式範囲と実測・残warningを最終候補の記録で確定する。READMEを実公開状態へ更新し、QAのmain包含を個別照合する。最終監査は [#394](https://github.com/shinma06/cursor-in-android-studio/issues/394) を再利用し、owned clean停止済み資源のcleanupと残存理由・担当・再開条件、Project/native関係をreadbackしてから親/Milestoneの完了を判断する。
+
+公開担当は再開時にclaimで確定する。既存owner・保存証拠・未merge branchとPAUSED coordinatorを維持し、準備PRの登録だけで自動統合・公開が進んだと扱わない。

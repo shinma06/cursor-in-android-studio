@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 406,
+  "gui_required": false,
+  "reason": "Phase 6の公開説明・依存更新表・再開TODOとREADME導線だけの文書変更。製品/配布tooling/成果物は変更せず、追加GUI・全Case・main統合・正式公開は親#393へ残す。",
+  "cli_checks": [
+    "Change ImpactでKnowledge/Metadataのみを確認し、選択された検証を実行する",
+    "READMEと配布手順の相対リンク、固定sourceの宣言値、保存RC inputs/manifest、Issueの未達状態との整合を確認する",
+    "独立した固定HEAD/baseレビューで正式受入済みと誤認させない文言、同一ZIP公開と再開順序を確認する"
+  ],
+  "cases": []
+}

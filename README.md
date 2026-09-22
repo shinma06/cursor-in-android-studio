@@ -39,7 +39,7 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 21)"   # macOS。ほかのOSもJDK
 
 ## 配布版の選択
 
-開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを両IDEと全必要Caseで検証してから公開します。正式RC/GUI/mainの受入は未完了で、Phase 4の仕組みの実装と正式公開済みを区別してください。
+開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを両IDEと全必要Caseで検証してから公開します。0.1.0の保存RCはありますが、GUI/mainの受入は未完了です。正式配布済みではありません。[公開準備と残TODO](docs/development/plugin-zip-delivery.md#phase-6の公開準備)に変更内容・検証範囲・再開順序をまとめています。
 
 ## Android Studio へのインストール
 
