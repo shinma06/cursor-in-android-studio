@@ -6,20 +6,48 @@
   "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
   "results": {
     "409:MODERN-Q1-TERMINAL-ON": {
-      "status": "pending",
-      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+      "status": "pass",
+      "actor": "gpt",
+      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
+      "at": "2026-09-22T02:57:42Z",
+      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
+      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
+      "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR21.0.10; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
+      "reason": "Terminal有効で@terminalの確認文字列を完全一致で取得。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
     },
     "409:MODERN-Q1-TERMINAL-OFF": {
-      "status": "pending",
-      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+      "status": "pass",
+      "actor": "gpt",
+      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
+      "at": "2026-09-22T02:57:42Z",
+      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
+      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
+      "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR21.0.10; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
+      "reason": "Terminal無効で再起動し、Terminalがなくても応答を実画面で確認。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
     },
     "409:MODERN-Q4-TERMINAL-ON": {
-      "status": "pending",
-      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+      "status": "pass",
+      "actor": "gpt",
+      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
+      "at": "2026-09-22T03:13:12Z",
+      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
+      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
+      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR25.0.3; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
+      "reason": "Terminal有効で@terminalの確認文字列を完全一致で取得。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
     },
     "409:MODERN-Q4-TERMINAL-OFF": {
-      "status": "pending",
-      "reason": "固定したmain限定RCの実IDE観察前。CLI/Verifier成功をGUI passに転用しない。"
+      "status": "pass",
+      "actor": "gpt",
+      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
+      "at": "2026-09-22T03:13:12Z",
+      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
+      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
+      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR25.0.3; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
+      "reason": "Terminal無効で再起動し、Terminalがなくても応答を実画面で確認。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
     }
   }
 }
