@@ -143,9 +143,8 @@ F-60 image UI remains unimplemented. The 2026-09-04 absence of an image flag is 
 [Change Impact](docs/development/change-impact.md)をCI・hook・自動進行役・ZIP生成で共通利用する。Knowledge/Metadataだけは重いコード検証を省略し、runtime/build/test/tooling・混在・unknownには必要な検証を残す。新しい入力/同梱resourceを追加したら分類も更新する。PR/独立review/Acceptance/GUI受入のgateは維持する。
 
 ```bash
-# Gradle itself needs JDK 17+; Kotlin compilation uses a JDK 21 toolchain
-# (auto-provisioned via the foojay-resolver plugin, independent of JAVA_HOME).
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+# Gradle runtime / Kotlin toolchain / JVM target are fixed to 21.
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 
 ./gradlew buildPlugin   # produces build/distributions/cursor-in-android-studio-<version>.zip
 ./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
@@ -157,27 +156,10 @@ Gradleとbootstrapは `core.hooksPath .githooks` を設定する。pre-pushは�
 
 GitHub Actionsのrequired `test` jobも同じ分類を利用し、実行/skipの理由をsummaryへ記録する。通常の製品変更のJUnitは従来どおり実行し、知識だけならAndroid Studio取得まで省略する。必要時のSDK解決方法は次のとおり。
 
-- **Local dev** uses `local(providers.gradleProperty("platformPath"))` in `build.gradle.kts`,
-  pointing at a real Android Studio install on the machine (`gradle.properties`).
-- **CI** downloads Android Studio directly in a workflow step (cached by version+codename) and
-  passes the extracted path in as `-PplatformPath`, reusing that exact same `local()` code path
-  rather than a separate resolution mechanism.
-- **Why not the plugin's own `androidStudio()` dependency helper**, which exists for exactly this
-  case: it constructs a broken download URL as of `org.jetbrains.intellij.platform` v2.10.5.
-  Verified by hand — the real artifact (`android-studio-<codename>-linux.tar.gz`) exists and
-  downloads fine over plain HTTP at
-  `https://redirector.gvt1.com/edgedl/android/studio/ide-zips/<version>/android-studio-<codename>-linux.tar.gz`
-  (codename, e.g. `quail3-patch1`, not the version string, in the filename — full list at
-  https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html), but Gradle's own
-  resolution 404s on it regardless of version tried, with or without a `google()` repository added.
-  Upgrading the plugin past 2.10.5 to check for a fix wasn't attempted beyond 2.18.1, which requires
-  Gradle 9 (this project is on 8.13) — a bigger, separate migration, not attempted here. If a future
-  change wants to revisit `androidStudio()` instead of the direct-download workaround, that Gradle
-  9 migration is the prerequisite, not just a version bump in `plugins {}`.
-- If `ci.yml`'s `ANDROID_STUDIO_VERSION`/`ANDROID_STUDIO_CODENAME` ever need to move to a newer
-  release, look both values up together from the releases-list page above — the codename doesn't
-  follow an obvious pattern from the version number alone (e.g. version `2026.1.4.7`'s codename is
-  `quail4`, not `quail4-patch1`, while `2026.1.3.8`'s is `quail3-patch1`).
+- Gradle実行・Kotlin toolchain・JVM targetは21。SDKは `androidStudio("2026.1.1.8")` でQuail 1初版の `AI-261.23567.138.2611.15503007` に固定する。local/CI/branch ZIPは同じ標準解決経路を使う。
+- local SDKは `-PuseLocalPlatform=true -PplatformPath=...` で明示する場合だけ使用できる。full build不一致/確認不能は失敗し、platformPath単独で既定SDKを変えない。
+- 旧2.10.5のSDK URL問題は過去の観測。新構成の標準SDK取得を無効にする根拠にしない。旧branch復旧だけはbranch ZIP workflowのlegacy判定を保持する。
+- 正式候補の固定・両IDE/JBR・同一ZIP公開は[限定取り込み手順](docs/development/main-scoped-release.md)と[配布手順](docs/development/plugin-zip-delivery.md)へ。develop全体の未反映機能をこのmain候補へ自動追加しない。
 
 **Correction (2026-09, found by an onboarding dry-run — see GitHub issue #13)**: this section used
 to say no test source set exists. That was true when it was written but has been stale since M1
@@ -188,11 +170,6 @@ and keep it green. There is still no lint/static-analysis task configured. If yo
 stale copy of this file (cached context, an old checkout), don't trust either claim — run
 `./gradlew test` yourself to check, and if this note itself looks wrong, the code is more likely to
 be right than a doc that says "don't assume X exists."
-
-`gradle.properties` sets `platformPath`, which must point at a local Android Studio install
-(`.../Android Studio.app/Contents`) for `buildPlugin`/`runIde` to resolve the platform SDK. This
-is machine-specific; see the two example paths already commented in that file (brew cask default
-vs. Caskroom versioned path).
 
 Manual install (no auto-update channel): Settings → Plugins → ⚙ → Install Plugin from Disk →
 select the built zip → restart IDE.

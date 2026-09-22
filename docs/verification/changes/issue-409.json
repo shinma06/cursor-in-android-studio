@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "issue": 409,
+  "gui_required": true,
+  "reason": "main機能を維持するビルド/SDK/依存変更のため両IDE・Terminal ON/OFFの実動作を確認する。develop全体の新機能受入は含めない。",
+  "cli_checks": [
+    "固定mainとの製品Kotlin差分なし、移植元PR396/398/400と選択差分を独立レビューする",
+    "全main既存JUnitと必要tooling検証、標準ZIP/構造、SDK一致/誤入力拒否、JVM21、stdlib非同梱、依存JARを照合する",
+    "同一ZIPをQuail1/JBR21とQuail4/JBR25のVerifierで検証し、受入済みレポート/限定例外を照合する"
+  ],
+  "cases": [
+    {
+      "id": "MODERN-Q1-TERMINAL-ON",
+      "change": "main機能を維持したSDK/JVM/依存更新の実IDE互換性",
+      "preconditions": "固定RCを専用Q1 fixtureへInstall from Diskしrestart、ロードJAR/hash・同梱JBRを照合。Terminal=ON。通常プロジェクトを使わずGUI leaseを確保。",
+      "steps": [
+        "起動・ToolWindow・設定画面を開き、更新に起因するロード/LinkageErrorがないことを確認する",
+        "既存mainのCLI接続で短い質問を送信し、応答表示・停止・新規会話の基本操作を確認する",
+        "設定を変更してIDE再起動後に保持を確認し、main由来の履歴metadataが正常に読み込めることを確認する",
+        "Terminal有効時は@terminalの取得を確認し、無効時はTerminal以外のチャットが使えることを確認する"
+      ],
+      "expected": "同じJVM21 ZIPが同梱JBRで動作し、main既存機能/保存の互換を損なわない。Terminalが任意のまま。develop専用機能は含まれない。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/409",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/397"
+      ],
+      "next_action": "候補生成・CLI/Verifier成功後、指定担当または人間が実画面で確認する",
+      "gpt": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新起因か既存mainの挙動かを切り分け、修正が必要なら計画・新candidate/hashを固定して再確認する"
+    },
+    {
+      "id": "MODERN-Q1-TERMINAL-OFF",
+      "change": "main機能を維持したSDK/JVM/依存更新の実IDE互換性",
+      "preconditions": "固定RCを専用Q1 fixtureへInstall from Diskしrestart、ロードJAR/hash・同梱JBRを照合。Terminal=OFF。通常プロジェクトを使わずGUI leaseを確保。",
+      "steps": [
+        "起動・ToolWindow・設定画面を開き、更新に起因するロード/LinkageErrorがないことを確認する",
+        "既存mainのCLI接続で短い質問を送信し、応答表示・停止・新規会話の基本操作を確認する",
+        "設定を変更してIDE再起動後に保持を確認し、main由来の履歴metadataが正常に読み込めることを確認する",
+        "Terminal有効時は@terminalの取得を確認し、無効時はTerminal以外のチャットが使えることを確認する"
+      ],
+      "expected": "同じJVM21 ZIPが同梱JBRで動作し、main既存機能/保存の互換を損なわない。Terminalが任意のまま。develop専用機能は含まれない。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/409",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/397"
+      ],
+      "next_action": "候補生成・CLI/Verifier成功後、指定担当または人間が実画面で確認する",
+      "gpt": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新起因か既存mainの挙動かを切り分け、修正が必要なら計画・新candidate/hashを固定して再確認する"
+    },
+    {
+      "id": "MODERN-Q4-TERMINAL-ON",
+      "change": "main機能を維持したSDK/JVM/依存更新の実IDE互換性",
+      "preconditions": "固定RCを専用Q4 fixtureへInstall from Diskしrestart、ロードJAR/hash・同梱JBRを照合。Terminal=ON。通常プロジェクトを使わずGUI leaseを確保。",
+      "steps": [
+        "起動・ToolWindow・設定画面を開き、更新に起因するロード/LinkageErrorがないことを確認する",
+        "既存mainのCLI接続で短い質問を送信し、応答表示・停止・新規会話の基本操作を確認する",
+        "設定を変更してIDE再起動後に保持を確認し、main由来の履歴metadataが正常に読み込めることを確認する",
+        "Terminal有効時は@terminalの取得を確認し、無効時はTerminal以外のチャットが使えることを確認する"
+      ],
+      "expected": "同じJVM21 ZIPが同梱JBRで動作し、main既存機能/保存の互換を損なわない。Terminalが任意のまま。develop専用機能は含まれない。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/409",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/397"
+      ],
+      "next_action": "候補生成・CLI/Verifier成功後、指定担当または人間が実画面で確認する",
+      "gpt": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新起因か既存mainの挙動かを切り分け、修正が必要なら計画・新candidate/hashを固定して再確認する"
+    },
+    {
+      "id": "MODERN-Q4-TERMINAL-OFF",
+      "change": "main機能を維持したSDK/JVM/依存更新の実IDE互換性",
+      "preconditions": "固定RCを専用Q4 fixtureへInstall from Diskしrestart、ロードJAR/hash・同梱JBRを照合。Terminal=OFF。通常プロジェクトを使わずGUI leaseを確保。",
+      "steps": [
+        "起動・ToolWindow・設定画面を開き、更新に起因するロード/LinkageErrorがないことを確認する",
+        "既存mainのCLI接続で短い質問を送信し、応答表示・停止・新規会話の基本操作を確認する",
+        "設定を変更してIDE再起動後に保持を確認し、main由来の履歴metadataが正常に読み込めることを確認する",
+        "Terminal有効時は@terminalの取得を確認し、無効時はTerminal以外のチャットが使えることを確認する"
+      ],
+      "expected": "同じJVM21 ZIPが同梱JBRで動作し、main既存機能/保存の互換を損なわない。Terminalが任意のまま。develop専用機能は含まれない。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/409",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/397"
+      ],
+      "next_action": "候補生成・CLI/Verifier成功後、指定担当または人間が実画面で確認する",
+      "gpt": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "main限定候補の実IDE確認前"
+      },
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "更新起因か既存mainの挙動かを切り分け、修正が必要なら計画・新candidate/hashを固定して再確認する"
+    }
+  ]
+}
