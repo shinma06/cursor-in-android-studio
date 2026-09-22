@@ -13,7 +13,7 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
-> **GUI QA（Computer Useと人間による確認）**: [確認マトリクス](docs/verification/README.md)の固定候補・Case JSONを正本とする。人間が確認する場合は[試験手順](docs/verification/human-qa.md)から進む。
+> **GUI QA（Computer Useと人間による確認）**: [確認マトリクス](docs/verification/README.md)の固定候補・Case JSONを正本とする。人間が確認する場合は[試験手順](https://github.com/shinma06/cursor-in-android-studio/blob/28e9c441e8eb7824cb3e193361221f715b929eb2/docs/verification/human-qa.md)から進む。
 
 ## ループ開発
 
