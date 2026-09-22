@@ -72,6 +72,29 @@ class CompatibilityTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 pc.check_reports(reports, log, policy['targets']['quail4'], manifest, policy)
 
+    def test_last_api_category_without_period_still_requires_reviewed_details(self):
+        policy = json.loads(pc.POLICY.read_text())
+        target = policy['targets']['quail1']
+        with tempfile.TemporaryDirectory() as temp:
+            reports = Path(temp)
+            directory = reports / target['build'] / 'plugins' / pc.PLUGIN_ID / '1.0.0'
+            directory.mkdir(parents=True)
+            (directory / 'telemetry.txt').write_text('Verified classes in plugin artifact: 1\n')
+            (directory / 'dependencies.txt').write_text(pc.PLUGIN_ID + ':1.0.0\n')
+            detail = directory / 'experimental-api-usages.txt'; detail.write_text('reviewed API usage')
+            policy['reviewed_api_reports'] = {detail.name: {'sha256': pc.digest(detail)}}
+            verdict = directory / 'verification-verdict.txt'
+            verdict.write_text('Compatible. 26 usages of experimental API')
+            manifest = {'identity': {'plugin.version': '1.0.0', 'classes': 1}}
+            log = 'Scheduled verifications (1):\nFinished 1 of 1 verifications'
+            self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verdict'], verdict.read_text())
+            detail.write_text('unreviewed change')
+            with self.assertRaisesRegex(ValueError, 'New/unreviewed report'):
+                pc.check_reports(reports, log, target, manifest, policy)
+            verdict.write_text('Compatible. Unknown API')
+            with self.assertRaisesRegex(ValueError, 'recognized compatible verdict'):
+                pc.check_reports(reports, log, target, manifest, policy)
+
     def test_same_archive_and_identity_are_checked_before_and_after_verification(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(pc, 'plugin_identity', return_value={'source.commit': 'abc'}):
             archive = Path(temp) / 'plugin.zip'

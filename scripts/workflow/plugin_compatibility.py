@@ -102,7 +102,9 @@ def check_reports(reports, log, target, manifest, policy):
     verdicts = list(reports.rglob('verification-verdict.txt'))
     require(verdicts == [directory / 'verification-verdict.txt'], 'Missing, extra or wrong-target verdict')
     verdict = verdicts[0].read_text().strip()
-    require(re.fullmatch(r'Compatible\.(?: \d+ usages? of scheduled for removal API and \d+ usages? of deprecated API\.| \d+ usages? of deprecated API\.| \d+ usages? of experimental API\.| \d+ usages? of internal API\.?)*', verdict),
+    # Verifier 1.410 omits the final period when the last category is an API warning.
+    checked_verdict = verdict + ('.' if verdict.endswith(' API') else '')
+    require(re.fullmatch(r'Compatible\.(?: \d+ usages? of scheduled for removal API and \d+ usages? of deprecated API\.| \d+ usages? of deprecated API\.| \d+ usages? of experimental API\.| \d+ usages? of internal API\.?)*', checked_verdict),
             'Verifier did not certify a recognized compatible verdict')
     telemetry = (directory / 'telemetry.txt').read_text()
     count = re.search(r'^Verified classes in plugin artifact: (\d+)$', telemetry, re.M)
