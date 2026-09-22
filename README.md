@@ -24,15 +24,19 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 ```bash
 git clone https://github.com/shinma06/cursor-in-android-studio.git
 cd cursor-in-android-studio
-export JAVA_HOME="$("/usr/libexec/java_home" -v 17)"   # Gradle自体はJDK17+が必要(Kotlinコンパイル自体はJDK21ツールチェーンを自動取得)
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"   # Gradle・toolchain・JVM targetは21
 ./gradlew buildPlugin
 ```
 
 ## 前提
 
-- Android Studio 2026.1 以降(build 261+)
+- Android Studio 2026.1系（Platform 261系）Stable。下限compile SDKはQuail 1初版2026.1.1.8、検証対象はQuail 1/JBR21とQuail 4 Patch 1/JBR25。限定候補の実IDE受入は#409で追跡する。
 - `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
-- `gradle.properties` の `platformPath` をローカルのAndroid Studio SDKパスに合わせて設定(マシン依存、コメントに例あり)
+- SDKはGradleが固定取得する。local SDKを使う場合だけ `-PuseLocalPlatform=true -PplatformPath=...` を明示し、固定full buildと不一致なら失敗する。
+
+## 配布と受入
+
+モダン化は現在mainの機能を維持する[限定候補](docs/development/main-scoped-release.md)として受け入れる。develop未反映の新機能を含めず、同じJVM21 ZIPを両IDE/JBRで検証する。正式公開は未完了。取得・同一ZIP公開は[配布手順](docs/development/plugin-zip-delivery.md)を参照。
 
 ## Android Studio へのインストール
 
