@@ -25,3 +25,7 @@ promotion JSONはschema=1、scope="main"、base=固定main SHA、candidate=固�
 main受入後は既存 `release_candidate.py publish` が同じvalidatorを実行する。公開時の計画はpromotion mergeの第1親に固定し、公開後にmainが進んでもその候補を別のmainで再解釈しない。正式tagはmain merge、実build sourceはmanifestのcandidate。保存RCの同一bytesを公開し、全assetを再取得してhash照合する。再build・再resolve・再圧縮・version書換えは禁止。
 
 Phase 5 #392はこの限定候補の互換性/必要Case、Phase 6 #393は限定候補のmain反映/同一ZIP公開/最終報告・#394監査を追跡する。develop全体の未反映機能/全Case受入は別TODOとして維持し、この限定公開の必須条件に戻さない。既存QAをまとめてcloseせず、実際に反映した変更だけを照合する。既存owner/enrollment/PAUSED定期処理は自動変更しない。
+
+## main候補の警告policy
+
+#409の開発preflight（正式RC前、製品Kotlinはmainと同一）は171クラスで、両SDKともAPI互換性検査が完走した。任意依存はXPathView/Python/IDEA Community/trainingの4件。mainにないJCEF providerの例外は持ち込まない。両SDKで同一の非推奨8利用（うち削除予定1）・experimental 26利用のレポートhashをpolicyへ固定し、internal API例外は追加しない。API分類と限定許容の判断を示す記録であり、正式RC/GUI合格の証拠には転用しない。正式候補では再検査し、差があれば自動許容せず調査する。
