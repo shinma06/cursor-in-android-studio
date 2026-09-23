@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 420,
+  "gui_required": false,
+  "reason": "開発コンテキストと開発Agent向けprompt参照のみ。製品実装・UI・runtime prompt・保存・製品tool契約・製品テストは無変更。model/client試験の未確認は製品GUI passにしない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "AGENTS symlink、両client Skill同期/frontmatter、rules形式、変更リンクと旧アンカー、製品src/tests差分ゼロを照合",
+    "review/fix promptの正本到達、権限・packet/schema・日本語報告保持をtest_agent_loopで模擬実行",
+    "誤字/Kotlin/read-only/所有競合/GUI pending/根拠不足の6課題を隔離状態で静的照合し、実session比較はIssue #420で別記",
+    "Agent専用の新規作成、共有知識更新、違反/正当な原証拠例外の監査を同じ正本で照合（作成更新/将来監査の追加受入）",
+    "実client検出・Astraと他modelのA/C比較・資源量は取得済み/未確認を区別し、担当/再開条件をIssue #420へ記録"
+  ],
+  "cases": []
+}
