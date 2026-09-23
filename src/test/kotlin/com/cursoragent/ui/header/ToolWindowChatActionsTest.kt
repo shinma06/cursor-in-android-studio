@@ -8,19 +8,17 @@ import com.cursoragent.settings.PermissionMode
 import com.cursoragent.settings.SandboxMode
 import com.cursoragent.settings.WorktreeMode
 import com.cursoragent.ui.confirmCloseChats
+import com.cursoragent.ui.unusedActionManager
 import com.cursoragent.ui.openedChatEntries
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.UpdateSession
 import com.intellij.openapi.actionSystem.ex.ActionUtil
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.util.IconLoader
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBUI
-import java.awt.Component
-import java.awt.event.InputEvent
 import kotlin.math.roundToInt
 import javax.swing.SwingUtilities
 import org.junit.jupiter.api.Assertions.*
@@ -536,24 +534,5 @@ class ToolWindowChatActionsTest {
         context, action.templatePresentation.clone(), "test", kind, null, 0, unusedActionManager,
     )
 
-    // No IDE application or GUI: these actions only read Presentation and their injected callbacks.
-    private val unusedActionManager = object : ActionManager() {
-        override fun createActionPopupMenu(place: String, group: ActionGroup): ActionPopupMenu = error("Unused")
-        override fun createActionToolbar(place: String, group: ActionGroup, horizontal: Boolean): ActionToolbar = error("Unused")
-        override fun getAction(id: String): AnAction? = error("Unused")
-        override fun getId(action: AnAction): String? = error("Unused")
-        override fun registerAction(id: String, action: AnAction) = error("Unused")
-        override fun registerAction(id: String, action: AnAction, pluginId: PluginId?) = error("Unused")
-        override fun unregisterAction(id: String) = error("Unused")
-        override fun replaceAction(id: String, action: AnAction) = error("Unused")
-        @Deprecated("Required by the IDE ActionManager test stub")
-        override fun getActionIds(prefix: String): Array<String> = error("Unused")
-        override fun getActionIdList(prefix: String): List<String> = error("Unused")
-        override fun isGroup(id: String) = false
-        override fun getActionOrStub(id: String): AnAction? = error("Unused")
-        override fun addTimerListener(listener: TimerListener) = error("Unused")
-        override fun removeTimerListener(listener: TimerListener) = error("Unused")
-        override fun tryToExecute(action: AnAction, input: InputEvent?, component: Component?, place: String?, now: Boolean): com.intellij.openapi.util.ActionCallback = error("Unused")
-        override fun getKeyboardShortcut(id: String): KeyboardShortcut? = error("Unused")
-    }
+
 }
