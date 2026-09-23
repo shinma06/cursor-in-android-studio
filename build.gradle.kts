@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -53,6 +54,7 @@ dependencies {
             androidStudio("2026.1.1.8")
         }
         bundledPlugins("org.jetbrains.plugins.terminal")
+        testFramework(TestFrameworkType.Bundled) // Exercise the resolved SDK's native Document/Undo behavior.
         pluginVerifier("1.410")
     }
 }
