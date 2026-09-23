@@ -37,7 +37,7 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
 
     override fun createEditor(): EditorEx = super.createEditor().also { editor ->
         // A prompt is an embedded form field, even though it supports multiple lines.
-        // Disable the IDE's Tab indentation action and use local Swing traversal keys.
+        // Use prompt-local shortcuts as well: selection indentation ignores this flag.
         editor.isEmbeddedIntoDialogWrapper = true
         installPromptFocusTraversal(editor.contentComponent)
         com.cursoragent.ui.composer.image.installPromptImageInput(editor) { value ->
