@@ -57,6 +57,8 @@
 | --- | --- | --- |
 | CLAUDE/AGENTS、両start/finish Skill、Cursor 2 rules | 現行Agent専用。常時/開始/終了/GUIの条件別 | 英語化、条件と参照を整理。symlink・両client経路・alwaysApplyを保持 |
 | knowledge、workflow参照表、Governance Audit、PR template | 現行共有規約。文脈の作成/更新/レビュー/監査時 | 日本語の本節を唯一の正本として接続。独立review/権限/完了gateを保持 |
+| loop-engineering/prompts/gpt-loop.md、claude-review.md | 人間向け説明と現行Agent用依頼本文。loop READMEから開始/独立review時に使用 | 説明は日本語、渡す本文/再開追記は英語。日本語報告、予算、GUI lease、read-only境界を保持。tool無効reviewには適用する規則の抜粋を添える |
+| loop-engineering/scenarios.mdとQAの製品入力例 | 人間向け試験と製品へ送る固定入力。指定Caseのみ | 原形を維持。製品prompt/期待値の変更を開発指示の翻訳に含めない |
 | agent_worker.py → review/fix、agent_loopのpacket/REPORT_SCHEMA | 現行Agent専用prompt、機械データ、日本語報告 | promptは既に英語。本節への参照のみ追加。role境界、生成/消費schema、実行権限は変更しない |
 | Mission/要件/architecture/運用/README/調査と開発サンプル | 人間共有。workflow参照表で必要部分を読む | 日本語本文・正確なコード・固有名詞を維持。英語見出し/固定題名はリンク互換のため維持。過去記録は当時の版で解釈 |
 | codex-execution-policy / ponytail導入記録 | 人間と共有する実行方針/判断証拠。Agent追加や導入調査時 | 日本語を維持。Astra条件と独立sessionの境界は翻訳対象のAgent専用指示とは別の共有判断 |
