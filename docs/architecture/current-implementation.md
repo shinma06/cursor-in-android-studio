@@ -19,11 +19,15 @@
 
 ## 入力文書と候補popupの境界
 
+この節は2026-09-24 / [PR #405](https://github.com/shinma06/cursor-in-android-studio/pull/405)で更新。先行Document生成とcommand対応の実装基準は`aa83b8f155cde6affe88a90c20467180246213e9`、Undo境界は同PRのレビュー修正。冒頭の全体照合基準とは別の追加実装であり、PRの固定commitとCaseを根拠とする。
+
 Platform 261の`EditorTextField(Project, FileType)`はDocumentを遅延生成する。Document生成前の`addDocumentListener`はfield内の一覧に保持されるが、後の`getDocument()`による生成では実Documentへの接続が行われない。`GrowingPromptField`は従来のPSI-backed Documentを初期化時に取得してから、`CommandInputPanel`と`MentionPopupController`がlistenerを登録する。入力通知を各consumerで複製して回避しない。Quail1/4の実SDKでlazy生成時の接続0件・先行生成時1件を確認した登録境界の再現と、実GUIの候補表示成功は別の証拠である（[#404](https://github.com/shinma06/cursor-in-android-studio/issues/404)）。
 
-候補選択で本文の`@`や`/`を削除するときは、write actionだけでなくIDEのcommand境界も必要。両選択処理は`WriteCommandAction`を使い、既存のdocument stamp・project dispose・候補の有効性確認を保つ。[公式Document規約](https://plugins.jetbrains.com/docs/intellij/documents.html#what-are-the-rules-of-working-with-documents)と、Quail1の固定試験buildで発生した[候補選択例外](https://github.com/shinma06/cursor-in-android-studio/issues/404#issuecomment-5762029921)が根拠。通常Documentへ変更した試行で観測された例外であり、従来のPSI-backed Documentでの再現を確認したとはしない。
+候補選択で本文の`@`や`/`を削除するときは、write actionだけでなくIDEのcommand境界も必要。両選択処理は共有の`consumePromptTrigger`で`WriteCommandAction`を使い、既存のdocument stamp・project dispose・候補の有効性確認を保つ。[公式Document規約](https://plugins.jetbrains.com/docs/intellij/documents.html#what-are-the-rules-of-working-with-documents)と、Quail1の固定試験buildで発生した[候補選択例外](https://github.com/shinma06/cursor-in-android-studio/issues/404#issuecomment-5762029921)が根拠。通常Documentへ変更した試行で観測された例外であり、従来のPSI-backed Documentでの再現を確認したとはしない。
 
-popupが消えた後の画面だけで「一度も開かなかった」と判定しない。入力直後・候補選択・取消・別アプリへのfocus移動を分け、IME変換中/確定EnterとShift+Enter、入力再生成後も同じ固定buildで確認する。修正後の両IDE GUIと、#205のTab修正を含む統合候補でのmain受入は[Case #404](../verification/changes/issue-404.json) / [Phase5 #392](https://github.com/shinma06/cursor-in-android-studio/issues/392)で未完了として追跡する。
+添付とコマンド選択は本文とは別の状態で、既存の×ボタンで解除する。triggerを消費するときは`UndoManager.nonundoableActionPerformed(DocumentReference, false)`でその入力Documentに非Undo境界を置く。選択前の本文編集履歴には戻れず、境界でのUndoはIDE標準の「取り消せない変更」案内で拒否される。選択後の本文編集はUndo/Redoでき、他Documentの履歴には作用しない。triggerだけ復活して選択が残る不整合を防ぎ、添付そのもののUndo機能は追加しない。
+
+popupが消えた後の画面だけで「一度も開かなかった」と判定しない。入力直後・候補選択・取消・別アプリへのfocus移動を分け、IME変換中/確定EnterとShift+Enter、入力再生成後も同じ固定buildで確認する。修正後の両IDE GUIと、#205のTab修正を含む統合候補でのmain受入は[Case #404](../verification/changes/issue-404.json)と統合後のQAで未完了として追跡する。旧Phase5 #392は終了済みで再開せず、正式v0.1.0や封印RCを変更しない。
 
 ## printの送信から終了まで
 

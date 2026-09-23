@@ -7,7 +7,8 @@
     "python3 scripts/workflow/change_impact.py --run-tests",
     "./gradlew buildPlugin verifyPluginStructure",
     "実Quail1 SDKの独立再現: Document生成前に登録すると実listener 0、先にDocumentを渡すと1。GUIなしでSDK登録境界を確認。",
-    "独立固定HEAD/baseレビュー。構造テストだけで実IDE popup/IME合格にしない。"
+    "独立固定HEAD/baseレビュー。構造テストだけで実IDE popup/IME合格にしない。",
+    "PromptTriggerUndoTest: 実SDKのDocument/UndoManagerで@と/の選択境界、選択後の本文Undo/Redo、別Documentの履歴を確認。GUIの候補表示/操作成功とは別。"
   ],
   "cases": [
     {
@@ -22,7 +23,8 @@
         "/を入力しSkills候補が開くこと、未取得候補を実行しないことと取消を確認する。",
         "日本語IME変換途中/Enter確定とShift+Enter改行で誤送信しない。複数行入力で入力欄が伸縮する。",
         "短いAsk応答1回の完了後、再有効化した入力欄で@と/の候補を確認する。新規チャットでも確認する。",
-        "#205修正と統合した候補で、空欄/単行/複数行、選択あり/なしのTabとShift+Tab、通常editor字下げを確認する。"
+        "#205修正と統合した候補で、空欄/単行/複数行、選択あり/なしのTabとShift+Tab、通常editor字下げを確認する。",
+        "候補を選んで@または/が消えた直後、UndoはIDE標準の取り消し不可案内となり、triggerだけが復活しないことを確認する。案内を閉じる。続けて本文に文字を追加し、その編集のUndo/Redoは可能なこと、×で添付/コマンドを解除できること、通常editorのUndo履歴が影響を受けないことを確認する。候補選択前の入力履歴へは戻れない。"
       ],
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/404",
@@ -31,7 +33,7 @@
       ],
       "fix_issue": null,
       "fix_pr": null,
-      "next_action": "ユーザー方針によりmain受入はTODO。修正後のQuail1/4で@・/の初回表示/選択/取消とIME/再生成を確認し、#205を含む新固定候補の全Case受入を#392で再開する。",
+      "next_action": "ユーザー方針によりmain受入はTODO。PR #403/#405を含む新固定候補を用意し、両IDEで初回表示/選択/取消、Undo境界、IME/再生成をQAで確認する。旧#392は再開しない。過去buildのfail/pendingを維持し、正式v0.1.0/封印RCは変更しない。",
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",

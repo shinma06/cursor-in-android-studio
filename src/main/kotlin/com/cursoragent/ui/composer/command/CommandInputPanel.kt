@@ -3,7 +3,7 @@ package com.cursoragent.ui.composer.command
 import com.cursoragent.service.CommandCatalog
 import com.cursoragent.service.containsCommand
 import com.cursoragent.ui.composer.GrowingPromptField
-import com.intellij.openapi.command.WriteCommandAction
+import com.cursoragent.ui.composer.consumePromptTrigger
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.project.Project
@@ -84,7 +84,7 @@ class CommandInputPanel(private val project: Project, private val field: Growing
         val panel = CommandPickerPanel(choose = { command ->
             if (!project.isDisposed && field.isShowing && document.modificationStamp == stamp && canInvoke(command.name)) {
                 if (triggerOffset != null && triggerOffset < document.textLength && document.charsSequence[triggerOffset] == '/') {
-                    WriteCommandAction.runWriteCommandAction(project) { document.deleteString(triggerOffset, triggerOffset + 1) }
+                    consumePromptTrigger(project, document, triggerOffset)
                 }
                 selectedName = command.name
                 refresh()

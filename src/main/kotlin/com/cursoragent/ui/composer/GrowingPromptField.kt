@@ -2,6 +2,10 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.AgentUiMetrics
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.command.undo.DocumentReferenceManager
+import com.intellij.openapi.command.undo.UndoManager
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
@@ -108,4 +112,16 @@ internal fun promptSizing(contentHeight: Int, lineHeight: Int, padding: Int, min
         (contentHeight.coerceAtMost(maximumContentHeight) + padding).coerceAtLeast(minimumHeight),
         contentHeight > maximumContentHeight,
     )
+}
+
+/** Attachments use their own remove controls; undo must not restore only their consumed trigger. */
+internal fun consumePromptTrigger(project: Project, document: Document, offset: Int) {
+    WriteCommandAction.writeCommandAction(project).withName("候補を選択").run<RuntimeException> {
+        document.deleteString(offset, offset + 1)
+        // ponytail: attachment state has no Undo model; stop at this document's selection boundary.
+        // Add atomic attachment Undo only if the draft model gains a matching Undo/Redo contract.
+        UndoManager.getInstance(project).nonundoableActionPerformed(
+            DocumentReferenceManager.getInstance().create(document), false,
+        )
+    }
 }
