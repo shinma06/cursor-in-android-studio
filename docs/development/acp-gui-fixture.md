@@ -4,6 +4,8 @@
 
 既存fakeのpermissionを既定値として維持し、#310で下表の有限ACP/printシナリオを追加しています。新protocolや汎用シナリオ言語、Controller/EDT停止はありません。今回の検査はheadlessのみで、後日のGUI接続には担当者・lease・固定buildの確認が必要です。
 
+Swing自体のアプリ識別・popup/modal取得を製品やIDEなしで切り分ける用途は、別の[JDK-only probe](../../scripts/gui-fixture/README.md#現在の用途と維持条件)を使います。本fixtureの合成通信試験とは代替関係にありません。
+
 ## 操作者向けサマリ
 
 | 項目 | 手順 | 期待値 |

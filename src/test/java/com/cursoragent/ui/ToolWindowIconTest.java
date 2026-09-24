@@ -13,6 +13,9 @@ import java.awt.image.BufferedImage;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+// Java intentionally accesses the SDK-internal activation flag to restore shared state.
+// Kotlin cannot access it; keep the native rendering check without reflection or visibility suppression.
+// Re-evaluate when the pinned SDK exposes a public equivalent (current-implementation.md#jvm-language).
 class ToolWindowIconTest {
     @Test
     void selectedIconsUseNativeForegroundAndKeepTheirOutline() {

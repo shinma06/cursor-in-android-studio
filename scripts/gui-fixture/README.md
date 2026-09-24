@@ -4,6 +4,14 @@ JDKだけの検証画面。製品部品・IntelliJ・CLI・保存設定へ接続
 既存SessionTabStripFixtureのbuild/run識別を参考に、標準Swingだけで
 アプリ接続と入力経路を先に確かめる。製品UI全体の複製ではない。
 
+## 現在の用途と維持条件
+
+#430で現行用途を照合。単なる過去サンプルではなく、[QA #108](https://github.com/shinma06/cursor-in-android-studio/issues/108)の固定成果物・報告整合と、[#73](https://github.com/shinma06/cursor-in-android-studio/issues/73)のpopup/modal取得・IME/D&D未達を製品/IDEから切り離して再現する対照資材として維持する。#73の製品部品共用pilotは別scopeを定義してから進め、このprobeを製品UIへ拡張しない。
+
+Javaの利点はJDKだけでコンパイル・梱包でき、Kotlin compiler/stdlibや製品buildを障害要因に加えないこと。管理対象は単一Java・build.py・本手順のmacOS/JDK経路に限定する。JAR/build/run/boot照合、使い捨て出力、GUI leaseは維持コストとして必要。[ACP/print合成通信fixture](../../docs/development/acp-gui-fixture.md)とは用途が異なる（そちらの起動adapterはPythonで、製品内の受信/表示を観測する）。
+
+未達Caseと次の操作はIssue/Case JSON、過去の実観察は[2026-09-07 run](../../docs/loop-engineering/runs/2026-09-07-swing-cua.md)が正本。本READMEへ結果表を複製しない。#108の資材確認と#73の切り分けが不要または代替済みになった時、担当がCaseの移管・原証拠の固定リンクを確認してソース/build toolingの廃止を判断する。新しいJARのCLI build成功は製品GUI受入ではない。
+
 ## ビルド（GUI操作なし）
 
 cleanなIssue worktreeをcommitしてからmacOSのJDK 21で実行する。

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 430,
+  "gui_required": false,
+  "reason": "Kotlin標準方針とJava例外の根拠を整理し、修正前の研究Javaを固定原証拠への参照に置換する。Gradleの重複java適用とテスト説明のみ変更し、製品source/resources・描画assertion・Swing probe/build.py・既存Caseと過去runは不変。GUI再試験は不要で、#73/#108/#203/#353の未達受入を維持する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test buildPlugin（固定Quail 1 SDK、ToolWindowIconTestを含む全JUnitとZIP生成）",
+    "Kotlin直接アクセスのコンパイル拒否とJava側の状態復元・描画assertionを照合",
+    "全Java/Gradle依存/source set/参照を検索し、固定研究リンクと現行Kotlinテストへの経路を照合",
+    "scripts/gui-fixture/build.pyでJDK-only buildとplain/.app JAR一致を確認（起動なし）",
+    "製品source/resources・既存Case・過去run・probe実行コードがbaseと不変であることを確認"
+  ],
+  "cases": []
+}

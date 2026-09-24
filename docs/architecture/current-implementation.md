@@ -111,6 +111,23 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 
 実行コマンドは `python3 scripts/workflow/change_impact.py --run-tests`、Kotlin対象は `./gradlew test`。追加の横断対応表は#231の担当範囲であり、ここにCaseのpass状態を複製しない。
 
+<a id="jvm-language"></a>
+
+## JVMソースの言語選択（#430）
+
+製品・テスト・新しいJVM検証コードはKotlinを標準とする。Javaは現在の具体的な利点を確認できる箇所だけに限定し、既存Javaという理由だけでは残さない。JDK/JVM依存とJavaソース専用の依存は区別する。
+
+| 対象 | 判断・根拠 | 見直す条件 |
+| --- | --- | --- |
+| [ToolWindowIconTest.java](../../src/test/java/com/cursoragent/ui/ToolWindowIconTest.java) | Javaを維持。Quail 1 SDKの `isIconActivated` はKotlinからはinternalでアクセス不可（同SDKでコンパイル拒否を確認）、Javaからは参照できる。描画前の状態をfinallyで戻し、SDK標準の色変換と輪郭を直接検証する。Java interop自体を製品要件にしているのではない。reflection・可視性抑制・別bridge追加を避ける限定テスト | SDK更新時に公開APIで同等の状態復元・描画検証が可能になったらKotlin化。実GUI受入は引き続きQA #203 |
+| [SwingCuaFixture.java](../../scripts/gui-fixture/SwingCuaFixture.java) / build.py | Javaを維持。Kotlin compiler/stdlib、Gradle、IntelliJ SDK、製品に依存しないJDKだけの対照実験。追加のコンパイラ/ライブラリ解決なしでplain JVMと.appの同一JARを比較できる | 用途・管理コスト・終了条件は[probeの正本](../../scripts/gui-fixture/README.md#現在の用途と維持条件)で判断 |
+| #290研究用チェック | 現行treeのJavaを削除し、[固定原証拠と再現条件](../research/issue-290-rich-tool-results.md#再現と受入境界)へ移す。#295/#296で変わった修正前挙動の記録であり、現在の回帰テストではない。Kotlinへの翻訳で過去の実行証拠を置換しない | 新しい研究には現在のKotlinテストと現行契約を使う |
+
+照合baseはdevelop `8f9c3be24c50d42a9d8a56724f6cb46eb4b0cc34`。全Javaは上記3件、製品Javaなし、独自source setなし。Gradleの重複した `id("java")` 明示だけを削除し、Kotlin JVM pluginが適用するJava pluginのcompileTestJava/test/JAR経路は維持する。JDK/toolchain 21、SDK検証、Gson（Kotlinのprotocol/保存）、CommonMark（本文描画）、JUnit（両言語のテスト）、Bundled test framework（Document/Undo）はJava専用ではなく保持する。言語整理のための新依存・コンパイラ抑制は追加しない。
+
+根拠: [KotlinのJava向け可視性](https://kotlinlang.org/docs/java-to-kotlin-interop.html#visibility)、[Kotlin JVMの混在build設定](https://kotlinlang.org/docs/mixing-java-kotlin-intellij.html#add-kotlin-to-an-existing-java-project)。SDK内部APIへの依存はテストに限定し、将来の互換性を保証しない。
+
+
 ## ビルドと実行環境
 
 [build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.1.1.8")` で最古の対応StableであるQuail 1初版を固定取得する。[CI](../../.github/workflows/ci.yml) と [branch ZIP](../../.github/workflows/branch-zip.yml) も新構成のsourceでは同じGradle経路を使う。branch ZIPのschedule/manualが旧構成sourceを扱う場合だけ、tracked gradle.propertiesの有効なplatformPath代入を検出して従来Quail 3 Patch 1の取得・local指定を維持する。Gradle実行・Java/Kotlin toolchain・bytecode targetは21。Gradle 9.7.1 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.3、stdlibはIDEの2.3.20を使ってZIPへ同梱しない。

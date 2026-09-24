@@ -78,6 +78,8 @@ The product is intended for Japanese use. When porting Cursor UI, choose languag
 
 ## Development and verification
 
+Use Kotlin by default for JVM product code, tests and new JVM tooling. Use Java only for a concrete, current benefit over Kotlin, documented with its scope and re-evaluation condition in the [language decision](docs/architecture/current-implementation.md#jvm-language). Preserve fixed historical evidence; do not translate it into a new acceptance test.
+
 Use [Change Impact](docs/development/change-impact.md), shared by CI/hooks/coordinator/ZIP generation. Before pushing, run `python3 scripts/workflow/change_impact.py --run-tests`. Preserve mixed/unknown validation, explicit builds/GUI checks, independent review and Acceptance gate; never use `--no-verify` or disable protection.
 
 ```bash
