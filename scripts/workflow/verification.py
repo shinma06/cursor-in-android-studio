@@ -64,7 +64,7 @@ def validate_change(data, issue, gui):
         for actor in ('gpt', 'human'):
             observation = case.get(actor)
             if not isinstance(observation, dict) or observation.get('status') not in STATUSES or not nonempty(observation.get('reason')):
-                raise ValueError('Explicit GPT and human status/reason required')
+                raise ValueError('Explicit agent (gpt key) and human status/reason required')
             if observation['status'] == 'pass':
                 validate_observation(observation, observation.get('head'))
             if observation['status'] == 'fail' and (type(case.get('fix_issue')) is not int or case['fix_issue'] <= 0 or case['fix_issue'] == issue):
@@ -80,7 +80,7 @@ def validate_observation(result, candidate, artifact=None):
             (artifact is not None and result['artifact_sha256'] != artifact)):
         raise ValueError('Case must pass on the exact candidate and build')
     if result.get('actor') not in ('gpt', 'human'):
-        raise ValueError('Observer must be GPT or human')
+        raise ValueError('Observer actor must use the legacy gpt or human value')
     for key in ('observer', 'at', 'evidence', 'loaded_identity', 'reason'):
         if not nonempty(result.get(key)):
             raise ValueError('Missing observed evidence: ' + key)
@@ -350,7 +350,7 @@ def render_queue(paths, promotion=None):
                       '証拠: ' + result.get('evidence', '未登録'),
                       'ロード実体: ' + result.get('loaded_identity', '未登録'),
                       '対象artifact SHA-256: ' + result.get('artifact_sha256', '未登録'), '']
-        for actor, label in (('gpt', 'GPT'), ('human', '人間')):
+        for actor, label in (('gpt', 'Agent（互換キーgpt）'), ('human', '人間')):
             recorded = case[actor]
             lines += [f'初期登録時の{label}: {recorded["status"]} — {recorded["reason"]}']
         lines += ['', f'修正Issue/PR: {case["fix_issue"] or "未登録"} / {case["fix_pr"] or "未登録"}',

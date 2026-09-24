@@ -1,78 +1,56 @@
-# GPT主導のGUIループエンジニアリング
+# 実画面の証拠を使うGUIループ開発
 
-> 2026-09-07 / #83: developはテスト・独立レビュー・Case追跡で統合可能（GUI pending/blocked/failを保持）。mainは固定候補全体の必要Case pass後のみ。区切り単位の入口は [確認マトリクス](../verification/README.md)。過去MV/runは履歴であり新候補のpassへ転記しない。
+実画面で再現する → 小さく直す → 別sessionでレビューする → 同じ操作で改善を確認する、を繰り返します。進捗は対象Issueと[Project](https://github.com/users/shinma06/projects/2)、受入条件と候補結果は[Case JSON](../verification/README.md)を正本にします。旧MV/runは履歴であり、新候補へpassを転記しません。この基盤の導入は[#29](https://github.com/shinma06/cursor-in-android-studio/issues/29)、二段階統合は#83によります。
 
+## 担当と適用条件
 
-目的は、実画面で使う → 違和感を再現する → 小さく直す → 別の視点でレビューする → 同じ操作で改善を確かめる、を繰り返すこと。進捗の正本は [Issue #1](https://github.com/shinma06/cursor-in-android-studio/issues/1) と子Issue、GUI受入条件の正本は [QAマトリクス](../manual-verification/matrix.md)。この基盤は [#29](https://github.com/shinma06/cursor-in-android-studio/issues/29) で整備した。
+[GitHub開発規約の役割条件](../development/github-workflow.md#正本と役割)に従い、GPT/Codex・Claude・Cursorのいずれも開発を担当できます。必要な能力・実tool・許可・claimで選び、3者の併用は必須にしません。独立レビューはwriterと別sessionで行います。GUI操作は[ホスト共通lease](../development/gui-coordination.md)を得た対応可能な指定担当、または人間への引継ぎで行います。GUI toolがなければGUIだけを引き継ぎ、未確保ならblockedを記録します。
 
-**先に[GitHub開発規約](../development/github-workflow.md)と[GUI予約手順](../development/gui-coordination.md)を読む。**
-Gitへの言及がない修正もIssue/専用worktree/PRが必須。GUIはqueueとホスト共通lease取得後のみ実行する。
-
-## 役割と担当範囲
-
-| 担当 | 主な責任 | 受け渡す成果 |
-|---|---|---|
-| GPT（ChatGPTアプリ / Codex） | 進行役、Issue選定とclaim、実装、統合、Computer UseでのGUI操作、証跡評価、再検証、GitHub PRのmerge | 対象SHA、受入条件、変更、証跡、次の一手 |
-| Claude Pro | 独立レビュー、再現条件の穴・回帰・設計の指摘。GPTが切り出した実装だけ個別checkoutで担当可 | 重要度、ファイル/箇所、再現条件、影響、修正案。未実施のGUIをpassにしない |
-| Cursor Pro | GPTがGUIから依頼する小さな作業を実施。Cursor IDEはUXの比較対象、Android Studio内のCursor Agentは製品検証対象 | 実際の応答、編集、ツールカード、停止/復元時の挙動 |
-| 人間 | 目的・優先度の決定、ログイン/OS権限、GUI操作の引継ぎ、主観的な使いやすさの最終評価 | 必要な環境解除、期待UX、採用判断 |
-
-Cursorを単なるCLIテスト要員にしない。GPTが入力・候補選択・送信・Diff・RevertまでGUIで操作し、Cursorが作業する過程のUXを観察する。CLIはバージョン・ログ・ディスク結果の補助確認に使う。
-
-**実装はIssue/worktreeごとに並列、GUI操作だけホスト単位で1担当。** GPT/Claude等の実装担当は
-専用branchからPRを作り、GPT進行役がレビュー済みPRをGitHub上で統合する。mainへの直接commit/pushは禁止。
-GUI待ちの間も他担当の実装・テスト・レビューは続ける。レビュー担当はソース/GUIを変更しない。
-
+Cursor IDEはUXの比較対象、Android Studio内のプラグインは製品検証対象です。fixture内だけの編集制限はこの試験への入力に適用し、開発担当としてのCursorを制限しません。CLIによる版・ログ・ディスク確認は画面観察を補助します。GUI待ちでも別worktreeの実装・テスト・レビューは進められます。
 
 ## 1サイクルの流れ
 
 ```mermaid
 flowchart LR
-  A[Issue・受入条件・予算を確定] --> B[GPTがGUIで再現・記録]
-  B --> C[GPTの修正 / Claudeへの限定委譲]
-  C --> D[自動テスト + Claude独立レビュー]
-  D --> E[新ビルドを起動し同じGUI操作を再実行]
+  A[Issue・受入条件・予算を確定] --> B[GUI担当が再現・記録]
+  B --> C[実装担当が修正]
+  C --> D[必要テストと別sessionの独立レビュー]
+  D --> E[GUI担当が識別済み新buildで再確認]
   E -->|不合格| C
-  E -->|証跡付き合格| F[GPTが統合・Issue/QA更新]
-  B -->|環境障害| G[blockedと次の解除操作を保存]
+  E -->|証拠付き合格| F[進行役がtarget別gateで統合・QA更新]
+  B -->|環境障害| G[blockedと次の操作を保存]
   E -->|予算終了| G
-  F --> A
+  D -->|developはGUI待ちを追跡して統合可| F
 ```
 
-1. `AGENTS.md` → 要件 → Issue #1 → 対象Issueのコメントを読む。`git status`、`git fetch origin`、`git log HEAD..origin/main`で同期を確認する。既存の未コミット変更を勝手に消す/stashする/pullに巻き込むことはしない。今回の変更と無関係なら保持し、重なる箇所だけ必要時に確認する。
-2. 専用worktreeとPRを使い、対象Issueに `Starting loop: owner=GPT; scope=…; base=…; GUI=GPT; reviewer=Claude; budget=…` と記録する。完了・引継ぎのない他担当のclaimがあれば同じ範囲を開始しない。時間経過だけでclaimを奪わない。
-3. 1回の対象を1つのUX問題と対応するMV IDに絞る。[シナリオ](scenarios.md)から選び、初期状態・期待結果・許可された編集先を固定する。標準予算は **45分、修正3回、Cursor送信8回**。これは運用上の上限で、スクリプトが自動強制するものではない。ユーザー指定を優先する。
-4. GUI依頼票をIssueへ登録し、指定GPTセッションがホスト共通leaseを取得してからComputer Useで実行する。操作前の対象アプリ/ウィンドウ/fixtureを確認し、操作後の画面とAX（アクセシビリティ情報）を読む。古い要素番号や推測した座標を使い回さない。クリックが無反応なら最新AX→スクリーンショット→確認した座標の順で一度試し、取得失敗が続くなら停止する。
-5. GPTが最小修正を実装し、必要な単体テストを追加する。Claudeには[レビュー依頼](prompts/claude-review.md)を渡す。Claudeの返答をGPTが評価し、採用/非採用の理由を記録する。レビューだけなら追加の実装claimやpushは不要。
-6. `./gradlew test buildPlugin`を実行し、GUI予約を取得した担当だけが対象ビルドを新しくインストール・再起動する。[実行記録](evidence.md)にSHA・ZIPハッシュ・ロードした実体の証拠を残す。同じ操作と影響する隣接ケースを再実行する。
-7. GPTが証跡を確認し、合格した範囲だけmatrixを更新する。`finish-work`でテスト、同期、task branchへのcommit/push、PRレビュー/merge、Issue更新を行う。機能の実装とGUI検証の完了は分ける。次の優先Issueと未解除ブロッカーを残す。
+1. [開始手順](../development/github-workflow.md#開始)に従い、対象Issueの全コメント・claim・Project・意図したbaseと作業treeを確認します。既存の編集を保持し、専用branch/worktreeとPRを使います。
+2. 公開可能な担当IDで `Starting loop: owner=<writer>; scope=…; base=…; GUI=<operator or pending>; reviewer=<separate session or pending>; budget=…` を記録します。未解放claimを時間だけで奪いません。host・絶対パス・tokenはprivate registryだけへ保存します。
+3. 1つのUX問題と対象Caseに絞り、[シナリオ](scenarios.md)のMV IDを必要なCaseへ対応付けます。初期状態・期待結果・許可された編集先を固定します。標準予算は**45分、修正3回、試験対象への送信8回**です。保存キー`max_cursor_sends`は維持します。これは運用上の上限で、スクリプトは自動強制しません。ユーザー指定を優先します。
+4. GUI依頼票を登録し、指定担当がleaseを取得してから実行します。操作前に対象アプリ・ウィンドウ・fixtureを確認し、操作後に実画面と利用可能なAX情報を読みます。古い要素番号や推測座標を使い回しません。クリック無反応時は最新AX→スクリーンショット→確認した座標の順で一度試し、取得失敗が続けば停止します。Computer Use必須Caseは手操作で代替しません。
+5. 実装担当が最小修正と必要テストを行い、[独立レビュー依頼](prompts/claude-review.md)を別sessionへ渡します。指摘の採否と理由を記録します。レビュー役は変更・GUI操作をせず、固定HEAD/baseを確認します。
+6. 製品GUIを再確認する場合は[現行build手順](../../CLAUDE.md#commands)に従って`test buildPlugin`を実行し、leaseを持つ担当だけがinstall・再起動します。[実行記録](evidence.md)にSHA・ZIP hash・ロード実体を照合した証拠を残し、同じ操作と影響する隣接Caseを再実行します。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
+7. 実際に観察した範囲だけCase結果へ記録し、[finish-work](../../.agents/skills/finish-work/SKILL.md)へ進みます。developは必要テスト・独立レビュー・全Case追跡があればGUI pending/blocked/failを保ったまま統合できます。main promotionは固定候補全体の全必要Caseが同じbuildでpassした後です。未実装受入・残QA・main反映・次の担当を残します。
 
-## 止める条件・再開
+## 停止と再開
 
 | 状況 | 判定と再開点 |
-|---|---|
-| 画面が取得できない、ログイン切れ、CLI認証失敗、IDE未起動 | `blocked`。エラー、最後の操作、未送信/実行中の有無を記録。修正やpassで代替しない |
-| Cursor/Claudeの利用上限 | 該当役割を`blocked`。追加課金・APIへの自動切替をせず、GPTは独立して進められる修正/テスト/文書化を継続。Claudeレビュー未了を明示 |
-| 期待と実画面が違う | 製品`fail`。期待/実際/再現率/証拠をIssueへ。Cursor側の挙動差はそのままプラグインの仕様にしない |
-| 許可外のファイルへ変更、予期しない外部操作、復元先不明 | Stopし実際の差分を確認。失敗原因が分かるまで送信を繰り返さない |
-| 予算上限、同じ修正を繰り返して改善なし | 現在の証拠を保存し、対象を分割するか次の一手を人間へ引き継ぐ |
+| --- | --- |
+| 画面取得不能・認証切れ・IDE未起動・対応GUI担当未確保 | GUIをblockedにし、最後の操作・未送信/実行中の有無・解除担当を記録する |
+| 選んだクライアントの利用上限 | 該当作業をblockedにする。追加課金やAPIへ自動切替せず、独立して進められる実装・テスト・文書化を継続する |
+| 期待と実画面の不一致 | 製品failとして期待/実際/再現条件/証拠を専用修正Issueへ渡す。比較対象の挙動をそのまま仕様にしない |
+| 許可外変更・予期しない外部操作・復元先不明 | Stopし差分を確認する。原因不明のまま再送しない |
+| 予算上限・同じ修正で改善なし | 証拠を保存し、分割または次の操作を引き継ぐ |
 
-再開時は記録の `next_action`、Issueのclaim、HEAD、起動中ビルド、fixtureの差分を再確認する。以前のGUI要素番号や古いpassは引き継がない。修正後の再検証は新run IDを作り、前runをリンクする。GUI leaseのtoken/期限と最新Issueも確認する。プロセス停止は対象を特定して実施し、全IDEや全agentプロセスの一括killはしない。
+再開時は`next_action`、claim、HEAD、ロードbuild、fixture差分、lease token/期限を再確認します。修正後は新run IDを作り、前runをリンクします。古いGUI要素番号やpassを引き継がず、停止するプロセスを特定します。全IDE/agentの一括killはしません。
 
-## 契約プランで使う経路
+## 利用する環境と入口
 
-- GPT: 現在のChatGPTデスクトップアプリでComputer Useを利用する。この環境ではツール名/内部IDがCodexでも、UI表示名はChatGPT。対応アプリの確認は実ツールで行う。[公式Computer Use](https://learn.chatgpt.com/docs/computer-use)
-- Claude: Claude ProのClaude.aiログインでClaude Codeを使える。APIキーの課金経路は別。まず`claude auth status`を確認し、未ログインならデスクトップアプリの既存ログインを使った新規レビュー会話、または人間がCLIにログインする。CLIとデスクトップの認証状態を同一と仮定しない。[公式認証](https://code.claude.com/docs/en/authentication)
-- Cursor: ProにログインしたCursor IDE、およびログイン済み`agent`を呼ぶプラグイン。IDEのUI結果とheadless CLIの対応可否を分ける。[公式CLI](https://cursor.com/docs/cli/using)
+選んだ開発クライアントに必要なtool・権限・認証を確認します。全providerの契約やログインは前提にしません。製品試験では必要なCursor IDE/CLIの認証を別途確認し、IDEとCLIで同じ状態とは仮定しません。モデルの実際の選択値・利用上限を確認し、秘密情報を抽出・公開しません。自動連携の範囲は[PR automation](../development/pr-automation.md)に従います。
 
-APIキー、独自OAuth抽出、外部オーケストレータは不要。モデル名は実行時の選択値を記録し、固定した最新モデルや無制限利用を前提にしない。利用上限は各アプリの表示を確認する。
+- [人間向けの開始手順](human-runbook.md)
+- [開発担当への1ループ依頼](prompts/gpt-loop.md)
+- [別sessionへの独立レビュー依頼](prompts/claude-review.md)
+- [製品GUIへ渡す試験課題](scenarios.md)
+- [証跡形式とコマンド](evidence.md)
 
-## 入口
-
-- 人間が実行する: [human-runbook.md](human-runbook.md)
-- GPTに1ループ依頼する: [prompts/gpt-loop.md](prompts/gpt-loop.md)
-- Claudeへレビューを渡す: [prompts/claude-review.md](prompts/claude-review.md)
-- CursorへGUIで課題を渡す: [scenarios.md](scenarios.md)
-- 証跡形式・コマンド: [evidence.md](evidence.md)
-
-これはセッションごとの継続開発手順。時刻指定の常駐処理や無限の自動再送は作成しない。定期実行を後から依頼された場合はアプリのスケジュール機能を使い、GUI占有・起動状態・予算・停止条件を指定する。
+promptの旧ファイル名はリンク互換のため残しています。セッションごとの継続開発手順であり、常駐処理や無限再送を追加しません。定期実行が依頼された場合は、利用環境の対応機能・GUI占有・予算・停止条件を確認します。

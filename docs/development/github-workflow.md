@@ -13,7 +13,7 @@
 | mainへのpromotion | 固定develop候補の全commit・全必要Caseを同じbuildでpass、必要テスト・独立レビュー | 1件でも残れば不可 | merge commit |
 | mainへのGUI不要tooling | docs/scripts/CI/agent入口だけの差分、具体的理由とCLI検証、独立レビュー | 製品変更の逃げ道にしない | squash |
 
-未解決コードレビュー指摘やテスト失敗をdevelopへ通す方針ではありません。製品failには専用修正Issue/branch/PRが必要です。GPTと人間の適切な実観察はどちらも有効ですが、未確認をpassに変更しません。
+未解決コードレビュー指摘やテスト失敗をdevelopへ通す方針ではありません。製品failには専用修正Issue/branch/PRが必要です。Agentと人間の適切な実観察はどちらも有効ですが、未確認をpassに変更しません。
 
 [今回の確認一覧](../verification/current.md) / [正本JSONと固定候補の手順](../verification/README.md)が人間の入口です。長大な既存MV matrixは履歴・詳細であり、新候補の結果を二重編集しません。
 
@@ -24,8 +24,18 @@
 Issueは目的・受入・担当・依存・次の操作、PRは差分・固定HEAD/base・レビュー・CI・統合判断の正本です。
 QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのpassは別buildを保証しません。
 
-PM/進行役は統合順・claim・GitHub設定を管理します。実装担当は1 Issue・1 branch・1 worktree・1 writerです。
-独立レビュアーは別sessionで固定SHAを読み、GUIは操作しません。GUI担当はhost/OS sessionに1名の指定GPT、または人間引継ぎです。
+GPT/Codex・Claude・Cursorのいずれも開発担当になれます。担当はモデル/provider名ではなく、必要な能力・実際に利用できるtool・許可範囲・claimで決めます。3種類のAgentの併用は必須ではありません。
+
+| 役割 | 担当条件と責任 |
+| --- | --- |
+| PM/進行役・統合担当 | 必要なGitHub権限と既存の承認範囲で統合順・claim・設定・gateを管理する |
+| 実装担当 | 1 Issue・1 branch・1 worktree・1 writerを守り、製品コード・文書・設定を担当範囲で変更する |
+| 独立レビュアー | writerとは別sessionで固定HEAD/baseを確認し、レビュー役の間はソース変更・GUI操作をしない。同じproviderでも別sessionなら可、同じsessionの自己レビューは不可 |
+| GUI担当 | 実画面を操作・観察する能力と許可を持つ指定session、または明示的に引き継いだ人間。host/OS sessionごとに1担当でleaseを取得し、対象buildと証拠を照合する |
+
+GUI toolがない担当は実装・CLI検証を進め、GUIだけを対応可能な担当へ引き継ぎます。対応する実行経路が確保できなければGUIはblockedです。`required_execution: computer_use` は人間の直接操作で代替できません。Cursor IDEとプラグインを比較するfixture課題は製品の試験であり、開発担当としてのCursorをfixture専任にする規則ではありません。
+
+役割を兼ねる場合もレビューの別session条件と単一writer/GUI leaseを守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
 モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
 
 ## 参照する範囲と進行判断
@@ -56,7 +66,7 @@ claim例（パスとhostはprivate local registryだけ）:
 
 ```text
 status: in-progress
-owner: gpt-issue-session; issue: #N; parent: <actual parent or none>
+owner: implementation-session; issue: #N; parent: <actual parent or none>
 base: <full SHA>; target: develop
 branch: codex/83-policy; worktree: isolated (local registry)
 scope: <files and acceptance>; excluded: <out of scope>

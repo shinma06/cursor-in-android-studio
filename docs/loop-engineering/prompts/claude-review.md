@@ -1,23 +1,24 @@
-# Claude Proへの独立レビュー依頼
+# 別sessionへの独立レビュー依頼
 
-現在の設計は [Project Mission](../../project-mission.md) / [ACP First](../../architecture/cursor-integration.md)、実行体制は [Codex実行規約](../../development/codex-execution-policy.md)を優先する。以下の依頼例は子Agent生成の許可ではない。追加担当は独立top-level Sessionとして確認し、既存の担当・許可範囲を維持する。
+writerと別sessionを使います。同じproviderでもよく、Claude専用ではありません。旧ファイル名はリンク互換のため残します。[共通の役割条件](../../development/github-workflow.md#正本と役割)と[Codex実行規約](../../development/codex-execution-policy.md)を守り、既存の担当・許可範囲を維持します。この依頼は子Agent生成の許可ではありません。
 
-GPTは<>を埋め、必要な差分と根拠を添える。説明は人間向け、code blockはAgent専用。開発コンテキストのレビューでは[共通規則](../../architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件)の該当箇所も資料へ添える（tool無効のreviewerへ自力取得を要求しない）。Claudeアプリの**新しい会話**、またはPro認証済みClaude Codeを使う。他プロジェクトの会話に混ぜない。
+依頼者が`<>`を埋め、固定HEAD/baseの差分・関連コード・受入条件・根拠を添えます。説明は人間向け、code blockはAgent専用です。開発コンテキストのレビューでは[共通規則](../../architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件)の該当箇所も添えます。tool無効のreviewerへ自力取得を要求しません。
 
 ```text
-You are the independent reviewer for Cursor in Android Studio. GPT coordinates and integrates the work.
-Target Issue: #<number>; target SHA: <SHA>; scope: <files>.
+You are the independent reviewer for Cursor in Android Studio, in a different session from the writer.
+Writer session: <session>; reviewer session: <different session>.
+Target Issue: #<number>; target HEAD: <SHA>; base: <SHA>; scope: <files>.
 Expected UX/acceptance: <criteria>.
 Before/after facts and GUI evidence: <records, or explicitly unverified>.
 Review concrete defects, regressions and verification gaps using only the supplied material below.
 Do not edit source, execute commands, operate a GUI, commit/push or post Issue comments.
 Report in Japanese: severity, location, reproduction conditions, impact and proposed fix.
 Label unsupported conclusions as hypotheses. Never mark GUI tests you did not perform as passed.
-Even if no defect is found, state the verification limits.
-For development-context reviews/audits, apply the relevant supplied excerpt of docs/architecture/knowledge.md's context policy. Missing evidence remains unverified; do not expand your access or scope to obtain it.
+Even if no defect is found, state the verification limits and reviewed HEAD/base.
+For development-context reviews/audits, apply the supplied relevant excerpt of docs/architecture/knowledge.md's context policy. Missing evidence remains unverified; do not expand access or scope to obtain it.
 <diff, relevant code, evidence and applicable policy excerpt>
 ```
 
-CLIで使う場合は`claude --help`で現在のフラグを確認する。例: GPTがレビュー資料をローカルファイルにまとめ、`claude -p --tools '' --output-format text < review-input.txt > review-output.txt`。ツールを無効にして資料レビューに限定する。CLIがsandbox内で未ログインを返した場合は、通常ターミナルで`claude auth status`を確認して認証の有無と実行環境の制限を切り分ける。認証ファイルをコピーしたり読み出したりしない。
+これは提供資料だけを読む依頼例です。選んだクライアントでtoolを無効にできる場合は無効にし、利用可能な起動方法・権限を確認します。自動coordinator連携の対応範囲は[PR automation](../../development/pr-automation.md)に従い、providerごとのadapterを仮定しません。認証ファイルをコピー・抽出しません。
 
-担当を実装に変える場合は、GPTが別途Issueにclaim・別checkout・対象ファイル・基点SHA・テスト・専用branch/PRを指定する。mainへの直接commit/pushは禁止し、docs/development/github-workflow.mdに従う。既存レビュー依頼を実装権限として扱わない。
+レビュー役から実装役へ変更する場合は、別途Issueのclaim・専用worktree・対象ファイル・base・必要テスト・PRを指定して引き継ぎます。レビュー依頼を実装権限として扱わず、その変更には別sessionのレビューが必要です。

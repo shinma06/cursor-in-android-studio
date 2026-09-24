@@ -4,7 +4,7 @@
 
 ## 正本と結果の入力
 
-- `changes/issue-N.json`: 変更単位の必要Case・操作手順・期待結果・当初のGPT/人間状態・既存証拠の正本。PRの `Verification:` は自分のIssueファイルを指します。既存MV/runは詳細と履歴であり、新しい候補の結果を書き戻す先ではありません。
+- `changes/issue-N.json`: 変更単位の必要Case・操作手順・期待結果・当初のAgent/人間状態・既存証拠の正本。PRの `Verification:` は自分のIssueファイルを指します。既存MV/runは詳細と履歴であり、新しい候補の結果を書き戻す先ではありません。
 - `batches/*.json`: 今回確認するファイルだけの一覧。長大なMV全体を人間へ渡しません。
 - `promotion.json`: 固定したdevelop候補・対象buildと、その候補上で実施した結果の正本。下記の形式で結果を入力します。`current.md` はこれらから生成する閲覧用で、直接編集しません。
 
@@ -18,11 +18,13 @@ python3 scripts/workflow/verification.py \
 
 候補確認を開始したら、バッチJSONの `promotion` に `docs/verification/promotion.json` を指定するか、上記へ `--promotion docs/verification/promotion.json` を加えます。結果の入力後に同じコマンドを再実行すると、候補結果・確認者・日時・証拠・Case単位のmain可否が更新されます。生成MarkdownをPRへcommitする場合は**developで候補を固定する前**に行います。promotion branchでは下記2 JSON以外の差分を許しません。候補確認後の閲覧用出力はローカルへ出力してください。
 
+保存形式の`gpt`キーと`actor: gpt`は互換用のAgent観察枠です。GPT専任を意味しません。旧Case手順の「指定GPT」等の担当表記も現行の能力・許可条件で割り当てます。過去に実観察した担当名・モデル・結果は書き換えません。実際の担当session・モデル・実施経路を証拠に記録し、`human`と既存の観察履歴は保持します。担当条件は[共通規約](../development/github-workflow.md#正本と役割)に従います。
+
 ## 状態の意味
 
-`pending` は未実施、`blocked` は環境等で操作不能、`fail` は製品の期待結果と不一致、`pass` はそのbuildで確認済みです。GPTがblocked/failでも、必要テスト・独立コードレビューを通り、全Caseと次の操作が記録されていればdevelopへ統合できます。製品failは専用修正Issueを作成し、修正branch/PRと再確認を紐付けます。テスト失敗や未解決コード指摘は、この例外に含みません。
+`pending` は未実施、`blocked` は環境等で操作不能、`fail` は製品の期待結果と不一致、`pass` はそのbuildで確認済みです。Agentがblocked/failでも、必要テスト・独立コードレビューを通り、全Caseと次の操作が記録されていればdevelopへ統合できます。製品failは専用修正Issueを作成し、修正branch/PRと再確認を紐付けます。テスト失敗や未解決コード指摘は、この例外に含みません。
 
-mainは固定候補内の**全変更・全必要Case**のpassが必要です。GPT/humanどちらの適切な観察も有効ですが、過去SHA/buildのpassをコピーしません。Case別passはmain全体の昇格許可ではなく、最後に自動gateがコミット範囲を照合します。develop統合後、元実装IssueはQAへの双方向link/readbackを確認してcloseします。Case/QA Issueは実際の確認完了まで残します。GUI不要のmain未反映分もQAに追跡し、固定候補JSONは書き換えません。closed元Issueの固定merge Caseをpromotionが参照し続けます。
+mainは固定候補内の**全変更・全必要Case**のpassが必要です。Agent/人間どちらの適切な観察も有効ですが、過去SHA/buildのpassをコピーしません。Case別passはmain全体の昇格許可ではなく、最後に自動gateがコミット範囲を照合します。develop統合後、元実装IssueはQAへの双方向link/readbackを確認してcloseします。Case/QA Issueは実際の確認完了まで残します。GUI不要のmain未反映分もQAに追跡し、固定候補JSONは書き換えません。closed元Issueの固定merge Caseをpromotionが参照し続けます。
 
 ## 固定候補からmainへ
 

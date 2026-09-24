@@ -1,11 +1,11 @@
 # GUIシナリオ
 
-受入条件の正本は[matrix](../manual-verification/matrix.md)。以下は繰り返し用の固定課題と初期状態。選んだケースのみrun.jsonに登録し、対象外を合格扱いにしない。
+現行の受入条件は[Case JSON](../verification/README.md)へ登録し、既存MV IDの詳細は[履歴matrix](../manual-verification/matrix.md)を参照する。以下は繰り返し用の固定課題と初期状態。選んだケースのみrun.jsonに登録し、対象外を合格扱いにしない。
 
 ## 共通前提
 
 - `prepare`で同内容の`cursor` / `plugin` fixtureを作る。Cursor IDEで前者、Android Studioで後者を開く。プラグイン開発リポジトリに向けて送信しない。
-- タイトル、開いているフォルダ、送信先Agent入力欄と、`LOOP_FIXTURE.txt`のRun/Surface/PathをGPTが画面で確認する。課題にそのrunと面を付記し、マーカー不一致なら実行せず返答するよう指示する。新規会話を使い、モデル、モード、Permission、Sandbox、Worktreeの現在値を記録する。
+- タイトル、開いているフォルダ、送信先Agent入力欄と、`LOOP_FIXTURE.txt`のRun/Surface/PathをGUI担当が画面で確認する。課題にそのrunと面を付記し、マーカー不一致なら実行せず返答するよう指示する。新規会話を使い、モデル、モード、Permission、Sandbox、Worktreeの現在値を記録する。
 - 標準の編集シナリオはWorktreeが現在のworkspaceを使う設定で行う。isolatedは#20の専用ケース。Ask Every TimeでもCLIが即編集する既知の挙動を前提にする。
 - Cursor IDEとプラグインのモデルを揃えられる場合は揃える。揃わない場合は差を明記し、回答品質や所要時間を同条件比較と呼ばない。
 - ファイルの結果は`greeting.txt`の内容・`git diff`でも確認する。実ファイルの成功でカードの表示確認を代替しない。
@@ -28,4 +28,4 @@
 - モデル可読性（MV-032 / 035、#27）: 同じ記録済みパネル幅で現在名、候補スクロール、Escapeを確認。AXに候補が存在しても実画面で読めなければ表示合格ではない。
 - isolated復元（MV-027 / 025、#20）: 専用fixtureで開始し、実際のCLI worktreeパスと編集対象を特定する。復元先不明なら押さずblocked。現在の実装の既知の不整合を合格基準にしない。修正後は「適切に無効化/説明」または「正しいworktreeから復元」というIssueの採用仕様で判定する。
 
-通知、IME、Terminal無し、MCP変更は各matrix行の専用環境で実施する。スモークで一括合格にしない。プロンプトの成功文言は証拠ではなく、GPTが画面・ディスクを観察して判定する。
+通知、IME、Terminal無し、MCP変更は各matrix行の専用環境で実施する。スモークで一括合格にしない。プロンプトの成功文言は証拠ではなく、GUI担当が画面・ディスクを観察して判定する。
