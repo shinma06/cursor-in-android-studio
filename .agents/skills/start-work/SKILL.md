@@ -1,16 +1,16 @@
 ---
 name: start-work
-description: Begin or resume an Issue-scoped code, docs, or configuration change with ownership and acceptance tracking.
+description: Begin or resume an Issue-scoped code, docs, or configuration change with ownership and acceptance tracking; not read-only advice or review.
 ---
 
 # Start work
 
-読み取りだけの助言・レビューには新Issue/branchを作らない。変更作業ではAGENTS.mdの共通契約と[GitHub workflow](../../../docs/development/github-workflow.md#参照する範囲と進行判断)を使う。確認済み同一資料の再読は不要。新機能はMission/ACP First、製品変更は要件と該当設計、運用変更は対応する運用文書を確認する。
+Read-only advice/review needs no new Issue or branch. For changes, use AGENTS.md and the [workflow's conditional references and decisions](../../../docs/development/github-workflow.md#参照する範囲と進行判断). Reuse already-read unchanged versions. New features need Mission/ACP First, product changes need relevant requirements/design, and operational changes need the corresponding policy. Creating/updating development context also requires the [single context policy](../../../docs/architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件); classify purpose and loading path before choosing language/format/location.
 
-開始できる状態は、対象Issue/コメント・関連PR・Project/対象Milestone・依存と受入が分かり、他writerと競合しないこと。Issue検索後、owner、scope、base SHA、依存、独立reviewer、GUI要否、次操作をclaimしreadbackする。未解放claimは時間で失効しない。Project/label/native関係は[Work Management](../../../docs/development/work-management.md)に従い、Standaloneに架空の親を付けない。
+Start when the Issue/comments, related PRs, Project/relevant Milestone, dependencies and acceptance are understood and no writer conflicts exist. Search before creating an Issue. Claim owner, scope, base SHA, dependencies, independent reviewer, GUI need and next action; read back the claim. Unreleased claims never expire with time. Follow [Work Management](../../../docs/development/work-management.md) for Project/labels/native relationships; never invent a parent for Standalone work.
 
-作業場所はstatus/worktreesと`git fetch --prune origin`後のbaseを照合した専用Issue branch/worktree。通常はorigin/develop、GUI不要main toolingはworkflowの条件で選ぶ。初期upstreamを解除し`bash scripts/workflow/bootstrap.sh`を実行する。再開時は既存owner/source/実行handleを先に照合する。同一ownerの継続では既存worktreeを使い、照合前に作り直さない。担当交代は[中断・再開](../../../docs/development/github-workflow.md#中断再開)に従い、旧writer停止とclaim解放または明示再割当を確認して新claim・新ownerの専用worktreeへ進む。旧ownerのディレクトリは共有しない。enrolled branchへの並行編集とowner/sourceの自動変更は禁止し、既存登録の扱いは[PR automation](../../../docs/development/pr-automation.md)に従う。
+Inspect status/worktrees, fetch with `git fetch --prune origin`, and reconcile the base of the dedicated Issue branch/worktree. Normally use origin/develop; GUI-not-required main tooling follows the workflow conditions. Clear initial upstream and run `bash scripts/workflow/bootstrap.sh`. On resumption first reconcile owner/source/execution handles. The same owner reuses the existing worktree; do not recreate it before checking. For takeover, follow [interruption/resumption](../../../docs/development/github-workflow.md#中断再開): confirm the old writer stopped and the claim was released or explicitly reassigned, then make the new claim and use the new owner's dedicated worktree. Never share the old owner's directory. Do not edit enrolled branches concurrently or automatically change owner/source; follow [PR automation](../../../docs/development/pr-automation.md).
 
-`docs/verification/changes/issue-N.json`に受入全体のCase（日本語手順/期待結果、GPT/human状態、修正/再確認）を記録する。GUI不要なら理由と必要CLI検証を記載する。最初の意味あるpushでIntegration/Verification付きDraft PRを作り、実装・検証を続ける。GUIは指定operator/leaseが必要、未観察をpassにしない。
+Record all acceptance Cases in `docs/verification/changes/issue-N.json`: Japanese steps/expectations, GPT/human state and fix/recheck tracking. If GUI is unnecessary, record why and the required CLI checks. Create a Draft PR with Integration/Verification on the first meaningful push, then continue implementation/validation. GUI requires the designated operator/lease; never mark unobserved behavior pass.
 
-開始手続きや初版PRで作業完了とせず、依頼の受入を満たすまで進めて[finish-work](../finish-work/SKILL.md)へ渡す。追加Session/独立reviewの前に[Codex実行規約](../../../docs/development/codex-execution-policy.md)を確認する。
+Start procedures or an initial PR are not completion. Continue to acceptance and [finish-work](../finish-work/SKILL.md). Before additional sessions/independent review, read the [Codex execution policy](../../../docs/development/codex-execution-policy.md).
