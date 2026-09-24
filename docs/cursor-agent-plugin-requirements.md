@@ -16,7 +16,7 @@ UI-xx は観測ID、UX-xx は取り込み単位であり、既存 F-xx を置換
 優先順・依存関係・受入条件は計画、実際の進捗は [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) と子 Issue を参照する。
 Cursor のメニュー存在と headless CLI の対応は別の証拠であり、今回の閲覧で CLI 動作や既存の手動QAを検証済みに変更しない。
 
-**2026-09-06 開発運用基盤**: [GPT主導GUIループ](loop-engineering/README.md) / [人間向け手順](loop-engineering/human-runbook.md)を整備。GPTがComputer UseでCursor IDEと本プラグインを操作し、Claude Proが独立レビューする。これは開発・検証の運用であり、F-xx機能追加や既存QA合格ではない。
+**開発運用基盤（2026-09-06導入、現行の担当条件を更新）**: [GUIループ](loop-engineering/README.md) / [人間向け手順](loop-engineering/human-runbook.md)を使用する。担当は[共通の能力・許可・所有条件](development/github-workflow.md#正本と役割)で選び、別sessionの独立レビューと実画面の証拠を必要とする。導入時の担当・観察は過去runに保持する。これは開発・検証の運用であり、F-xx機能追加や既存QA合格ではない。
 
 **2026-09-06 静的外観改修（#19）**: Cursor実画面に合わせ、会話の自然な高さ/全幅ユーザー枠/枠なし応答、一体型Composer、モード/モデルの小さな選択ボタンを実装。権限やCLI挙動は維持。GUI受入と経過は[MV-038の記録](loop-engineering/runs/2026-09-06-ui-parity.md)を参照。
 

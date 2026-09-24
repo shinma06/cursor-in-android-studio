@@ -10,7 +10,7 @@ Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
 > 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues/1)** — 進捗の一次情報源。担当と独立レビューは各Issueのclaimで確認する。[Codex実行規約](docs/development/codex-execution-policy.md)とPonytail fullに従い、GUIは指定担当だけが操作する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗の一次情報源。担当と独立レビューは各Issueのclaimで確認する。[Codex実行規約](docs/development/codex-execution-policy.md)とPonytail fullに従い、GUIは指定担当だけが操作する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
@@ -20,7 +20,7 @@ Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE 
 
 ## ループ開発
 
-[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [GPT・Claude・Cursorの役割と開発ループ](docs/loop-engineering/README.md)。GPTへIssueを指定すると、GUIで再現→修正→Claudeレビュー→同じ操作で再確認する。
+[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [担当とGUI開発ループ](docs/loop-engineering/README.md)。GPT/Codex・Claude・Cursorのいずれも、[能力・許可・所有条件](docs/development/github-workflow.md#正本と役割)に従って開発を担当できます。別sessionの独立レビューと、対応可能な指定担当による実画面の確認を行います。3者の併用は必須ではありません。
 
 ## セットアップ
 

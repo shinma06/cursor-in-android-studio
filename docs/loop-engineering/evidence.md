@@ -24,12 +24,14 @@ python3 scripts/loop/loop.py prepare 20260906-issue20-r1 --issue 20 --case plugi
 
 履歴を失わないためreset/clean/deleteコマンドは提供しない。再検証は新run IDを生成する。`.loop-runs`はGit除外。認証情報や他プロジェクトの画面をリポジトリに混ぜない。共有するのは内容を確認した要約を`docs/loop-engineering/runs/`に、必要な証拠だけIssueへ添付する。
 
+`operator`は空欄で生成されます。実際の担当session・実施経路を記入してください。担当は[共通の役割条件](../development/github-workflow.md#正本と役割)で選びます。ローカル記録の絶対パス等は公開要約へ転記しません。
+
 ## 対象ビルドを固定する
 
-製品GUI QAでは先にソースをcommitし、作業ツリーをcleanにする。新規変更が無関係でcommitできない場合は別のclean checkoutでビルドする。未コミット変更がある試運転は可能だが製品QA完了には使わない。
+[現行build手順](../../CLAUDE.md#開発検証の入口)に従います。製品GUI QAでは先にソースをcommitし、作業ツリーをcleanにする。新規変更が無関係でcommitできない場合は別のclean checkoutでビルドする。未コミット変更がある試運転は可能だが製品QA完了には使わない。
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 python3 scripts/loop/loop.py build .loop-runs/20260906-issue20-r1
 ```
 
@@ -50,7 +52,7 @@ python3 scripts/loop/loop.py build .loop-runs/20260906-issue20-r1
   "expected": "RevertでHello loopへ戻る",
   "actual": "Revert後にエディタとディスクの両方でHello loopを確認",
   "build_source_head": "<build.source_headと同じ40文字SHA>",
-  "observer": "GPT / Computer Use",
+  "observer": "<公開可能なGUI担当session ID / 実施経路>",
   "observed_at": "2026-09-06T10:30:00+09:00",
   "evidence": "evidence/MV-023-after.txt"
 }
@@ -63,16 +65,16 @@ python3 scripts/loop/loop.py build .loop-runs/20260906-issue20-r1
 - `build.installed_identity_evidence`: 対象ZIPをインストール・再起動しロードを照合した記録への同様の参照。
 - `build_source_head`: pluginケースではビルドSHAと一致させる。`observed_at`はタイムゾーン付きで`build.built_at`以降とする。自己申告の改ざん検出ではなく、古い記録の取り違え防止。
 - `environment`: IDE/Cursor版、CLI絶対パス・版、モデル、permission、sandbox、worktreeを埋める。複数モデルなら面ごとの差を記載する。
-- `state`: `prepared` → `running` → `review` → `verified` / `blocked`。GPTが更新する運用情報で、自動遷移ではない。
+- `state`: `prepared` → `running` → `review` → `verified` / `blocked`。担当が更新する運用情報で、自動遷移ではない。
 
 ```bash
 python3 scripts/loop/loop.py check .loop-runs/20260906-issue20-r1
 ```
 
-終了コード0は**証跡の形式が揃った**という意味。内容の真実性、UIとビルドの一致、対象Issueの全受入条件はGPTが確認する。空の環境、証跡なし、CLIのみ、Cursorのみ、未確認ケースがあれば非0。これ自体はQAマトリクスのpassやIssue closeを実行しない。
+終了コード0は**証跡の形式が揃った**という意味。内容の真実性、UIとビルドの一致、対象Issueの全受入条件は担当が確認する。空の環境、証跡なし、CLIのみ、Cursorのみ、未確認ケースがあれば非0。これ自体はQAマトリクスのpassやIssue closeを実行しない。
 
 ## 引継ぎの最小項目
 
-Issueコメントにrun ID、対象SHA、試したMV ID、pass/fail/blocked、証拠の共有先、Claude指摘と採否、残予算、次の具体操作を書く。ローカルパスだけでは別マシンの担当が読めないため要約をcommitする。
+Issueコメントにrun ID、対象SHA、試したMV ID、pass/fail/blocked、証拠の共有先、独立レビュアーの指摘と実装担当の採否、残予算、次の具体操作を書く。ローカルパスだけでは別マシンの担当が読めないため要約をcommitする。
 
 改善を比較する際は、同条件の操作回数、期待と違った箇所、待ち時間の実測、再現回数を記録する。計測していない速さや使いやすさを数値で補わない。
