@@ -3,13 +3,15 @@
 trusted mainの `agent_loop.py` が、明示登録された同一repository/maintainerのIssue PRだけを処理します。
 #83以降はdevelopとmainの[target別gate](github-workflow.md)を使います。既存heartbeatはPAUSEDのままです。設定変更だけで再開しません。
 
+役割の選定は[共通の担当条件](github-workflow.md#正本と役割)に従います。現行の`agent_worker.py`はCodex用の起動実装です。Claude/Cursor担当を自動起動・接続するadapterがあるとは扱いません。別の独立top-level sessionでレビューを行う場合も、固定HEAD/baseの証拠と既存gateを通してPM/coordinatorへ引き継ぎます。
+
 ## 引継ぎ
 
 専用worktreeでテスト・push・Draft PRを作成し、**元writerの編集/commit/push/GUIを停止してから**登録します。
 
 ```bash
 python3 /path/to/trusted-main/scripts/workflow/agent_loop.py enroll \
-  --pr 123 --source /path/to/issue-worktree --owner gpt-issue-session \
+  --pr 123 --source /path/to/issue-worktree --owner implementation-session \
   --scope scripts/workflow/ docs/verification/ --writer-stopped
 ```
 
@@ -48,7 +50,7 @@ base同期は通常merge → [共通Change Impact](change-impact.md)の必要テ
 
 [確認結果の入力と候補固定](../verification/README.md)を参照してください。1 Caseだけのpassは全候補の合格ではありません。
 GUI lease付きの旧 `gui` 証拠登録は旧記録/互換用途に残しますが、promotionは候補の`promotion.results`を使用し、PR HEADの再GUIを要求しません。
-GUI操作自体は現在も指定GPT/人間のlease下で行います。状態のblockedと製品failを区別し、未実施はpassへ変えません。
+GUI操作自体は現在も能力・許可を確認した指定担当/人間のlease下で行います。状態のblockedと製品failを区別し、未実施はpassへ変えません。
 
 ## 対象branch変更・再開
 

@@ -9,7 +9,7 @@ Apply this section when changing or verifying Swing, input, menus, Diff, notific
 
 - Use `docs/verification/changes/issue-N.json` and fixed-candidate result JSON as authority under [verification](../../docs/verification/README.md). Old manual-verification matrices/runs are history; `current.md` is generated.
 - Add/update affected Cases, steps, expectations and evidence. Keep human-facing steps/expectations in Japanese under the [context policy](../../docs/architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件).
-- GPT observes the real screen with Computer Use and a human supplements it. Cursor's own reply is not evidence of GUI success.
+- A designated, capable and authorized operator observes the real screen under the GUI lease; a human may take an explicit handoff. Preserve Computer Use-required Cases. An agent’s own reply is not evidence of GUI success.
 - Record target SHA, loaded build, steps, expected/actual result, evidence, observer and date.
 - Keep `pending / pass / fail / blocked`; retrieval failures are blocked. Merge alone does not complete/archive verification.
 - Recheck fixes in a new run. CLI/JUnit success is not a GUI pass. Follow finish-work for develop/main gates and QA transfer; do not duplicate results here.

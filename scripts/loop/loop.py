@@ -60,20 +60,20 @@ def prepare(args):
         'created_at': datetime.now(timezone.utc).isoformat(),
         'source_head': git('rev-parse', 'HEAD'),
         'source_status': git('status', '--short'),
-        'operator': 'GPT / Computer Use', 'state': 'prepared',
+        'operator': '', 'state': 'prepared',
         'budget': {'max_minutes': 45, 'max_fix_cycles': 3, 'max_cursor_sends': 8},
         'build': {'source_head': '', 'source_clean': False, 'zip_sha256': '',
                   'installed_identity_evidence': ''},
         'environment': {'ide': '', 'cursor': '', 'cli_path': '', 'cli_version': '',
                         'model': '', 'permission': '', 'sandbox': '', 'worktree': ''},
         'cases': [{'surface': c.split(':')[0], 'id': c.split(':')[1], 'status': 'pending'}
-                  for c in args.case], 'next_action': 'Identify build and GUI target; follow scenarios.md'
+                  for c in args.case], 'next_action': '担当・対象build・GUI対象を確認し、scenarios.mdに従う'
     })
     (target / 'report.md').write_text(
-        '# GUI loop run\n\nIssue: #' + str(args.issue) + '\n\n'
-        '## Scope and acceptance\n\nTODO: chosen MV IDs, source SHA, fixture paths, budget.\n\n'
-        '## Observations\n\nTODO: time, app/window, action, expected/actual, evidence file or tool reference.\n\n'
-        '## Review and next action\n\nTODO: Claude findings, GPT disposition, remaining blockers.\n')
+        '# GUIループ実行記録\n\nIssue: #' + str(args.issue) + '\n\n'
+        '## 対象と受入条件\n\n未記入: 担当session・実施経路、MV ID、source SHA、fixture、予算。\n\n'
+        '## 観察\n\n未記入: 日時、アプリ/画面、操作、期待/実際、証拠ファイルまたはtool参照。\n\n'
+        '## レビューと次の操作\n\n未記入: 独立reviewerのsession・指摘、実装担当の対応、残るblocker。\n')
     print(target)
 
 
@@ -193,7 +193,7 @@ def check(args):
     if errors:
         print('INCOMPLETE: do not mark the scoped GUI verification complete.')
         return 1
-    print('FORMAT ONLY: content and actual GUI/build correspondence have NOT been verified. GPT must review evidence; no auto-pass or Issue mutation.')
+    print('FORMAT ONLY: 形式のみ確認済み。担当が証拠の内容と実画面/buildの一致を確認してください。自動pass・Issue更新は行いません。')
     return 0
 
 

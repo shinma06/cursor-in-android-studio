@@ -184,6 +184,8 @@ class AcceptanceTests(unittest.TestCase):
             output = render_queue([path])
             self.assertIn('1. 設定を開く', output)
             self.assertIn('固定候補のpass未登録', output)
+            self.assertIn('初期登録時のAgent（互換キーgpt）:', output)
+            self.assertIn('初期登録時の人間:', output)
 
 
 class RegistryTests(unittest.TestCase):

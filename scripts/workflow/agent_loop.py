@@ -429,7 +429,7 @@ class Loop:
                 self.gh.merge(latest)
                 return self.finish(self.gh.pr(number), h, state, comment_id)
             else:
-                state.update(phase=action, next={'gui-queued': 'Designated GPT operator: acquire GUI lease, observe and record evidence',
+                state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: leaseを取得し、実画面を観察して証拠を記録',
                              'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
                              'ci-wait': 'Wait for latest required CI checks', 'ci-failed': 'Inspect CI failure; resume after repair',
                              'blocked': 'Inspect review findings or retry budget; resume explicitly'}[action])
