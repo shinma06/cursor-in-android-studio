@@ -8,7 +8,7 @@
 - ACP v1 schemaは commit [`bcb9d7ea13adc0b47e906c82f3d692d495a6fa34`](https://github.com/agentclientprotocol/agent-client-protocol/tree/bcb9d7ea13adc0b47e906c82f3d692d495a6fa34/schema/v1) のstable/unstableを照合。stable SHA-256 `caf62ff962ada396878372ced11efb2c6764e59d90919a38583c319948931a42`、unstable `bf7d01218c4fc330b4f08840bda168dca5525951cdaf2dc32e58b9a5b4a8eb75`。本書のcontent/tool型は両方に存在する。
 - MCPは明示版 **2025-11-25** の [Tools仕様](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) を使う。全MCPの最新版という主張ではない。
 - 公開済みfixtureは [README](../../src/test/resources/stream-json-fixtures/README.md) のprint `2026.09.02-c22c1a3` の観測範囲。Web/Browser/media/MCP出力の実測fixtureはこの集合にない。#146の未公開原本を再作成・転載しない。
-- [オフラインチェック](issue-290-check.java) は基準製品のparser/rendererを直接呼ぶ合成データ **4 test / 0 failure / 0 error**。providerがその合成形状を送った証拠ではない。画像の `AA==` は型解析用で、有効な画像・音声のデコード検証ではない。GUI、URI取得、IDE/Browser起動、MCP/認証設定、clipboard操作なし。
+- [当時のオフラインチェック](https://github.com/shinma06/cursor-in-android-studio/blob/7cef8522ddd39bb1a9330abf85f756e49fcd980f/docs/research/issue-290-check.java) は基準製品のparser/rendererを直接呼ぶ合成データ **4 test / 0 failure / 0 error**。providerがその合成形状を送った証拠ではない。画像の `AA==` は型解析用で、有効な画像・音声のデコード検証ではない。GUI、URI取得、IDE/Browser起動、MCP/認証設定、clipboard操作なし。
 
 ## エンジン能力と受信経路
 
@@ -81,19 +81,8 @@ PMが製品Issueへ分離する順は、(1) 共通Markdown画像の自動取得�
 
 ## 再現と受入境界
 
-JDK環境をプロジェクトの通常検証と同じにし、repository rootで実行する。一時Gradle initだけで研究用Javaをtest sourceへ追加する。製品build設定の変更・新依存・provider呼出しはない。
+#430で現行treeの研究用Javaを除去した。原本は[研究統合時の固定チェック](https://github.com/shinma06/cursor-in-android-studio/blob/7cef8522ddd39bb1a9330abf85f756e49fcd980f/docs/research/issue-290-check.java)、実行方法は[同じ固定版の手順](https://github.com/shinma06/cursor-in-android-studio/blob/7cef8522ddd39bb1a9330abf85f756e49fcd980f/docs/research/issue-290-rich-tool-results.md#再現と受入境界)に保存されている。再現する場合は、その版のソース・build環境と一時Gradle initを使う。現行checkoutへ古い期待値を追加しない。
 
-```bash
-python3 - <<'PY'
-import pathlib, subprocess, tempfile
-with tempfile.TemporaryDirectory(prefix="issue290-") as directory:
-    init = pathlib.Path(directory) / "check.gradle"
-    init.write_text("allprojects { plugins.withId('java') { sourceSets.test.java.srcDir('docs/research') } }\n")
-    subprocess.run(["./gradlew", "-I", str(init), "test", "--tests",
-                    "com.cursoragent.acp.Issue290ContractCheck"], check=True)
-PY
-```
-
-4件は現状を固定するcharacterizationで、望ましくない無表示/不正要素例外/Markdown img生成も記録する。修正後にその挙動を守るための製品テストではない。既定test sourceに追加しないため、通常のGradle testとは別に上記を実行する。共通Change Impactは研究JavaをUNKNOWNとして必要な検証を選ぶので、分類を緩めてskipしない。
+4件の成功は基準実装のcharacterizationで、望ましくない無表示/不正要素例外/Markdown img生成も記録した。後続#295の画像自動取得抑止、#296の非text内容表示は既にdevelopへ入り、この文書の「現状」「候補」は調査日時点のもの。現在の回帰確認は [AcpProtocolTest](../../src/test/kotlin/com/cursoragent/acp/AcpProtocolTest.kt) と [MarkdownRendererTest](../../src/test/kotlin/com/cursoragent/ui/timeline/MarkdownRendererTest.kt)、表示契約は[ACP内容の有限表示](../architecture/acp-content.md)を使う。原証拠をKotlinへ翻訳して現在も4件成功すると解釈したり、古い挙動を維持する製品テストにしたりしない。QA #353の固定研究/main反映追跡は維持する。
 
 研究の受入は公開契約・基準実装・合成再現・型別採否と未確認条件の固定まで。独立review/共通検証結果とwriter停止はIssue/PRの固定SHA記録を正本にする。#290の研究完了を親 #25/M3、製品GUI、QA/main、#146/#150の完了にはしない。

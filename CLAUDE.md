@@ -78,6 +78,8 @@ The product is intended for Japanese use. When porting Cursor UI, choose languag
 
 ## Development and verification
 
+Use Kotlin by default for JVM code. Java needs a concrete current benefit, applicable assumptions and a re-evaluation condition in the affected source comment or existing tool README. When adding or substantively changing Java, or changing SDK/build assumptions behind its justification, check only the affected rationale and link it in the PR review. Kotlin-only work and wording-only edits need no Java inventory or revalidation. Preserve fixed historical evidence.
+
 Use [Change Impact](docs/development/change-impact.md), shared by CI/hooks/coordinator/ZIP generation. Before pushing, run `python3 scripts/workflow/change_impact.py --run-tests`. Preserve mixed/unknown validation, explicit builds/GUI checks, independent review and Acceptance gate; never use `--no-verify` or disable protection.
 
 ```bash

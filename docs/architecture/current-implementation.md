@@ -111,6 +111,14 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 
 実行コマンドは `python3 scripts/workflow/change_impact.py --run-tests`、Kotlin対象は `./gradlew test`。追加の横断対応表は#231の担当範囲であり、ここにCaseのpass状態を複製しない。
 
+<a id="jvm-language"></a>
+
+## JVMソースの言語選択
+
+Kotlinを標準とし、Javaの例外理由・成立条件・再評価条件は対象sourceコメントまたは既存tool READMEを正本にする。Javaの追加・実質変更、その理由に関わるSDK/build前提の変更とレビュー時だけ、影響する根拠を確認してPRから参照する。Kotlinだけの作業に全Javaの棚卸しを要求せず、修辞変更だけでは再検証しない。
+
+アイコン描画テスト/SDKの変更時は[テスト冒頭の理由](../../src/test/java/com/cursoragent/ui/ToolWindowIconTest.java)、独立Swing probeの変更時は[用途と維持条件](../../scripts/gui-fixture/README.md#現在の用途と維持条件)を読む。調査履歴・依存の棚卸しは[#430](https://github.com/shinma06/cursor-in-android-studio/issues/430)、過去の研究原証拠は[固定版の案内](../research/issue-290-rich-tool-results.md#再現と受入境界)を必要時だけ参照する。
+
 ## ビルドと実行環境
 
 [build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.1.1.8")` で最古の対応StableであるQuail 1初版を固定取得する。[CI](../../.github/workflows/ci.yml) と [branch ZIP](../../.github/workflows/branch-zip.yml) も新構成のsourceでは同じGradle経路を使う。branch ZIPのschedule/manualが旧構成sourceを扱う場合だけ、tracked gradle.propertiesの有効なplatformPath代入を検出して従来Quail 3 Patch 1の取得・local指定を維持する。Gradle実行・Java/Kotlin toolchain・bytecode targetは21。Gradle 9.7.1 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.3、stdlibはIDEの2.3.20を使ってZIPへ同梱しない。
