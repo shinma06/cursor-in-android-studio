@@ -9,7 +9,8 @@
     "Kotlin直接アクセスのコンパイル拒否とJava側の状態復元・描画assertionを照合",
     "全Java/Gradle依存/source set/参照を検索し、固定研究リンクと現行Kotlinテストへの経路を照合",
     "scripts/gui-fixture/build.pyでJDK-only buildとplain/.app JAR一致を確認（起動なし）",
-    "製品source/resources・既存Case・過去run・probe実行コードがbaseと不変であることを確認"
+    "製品source/resources・既存Case・過去run・probe実行コードがbaseと不変であることを確認",
+    "適用条件の机上確認: Kotlinのみ→Java資料不要、新規Java→局所理由必須、SDK/build前提変更→影響する例外だけ再評価、修辞変更→Java再検証不要"
   ],
   "cases": []
 }
