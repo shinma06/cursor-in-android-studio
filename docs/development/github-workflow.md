@@ -28,9 +28,24 @@ PM/進行役は統合順・claim・GitHub設定を管理します。実装担当
 独立レビュアーは別sessionで固定SHAを読み、GUIは操作しません。GUI担当はhost/OS sessionに1名の指定GPT、または人間引継ぎです。
 モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
 
+## 参照する範囲と進行判断
+
+対象Issue/全コメント、関連PR、Projectの担当範囲と対象Milestone、作業tree/baseは開始・引継ぎ時に確認する。技術資料は下表で選ぶ。既に読んだ同一版は再利用し、baseや対象要件の変更・矛盾・不足がある部分を読み直す。必須の受入/所有/承認照合を省く意味ではない。
+
+| 変更・判断 | 参照する正本 |
+| --- | --- |
+| 新機能・連携方式の選定 | Mission、ACP First、該当要件、最新の公式能力比較 |
+| 製品コード・保存・イベント境界 | 該当要件と現行実装/保存/イベント契約、呼出元と呼出先 |
+| docs・workflow・設定 | 変更する規約と消費側。製品に関係しない修辞修正で全設計を読み直さない |
+| 開発コンテキストの新規作成・更新・レビュー・監査 | [知識の正本の共通規則](../architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件)。用途/言語/形式/配置/読込条件/証拠と正当な例外を照合し、製品契約を変更しない |
+| 検証・配布 | Change Impact、対象Case。build/配布/GUIを実施する場合だけ対応runbook |
+| Session追加・引継ぎ・merge・cleanup | Codex実行規約、PR automation、Work Managementの該当工程 |
+
+依頼の完了を、成果物・必要検証・統合先・残QA/cleanupで具体化する。依頼済み範囲の実装、原因修正、必要テスト、レビュー準備は初版で止めず進める。テスト/レビューの追加・再実行は変更・失敗・未解決懸念に対応させ、同じ入力の成功確認をPMと各担当で重複させない。自動gate/hookの必要実行と、HEAD/base/target/本文/Issue条件/feedback変更時の承認失効は維持する。
+
 ## 開始
 
-1. AGENTS.md、本文書、要件、Projectのロードマップと対象Milestone、対象Issue本文と全コメント、open PRを読む。旧#1は必要な判断履歴として参照する。
+1. AGENTS.mdと本節の共通契約を確認し、上の参照表から作業に必要な正本を選ぶ。対象Issue全コメント・関連PR・Project/対象Milestoneを確認し、旧#1は必要な判断履歴だけ参照する。
 2. `git status --short --branch`、`git worktree list`、`git fetch --prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
 3. [Governance Audit](git-governance-audit.md)のread-only statusと今回の影響から発火条件を判断する。対象なら監査Issueへまとめ、通常のPRごとに全監査しない。重複Issueを検索し、必要な具体作業のIssueを作る。[作成/triage確認](work-management.md#issue作成triageの確認)に従いProjectへ追加、Milestoneを選定、実際の親子/依存をnative設定する。関係なしはStandaloneと明示し、独立した実装やGUI検証を分ける。
 4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。

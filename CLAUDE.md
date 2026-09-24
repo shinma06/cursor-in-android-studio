@@ -1,467 +1,124 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-`AGENTS.md` is a symlink to this file, so any agent reading either name gets identical content.
+Development-agent instructions for this repository. `AGENTS.md` remains a symlink to this file, so both entry points have the same contract.
 
-## 最上位ミッションとACP First（2026-09-09 / #134）
+<a id="最上位ミッションとacp-first2026-09-09--134"></a>
 
-[Project Mission](docs/project-mission.md)をプロジェクト全体の最上位判断基準、[ACP First](docs/architecture/cursor-integration.md)を今後の統合設計基準とする。対象はCursor **IDE内Agent panel** の機能・操作フロー・フィードバック・IDE統合であり、独立Agents Window専用UIやピクセル単位の複製を目的にしない。
+## Mission and ACP First
 
-新機能ごとに最新のCursor公式IDE内panel、JetBrains AI Assistant + Cursor ACP、さらにIntelliJ / Android Studio integration + IntelliJ MCP Server + 利用可能なMCP toolsを含む最も強い構成と比較し、本Pluginの同等以上UXと直接IDE統合による上積みを記録する。競合の既存能力を独自機能と呼ばない。完成像はAndroid開発のIDE・ビルド・デバイス・実行環境まで深く理解・操作できるCursor Agent環境である。
+Use [Project Mission](docs/project-mission.md) as the highest project criterion and [ACP First](docs/architecture/cursor-integration.md) for integration design. Reproduce the functionality, workflows, feedback and IDE integration of Cursor's **in-IDE Agent panel**, not the standalone Agents Window or a pixel-perfect copy. The goal includes deep understanding and operation of Android IDE, build, device and execution environments.
 
-新規連携はACP標準 → Cursor ACP extensions → IDE APIs → MCP → CLI → 非構造出力解析の順で検討する。正確なIDE APIの直接利用を妨げず、CLI専用処理・合理的な補助/fallbackを残す。ACPをChat APIに限定せず、session・tool進捗・承認・質問・Plan/Todo・停止・context/usage等の構造化状態をUIへ対応付ける。各能力の提供可否は検証し、現方式Bの実装状態とACP Firstの設計方針を混同しない。Cursor内部のAgent機構を不必要に再実装せず、Cursor固有/ACP標準/IDE/MCP/CLI/UIの責務を分ける。
+For each new feature, compare the latest official Cursor in-IDE panel and the strongest available JetBrains AI Assistant + Cursor ACP + IntelliJ / Android Studio integration + IntelliJ MCP Server + MCP tools configuration. Record equivalent-or-better UX and the additional value of direct IDE integration. Do not call existing competitor capabilities unique features.
 
-## 最新の能力比較（2026-09-08 / #114）
+Consider ACP standard → Cursor ACP extensions → IDE APIs → MCP → CLI → unstructured output parsing. Keep accurate direct IDE APIs, CLI-only operations and justified fallbacks. Map structured sessions, tool progress, permissions, questions, Plan/Todo, cancellation and context/usage into the UI; ACP is not just a chat API. Verify availability and separate design policy from shipped implementation. Do not rebuild Cursor's internal agent; separate Cursor-specific, ACP, IDE, MCP, CLI and UI responsibilities.
 
-[機能・UI/UX・main/develop・非TTY CLIマトリクス](docs/research/cursor-agent-capability-matrix-2026-09-08.md)を追加調査/実装選択の入口にする。画像は公式headless資料にprompt内path読取経路があり、`--image`がhelpにないことだけで非対応と判断しない。Skills/Subagentsのheadless対応も公開済みだが、本プラグインのUI/event接続と新機能live受入は別途必要。過去のCLI即時編集実測と事後Revert、#66の名前取得待ちは維持する。方式Bは現行実装の記録であり、新規連携の設計方針は上記ACP Firstを優先する。以下の過去記録の「非対応」は観測時点・経路に限定する。
+<a id="github-first-collaboration-2026-09-06-31"></a>
+<a id="変更作業の共通契約"></a>
 
-## GitHub-first collaboration (2026-09-06, #31)
+## Shared change contract
 
-[GitHub Work Management Rules](docs/development/work-management.md)に従い、Issueは具体作業、Projectは全体管理、Milestoneは到達目標、native Relationshipは実際の依存/分解に使う。作成/triage時にProject登録・Milestone選定・関係判定・Status/Priority表示を確認する。Standaloneは正常であり、#1等へ分類目的で接続しない。
+Every code, documentation or configuration change needs an Issue, ownership claim, dedicated Issue-numbered branch/worktree and PR, even without a Git request. Read-only advice/review needs no new Issue. Never commit/push directly to main/develop. Preserve unrelated work and unreleased claims. Normally start from origin/develop; GUI-not-required main tooling must meet the [workflow](docs/development/github-workflow.md) conditions.
 
-[Git Governance Audit](docs/development/git-governance-audit.md)を開始・統合終了時の判断に適用する。主要Milestone/High Impact/構造問題と10 meaningful mergesを確認し、既存ルールの削除・統合・単純化を先に検討する。監査状態は各回の監査Issueを正本とし、毎PRの全体監査や二重台帳を追加しない。
+Use [start-work](.agents/skills/start-work/SKILL.md) to start/resume and [finish-work](.agents/skills/finish-work/SKILL.md) to validate, hand off and finish. The matching `.claude/skills/` entries have the same contract; Cursor also uses `.cursor/rules/loop-engineering.mdc`. Select task-specific references through the [workflow reference table](docs/development/github-workflow.md#参照する範囲と進行判断); reuse already-read unchanged material, revisiting changed, missing or conflicting parts. Keep authorization and resumption decisions in that workflow.
 
-開発Agentの追加・委譲前に[Codex実行規約（#135の固定版）](https://github.com/shinma06/cursor-in-android-studio/blob/ffb63ab944f920a1d3a78a78e4eb46cd7bf0f9a0/docs/development/codex-execution-policy.md)を確認する。GPT-6 Astraがメインの場合は子Agentの生成・委譲を禁止し、通常のToolと合理的な独立top-level Session間連携で進める。他モデルには本規約による禁止を適用しない。正本の最新版・統合状態は[#135](https://github.com/shinma06/cursor-in-android-studio/issues/135)を参照する。製品のCursor Subagent対応範囲とは区別する。
+When creating, updating, reviewing or auditing development context, apply the single [context policy](docs/architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件). It covers purpose, language, format, canonical location, loading conditions and evidence preservation. Human-facing reports remain Japanese. Do not copy the policy into each consumer or change externally managed instructions.
 
-**Apply this to every change request, even when the user says nothing about Git/GitHub.**
-The previous no-PR/direct-main and GUI-before-any-merge policies are superseded. Read
-[the GitHub workflow](docs/development/github-workflow.md) before implementation.
-Every code, docs, or configuration task needs an existing/new Issue, an ownership claim,
-its own Issue-numbered branch and worktree, and a PR. Never commit or push directly to main.
-Read-only advice/review does not need a new Issue. Preserve unrelated local work.
+- [Work Management](docs/development/work-management.md): Issues are concrete work, Project is overall tracking, Milestones are outcomes and native relationships are real dependencies/decomposition. Read back registration, Status/Priority and relationships at creation, triage and closure; never invent a parent for classification.
+- [Codex execution policy](docs/development/codex-execution-policy.md): read before adding/delegating agents. GPT-6 Astra must not spawn/delegate child agents; use ordinary tools or justified independent top-level sessions. Other models follow the policy's applicability; #135 is the current authority. This does not constrain the product's Cursor Subagent support.
+- [PR automation](docs/development/pr-automation.md): stop the writer and confirm clean state before trusted-main v2 enrollment. Require separate-session fixed HEAD/base review and current successful test / PR policy / Agent review / Acceptance gate. Enrollment is not completion: PM/coordinator tracks actual execution, results and next owner. Do not change existing owner/source/registry or PAUSED heartbeat without coordination.
+- [GUI coordination](docs/development/gui-coordination.md): desktop actions, installs, restarts and runIde require the host-wide lease and designated GPT operator or human handoff. Worktrees do not isolate IDE state. Use disposable fixtures and identify the loaded build.
+- [Governance audit](docs/development/git-governance-audit.md): check existing triggers at start and integration/closure (major Milestone, High Impact, structural problems, 10 meaningful merges). The audit Issue is authoritative; do not add a full audit per PR or a second ledger.
 
-1. Read this file, requirements, the Project roadmap and relevant Milestone, target Issue/comments, and open PRs. Inspect status,
-   worktrees, run `git fetch --prune origin`, and compare HEAD with the intended origin/develop or origin/main base. Search before creating an Issue.
-2. Claim scope with a unique owner session, files, base SHA, dependencies, reviewer, GUI need,
-   and next action. Unreleased claims do not expire with time. Follow the conflict/takeover rules
-   in the workflow; no concurrent writers to the same worktree.
-3. Normally create `<codex|claude|cursor>/<issue>-<slug>` in a separate worktree from origin/develop,
-   clear its initial upstream (tooling bootstrap uses origin/main), and run `bash scripts/workflow/bootstrap.sh`.
-   Parallel agents implement assigned independent Issues there and push their own branches.
-4. Open a Draft PR early; update the Issue at each handoff/state change.
-   Follow [PR automation](docs/development/pr-automation.md): stop the original writer and enroll
-   the clean Issue worktree with the trusted-main `agent_loop.py enroll` command. The scheduled
-   coordinator then owns fixes, independent re-review, Issue completion and verified Issue-branch cleanup (never main/develop).
-   `Agent review` is required along with CI. Do not resume editing an enrolled branch concurrently. Record independent
-   review by session and SHA. GPT coordinates integration through GitHub PR merge only.
-5. GUI operations, installs, restarts and runIde require a host-wide lease under
-   [GUI coordination](docs/development/gui-coordination.md). Only its designated GPT session
-   (or human handoff) operates the desktop. Other tasks continue implementation/tests/review.
-   Worktree isolation does not isolate IDE state. Use disposable fixtures and identified builds.
-6. Run tests and independent review, reconcile the target branch and verify current checks.
-   Develop permits pending/blocked/failed GUI with complete Case/fix tracking. Main requires every
-   required Case of the entire fixed candidate to pass on its identified build. See docs/verification/README.md. Never force push, bypass hooks or invent a GUI pass.
-   Close Issues only when acceptance is complete; otherwise record blockers, next action and ownership.
-   Merge and cleanup are separate completion checks: verify remote/local/tracking refs and owned worktrees,
-   or record the retained resource, owner and retry trigger under [branch hygiene](docs/development/pr-automation.md#ブランチ残存の判定と完了確認).
+<a id="develop統合とmain昇格2026-09-07--83ユーザー方針"></a>
+<a id="統合と完了"></a>
 
-The [loop protocol](docs/loop-engineering/README.md) defines GUI cases and evidence;
-[the runbook](docs/loop-engineering/human-runbook.md) is the human entrypoint.
-`.agents/skills/` and `.claude/skills/` route start/finish to the same rules;
-Cursor follows this file and `.cursor/rules/loop-engineering.mdc`.
-GitHub Issues/PRs are the shared source of truth; local notes are supporting evidence.
-Existing user authorization applies. Routine work within scope needs no repeated confirmation.
+## Integration and completion
 
-**Server protection active (2026-09-06, #33):** the user made the repository public.
-Ruleset `main-pr-required` (ID 22368189) now requires PRs, successful `test` and `PR policy`
-checks against an up-to-date base, and resolved review conversations; main deletion and force
-push are blocked, with no bypass actors. Same-account agents still record independent session
-reviews; required GitHub approval count is 0. See the workflow for settings and verification.
+Develop permits squash integration with required tests, independent review and complete Case tracking while GUI is pending, environment-blocked or product-failed. Track product failures in dedicated fix Issues. Unresolved code findings or failing required tests block integration. Close an implementation Issue only after all implementation acceptance and bidirectional QA transfer/readback. Never close tracking/research parents or QA merely because a child PR merged.
 
-## develop統合とmain昇格（2026-09-07 / #83、ユーザー方針）
+Main promotion requires **every commit and required Case** of the fixed develop candidate to pass on the same identified build, then a merge commit. Docs/tooling may target main with concrete GUI-not-required reasons and CLI validation. [Verification JSON](docs/verification/README.md) is authoritative; do not edit generated Markdown separately or substitute old-build, partial or synthetic passes for full candidate acceptance.
 
-通常実装はdevelop向けIssue PRへ。必要テストと独立コードレビューが通り、
-[確認マトリクス](docs/verification/README.md)に必要Case・手順・期待結果・GPT/人間の状態・次の操作があれば、
-GUIのpending/環境blocked/製品failでもdevelopへ統合できる。製品failは専用修正Issue/PRへ追跡する。
-未解決コード指摘やテスト失敗は許可しない。develop統合後はQAを先に作成・双方向link/readback確認し、実装受入完了の元Issueをcloseする。GUI不要でもmain未反映はQAマトリクスへ引継ぐ。失敗時はcloseせず冪等再試行。QA Case/QA Issueの完了やmain反映とは区別し、親tracking/researchを子PRだけでcloseしない。Issue命名・3軸labelはgithub-workflow.mdの#96規約に従う。
-mainは固定develop候補全体をGPT/人間が適切に確認したpromotion PRをmerge commitで統合する。
-過去buildのpass、1 Caseだけのpass、未確認commitの混入はAcceptance gateが拒否する。
-GUI不要docs/toolingだけは理由とCLI検証を記録したmain PRも可能。main/developはcleanup禁止。
-初期9 Case（製品/probe 7件と親#73のCUA 2件）の入口は [今回の確認一覧](docs/verification/current.md)。JSONを正本に再生成し、二重編集しない。
-既存enrollmentのowner/sourceやPAUSED heartbeatは自動変更しない。公開引継ぎにはopaque IDを使い、
-host/sourceはlocal registryだけへ保存する。#83 bootstrapとGitHub設定順序は運用文書を参照。
+Track outstanding main reflection even without GUI and read back QA/Project/Milestone/native relationships under [Work Management](docs/development/work-management.md). Use [current cases](docs/verification/current.md), [loop protocol](docs/loop-engineering/README.md) and [human runbook](docs/loop-engineering/human-runbook.md) for their respective verification work.
 
-## UIの言語と見た目の方針
+Verify merge and cleanup separately. Follow [branch hygiene](docs/development/pr-automation.md#ブランチ残存の判定と完了確認) for owned, stopped, clean Issue resources and remote/local/tracking refs/worktrees. Never delete main/master/develop. Record retained resources, reason, owner and resumption condition. Never force push or bypass hooks/protection. GitHub is the shared authority; keep local paths, hosts and secrets in the private registry only.
 
-このプラグインは**日本語での利用を前提**とする。CursorからUIを移植するときは、
-見た目だけでなく、その文言を理解して判断する重要性に応じて言語を選ぶ。
+<a id="what-this-is"></a>
 
-- 設定項目、選択肢の説明、注意点、エラー、確認文、ヘルプなど、意味の理解が操作判断に
-  関わる文章は、自然で簡潔な日本語にする。Cursorにある長い英語説明をそのまま持ち込まない。
-- 常時見える短いラベルは、Cursorの外観と慣れた呼び方を尊重する。`Agent` / `Plan` / `Ask` /
-  `Auto`、モデル名、`MCP`、アイコン、`@` / `/`、ユーザーが指定したplaceholderは、
-  無理に日本語へ置き換えない。英語を残す場合も、詳しい意味は日本語のtooltipや設定内で補う。
-- 通常の入力画面は簡潔に保つ。詳しい設定や編集の注意点は「…」のチャット設定・設定画面に
-  まとめ、説明文を入力欄の下に常時追加しない。警告文の追加でCursorとの外観差を広げない。
-- 「標準」を「毎回必ず事前確認」などと訳して、CLIが保証しない保護を示唆しない。
-  即時編集と事後Revertの意味を日本語で正確に説明する。
-- CLIフラグ・保存済みenum/ID・モデル固有名・パス・生ログ・ユーザー/モデルの会話本文は
-  翻訳の対象にしない。新規/変更箇所とその直近の設定導線から整え、無関係な画面の一括置換は避ける。
+## Product identity and implementation references
 
-## What this is
+The product is **Cursor in Android Studio**, repository/artifact slug `cursor-in-android-studio`. Preserve `com.cursoragent.plugin`, persisted state/storage names and internal `Cursor Agent` tool-window/notification IDs for upgrades. Use `PluginBrand.NAME` for runtime labels; historical evidence retains its original names.
 
-The product name is **Cursor in Android Studio** and the repository/artifact slug is
-`cursor-in-android-studio`. Keep `com.cursoragent.plugin`, existing state/storage names,
-and the internal `Cursor Agent` tool-window/notification IDs stable for upgrades.
-Use `PluginBrand.NAME` for runtime product labels. Historical evidence keeps its original names.
+This is an Android Studio / IntelliJ Platform client using official Cursor interfaces. Default transport is `agent -p --output-format stream-json` with Swing/JBUI (方式B). Develop also offers explicit ACP selection for new conversations (#147); fixed-build GUI acceptance is tracked in #152. Main remains on print. The [fixed develop implementation record](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/architecture/current-implementation.md) describes develop, not shipped main. Read [requirements](docs/cursor-agent-plugin-requirements.md) before adding features.
 
-An Android Studio (IntelliJ Platform) client for Cursor Agent inside the IDE. The target integration
-is ACP First, with native IDE APIs, MCP and supplementary CLI paths as needed; see the mission and
-architecture documents above. Cursor Agent internals remain a black box, accessed through official interfaces.
+<a id="最新の能力比較2026-09-08--114"></a>
 
-The default transport uses `agent -p --output-format stream-json` with a Swing/JBUI chat UI (方式B).
-Develop also has explicit ACP selection for new conversations (#147); fixed-build GUI acceptance
-remains in #152. See the [develop implementation record](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/architecture/current-implementation.md) for transport scope and limitations; main remains on print.
-`docs/cursor-agent-plugin-requirements.md` records detailed requirements and implementation status
-under the mission and ACP First policy. Read these before adding features.
+Use the [capability matrix](docs/research/cursor-agent-capability-matrix-2026-09-08.md) to enter further capability research. Headless image path references are documented; absence of `--image` in help does not prove no image support. Published headless Skills/Subagents capability, plugin UI/event wiring and live acceptance are separate. Preserve observed immediate print edits/post-hoc Revert and the #66 naming hold. Historical non-support claims apply only to their observed version/path.
 
-## Current blocker (check this before picking a task)
+For responsibility/event/storage changes, consult the relevant source/tests and [integration design](docs/architecture/cursor-integration.md) for the actual branch/SHA. Use [knowledge placement](docs/architecture/knowledge.md) for design decisions and history. Compare old-checkout findings with the latest base and withdraw already-fixed findings.
 
-The verification account used for the **original M0 spike** was Cursor **Free tier**, which hit
-`resource_exhausted` on chat turns. That blocker is **resolved for Teams-plan sessions** — verified
-2026-09-04 with `~/.local/bin/agent` logged in as a Teams account: plain chat, file edits, and
-shell tool calls all succeed and produce rich `tool_call` events (`readToolCall`/`editToolCall`/
-`shellToolCall` with `subtype` `started`/`completed`).
+<a id="uiの言語と見た目の方針"></a>
 
-**2026-09-06**: the primary maintainer's own account moved off Free tier to a **Cursor Pro**
-subscription, independent of the Teams-plan finding above. Going forward, day-to-day development
-and verification on this repo happens on **Pro or Teams plan** accounts — Free tier is no longer
-in the loop for anyone actively working on this project, so don't design around or re-verify the
-Free-tier `resource_exhausted` limitation unless someone specifically reintroduces a Free-tier
-account into testing.
+## Japanese UI policy
 
-**Critical CLI behavior for M4 design (verified live):** in headless subprocess mode, file edits
-are **applied immediately by the CLI even without `--force`** (`permissionMode: default`). The
-plugin cannot intercept writes before they happen — F-30/F-31 are implemented as **post-hoc diff
-view + Revert** (restore `beforeFullFileContent` from the completed `editToolCall` event, or use
-checkpoints), not pre-apply approval gating.
+The product is intended for Japanese use. When porting Cursor UI, choose language according to what the user must understand to decide:
 
-F-60 image UI remains unimplemented. The 2026-09-04 absence of an image flag is historical; the current documented headless path-reference route needs a live spike in #10 (see the capability matrix).
+- Use concise natural Japanese for settings, option explanations, warnings, errors, confirmations and help. Do not import long English explanations unchanged.
+- Keep familiar short labels (`Agent`, `Plan`, `Ask`, `Auto`, model names, `MCP`, icons, `@`, `/` and user-specified placeholders). Explain retained English in Japanese tooltips/settings when needed.
+- Keep the normal composer simple. Put detailed settings/editing caveats in the chat “…” menu or settings, not permanently beneath the input. Do not widen visual differences with extra warnings.
+- Do not translate “standard” into guaranteed prior confirmation. Explain immediate CLI edits and post-hoc Revert accurately.
+- Do not translate CLI flags, persisted enums/IDs, model names, paths, raw logs or conversation content. Limit UI language work to changed areas and their adjacent settings flow.
 
-## Commands
+<a id="commands"></a>
 
-[Change Impact](docs/development/change-impact.md)をCI・hook・自動進行役・ZIP生成で共通利用する。Knowledge/Metadataだけは重いコード検証を省略し、runtime/build/test/tooling・混在・unknownには必要な検証を残す。新しい入力/同梱resourceを追加したら分類も更新する。PR/独立review/Acceptance/GUI受入のgateは維持する。
+## Development and verification
+
+Use [Change Impact](docs/development/change-impact.md) across CI/hooks/coordinator/ZIP generation. Run the shared command before pushing. Knowledge/metadata-only changes may skip heavy code checks; mixed/runtime/build/test/tooling/unknown changes retain necessary validation. Classify new inputs or bundled resources. Independent review, Acceptance and GUI gates remain required.
 
 ```bash
-# Gradle runtime / Kotlin toolchain / JVM target are fixed to 21.
 export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
-
-./gradlew buildPlugin   # produces build/distributions/cursor-in-android-studio-<version>.zip
-./gradlew runIde        # launches a sandbox Android Studio instance with the plugin installed
-./gradlew test          # runs the JUnit5 unit tests under src/test/kotlin
-python3 scripts/workflow/change_impact.py --run-tests  # selects required pre-push checks
+python3 scripts/workflow/change_impact.py --run-tests
+./gradlew test          # Required for affected Kotlin/product changes
+./gradlew buildPlugin   # Explicit Plugin ZIP build
+./gradlew runIde        # Requires the GUI lease
 ```
 
-Gradleとbootstrapは `core.hooksPath .githooks` を設定する。pre-pushは最初にbranch/dirty/fast-forwardを検査し、共通Change Impactから必要なPython/Gradleテストを実行して失敗時にpushを拒否する。push前にも上記の共通コマンドで確認する。知識変更の安全なskipはhook迂回ではなく、`--no-verify`や保護無効化は禁止する。
+Bootstrap/Gradle set `core.hooksPath .githooks`; pre-push checks branch/dirty/fast-forward and the selected tests. Never bypass hooks, use `--no-verify` or disable protection. There is a real JUnit5 suite under `src/test/kotlin`; old claims of no tests are historical. No lint/static-analysis task is configured; verify the actual build before relying on stale documentation.
 
-GitHub Actionsのrequired `test` jobも同じ分類を利用し、実行/skipの理由をsummaryへ記録する。通常の製品変更のJUnitは従来どおり実行し、知識だけならAndroid Studio取得まで省略する。必要時のSDK解決方法は次のとおり。
+Gradle runtime, Kotlin toolchain and JVM target are 21. `androidStudio("2026.1.1.8")` pins Quail 1 `AI-261.23567.138.2611.15503007` for local/CI/branch ZIP through the standard resolver. Use local SDK only with explicit `-PuseLocalPlatform=true -PplatformPath=...`; reject a full-build mismatch or unverifiable identity. `platformPath` alone must not change the default SDK. Old 2.10.5 URL failures do not justify disabling the current standard resolver; retain the legacy branch-ZIP fallback only for old branches.
 
-- Gradle実行・Kotlin toolchain・JVM targetは21。SDKは `androidStudio("2026.1.1.8")` でQuail 1初版の `AI-261.23567.138.2611.15503007` に固定する。local/CI/branch ZIPは同じ標準解決経路を使う。
-- local SDKは `-PuseLocalPlatform=true -PplatformPath=...` で明示する場合だけ使用できる。full build不一致/確認不能は失敗し、platformPath単独で既定SDKを変えない。
-- 旧2.10.5のSDK URL問題は過去の観測。新構成の標準SDK取得を無効にする根拠にしない。旧branch復旧だけはbranch ZIP workflowのlegacy判定を保持する。
-- 正式候補の固定・両IDE/JBR・同一ZIP公開は[限定取り込み手順](docs/development/main-scoped-release.md)と[配布手順](docs/development/plugin-zip-delivery.md)へ。develop全体の未反映機能をこのmain候補へ自動追加しない。
+Preserve [main-scoped release](docs/development/main-scoped-release.md) (#408) and [ZIP delivery](docs/development/plugin-zip-delivery.md): fixed candidate, both IDE/JBRs and the same ZIP. Do not import all unreleased develop features into that main candidate.
 
-**Correction (2026-09, found by an onboarding dry-run — see GitHub issue #13)**: this section used
-to say no test source set exists. That was true when it was written but has been stale since M1
-(commit `f60c7f6`) added `src/test/kotlin` and JUnit5 wiring in `build.gradle.kts`. There is now a
-real test suite (`GitSnapshotStoreTest`, `MarkdownRendererTest`, `MentionTokenExtractorTest`,
-`ModelListParserTest`, `AssistantChunkDeduperTest`, `AgentSettingsStateTest`) — run `./gradlew test`
-and keep it green. There is still no lint/static-analysis task configured. If you're reading a
-stale copy of this file (cached context, an old checkout), don't trust either claim — run
-`./gradlew test` yourself to check, and if this note itself looks wrong, the code is more likely to
-be right than a doc that says "don't assume X exists."
+<a id="current-blocker-check-this-before-picking-a-task"></a>
 
-Manual install (no auto-update channel): Settings → Plugins → ⚙ → Install Plugin from Disk →
-select the built zip → restart IDE.
+Use Pro/Teams for development/verification; do not revive the old Free-tier `resource_exhausted` blocker unless Free is explicitly reintroduced. Main F-60 image UI is unimplemented; the documented headless path-reference route needs its live spike in #10. Manual install is Settings → Plugins → ⚙ → Install Plugin from Disk, select ZIP, restart; there is no automatic update channel. Observe the GUI lease.
 
-## Architecture（現行方式Bの実装構造）
+<a id="architecture現行方式bの実装構造"></a>
 
-Layered, unidirectional: `ToolWindowFactory` → root panel → `AgentUiController` (mediator) →
-`AgentProcessService` (subprocess + stream parsing) → `StreamJsonParser`. Settings are a separate
-persisted side-channel read by both the service and the UI.
+## Main print implementation constraints
 
-- **`toolwindow/CursorAgentToolWindowFactory`** — registers the "Cursor in Android Studio" right-anchored
-  tool window (see `plugin.xml`), instantiates `AgentToolWindowRootPanel`.
-- **`ui/AgentToolWindowRootPanel`** — wires together `AgentHeaderBar` (NORTH), `ChatTimelinePanel`
-  (CENTER), `ComposerPanel` (SOUTH), and constructs the `AgentUiController` that owns the wiring
-  between them.
-- **`ui/AgentUiController`** — the only class that talks to `AgentProcessService`. On send: pushes
-  the user bubble, prepends active-file/selection context (`buildActiveFileContext`, via
-  `FileEditorManager`), and registers an `AgentProcessListener` per request. All UI mutation from
-  the listener callbacks is marshaled onto the EDT via `runOnEdt` — the service invokes callbacks
-  from process-output threads, so never touch Swing state directly in a listener override.
-- **`service/AgentProcessService`** (project-level `@Service`) — builds the `GeneralCommandLine`
-  for `agent`, owns the single `OSProcessHandler` at a time (`activeHandler`, an `AtomicReference`;
-  a new prompt kills any in-flight process first), and tracks `chatId` across turns to pass
-  `--resume`. `resolveAgentExecutable` searches a fixed candidate list
-  (`/usr/local/bin/agent`, `/opt/homebrew/bin/agent`, `~/.local/bin/agent`, then bare `agent` on
-  `PATH`) unless a path is explicitly configured in settings. `dispose()` kills the process —
-  this is load-bearing for not leaking zombie CLI processes when the tool window/project closes.
-- **`parser/StreamJsonParser`** — line-oriented (JSON Lines), maps each line to a `StreamEvent`
-  sealed interface (`SessionInit`, `AssistantDelta`, `ThinkingDelta`, `ToolCall`, `ToolCallStarted`,
-  `ToolCallCompleted`, `Result`, `Unknown`). Must stay defensive: unrecognized `type` values or
-  malformed lines become `Unknown` or are silently dropped rather than throwing, because the CLI's
-  stream-json schema is explicitly unstable across `cursor-agent` versions (see requirements doc
-  §7, §11). Both `mapEvent()` (in `parseLine`) and `ToolCallPayloadParser.parse()` are wrapped in
-  `runCatching` for this reason — a 2026-09 review found the original `tool_call` parsing did an
-  unguarded `JsonElement.asJsonObject` cast that could throw and abort the rest of that output
-  chunk; keep new event-shape parsing similarly defensive rather than trusting the shape.
-- **`parser/AssistantChunkDeduper`** — guesses whether `AssistantDelta` events are incremental or
-  cumulative/repeated against a running buffer, and returns the **full** text to display (never a
-  fragment) — `AgentTurnListenerFactory.onAssistantDelta` calls `timeline.setAssistantText(full)`
-  (replace), not append. **This return-full-text contract is load-bearing**: the original PR #18
-  implementation returned a fragment for the "cumulative resend" case while the caller appended it,
-  which duplicated/garbled the assistant bubble whenever the CLI resent a corrected message — fixed
-  in the 2026-09 review pass below. Don't reintroduce an append-based caller without also reverting
-  `dedupe()` to return fragments consistently.
-  **Correction (2026-09 codebase review, see GitHub issue #2)**: this was inherited from the
-  original pre-existing code with no verification behind it, and CLAUDE.md previously
-  (incorrectly) described it as based on "observed" CLI behavior — the M0 spike never actually
-  got a real `assistant` event before hitting `resource_exhausted`. Treat it as an unverified
-  guess sitting on the critical path of chat rendering, not a confirmed fact. `AssistantChunkDeduperTest`
-  pins down its current behavior so a future change is at least deliberate, not a spec for
-  correctness.
-- **`settings/AgentSettingsState`** (application-level `@Service` + `PersistentStateComponent`,
-  storage `cursor-agent-settings.xml`) — holds `agentExecutablePath`, `selectedModel`, `mode`
-  (`AgentMode`: ASK/AGENT/PLAN, each mapping to a `--mode` CLI value or `null` for default agent
-  mode), and `permissionMode` (`PermissionMode`: ASK_EVERY_TIME/AUTO_REVIEW/RUN_EVERYTHING, mapping
-  to no flag / `--auto-review` / `--force`). **Must default to `ASK_EVERY_TIME`** — a deliberate
-  compatibility/safety requirement to avoid silently adding `--auto-review` or `--force`.
-  It does not prevent immediate headless file edits. This replaced an earlier binary `forceEnabled` toggle once research showed the CLI's
-  real approval model is 3-way (requirements doc F-22/F-24, 2026-09).
-- **`ui/composer/`, `ui/header/`, `ui/timeline/`** — plain Swing/JBUI view components with no CLI
-  knowledge; they expose callbacks (`onSend`, `onNewChat`) and mutation methods
-  (`setAssistantText`, `showStatus`, etc.) that the controller drives. `ChatTimelinePanel` tracks
-  in-progress tool-call rows by `callId` (`activeToolCallRows`) so a `completed` event's card
-  replaces the `started` row instead of leaving a stale duplicate — don't add a tool-call row type
-  without going through that map, or it'll orphan rows the same way the pre-fix code did (2026-09
-  PR #18 review, see below).
+- Preserve layering: ToolWindowFactory → root/view panels → AgentUiController and its listener/context/history coordinators → project AgentProcessService → defensive stream parser. View components expose callbacks and do not own CLI logic; settings remain a separate persisted side channel.
+- Main owns one active OSProcessHandler; starting a prompt replaces the in-flight process. Stop and project/tool-window disposal must terminate it. Catch process construction/start failures and report through the plugin error UI. Resolve the configured executable first, otherwise existing candidates/PATH; retain `--resume` chat ID handling.
+- Marshal process callbacks to EDT. Read editor/VFS/Terminal APIs on EDT; run process startup, Git and checkpoints in the background. Preserve the MentionResolver split and avoid moving Terminal `invokeAndWait` into background prompt assembly. Use project.basePath/guessProjectDir, not deprecated baseDir.
+- Malformed/unknown stream types and shapes must be harmless. Keep parser and tool-payload `runCatching` boundaries. AssistantChunkDeduper is a heuristic, not a protocol guarantee: return full text and replace via `setAssistantText`, never append full cumulative text. Keep tests without calling them live proof.
+- Reconcile tool started/completed rows by callId. Revert only if current file content still matches that edit's produced content. Main's checkpoint store uses project.basePath; isolated CLI worktrees need explicit handling and must not be presumed safely restorable. The previously documented ISOLATED/root mismatch is not fixed by this context change.
+- Standard print permissions may apply edits immediately; Diff/Revert is post-hoc, never a prior-approval guarantee. Preserve default `PermissionMode.ASK_EVERY_TIME`, existing enum/XML/storage IDs and the three CLI mappings. Do not silently add `--auto-review` or `--force`.
+- Keep Terminal optional via its separate descriptor and protect absent classes with `LinkageError`. Preserve disposal of tool-window content. Do not render raw Markdown HTML; escape inline/block HTML and keep error/secret/private wire out of public logs.
+- Keep exact CLI model IDs, ambiguous variants and explicit supported capacities. Do not invent context capacities or unknown alias transitions. Keep the configured placeholder and the #66 title-data hold.
+- Main ChatHistoryState stores metadata for session resume, not persisted message bodies. Transcript persistence remains separate in #44; develop's live tab views/ACP findings do not prove main restart/history compatibility. Body replay, provider resume and Revert are separate capabilities.
+- Fixed-build GUI acceptance remains in the corresponding Case/QA records. Old installed-build observations, a model's reply and synthetic/CLI/unit success do not establish a new GUI pass. #146 private publication/ownership stays protected.
 
-## Verified CLI behavior (from a live spike, 2026-09)
+<a id="verified-cli-behavior-from-a-live-spike-2026-09"></a>
 
-`docs/cursor-agent-plugin-requirements.md` §13 lists several `[要検証]` unknowns about the real
-`cursor-agent` CLI. These are now confirmed against a live install (`agent --version` →
-`2026.09.02-c22c1a3`):
+### Verified CLI behavior
 
-- **`--trust` is required on every invocation.** A workspace the CLI hasn't seen before blocks on
-  an interactive "Workspace Trust Required" prompt with no TTY to answer it, so any subprocess run
-  (like this plugin's) fails outright unless `--trust`/`--yolo`/`-f` is passed. `AgentProcessService
-  .buildCommandLine` now always passes `--trust` unconditionally — opening the project in the IDE
-  is already the user's trust decision, independent of `permissionMode` (which still separately
-  controls `--auto-review`/`--force`, i.e. how much tool-call approval is auto-granted).
-- **`agent ls` / `agent resume` (past-session picker) are Ink-based interactive TUIs that require
-  raw-mode TTY** — they hard-fail (`Raw mode is not supported`) when run through a plain
-  subprocess pipe like `OSProcessHandler`/`GeneralCommandLine`. F-50 (past chats list) cannot shell
-  out to these; it must track `chatId`s itself (plugin-side persistent state), which is what's
-  planned.
-- **`agent mcp` has real subcommands**: `list`, `list-tools <id>`, `enable <id>`, `disable <id>`,
-  `login <id>`. F-71 (MCP enable/disable) doesn't need to hand-edit `.cursor/mcp.json` — shell out
-  to `agent mcp enable`/`disable` instead.
-- **Confirmed `system`/`init` event fields**: `type`, `subtype`, `apiKeySource`, `cwd`,
-  `session_id`, `model`, `permissionMode` — matches what `StreamJsonParser.SessionInit` already
-  reads. Additional event `type`s observed and currently (harmlessly) falling into
-  `StreamEvent.Unknown`: `"user"` (echoes the sent prompt back), `"connection"` (subtype
-  `reconnecting`/`reconnected`), `"retry"` (subtype `starting`) — these are connection-retry
-  telemetry, safe to keep ignoring.
-- **CLI flags verified 2026-09-04**: `--sandbox enabled|disabled`, `-w/--worktree` (no `--image` in `--help`).
-- **Historical scope decision (2026-09-04; updated #114)**: non-TTY transcript retrieval for F-17 remains unverified. F-60 now has a documented path-reference route; lack of `--image` in help is not proof of no image support. Neither feature UI is implemented.
-- **Verified 2026-09-04 (Teams plan)**: `assistant` events under `--stream-partial-output` mix
-  incremental fragments and cumulative resends; `tool_call` uses `subtype` `started`/`completed`
-  with nested `readToolCall`/`editToolCall`/`shellToolCall` payloads. Completed `editToolCall`
-  includes `beforeFullFileContent`, `afterFullFileContent`, `diffString`, line counts. Completed
-  `shellToolCall` includes `stdout`/`stderr`/`interleavedOutput`/`exitCode`. File writes happen
-  immediately in headless mode even with default permission mode (no `--force`).
-  **Caveat**: only the `completed` shape was actually captured in a live fixture
-  (`src/test/resources/stream-json-fixtures/`); `ToolCallPayloadParser`'s handling of the
-  `started` subtype (reading `args.path`/`args.command`) is inferred from that, not
-  independently confirmed against a captured `started` event — don't treat it as equally
-  verified until one is captured.
+The [fixed main CLI record](https://github.com/shinma06/cursor-in-android-studio/blob/67348d75264254e39e964915bfc66a98f227764d/CLAUDE.md#verified-cli-behavior-from-a-live-spike-2026-09) preserves the original versions, fields and examples. Keep this entry for existing source references. `--trust` is needed by the observed headless invocation independently of permissionMode; raw-TTY `agent ls/resume` is not a subprocess transcript API. `agent mcp list/list-tools/enable/disable/login` and local model listing are distinct metadata operations, not prompt turns. Captured completed tool events and inferred started args have different evidence strength. Never generalize old print observations to every transport/version or turn missing `--image` help into proof of no image support.
 
-## 2026-09 foundation review
+<a id="2026-09-foundation-review"></a>
+<a id="2026-09-pr-18-review-pass"></a>
+<a id="current-implementation-status-vs-requirements-doc"></a>
 
-Before building further, the pre-existing codebase (the original `6b6eb2f` commit, before any of
-this work) got a dedicated architecture review, and the requirements doc got a comprehensive
-web-research pass against Cursor's actual current Agent panel/CLI capabilities — see GitHub issue
-#2 for the full findings. Highlights:
+## Historical references
 
-- **Fixed**: `AgentProcessService.sendPrompt` didn't catch `OSProcessHandler` construction failures
-  (e.g. the `agent` executable missing entirely) — this threw a raw platform exception instead of
-  going through the plugin's own error UI. Now wrapped, routes to `listener.onError`.
-- **Fixed**: process start + checkpoint snapshot + `@git-diff` resolution used to run synchronously
-  on the EDT (`sendPrompt`, `CheckpointService`, `MentionResolver`). All of that is now on a pooled
-  thread; `MentionResolver` is split into `buildFileAndFolderContext` (EDT-safe VFS reads) and
-  `buildShellBackedContext` (spawns `git`, call off-EDT) for this reason — don't merge them back
-  without keeping that split.
-- **Fixed**: deprecated `project.baseDir` replaced with `project.basePath`/`guessProjectDir(project)`
-  throughout.
-- **Fixed**: no way to cancel a hung/long-running turn — `ComposerPanel`'s send button now doubles
-  as a Stop button while a turn is running (`setRunning`/`onStop`), calling
-  `AgentProcessService.killActiveProcess()`.
-- **Corrected, not fixed** (can't fix without live CLI data): `AssistantChunkDeduper`'s dedup
-  heuristic was never actually verified against real `assistant` events — CLAUDE.md previously
-  overstated this as "observed" behavior; see that class's doc comment.
-- **Known backlog, not yet addressed**: further `AgentUiController` decomposition is largely done —
-  `AgentTurnListenerFactory`, `PromptContextBuilder`, and `PastChatsCoordinator` now own the per-turn
-  listener, prompt assembly, and past-chats popup (#11, 2026-09). Settings page and tool-window-close
-  cleanup are done.
-  F-23 sandbox: basic `--sandbox enabled|disabled` toggle in Composer ⋯ menu (`SandboxMode`).
-  F-52 worktree: basic `-w` toggle (`WorktreeMode.ISOLATED`); changes land under `~/.cursor/worktrees/`.
-  **Known gap**: `CheckpointService`/`GitSnapshotStore` (F-40–44) is hard-wired to `project.basePath`
-  and has no awareness of `WorktreeMode.ISOLATED` — when it's on, the CLI's edits land in the
-  isolated worktree, not `project.basePath`, so checkpoint rollback silently stops matching what
-  the agent actually changed. Not yet fixed; needs either disabling checkpoint rollback while
-  isolated-worktree mode is active, or pointing `GitSnapshotStore` at the worktree path.
-- **Requirements doc**: was missing several real Cursor Agent-panel/CLI capabilities entirely —
-  see `docs/cursor-agent-plugin-requirements.md` §6.2/§6.3/§6.6/§6.9 for what got added (`@Branch`,
-  `@Chats`, the 3-way permission model + `--auto-review`, worktrees, subagents/custom modes as
-  open questions) and what got corrected (F-60 image-attach support is contradicted between the CLI
-  changelog and the parameters reference — don't assume a flag name until verified live; F-22's old
-  binary force framing undersold the real approval model, now F-24).
+The complete [pre-change main instructions](https://github.com/shinma06/cursor-in-android-studio/blob/67348d75264254e39e964915bfc66a98f227764d/CLAUDE.md) retain the M0 spike, foundation/PR #18 review, F-ID implementation inventory and UI-tuning/MV history. Historical installed SHA/pass/blocker statements remain versioned evidence; do not copy them into new acceptance. Relevant constraints remain above. The requirements document owns feature scope; current progress belongs in concrete Issue/PR/QA, Project and native Milestones, not historical #1.
 
-## 2026-09 PR #18 review pass
-
-PR #18 (the M4/M5/M9/backlog consolidation described below) got a multi-angle code review before
-merge (4 finder passes + manual verification), which found and fixed several real bugs on paths it
-added — all fixed on top of the original PR before it landed on `main`:
-
-- `AssistantChunkDeduper` returning a fragment for the "cumulative resend" case while the caller
-  appended it — garbled/duplicated the assistant bubble. Fixed by making `dedupe()` always return
-  the full text and the caller always replace (`setAssistantText`), not append. See that class's
-  entry in "Architecture" above.
-- `ChatTimelinePanel` never reconciling a tool call's `started` row with its `completed` card —
-  every tool call left a permanent duplicate row. Fixed via `activeToolCallRows` (keyed by
-  `callId`). See that class's entry in "Architecture" above.
-- `ToolCallPayloadParser` doing an unguarded JSON cast that could throw and abort parsing of the
-  rest of an output chunk — violated the parser package's own defensive-parsing rule. Fixed with
-  `runCatching`, plus a second safety net around `mapEvent()` in `StreamJsonParser.parseLine`.
-- `DiffViewerHelper.revertFileContent` clobbering the file unconditionally — reverting a stale
-  `FileEditCard` (the file changed again since, by a later agent edit or the user) silently
-  discarded that newer content. Fixed: it now refuses (returns `false`) unless the file's current
-  content still matches what that specific edit produced.
-- `plugin.xml` declaring `org.jetbrains.plugins.terminal` as a required dependency — disabling the
-  bundled Terminal plugin would fail the *entire* Cursor Agent plugin to load over one `@terminal`
-  mention feature. Fixed: `optional="true"` + `cursor-agent-terminal.xml`, and
-  `TerminalOutputReader` now also catches `LinkageError` (a disabled/absent Terminal plugin throws
-  that, not a plain `Exception`, when its classes are referenced).
-- `@terminal` mention resolution ran on the background prompt-assembly thread and blocked it on
-  `invokeAndWait` back onto the EDT (the Terminal API needs the EDT) — reintroducing the EDT
-  dependency `MentionResolver`'s file/folder-vs-git split exists to avoid. Fixed by moving
-  `@terminal` into `buildFileAndFolderContext` (the EDT-run half) instead of
-  `buildShellBackedContext` (the background half, now git-only).
-- `AgentNotificationService`'s tool-call notification text claimed "approval may be required,"
-  contradicting this same PR's own finding that the headless CLI applies edits immediately.
-  Reworded (code and Settings page checkbox label).
-
-Not fixed in this pass (documented instead, since each needs a larger design call, not a
-mechanical fix): the `WorktreeMode.ISOLATED`/`CheckpointService` mismatch (see "Known gap" above);
-tool-call notifications still fire once per call with no debouncing; `ToolCallPayloadParser`'s
-`started`-subtype field reads are still unverified against a captured live event (see "Verified
-CLI behavior" above). `./gradlew test` was green throughout (40 tests after this pass, 3 new:
-`StreamJsonParserTest`'s malformed-input case, two `ToolCallPayloadParserTest` defensive-parsing
-cases).
-
-## Current implementation status vs. requirements doc
-
-**#27 model option grouping (2026-09-06):** The composer model trigger opens Thinking/Fast/Context/Effort controls and a Model picker. `ModelFamilies` groups recognized trailing alias tokens, retains exact CLI IDs, keeps ambiguous aliases separate, and exposes only transitions compatible with other known options. The family picker searches all variant labels/IDs while showing one row per family. Context choices require multiple explicit capacities from the CLI list; no 300K/other overrides are invented from the screenshot or generic bracket syntax. The current live catalog mostly exposes 1M only. Nested choices use pages in one popup for focus/cancel consistency. MV-044 tracks actual GUI acceptance.
-
-**#19 static UI parity (2026-09-06):** conversation rows now use natural heights and viewport-width wrapping, full-width rounded user cards and unframed assistant text. Composer is a unified rounded surface with button-backed mode/model choosers; model labels/IDs are available in tooltips. `MessageTextPane` caches measured height by width/content/font. This changes the UI only; CLI permissions and rollback semantics are unchanged. Identified-build GUI acceptance is tracked as MV-038 in [the run](docs/loop-engineering/runs/2026-09-06-ui-parity.md); do not infer that all #19/#21/#27 acceptance is complete.
-
-**#27 composer enhancement (2026-09-06):** Model popup has a visible name/ID search field,
-current-selection check, and Auto toggle (collapse manual choices while on; restore the last manual
-model while the selector instance lives). Model trigger uses natural width and clips only when the
-row is narrow, preserving full label/ID in its tooltip. Agent/Plan/Ask have icons and colored pills.
-Input grows to 12 visual lines, then scrolls vertically, and uses the user-requested placeholder
-`Plan, Build, / for skills, @ for context`. Debug/Multitask, Add Models management, and skill execution
-are not added by this appearance change. MV-039 tracks identified-build GUI acceptance.
-A compact UI follow-up uses the IDE label font at 92%, smaller composer spacing/icons, and
-geometric centered chevrons. Selector hit widths come from the painted content, bypassing IDE
-button delegate minimum widths. Final `2fe07ae` is installed; compact geometry and input growth
-were observed, but popup/margin-click GUI QA is blocked by CUA. [MV-041 run](docs/loop-engineering/runs/2026-09-06-compact-ui.md)
-tracks this sizing follow-up independently of MV-039.
-The next follow-up uses remaining settings-row width for Japanese current values, renames session
-summarize/MCP settings actions, and opens mode/model popups above a visible trigger. A shared
-controller handles same-trigger toggling, external-focus dismissal and model-popup resizing; Agent
-has a distinct gray pill. Final `b264791` is installed; Agent background was observed, but settings
-values/popup interactions remain CUA-blocked. [MV-042 run](docs/loop-engineering/runs/2026-09-06-popup-ui.md)
-tracks this follow-up.
-
-**#20 Japanese options follow-up (2026-09-06):** per the user's appearance feedback, the
-always-visible composer notice is removed. A grouped Japanese overflow panel shows permission,
-sandbox and worktree current values, summarize/MCP/settings actions, and `ImmediateEditNotice`.
-The same Japanese explanation appears in Settings. It explains immediate edits and post-edit Revert.
-The visible Agent/Plan/Ask/model labels and the specified placeholder are retained. Linked Settings
-and MCP dialog labels are Japanese. MV-040 supersedes the former always-visible-notice criterion.
-Permission values/defaults and CLI arguments are unchanged. MV-040 passed on installed `054e2ba`
-([run](docs/loop-engineering/runs/2026-09-06-japanese-options.md)); this does not resolve the
-isolated-worktree/checkpoint mismatch or complete #20.
-
-**UI parity follow-up (2026-09-05; no feature implementation):** the read-only Cursor UI survey is
-[`docs/research/cursor-agent-ui-survey-2026-09-05.md`](docs/research/cursor-agent-ui-survey-2026-09-05.md).
-The ordered gap plan and acceptance criteria are in
-[`docs/plans/cursor-agent-ui-gap-plan.md`](docs/plans/cursor-agent-ui-gap-plan.md), tracked by
-[issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19) under #1.
-The subsequent [Android Studio UI follow-up](docs/research/android-studio-ui-followup-2026-09-05.md)
-confirmed settings navigation and limited display states on an installed `0.1.0-SNAPSHOT`; its
-source SHA is unknown. Model readability (#27) and build/CLI diagnostics (#28) were added.
-Input/menu interactions remain unverified due to UI-tool capture failures; do not mark existing QA passed.
-These are proposed changes, not implemented features. Cursor UI shows four Run Mode options;
-this does not prove matching headless CLI behavior or invalidate the immediate-write finding above.
-Start with permission/sandbox clarity and the known isolated-worktree/checkpoint mismatch, then
-input actions, transcript persistence, review/status/queue UX, and context controls. Keep existing
-#5 manual QA and #10 multimodal work rather than duplicating them. New execution-based verification
-is separate from the read-only UI evidence and requires an appropriate authorized test scope.
-
-The requirements doc (`docs/cursor-agent-plugin-requirements.md`) defines feature scope and IDs.
-Current progress lives in the Project, concrete Issue/PR/QA records and native Milestones;
-see [work management](docs/development/work-management.md). Issue #1 is historical, not the live tracker.
-
-Implemented: prompt send/stream/history/new-chat (F-01–03, F-05), active-file auto-context (F-15),
-mode control (F-20), the 3-way permission model (F-22/F-24 redesign: `PermissionMode`, a Stop
-button on the composer while a turn is running), workspace pinning (F-51), Markdown rendering for assistant
-messages (`AssistantMessageBubble`/`MarkdownRenderer`, commonmark-based, HTML-inline/HTML-block
-nodes rendered as escaped text rather than passed through raw — see that file's doc comment for
-why), the git-stash-create-based checkpoint/rollback system (F-40–44: `CheckpointService` +
-`GitSnapshotStore` + `CheckpointHistoryState`, rollback icon on `UserMessageBubble`), `@mention`
-context injection for files/folders/git-diff/docs/web hints (F-10–12, F-14: `ComposerPanel`'s
-`EditorTextField` + `MentionPopupController` + `MentionResolver`), context compression (F-06: an
-overflow-menu item that just sends `/summarize`), dynamic model selection (F-21:
-`AgentProcessService.listModels()` + `ModelListParser`, loaded async on tool-window open), and MCP
-server listing/enable/disable (F-70/F-71: `McpServersDialog`, `agent mcp list/enable/disable`).
-
-**Important finding that unblocked F-21/F-70/F-71**: `--list-models` and `agent mcp list/enable/
-disable` are local metadata operations, not chat turns — they don't consume the same
-per-conversation quota `sendPrompt` does, confirmed by running them successfully while the Free-tier
-account used for the M0 spike was still hitting `resource_exhausted` on actual prompts. They run
-synchronously via `ExecUtil.execAndGetOutput` (`AgentProcessService.runAgentCommandSync`), not
-through the streaming `OSProcessHandler` path `sendPrompt` uses.
-
-Past-chats tracking (F-50) is also implemented: `ChatHistoryState` records `(chatId,
-firstPromptPreview, lastUpdatedMs)` on every turn (since `agent ls`/`agent resume` need a raw TTY
-and can't be shelled out to — see the "Verified CLI behavior" section), and `AgentHeaderBar`'s
-history button opens a popup to resume one. Resuming only continues the *session* for the next
-turn. Plugin-side transcript persistence is still pending in #44; the previous statement that
-replay was a permanent CLI limitation is withdrawn. The print transport's transcript contract is
-unverified. The 2026-09-08 ACP probe returned an empty project-filtered session list, not transcript
-or title data; see the latest matrix and #115/#66. Develop #65 preserves live tab views in memory,
-which is distinct from restoring message bodies after restarting the IDE.
-
-**Implemented (2026-09, M4/M5)**: tool-call timeline cards (F-32: read/edit/shell started +
-completed), file-edit cards with IDE Diff Viewer + Revert (F-30/F-31 as post-hoc model — CLI
-auto-applies edits in headless mode), `ToolCallPayloadParser` + stream-json fixtures from live CLI.
-F-70 MCP list uses `McpListParser` (`id: status` per line, verified 2026-09-04).
-
-**Implemented (2026-09, M9/backlog)**: desktop notifications on turn complete/tool-call start
-(`AgentNotificationService`, settings toggles in **Settings → Tools → Cursor in Android Studio**), F-13
-`@terminal` mention (`TerminalOutputReader` via Reworked Terminal API), F-16 `@branch` mention
-(`BranchDiffBuilder`), settings page for `agentExecutablePath` and notification prefs
-(`AgentSettingsConfigurable`), tool-window-close process cleanup (`Disposer` on tool window
-`Content`).
-
-**F-13 (`@Terminal` mention)**: implemented via `TerminalToolWindowTabsManager` +
-`TerminalView.outputModels` (Reworked Terminal API). Requires an open Terminal tool window tab;
-returns a helpful placeholder if none is available.
-
-**GUI verification (Computer Use first, human fallback)**: tracked in
-[`docs/manual-verification/matrix.md`](docs/manual-verification/matrix.md) — Enter/Shift+Enter,
-`@` popup, diff cards, notifications, etc. Agents must keep that file current; GPT or the human observer fills in `Status` / `Verified by` / `Date` with build identity and evidence.
-The #29 loop infrastructure does not complete the pending product QA in #5/#19–#28.
+[Verification JSON](docs/verification/README.md) is authoritative for current Cases; the old manual-verification matrix/run is historical detail and must not be separately updated as a new candidate result. The #29 loop infrastructure does not finish pending product QA. [Knowledge placement](docs/architecture/knowledge.md) records the main port and shared context rules without duplicating the history.

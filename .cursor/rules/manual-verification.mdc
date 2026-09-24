@@ -1,15 +1,15 @@
 ---
-description: GUI変更はComputer Useまたは人間による証跡付き検証をQAマトリクスに残す
+description: Record evidence for GUI changes and verification in the canonical Case matrix; ordinary documentation changes do not require GUI testing
 alwaysApply: true
 ---
 
-# GUI検証
+# GUI verification
 
-- 正本は `docs/manual-verification/matrix.md`。詳細は `docs/loop-engineering/README.md`。
-- Swing、入力、メニュー、Diff、通知などは対象MV行を追加/更新する。
-- GPTがComputer Useで実画面を観察し、人間が補完する。Cursorは自分の返答をGUI成功の証拠にしない。
-- 対象SHA、起動ビルド、手順、期待/実際、証跡、確認者、日付を記録する。
-- `pending / pass / fail / blocked`を使う。取得失敗はblocked。mergeだけで検証を完了/アーカイブしない。
-- 修正後は新runで再確認。CLIやJUnitだけではGUIのpassにしない。
+Apply this section when changing or verifying Swing, input, menus, Diff, notifications or other GUI behavior. The always-on [shared rule](loop-engineering.mdc) retains ownership/integration/safety requirements for every task; documentation-only work does not trigger GUI testing.
 
-2026-09-07 / #83: 通常実装はdevelop向け。必要テスト・独立レビュー・Case JSONが必須。GUI未実施/環境blocked/製品failでも追跡を保ってdevelopへ統合可。mainは固定候補全体の必要Case passをAcceptance gateで検査する。docs/verification/README.mdを参照。develop統合後は実装完了を確認し、QA作成・双方向link/readback後に元実装Issueをdoneでcloseする。失敗時はopenを維持し、QA Issue自体はcloseせず、main/developをcleanupしない。公開enrollはv2 opaque ID、host/sourceはlocal registryのみ。既存ownerとPAUSED heartbeatを自動変更しない。
+- Use `docs/verification/changes/issue-N.json` and fixed-candidate result JSON as authority under [verification](../../docs/verification/README.md). Old manual-verification matrices/runs are history; `current.md` is generated.
+- Add/update affected Cases, steps, expectations and evidence. Keep human-facing steps/expectations in Japanese under the [context policy](../../docs/architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件).
+- GPT observes the real screen with Computer Use and a human supplements it. Cursor's own reply is not evidence of GUI success.
+- Record target SHA, loaded build, steps, expected/actual result, evidence, observer and date.
+- Keep `pending / pass / fail / blocked`; retrieval failures are blocked. Merge alone does not complete/archive verification.
+- Recheck fixes in a new run. CLI/JUnit success is not a GUI pass. Follow finish-work for develop/main gates and QA transfer; do not duplicate results here.
