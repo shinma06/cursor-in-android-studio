@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 423,
+  "gui_required": false,
+  "reason": "開発指示・共通知識・開発Agent prompt参照のmain限定反映。製品source/resources/tests/build/runtime prompt/保存/tool契約は無変更。開発client検査を製品GUI passと扱わない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests",
+    "#420との共通規則本文・Skill/rule/prompt一致、main固有制約・旧アンカー・symlink・リンク・scopeの静的照合",
+    "review/fix prompt参照・権限・packet/schema・日本語報告の既存mockテスト",
+    "main候補のAGENTS/Skill metadataを非推論loaderで確認。#420の実client適用証拠と同一入口の再利用範囲を独立レビューで照合"
+  ],
+  "cases": []
+}

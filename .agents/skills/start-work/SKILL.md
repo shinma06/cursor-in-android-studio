@@ -1,20 +1,16 @@
 ---
 name: start-work
-description: Start an Issue-scoped worktree and develop PR with acceptance tracking.
+description: Begin or resume an Issue-scoped code, docs, or configuration change with ownership and acceptance tracking; not read-only advice or review.
 ---
 
 # Start work
 
-Read AGENTS.md, docs/project-mission.md, docs/architecture/cursor-integration.md, docs/development/codex-execution-policy.md, docs/development/github-workflow.md, requirements, the Project roadmap and relevant Milestone, target Issue/comments and open PRs.
-ACP First is the design policy; the shipped transport is still print/stream-json. Check ACP/IDE/MCP before adding CLI-based state inference, and preserve existing transport evidence.
-Use the title and exclusive type/priority/status labels from github-workflow.md (#96); closed means status:done. Every change needs Issue search, a unique ownership claim, isolated Issue-numbered branch/worktree and Draft PR.
-Read-only advice/review needs no Issue. Preserve unrelated work and unreleased claims.
+Read-only advice/review needs no new Issue or branch. For changes, use AGENTS.md and the [workflow's conditional references and decisions](../../../docs/development/github-workflow.md#参照する範囲と進行判断). Reuse already-read unchanged versions. New features need Mission/ACP First, product changes need relevant requirements/design, and operational changes need the corresponding policy. Creating/updating development context also requires the [single context policy](../../../docs/architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件); classify purpose and loading path before choosing language/format/location.
 
-1. Inspect status/worktrees, fetch origin and compare the intended base. Normal work starts from origin/develop.
-   Only documented GUI-not-required tooling/main bootstrap starts from origin/main. Clear initial upstream and run bootstrap.sh.
-2. Apply docs/development/work-management.md: concrete Issue, Project registration, Milestone selection, real native relationships or intentional Standalone, and Project Status/Priority/Relationship Status readback. Claim files, owner, base SHA, dependencies, separate reviewer, GUI need and next action. Store local paths/host privately.
-3. Add docs/verification/changes/issue-N.json with every required Case, Japanese steps/expectations, GPT/human status and fix/recheck tracking.
-   Set Integration and Verification in the PR template. GUI pending/blocked/fail does not prevent develop once tests/review pass.
-4. Create a Draft PR early. GUI work still requires the designated operator's host lease; never invent pass or convert environment errors to product fail.
-5. Read finish-work and pr-automation.md. Stop the writer before new opaque-registry enrollment. Never run old leaking enroll.
-   Existing enrolled owners and PAUSED heartbeat stay unchanged unless explicitly coordinated. Routine authorization persists.
+Start when the Issue/comments, related PRs, Project/relevant Milestone, dependencies and acceptance are understood and no writer conflicts exist. Search before creating an Issue. Claim owner, scope, base SHA, dependencies, independent reviewer, GUI need and next action; read back the claim. Unreleased claims never expire with time. Follow [Work Management](../../../docs/development/work-management.md) for Project/labels/native relationships; never invent a parent for Standalone work.
+
+Inspect status/worktrees, fetch with `git fetch --prune origin`, and reconcile the base of the dedicated Issue branch/worktree. Normally use origin/develop; GUI-not-required main tooling follows the workflow conditions. Clear initial upstream and run `bash scripts/workflow/bootstrap.sh`. On resumption first reconcile owner/source/execution handles. The same owner reuses the existing worktree; do not recreate it before checking. For takeover, follow [interruption/resumption](../../../docs/development/github-workflow.md#中断再開): confirm the old writer stopped and the claim was released or explicitly reassigned, then make the new claim and use the new owner's dedicated worktree. Never share the old owner's directory. Do not edit enrolled branches concurrently or automatically change owner/source; follow [PR automation](../../../docs/development/pr-automation.md).
+
+Record all acceptance Cases in `docs/verification/changes/issue-N.json`: Japanese steps/expectations, GPT/human state and fix/recheck tracking. If GUI is unnecessary, record why and the required CLI checks. Create a Draft PR with Integration/Verification on the first meaningful push, then continue implementation/validation. GUI requires the designated operator/lease; never mark unobserved behavior pass.
+
+Start procedures or an initial PR are not completion. Continue to acceptance and [finish-work](../finish-work/SKILL.md). Before additional sessions/independent review, read the [Codex execution policy](../../../docs/development/codex-execution-policy.md).
