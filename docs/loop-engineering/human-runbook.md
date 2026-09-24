@@ -1,58 +1,43 @@
 # 人間向け：ループ開発の始め方
 
-> 2026-09-07 / #83: developはテスト・独立レビュー・Case追跡で統合可能（GUI pending/blocked/failを保持）。mainは固定候補全体の必要Case pass後のみ。区切り単位の入口は [確認マトリクス](../verification/README.md)。過去MV/runは履歴であり新候補のpassへ転記しない。
+修正内容を開発担当へ伝えると、Issue・専用worktree・PRを使って進めます。GPT/Codex・Claude・Cursorのいずれも担当でき、[共通の役割条件](../development/github-workflow.md#正本と役割)に従います。独立レビューは別session、GUIは[予約手順](../development/gui-coordination.md)に従う対応可能な担当へ割り当てます。
 
+## 最初の準備
 
-普段は修正内容だけ伝えれば、エージェントがIssueの検索/作成、専用worktree、PRを用意します。Git操作を毎回指示する必要はありません。
-[GitHub開発規約](../development/github-workflow.md)と[GUI予約手順](../development/gui-coordination.md)が全タスクの共通ルールです。
-複数タスクは別worktreeで並列に進め、GUIだけ予約順に操作します。GPTがGUI操作・修正・Claudeへのレビュー依頼・再確認・記録を進めます。
+1. 選んだ開発クライアントでリポジトリを開き、編集・検証に必要なtoolと権限を確認します。すべてのproviderへのログインは不要です。
+2. GUI試験をする場合だけ、実画面を操作・観察できる環境と必要なOS権限を確認します。対応toolがなければ対応可能な担当または人間へ引き継ぎます。Computer Use必須Caseは人間の直接操作だけでは合格にできません。
+3. 製品のCursor IDE/CLIへ送信するCaseでは、製品試験用のPro/Teams認証を確認します。IDEのログインだけでCLIも使えるとは仮定しません。認証やOS許可の不足は人間へ引き継ぎます。
+4. buildする場合は[現行の開発・検証手順](../../CLAUDE.md#commands)と[ZIP識別手順](../development/plugin-zip-delivery.md)に従います。JDK 21と固定SDKが標準です。`platformPath`の指定やSDK変更は通常準備に含めず、ローカルSDKを明示使用する場合だけ現行手順を確認します。
 
-## 初回の準備
+GUI試験の編集先は[生成したfixture](evidence.md)の`.loop-runs/<run-id>/cursor`と`plugin`です。同内容から始まる独立Gitリポジトリで、OS sandboxではありません。製品の試験入力はfixtureに限定し、プラグイン本体の修正は実装担当のIssue worktreeで行います。
 
-1. ChatGPTデスクトップアプリでこのリポジトリを開く。Computer Useプラグインを有効にし、macOSの画面収録・アクセシビリティ権限を設定する。対象はAndroid Studio、Cursor、必要ならClaude。アプリから権限を求められたら表示内容を確認する。[公式設定手順](https://learn.chatgpt.com/docs/computer-use)
-2. CursorアプリにProアカウントでログインする。ターミナルで`agent status`も確認し、未ログインなら`agent login`を実施する。GUI版のログインだけでCLIも使えるとは限らない。
-3. ClaudeアプリにProでログインする。Claude Codeも使うなら`claude`を起動しClaude.aiの契約アカウントでログインする。APIキーは不要。`claude auth status`で確認する。[公式認証](https://code.claude.com/docs/en/authentication)
-4. `gradle.properties`の`platformPath`が手元のAndroid Studioを指すことを確認し、以下を一度実行する。
+## 開発担当へ送る依頼
 
-```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
-./gradlew test buildPlugin
-python3 -m unittest discover -s scripts/loop -p 'test_*.py'
-```
-
-GUI検証では作業中の本物のプロジェクトに編集を依頼しません。GPTが作る`.loop-runs/<run-id>/cursor`と`plugin`を使います。これらは同じ内容から開始する独立した検証用Gitリポジトリです。OSレベルのsandboxではないため、編集先を限定した課題で使います。
-
-## 毎回GPTへ送る依頼
+以下の番号・担当を置き換えます。Agentへ渡す部分は英語です。
 
 ```text
-このプロジェクトの docs/loop-engineering/README.md に従って、Issue #20を1ループ進めて。
-GPTが主担当とComputer Use操作者、Claude Proが独立レビュー担当。
-Cursor ProをGUIから操作して、小さな課題を実行させ、Android Studio内の
-Cursor in Android Studioプラグインと比較して。編集は今回生成するfixtureに限定。
-上限45分・修正3回・Cursor送信8回。対象Issueの受入条件と関連MV IDを選び、
-再現→修正→レビュー→再検証まで進め、記録と次の一手を残して。
+Advance one loop for Issue #<number> under docs/loop-engineering/README.md.
+Assign roles using the shared capability, permission and ownership rules in docs/development/github-workflow.md.
+Writer: <session>; independent reviewer: <different session or pending>; GUI operator: <capable authorized session or pending>.
+Follow docs/development/codex-execution-policy.md; this request does not authorize child agents.
+Choose the acceptance Cases and related MV IDs. Reproduce, fix, review and recheck within 45 minutes, 3 fixes and 8 sends to the product under test.
+Limit product test inputs to newly generated fixtures; implement plugin fixes in the claimed Issue worktree.
+Use a GUI lease and identified build. If GUI tools are unavailable, hand off GUI work and continue independent implementation or CLI checks; retain blocked/unverified results.
+Preserve Computer Use-required Cases. Record evidence and the next action, and report in Japanese.
 ```
 
-対象を決めていない日は「Issue #1から優先順位とclaimを確認して、着手できる1件を選んで」に置き換えます。#20は既知の権限表示とWorktree復元問題のため最優先です。今回の基盤作成だけで#20の修正は完了していません。
+対象が未定なら[Project](https://github.com/users/shinma06/projects/2)とopen Issueの優先度・依存・claimから着手可能な1件を選びます。旧Issue #1や過去の優先順位は現在の作業指示にしません。
 
-## GPTの作業中
+## 作業中と結果の確認
 
-- GUI操作中は対象ウィンドウの手動操作を控える。同じ入力欄を人間とGPTが同時に触らない。
-- ログイン、OSの許可、CAPTCHAなどを引き継いだら完了後に「再開して」と伝える。パスワードやトークンをチャットに貼らない。
-- 判断が必要なら「モデル名は常に読めるようにしたい」など期待する結果を伝える。実装手段はGPTに任せてよい。
-- Claude上限時は、レビュー待ちのままGPTができる作業を続けられる。課金プランを変更する必要はない。
+- GUI操作中は対象ウィンドウを同時に触らず、人間が操作を引き継ぐ間はAgentを停止します。ログイン・OS許可・CAPTCHAを終えたら再開を伝えます。秘密情報はチャットに貼りません。
+- 期待する表示や動作を伝え、実装は担当範囲内で進めます。レビュー担当の利用上限で止まっても、独立して進められる作業は継続できます。課金プランを自動変更しません。
+- 報告のIssue・対象SHA・[Case結果](../verification/README.md)・実行記録を確認します。passはそのbuildと操作範囲の確認済み、failは製品不具合、blockedは環境等で確認不能です。単体テストやレビュー成功だけではGUI合格になりません。
 
-## 完了時に見るもの
+使いやすさを自分で確認する場合は、同じfixtureと手順で行い、実際の確認者・経路を記録します。全Caseを人間が再実行する義務はありません。Computer Use必須条件は保持します。
 
-GPTの報告にあるIssue、検証したSHA、[QAマトリクス](../manual-verification/matrix.md)、実行記録を見る。
-`pass`はそのビルド・その操作範囲の確認済み、`fail`は製品の不具合、`blocked`は環境などで確認できない状態です。
-`./gradlew test`成功や「Claudeが問題なしと言った」だけではGUI合格になりません。
+## 中断・再開
 
-主観的な使いやすさだけ最後に自分で確認したい場合は、同じfixtureで同じ手順を試し、確認者を`human`として記録します。人間が全ケースを再実行する義務はありません。
+「ここで止めて、Issueに引継ぎを書いて」で担当が実行中処理・変更・最後の状態・次の操作を整理します。「Issue #番号の引継ぎから再開して」で、所有者・HEAD・未完了担当・GUI状態を再確認します。
 
-## 中断・翌日の再開
-
-「ここで止めて、Issueに引継ぎを書いて」と伝えると、GPTが実行中処理と変更を整理し、最後の状態と次の操作を残します。
-翌日は「Issue #番号の引継ぎから再開して」で開始できます。未完了の他エージェントがいる場合はGPTが担当の重複を確認します。
-
-自分で起動したい場合は、[evidence.md](evidence.md)でfixture生成とビルドを行い、GUI予約の担当と調整した後、`./gradlew runIde`でsandbox IDEを起動します。通常使用するAndroid StudioにZIPを入れる場合は、Settings → Plugins → Install Plugin from Disk → 指定ZIP → 再起動。旧版SNAPSHOTとの取り違えを避け、インストール対象を記録します。
+自分でIDEを起動する場合も、[evidence.md](evidence.md)でbuildとfixtureを用意し、GUI担当と調整してleaseを取得してから`./gradlew runIde`を実行します。通常IDEへのZIP install・再起動も同じ予約とbuild識別が必要です。

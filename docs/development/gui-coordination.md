@@ -11,18 +11,21 @@ Computer Useの画面読み取りも他タスクのフォーカスを動かし�
 
 実装担当は対象Issueへ `gui-queued` と次の依頼票を投稿し、PRへリンク。進行役が同じホストのqueueをIssue検索で確認し、1件ずつ割り当てる。
 順序は障害/復元安全性→依存を解除するタスク→受付順。同じビルドの複数ケースをまとめてよいが、Case/Issueごとの結果を残す。
+担当の能力・許可は[共通の役割条件](github-workflow.md#正本と役割)で確認する。GUI toolがなければ対応可能な担当へ引き継ぎ、未確保ならGUIのみblockedとする。
 queueに入れただけでは占有しない。GUI待ち中も別worktreeの実装、テスト、レビューを継続する。
 
 ```text
 GUI request: queued
 Issue / PR / implementation owner / GUI operator session:
-Host / OS user / target apps:
-Source HEAD / base SHA / artifact absolute path / ZIP SHA-256:
+Target apps:
+Source HEAD / base SHA / artifact ID / ZIP SHA-256:
 MV IDs / initial state / steps / expected result:
-Fixture paths / allowed writes / CLI mode and account tier:
-Run ID / budget (default 45min, 3 fixes, 8 Cursor sends):
+Fixture ID / allowed writes / CLI mode:
+Run ID / budget (default 45min, 3 fixes, 8 sends to the product under test):
 Dependencies / priority reason / next action:
 ```
+
+host/OS user・絶対パス・lease tokenはprivate local実行記録にだけ保存する。既存registryの参照がある場合は公開可能なopaque IDを使えるが、新規registryは必須にしない。送信予算の保存キー`max_cursor_sends`は互換性のため維持する。
 
 ## ホスト共通の排他
 
@@ -35,14 +38,14 @@ GitHubのqueueは全員が読める正本、ローカルleaseは当該ホスト�
 
 ```bash
 python3 scripts/workflow/gui_lease.py status
-python3 scripts/workflow/gui_lease.py acquire --owner gpt-31-a --issue 31 --run run-31-a --head <full-SHA> --minutes 45
-# 返されたtokenをIssueの開始コメントと手元の実行記録へ保存
+python3 scripts/workflow/gui_lease.py acquire --owner gui-session-31-a --issue 31 --run run-31-a --head <full-SHA> --minutes 45
+# 返されたtokenはprivate local実行記録へ保存。Issueへ公開しない
 python3 scripts/workflow/gui_lease.py renew --token <token> --minutes 15
 python3 scripts/workflow/gui_lease.py release --token <token>
 ```
 
 1. 割当/queueと人間が操作中でないことを確認し、acquire。既存予約があれば失敗するのでGUIへ触らない。
-2. owner/token/ホスト/開始/期限をIssueへ記録して `gui-running` にする。投稿失敗時は操作せずrelease。
+2. 公開可能なowner ID/run ID/開始/期限をIssueへ記録して `gui-running` にする。投稿失敗時は操作せずrelease。
 3. **最初の操作前と、インストール/起動/再起動/送信/復元など状態変更の直前**にstatusでtokenと期限を再確認。
    期限切れでは操作を止める。renewは同じownerが現在の状態を確認して予算内で行う。予算を勝手に延長しない。
 4. 実画面でアプリ・fixtureマーカー・runを確認。対象HEADから作ったZIPのhash、配置したJAR/ロード実体、PID/設定ディレクトリも照合。
@@ -64,7 +67,7 @@ python3 scripts/workflow/gui_lease.py release --token <token>
 人間の確認結果をIssueへ記録した後にrelease/acquireする。人間の確認もできない間はGUIのみblockedとする。
 state破損時はfail closed（操作停止）。ファイルを消して復帰したことにせず、全操作者停止確認後に管理者が記録を保全し復旧する。
 OS再起動や/tmp消失後も、GitHubのgui-runningと起動中アプリの確認が必要。
-人間がログイン/OS権限を操作する間は予約を保持し、GPTは操作停止。人間の完了連絡後に画面とtokenを再確認する。
+人間がログイン/OS権限を操作する間は予約を保持し、Agent操作者は操作停止。人間の完了連絡後に画面とtokenを再確認する。
 
 ## 証拠・統合の扱い
 

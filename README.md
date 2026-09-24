@@ -17,7 +17,7 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 
 ## ループ開発
 
-[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [開発ループ](docs/loop-engineering/README.md)。Issueの対象に応じ、GUIで再現→修正→独立レビュー→同じ操作で再確認する。
+[人間向けの開始手順](docs/loop-engineering/human-runbook.md) / [担当とGUI開発ループ](docs/loop-engineering/README.md)。GPT/Codex・Claude・Cursorのいずれも、[能力・許可・所有条件](docs/development/github-workflow.md#正本と役割)に従って開発を担当できます。別sessionの独立レビューと、対応可能な指定担当による実画面の確認を行います。3者の併用は必須ではありません。
 
 ## セットアップ
 

@@ -1,12 +1,12 @@
 # 動作確認マトリクス
 
-**更新ルール**: GUI確認が必要な変更で行を追加。GPTのComputer Useを優先し、人間が補完する。実観察した担当が `Status` / `Verified by` / `Date` と証跡リンク・対象SHAを記録。取得/認証エラーは `blocked`。単体テストやmergeはpassではない。詳細: [ループ手順](../loop-engineering/README.md)。
+**履歴の参照**: このmatrixは過去のMV詳細・観察記録を保持します。現行の変更・候補結果は[Case JSONと固定候補の手順](../verification/README.md)へ登録し、この表へ二重記録しません。担当は[能力・許可・所有条件](../development/github-workflow.md#正本と役割)で選び、実画面・対象build・証拠を照合します。取得/認証エラーは`blocked`、単体テストやmergeはGUI passではありません。
 
 **UI差分計画（2026-09-05）**: [取り込み計画](../plans/cursor-agent-ui-gap-plan.md) / [#19](https://github.com/shinma06/cursor-in-android-studio/issues/19)。
-[Android Studio実機追補](../research/android-studio-ui-followup-2026-09-05.md)で設定・表示を限定確認した（E節）。以下の既存QAは未実施のまま、新機能用の行は各 UX Issue の実装時に実際の Branch・手順を確定して追加する。
+[Android Studio実機追補](../research/android-studio-ui-followup-2026-09-05.md)で設定・表示を限定確認した（E節）。当時は以下の既存QAを未実施のまま保持し、新機能用の行を各 UX Issue の実装時に追加する計画だった。以後の記録先は上記のCase JSONとする。
 Cursor の閲覧調査を、このプラグインの `pass` や実行・送信を伴う検証の実施許可と扱わない。
 
-**現在の検証対象**: `main`の対象SHAを各runで固定する。A〜Dは#18までの実装に対する未実施QA。旧作業ブランチや「同上」を現在のcheckout指示に使わない。
+**当時の検証対象**: `main`の対象SHAを各runで固定していた。A〜Dは#18までの実装に対する未実施QA。旧作業ブランチや「同上」を現在のcheckout指示に使わない。
 
 ---
 

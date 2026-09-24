@@ -1,8 +1,13 @@
+import argparse
 import copy
+import contextlib
+import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
-from loop import validate
+from unittest.mock import patch
+from loop import check, prepare, validate
 
 
 class EvidenceGateTest(unittest.TestCase):
@@ -25,6 +30,27 @@ class EvidenceGateTest(unittest.TestCase):
 
     def test_complete_structure(self):
         self.assertEqual([], validate(self.data, self.base, self.plan))
+
+    def test_observer_identity_is_not_provider_restricted(self):
+        for observer in ('claude-session', 'cursor-session', 'codex-session', 'human-session'):
+            with self.subTest(observer=observer):
+                self.data['cases'][0]['observer'] = observer
+                self.assertEqual([], validate(self.data, self.base, self.plan))
+
+    def test_prepared_run_does_not_claim_an_operator_or_pass(self):
+        with patch('loop.ROOT', self.base), contextlib.redirect_stdout(io.StringIO()):
+            prepare(argparse.Namespace(run='provider-neutral', issue=425, case=['plugin:MV-001']))
+        target = self.base / '.loop-runs/provider-neutral'
+        data = json.loads((target / 'run.json').read_text())
+        self.assertEqual('', data['operator'])
+        self.assertEqual('prepared', data['state'])
+        self.assertEqual('pending', data['cases'][0]['status'])
+        self.assertEqual(8, data['budget']['max_cursor_sends'])
+        self.assertIn('独立reviewerのsession', (target / 'report.md').read_text())
+        before = (target / 'run.json').read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(1, check(argparse.Namespace(directory=str(target))))
+        self.assertEqual(before, (target / 'run.json').read_bytes())
 
     def test_cli_cannot_substitute_for_gui(self):
         self.data['cases'][0]['method'] = 'cli'
