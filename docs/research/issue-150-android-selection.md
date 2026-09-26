@@ -4,8 +4,9 @@
 対象Issue: [#150](https://github.com/shinma06/cursor-in-android-studio/issues/150)、親 [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)。
 
 **固定SDKに必要な読取APIは存在する。ただし直接APIの優位性、最強MCP構成の実動、最初の採用機能は未判定。**
-本変更の完了範囲は資料・descriptor・class署名の照合、compile-only確認、および[実比較手順](issue-150-comparison.md)の作成。
-実IDE操作、install/restart、認証変更、MCP公開、ADB起動は行っていない。製品source・共有architectureは変更しない。
+以下は2026-09-12時点の資料・descriptor・class署名の照合、compile-only確認の保存記録。
+2026-09-26の専用IDE起動・MCP直接読取・Cursor IDE内panel観察と未達条件は[実比較手順](issue-150-comparison.md#2026-09-26の環境確認と再開条件)を現状の入口とする。
+9/12の資料調査では実IDE操作、install/restart、認証変更、MCP公開、ADB起動は行っていない。製品source・共有architectureは変更しない。
 #150全体の受入は残るため、この文書PRだけでIssueをcloseせず、採用実装Issueも作成しない。
 
 ## 1. 証拠の強さと固定対象
@@ -42,6 +43,21 @@ IDEのbundled pluginと上記data directoryに対応する通常のuser plugin d
 別config/plugin配置やruntime catalog全体の不存在を示すものではない。
 本Research taskの利用可能tool metadataにもIntelliJ/Android/ADB/Logcat用connectorはなかった。
 IDEの接続情報・認証・ユーザーMCP設定は読まず、接続も試していない。
+
+### 2026-09-26: 実行SDKでの再照合
+
+今回起動したQuail 4 Patch 1 `AI-261.26222.65.2614.16379836`に対し、§5と同じソースを付属JBRの`javac -proc:none`で再コンパイルした。exit 0、診断なし。577 JARの広いclasspathによる署名確認であり、classは実行・IDE loadしていない。
+追加の公開署名照合では`AndroidFacet.getInstance(Module)`、`GradleAndroidModel.getAndroidProject()`、`GradleSyncState.isSyncNeeded()`、`BuildVariantUpdater.updateSelectedBuildVariant(Module,String)`、`DeviceFutures.getIfReady()`、`com.android.processmonitor.monitor.ProcessNameMonitor.getProcessNames(String,int)`、`XDebuggerManager.getDebugSessions()`、`XDebugSession.isSuspended()/getCurrentStackFrame()`を確認した。安定API保証や実動成功を追加するものではない。
+
+| 今回のArtifact | SHA-256 |
+|---|---|
+| `Resources/product-info.json` | `6f503cc077513bd13d5a049f69a63c76e9abbf5b7fe75efe65b0698ff2468c8c` |
+| `plugins/android/lib/android.jar` | `6582e0b5bae5145ae30c67920a5ba9ff45494a5598a48cd7a07761ec104ed3f7` |
+| `plugins/android/lib/android-common.jar` | `e2d190adc8d0dae0b6fe40dbaf4c77ae10e899e58f1a9f80641a7cc6cd498ad4` |
+| `plugins/android/lib/sdk-tools.jar` | `287a95fa96adf88bcdec3f6d79e235691404f0e64eff8fecf43664c87925a7bd` |
+| `AI Assistant lib/ml-llm.jar` | `503ca644123611dd97821de75fe409176c53657512665c2f0060902cb2b654fe` |
+
+旧SDKのhashと記録は上に保持する。APIの候補は残るが、対象選択・同期世代・process分離・取消の正確性は実比較Caseで判定する。
 
 ## 2. API境界: まず既存機能を使う
 

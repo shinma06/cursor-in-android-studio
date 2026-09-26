@@ -4,9 +4,9 @@
 [T17/T18](acp-feature-migration-2026-09-09.md)、[GUI coordination](../development/gui-coordination.md)、
 [検証台帳](../verification/README.md)。
 
-**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。実IDE比較は全件未実施で、device・GUI・MCPのpassを示さない。**
+**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。Case本体は全件未実施。専用環境の起動とMCP直接読取は確認したが、三経路の比較passは示さない。**
 旧PR #265の資料scopeは`gui_required=false`だったが、新候補の比較Caseは経路別に[正本JSON](../verification/changes/issue-150.json)へ登録する。
-実行前に指定operatorが固定候補/Case IDをJSON台帳へ登録し、生成物を二重編集しない。
+Case IDは登録済み。指定operatorが実行ごとの固定候補・構成・結果をJSON台帳へ記録し、生成物を二重編集しない。
 
 ## 1. 開始条件と比較する三つの経路
 
@@ -35,10 +35,10 @@ BのAndroid直接読取が未実装なら「未実装」と記録する。API表
 | Agent | A/Bは同じCLI full version・ACP protocol・明示model ID。CはCursor full version/commit・channel・実行日・panel/モード・model ID・関連extension版を別記録し、内部Agent版が非公開ならunknown。同じmodelを選べない場合は比較条件差を明示。Autoで混在させず、既存認証の公開値はplan種別のみ |
 | MCP | endpointはprivateに保持。公開記録はserver/toolset名・版、direct catalogとrouter-only catalog、input schema/権限・実動結果。片側だけ無効化して優位性を作らない |
 | Fixture/build | 下記§2の新fixture source/4 APKを使用。新候補のversion lock、sourceとAPKのhashを照合し、各経路へ同じ固定候補の専用コピーを渡す。旧候補の準備記録を同一性の証拠にしない |
-| Device | D1/D2の2台を同時に認識。実serial→alias対応はprivate。公開値はalias/API/ABI/emulatorまたは物理/device状態。両方で選んだminSdk以上、APK実行可、ADB認証済み。今は2台存在未確認 |
+| Device | D1/D2の2台を同時に認識。実serial→alias対応はprivate。公開値はalias/API/ABI/emulatorまたは物理/device状態。両方で選んだminSdk以上、APK実行可、ADB認証済み。D1/D2の起動と4 APK各2台へのinstallは準備で確認済み。Case内の実行対象一致は未確認 |
 | GUI/evidence | host-wide lease、operator、固定plugin ZIP/hash、開始時刻、Case ID、証拠保存先/公開投影方針を記録。通常の利用projectは使わない |
 
-2026-09-26の導入候補（公式Marketplaceの対応宣言のみ、install/load/実動は未確認）:
+2026-09-26の対応候補（Quail 4のinstall/loadと限定したMCP直接読取は下記追記、Quail 1は対応宣言のみ）:
 
 | 実行IDE候補 | AI Assistant | MCP Server |
 |---|---|---|
@@ -51,6 +51,57 @@ Quail 1だけで比較した結果をQuail 4へ一般化しない。実行前に
 
 compatible MCP/toolsetが対象Android Studioで使えない場合は、その正確な版の組合せをblockedとして残す。
 別IDE/buildが必要なら別比較行を追加し、同条件比較と混ぜない。現行資料はIDEAのtool存在を示すだけでAndroid Studio互換を保証しない。
+
+### 2026-09-26の環境確認と再開条件
+
+記録は[専用IDE/MCP run](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768)と
+[経路C・代替操作 run](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094)、
+[本人setup後のreadback](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045)、
+[描画停止とACP準備の切分け](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708)、
+[復旧・認証後の版差とMCP切断](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740)、
+[IDE生成SSE設定とSDK再照合](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201)、
+[A/B同版化の既存ランチャー確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081)、
+[run終了と未実施条件](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374)。
+fixture sourceはcandidate manifest、製品buildは`5444c1c148bdc7a1b7b15fab143fa41826e8b711`、
+ZIP SHA-256は`00b81fde4f7040609b9c5460710d3baa0c6f896e23563cf6e313ceaddd84a80e`。配置JAR照合後に専用IDEで起動した。
+先行setup runはprompt0。後続runではAの接続確認と本人の挨拶の計2送信が完了したが、Case本体は未実施。
+全30件のAgent欄は環境`blocked`、human欄は`pending`とする。
+
+| 確認対象 | 実観察と限界 |
+|---|---|
+| A/Bの環境 | Quail 4 Patch 1 `AI-261.26222.65.2614.16379836`、AI Assistant `261.26222.135`、MCP Server `261.26222.30`を専用profileでload。A/B共通のACP session/modelは未確定 |
+| D1/D2 | API37・arm64-v8aの専用emulator2台。起動完了と4 APK各2台へのinstallは準備証拠。run/debug/log対象一致を確認した証拠ではない |
+| MCPの実接続 | 実ユーザー承認後に有効化、Brave modeは無効。initializeとdirect catalog27 toolを取得。再起動後のinitializeも成功しfixture限定のproject設定を準備。Agentによるtool利用とrouter/追加toolsetの全体は未確認 |
+| MCPの直接読取 | `get_project_modules`はmodule名/type、`get_run_configurations`はAndroid設定2件と`supportsDynamicLaunchOverrides=false`、`get_all_open_file_paths`はactive/open fileを返した。候補一覧と選択module/Variant/deviceは別で、Agent経路のCase passではない |
+| CLI/ACP/model | 単独CLI `2026.09.23-86fc751`の直接ACP probeはinitialize/session-new成功（protocol1、mode3候補、model40候補、prompt0、初期`composer-2.5[fast=true]`）。一方、Aが実際に起動したregistry管理CLIは`2026.09.02-c22c1a3`、UI表示は`composer-2.5`。本人認証後の接続確認は成功したが、A/B同版・同modelの条件は未成立 |
+| Cの入口 | Cursor `3.22.7` stable、commit `37076c6c3f9e253c0fa2305197e45befd13a2260`。本人ログイン・IDE別ウィンドウ起動後のrenderer停止は専用アプリ1回の再起動で復旧し、IDE内Agent panelとGrok 4.7 / High / 256K / Fastを確認。公式downloadは3.22 Latest、更新確認は更新なしだったが、配布commitとの完全一致は未確定 |
+| CからのMCP | HTTP接続は27 toolを表示した後、`roots/list`応答のrootに`file://`がないというJSON-RPC errorが発生。これは空白入りproject pathの例外とは別。最初のSSE URL変更ではHTTP409/再接続上限。その後、IDEのCopy SSE Configが生成した`type:sse`を含む設定でSSE接続を確認したが、同じroot URI error（HTTP400）でfailedへ遷移した。Copy Stdio Configを保存して専用Cursorを再起動したが、画面操作の不整合で有効化を確認できなかった。再起動後ログは対象serverのnone → disconnectedのみで、Stdio起動や互換性失敗の証拠ではない。Agentからのread成功は未確認 |
+
+空白を含むproject pathではMCPの3読取が`URISyntaxException`となり、空白なしの同一sourceコピーで3件とも成功した。
+[JetBrains公式](https://www.jetbrains.com/help/mps/mps-projectional-agent-toolkit.html)はMPS向け説明で同例外をplatform制限IJPL-236112として記載する。
+Android Studioでの観察は上記runの別証拠であり、MPS資料のみから互換性を推定しない。
+Cursorの専用user-data pathはIPC socketの長さ制限にも注意する。起動成功と対象process引数を確認してからCuaを接続する。
+長いpathで起動失敗した後にCuaが通常instanceを開いた観察は除外し、編集・送信なしで終了した。
+
+[IDEAの公式Debugger説明](https://www.jetbrains.com/help/idea/agentic-debugging.html)ではdirect toolsは2026.1.3以降、router modeは2026.2以降。
+今回のdirect catalogにdebuggerがないことだけでAndroid Studioでの利用不能とは判定せず、追加toolsetの互換性・load・公開設定を再開時に確認する。
+
+| 経路 | 現在の阻害条件 | 次ownerと具体操作 |
+|---|---|---|
+| A | 本人認証と接続確認は完了。実CLI版が単独CLIと異なり、MCP受渡しと同一modelが未確定 | GUI担当がAの管理CLI版を固定し、Bにも同じ既存公式ランチャーを指定して実process/model/MCPをreadbackする。最新単独CLIとの版差は別記する |
+| B | 製品panel表示は確認。メニュー操作とAと同じACP/model/MCP設定が未確定 | GUI担当が専用buildのCLI設定にAと同じ既存公式ランチャーを指定し、新規会話のACPと明示modelを確認。printの結果で代替しない |
+| C | HTTP/公式SSEはroot URI error。Stdioは保存・専用Cursor再起動済みだが有効化未確認。MCP不要のC01も画面操作不能で未実施 | 次GUI担当が新queue/leaseで操作経路の回復を確認し、C01をMCPと独立に測定する。Stdioは未検証として引き継ぎ、独自proxyで比較条件を変えない |
+
+[JetBrains公式ACP設定](https://www.jetbrains.com/help/ai-assistant/acp.html)のCustom Agentは`~/.jetbrains/acp.json`を使用する。
+導入済み261版の`AcpConfigurationLoader.getConfigFilePath()`も`user.home/.jetbrains/acp.json`を返し、専用IDE config directoryへの切替は確認できなかった。
+ユーザー共通設定の変更や内部registry packageの差替えは行わない。A管理版の公式`cursor-agent`ランチャーはそのまま起動でき、promptなしのACP initialize/session-newでprotocol1・40モデル・初期`composer-2.5[fast=true]`を確認した。Bの既存CLIパス設定でこの同じランチャーを使う候補とし、UI設定・実processのreadback前には同版化済みとしない。最新単独CLIおよびC本体との版差は別に残る。
+MCPの[Roots仕様](https://modelcontextprotocol.io/specification/2025-06-18/client/roots)は`file://` URIを要求する。
+今回のSSE errorはCursorの`roots/list`応答とこの要件の不一致を示す。endpoint/project pathへ形式を付け足す独自変換は行わない。
+
+人間操作の前に新queue/leaseと専用profile/fixture windowを確認し、人間の操作中はAgentのGUI操作を止める。
+Aの追加install/認証/同意や新OS権限要求は既存承認へ混ぜず、該当地点で止める。人間による補助操作はsetupの操作数へ数える。
+最終run `i150-compare-20260926-04` は環境修復3回・接続確認2送信で終了した。CuaのAX treeと画面の不一致、`elementHasNoFrame`、clipboard timeout/画面取得errorにより、MCP不要のC01も未保存editor操作・Agent送信へ進めなかった。これは比較対象製品の失敗ではなく、操作環境のblockedとする。
+所有IDE・Cursor・ACP Agentの停止を確認し、期限前にleaseを解放済み。元fixture 18ファイルは変更なし。追加の人間操作依頼は残っていない。再開後も全Caseを未実施から測定し、#150/QA #380を閉じない。
 
 ## 2. 準備済みfixtureの受取と具体仕様
 
@@ -135,16 +186,16 @@ run configurationを`I150 Red`/`I150 Blue`として各moduleに固定する。
 
 | Case / 対応 | 操作 | 期待する判定 | 現在 |
 |---|---|---|---|
-| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | pending |
-| C02 / T17+T18 | 上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合 | IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない | pending |
-| C03 / T17 | Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取 | 古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致 | pending |
-| C04 / T17 | fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync | sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない | pending |
-| C05 / T18 | BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す | build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示 | pending |
-| C06 / T18 | D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続 | offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す | pending |
-| C07 / T18 | 同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す | device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない | pending |
-| C08 / T18 | 同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意 | PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない | pending |
-| C09 / T18 | Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求 | 明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る | pending |
-| C10 / T17+T18 | bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成 | 期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない | pending |
+| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | 環境blocked（上記再開条件） |
+| C02 / T17+T18 | 上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合 | IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない | 環境blocked（上記再開条件） |
+| C03 / T17 | Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取 | 古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致 | 環境blocked（上記再開条件） |
+| C04 / T17 | fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync | sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない | 環境blocked（上記再開条件） |
+| C05 / T18 | BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す | build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示 | 環境blocked（上記再開条件） |
+| C06 / T18 | D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続 | offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す | 環境blocked（上記再開条件） |
+| C07 / T18 | 同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す | device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない | 環境blocked（上記再開条件） |
+| C08 / T18 | 同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意 | PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない | 環境blocked（上記再開条件） |
+| C09 / T18 | Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求 | 明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る | 環境blocked（上記再開条件） |
+| C10 / T17+T18 | bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成 | 期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない | 環境blocked（上記再開条件） |
 
 C08は将来の経路が合成入力を受け取れる場合に実施する。受け取れない実IDE/MCP側を未確認のままpassにせず、
 実PID再利用未観測として残す。OSへPID再利用を強制するための無制限process生成は不要。

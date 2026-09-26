@@ -20,14 +20,14 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -37,7 +37,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -51,14 +61,14 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -68,7 +78,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -82,14 +102,14 @@
       ],
       "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -99,7 +119,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -113,14 +143,14 @@
       ],
       "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -130,7 +160,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -144,14 +184,14 @@
       ],
       "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -161,7 +201,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -175,14 +225,14 @@
       ],
       "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -192,7 +242,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -206,14 +266,14 @@
       ],
       "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -223,7 +283,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -237,14 +307,14 @@
       ],
       "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -254,7 +324,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -268,14 +348,14 @@
       ],
       "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -285,7 +365,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -299,14 +389,14 @@
       ],
       "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -316,7 +406,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -330,14 +430,14 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -347,7 +447,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -361,14 +471,14 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -378,7 +488,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -392,14 +512,14 @@
       ],
       "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -409,7 +529,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -423,14 +553,14 @@
       ],
       "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -440,7 +570,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -454,14 +594,14 @@
       ],
       "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -471,7 +611,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -485,14 +635,14 @@
       ],
       "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -502,7 +652,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -516,14 +676,14 @@
       ],
       "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -533,7 +693,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -547,14 +717,14 @@
       ],
       "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -564,7 +734,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -578,14 +758,14 @@
       ],
       "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -595,7 +775,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -609,14 +799,14 @@
       ],
       "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
       },
       "human": {
         "actor": "human",
@@ -626,7 +816,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -640,14 +840,14 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseで画面操作の回復を確認し、MCP不要の本Caseを独立に測定する。A/BとのCLI/model条件差を記録し、結果を他Caseへ流用しない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: IDE内panel・明示Grok 4.7設定を確認済み。専用Cursor再起動後もCuaのAX treeと画面が不一致で、入力・画面取得が失敗し未保存DocumentのCase操作・Agent送信へ進めなかった。MCP errorとは別の操作環境blocked。専用アプリ停止・lease解放済み、人間操作待ちは残っていない。"
       },
       "human": {
         "actor": "human",
@@ -657,7 +857,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -671,14 +881,14 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -688,7 +898,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -702,14 +922,14 @@
       ],
       "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -719,7 +939,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -733,14 +963,14 @@
       ],
       "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -750,7 +980,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -764,14 +1004,14 @@
       ],
       "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -781,7 +1021,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -795,14 +1045,14 @@
       ],
       "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -812,7 +1062,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -826,14 +1086,14 @@
       ],
       "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -843,7 +1103,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -857,14 +1127,14 @@
       ],
       "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -874,7 +1144,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -888,14 +1168,14 @@
       ],
       "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -905,7 +1185,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     },
     {
@@ -919,14 +1209,14 @@
       ],
       "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+        "status": "blocked",
+        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -936,7 +1226,17 @@
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
         "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json"
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
       ]
     }
   ]
