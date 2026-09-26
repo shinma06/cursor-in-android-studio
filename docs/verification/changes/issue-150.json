@@ -33,7 +33,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C02",
@@ -59,7 +64,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C03",
@@ -85,7 +95,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C04",
@@ -111,7 +126,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C05",
@@ -137,7 +157,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C06",
@@ -163,7 +188,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C07",
@@ -189,7 +219,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C08",
@@ -215,7 +250,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C09",
@@ -241,7 +281,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "A-C10",
@@ -267,7 +312,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C01",
@@ -293,7 +343,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C02",
@@ -319,7 +374,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C03",
@@ -345,7 +405,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C04",
@@ -371,7 +436,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C05",
@@ -397,7 +467,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C06",
@@ -423,7 +498,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C07",
@@ -449,7 +529,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C08",
@@ -475,7 +560,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C09",
@@ -501,7 +591,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "B-C10",
@@ -527,7 +622,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C01",
@@ -553,7 +653,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C02",
@@ -579,7 +684,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C03",
@@ -605,7 +715,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C04",
@@ -631,7 +746,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C05",
@@ -657,7 +777,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C06",
@@ -683,7 +808,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C07",
@@ -709,7 +839,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C08",
@@ -735,7 +870,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C09",
@@ -761,7 +901,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     },
     {
       "id": "C-C10",
@@ -787,7 +932,12 @@
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      }
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
     }
   ]
 }
