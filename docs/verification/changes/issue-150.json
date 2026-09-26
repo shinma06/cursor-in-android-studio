@@ -20,847 +20,19 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。 run06では既存権限の直接AXでwindow取得が可能になった。AはRed XMLを開いた段階まででCase送信・editor変更なし、Bは未実施。"
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
       },
       "human": {
         "actor": "human",
         "status": "pending",
         "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
-      ]
-    },
-    {
-      "id": "A-C02",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C02 / T17+T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C03",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C03 / T17",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C04",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C04 / T17",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C05",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C05 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C06",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C06 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C07",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C07 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C08",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C08 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C09",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C09 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "A-C10",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路A / C10 / T17+T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Aを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がAの管理CLI版・明示model・MCP受渡しを固定し、Bへ同じ既存公式ランチャーを指定して本Caseを測定する。ユーザー共通Custom Agent設定は変更しない。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C01",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C01 / T17",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。 run06では既存権限の直接AXでwindow取得が可能になった。AはRed XMLを開いた段階まででCase送信・editor変更なし、Bは未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
-      ]
-    },
-    {
-      "id": "B-C02",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C02 / T17+T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C03",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C03 / T17",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C04",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C04 / T17",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C05",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C05 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C06",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C06 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C07",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C07 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C08",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C08 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C09",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C09 / T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "B-C10",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路B / C10 / T17+T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Bを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当が専用pluginのCLIパス設定へAの既存公式ランチャーを指定し、実process/version/hash・新規会話ACP・明示model・MCPをreadbackして本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
-      ]
-    },
-    {
-      "id": "C-C01",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路C / C01 / T17",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Cを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
-      "recheck": "単回の期待値不一致を#438で再確認。これは経路Cの比較観測で、自製品Bの修正必要性は未判定。3反復・順序条件・A/B条件差・全指標を記録し、元観測を保持する。",
-      "next_action": "指定GUI担当が新queue/leaseで#438の再現性・回避確認と3反復/全指標を測定し、A/B同条件比較へ戻す。MCP不要の観測を他Caseのpassへ転用しない。",
-      "fix_issue": 438,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "fail",
-        "reason": "2026-09-26 run06: Cursor 3.22.7 / Composer 2.5 FastのIDE内Agentで1回実施。Red XMLの12行目を未保存markerへ変更・選択し添付。module/path/行と未保存markerは正解だが、diskも同じmarkerで差なしと回答。独立読取ではdiskはI150 appRedのままで期待値不一致。UI10秒、1送信。操作数/総時間・3反復・A/B同条件比較は未完了。自製品Bの不具合は未観測。editorと元18ファイル復元、所有アプリ停止・lease解放済み。",
-        "observer": "research-150-01a0dce4",
-        "at": "2026-09-26T12:47:22Z",
-        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
-        "loaded_identity": "Cursor 3.22.7 stable / 37076c6c3f9e253c0fa2305197e45befd13a2260; Composer 2.5 Fast; fixture source 5b2353f56d6b3f0539cfcb47ca4dc2b71646c965"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "人間によるCase実施は未確認。Agentの単回不一致観測はhuman passへ転用しない。"
       },
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/150",
@@ -878,7 +50,857 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/438"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C02",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C02 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C03",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C03 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C04",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C04 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C05",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C05 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C06",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C06 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C07",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C07 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C08",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C08 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C09",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C09 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "A-C10",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C10 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C01",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C01 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C02",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C02 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C03",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C03 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C04",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C04 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C05",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C05 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C06",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C06 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C07",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C07 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C08",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C08 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C09",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C09 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "B-C10",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C10 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "fix_issue": 440,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+      ]
+    },
+    {
+      "id": "C-C01",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C01 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
+      "recheck": "間欠的な不一致2/正答1を#438で追跡。探索表示差と因果を混同せず、同条件A/B/C各3回の順序・全指標を測定する。経路Cの観測からBの優位性を推定しない。",
+      "next_action": "MCP/model条件を揃えた正式比較とBlue対照を新queue/leaseで実施。Cの不一致・正答双方を保持し、他Caseへ成功を転用しない。",
+      "fix_issue": 438,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "fail",
+        "reason": "2026-09-26 run06/run07: 同じCursor 3.22.7 / Composer 2.5 Fast、新規会話、同文prompt、Red XML12行目の未保存16文字添付で3観測。不一致2（diskも未保存markerと誤回答）・正答1（disk I150 appRedを区別）。間欠的な不一致としてfailを維持し常時再現とは扱わない。UI10/10/27秒は総時間ではない。各回editor復元・元18ファイル一致。正式A/B/C各3回ローテーションと全指標は未測定。保存済みRed対照の正答は別条件。",
+        "observer": "research-150-01a0dce4",
+        "at": "2026-09-26T14:08:05Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5846920076",
+        "loaded_identity": "Cursor 3.22.7 stable / 37076c6c3f9e253c0fa2305197e45befd13a2260; Composer 2.5 Fast; fixture source 5b2353f56d6b3f0539cfcb47ca4dc2b71646c965"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間によるCase実施は未確認。Agentの3観測と別条件対照をhuman passへ転用しない。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5846920076",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
       ]
     },
     {
