@@ -2,11 +2,13 @@
 """Verify and preserve one committed synthetic fixture; never install or use ADB."""
 import argparse
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import tarfile
 import zipfile
 
 
@@ -51,10 +53,19 @@ def main():
             signature = run([str(tools / "apksigner"), "verify", "--verbose", str(apk)]).decode()
             artifacts.append((apk, {"module": module, "variant": variant, "package": package,
                                    "sha256": sha(apk), "badging": badging, "signature": signature}))
+    # Run at the repository root: git archive otherwise applies the cwd prefix.
+    root = run(["git", "rev-parse", "--show-toplevel"]).decode().strip()
+    source = run(["git", "-C", root, "archive", "--format=tar", tree])
+    names = run(["git", "ls-tree", "-r", "--full-tree", "--name-only", tree]).decode().splitlines()
+    expected = {name: run(["git", "show", tree + ":" + name]) for name in names}
+    with tarfile.open(fileobj=io.BytesIO(source)) as tar:
+        actual = {item.name: tar.extractfile(item).read() for item in tar if item.isfile()}
+    if not expected or actual != expected:
+        raise ValueError("Source archive must contain every tracked fixture file unchanged")
     # mkdir without exist_ok prevents replacing an accepted candidate.
     args.output.mkdir(parents=True)
     archive = args.output / "source.tar"
-    archive.write_bytes(run(["git", "archive", "--format=tar", commit + ":" + prefix]))
+    archive.write_bytes(source)
     shutil.copy2(fixture / ".fixture-signing/debug.keystore", args.output / "fixture-debug.keystore")
     manifest = {"fixture": "issue150-selection-fixture-v2", "source_commit": commit,
                 "source_tree": tree, "source_archive_sha256": sha(archive), "apks": [],

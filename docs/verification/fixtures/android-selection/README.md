@@ -41,12 +41,13 @@ python3 verify.py --sdk "$ANDROID_HOME" --output "<一時領域以外の新し�
 ```
 
 `verify.py`はfixture配下がcommit済み/cleanであること、4 APKのpackage/最小SDK/debuggable/権限なし、
-識別markerとViewBindingのDEX文字列、署名を検査する。source archive・4 APK・manifest・検証出力・fixture鍵を保全先へコピーする。
+識別markerとViewBindingのDEX文字列、署名を検査する。source archiveはrepository rootから生成し、全tracked fileの一覧と内容がGitの固定treeに一致することを検査してから、4 APK・manifest・検証出力・fixture鍵とともに保全する。
 既存保全先への上書きは禁止。`source_commit`/`source_tree`はfixtureが属するrepositoryの固定値、archive/hashは保全したbytesの識別値。
 APKがどのsourceからbuildされたかは、この検査単独では証明できない。固定commitでのbuild成功記録とclean状態を合わせて受領する。
 ログや鍵をGitHubに投稿しない。再buildのbytesが異なれば新候補として固定し、旧候補へ上書きしない。
 
-PMはsource archive/4 APK/manifest・build記録/依存取得済みcacheと再実行手順を受け取り、SHA256をreadbackする。
+PMはsource archive/4 APK/manifest・build記録/依存取得済みcacheと再実行手順を受け取り、SHA256をreadbackする。archiveは別の空ディレクトリへ展開し、全tracked fileの一覧と内容hashも照合する。
+Gitの固定sourceを正本とし、archiveはGUI用コピーを渡す補助成果物とする。`verify.py`はGit checkout内で実行する。
 privateな保全場所はローカルhandoffへ記録し、原本を一時領域だけに置かない。GUI用は原本から作った別コピーを使う。
 
 ## IDEでの開始条件
