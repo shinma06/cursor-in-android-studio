@@ -60,7 +60,8 @@ compatible MCP/toolsetが対象Android Studioで使えない場合は、その�
 [描画停止とACP準備の切分け](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708)、
 [復旧・認証後の版差とMCP切断](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740)、
 [IDE生成SSE設定とSDK再照合](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201)、
-[A/B同版化の既存ランチャー確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081)。
+[A/B同版化の既存ランチャー確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081)、
+[run終了と未実施条件](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374)。
 fixture sourceはcandidate manifest、製品buildは`5444c1c148bdc7a1b7b15fab143fa41826e8b711`、
 ZIP SHA-256は`00b81fde4f7040609b9c5460710d3baa0c6f896e23563cf6e313ceaddd84a80e`。配置JAR照合後に専用IDEで起動した。
 先行setup runはprompt0。後続runではAの接続確認と本人の挨拶の計2送信が完了したが、Case本体は未実施。
@@ -74,7 +75,7 @@ ZIP SHA-256は`00b81fde4f7040609b9c5460710d3baa0c6f896e23563cf6e313ceaddd84a80e`
 | MCPの直接読取 | `get_project_modules`はmodule名/type、`get_run_configurations`はAndroid設定2件と`supportsDynamicLaunchOverrides=false`、`get_all_open_file_paths`はactive/open fileを返した。候補一覧と選択module/Variant/deviceは別で、Agent経路のCase passではない |
 | CLI/ACP/model | 単独CLI `2026.09.23-86fc751`の直接ACP probeはinitialize/session-new成功（protocol1、mode3候補、model40候補、prompt0、初期`composer-2.5[fast=true]`）。一方、Aが実際に起動したregistry管理CLIは`2026.09.02-c22c1a3`、UI表示は`composer-2.5`。本人認証後の接続確認は成功したが、A/B同版・同modelの条件は未成立 |
 | Cの入口 | Cursor `3.22.7` stable、commit `37076c6c3f9e253c0fa2305197e45befd13a2260`。本人ログイン・IDE別ウィンドウ起動後のrenderer停止は専用アプリ1回の再起動で復旧し、IDE内Agent panelとGrok 4.7 / High / 256K / Fastを確認。公式downloadは3.22 Latest、更新確認は更新なしだったが、配布commitとの完全一致は未確定 |
-| CからのMCP | HTTP接続は27 toolを表示した後、`roots/list`応答のrootに`file://`がないというJSON-RPC errorが発生。これは空白入りproject pathの例外とは別。最初のSSE URL変更ではHTTP409/再接続上限。その後、IDEのCopy SSE Configが生成した`type:sse`を含む設定でSSE接続を確認したが、同じroot URI error（HTTP400）でfailedへ遷移した。Copy Stdio Configも取得し反映待ち。Agentからのread成功は未確認 |
+| CからのMCP | HTTP接続は27 toolを表示した後、`roots/list`応答のrootに`file://`がないというJSON-RPC errorが発生。これは空白入りproject pathの例外とは別。最初のSSE URL変更ではHTTP409/再接続上限。その後、IDEのCopy SSE Configが生成した`type:sse`を含む設定でSSE接続を確認したが、同じroot URI error（HTTP400）でfailedへ遷移した。Copy Stdio Configを保存して専用Cursorを再起動したが、画面操作の不整合で有効化を確認できなかった。再起動後ログは対象serverのnone → disconnectedのみで、Stdio起動や互換性失敗の証拠ではない。Agentからのread成功は未確認 |
 
 空白を含むproject pathではMCPの3読取が`URISyntaxException`となり、空白なしの同一sourceコピーで3件とも成功した。
 [JetBrains公式](https://www.jetbrains.com/help/mps/mps-projectional-agent-toolkit.html)はMPS向け説明で同例外をplatform制限IJPL-236112として記載する。
@@ -89,7 +90,7 @@ Cursorの専用user-data pathはIPC socketの長さ制限にも注意する。�
 |---|---|---|
 | A | 本人認証と接続確認は完了。実CLI版が単独CLIと異なり、MCP受渡しと同一modelが未確定 | GUI担当がAの管理CLI版を固定し、Bにも同じ既存公式ランチャーを指定して実process/model/MCPをreadbackする。最新単独CLIとの版差は別記する |
 | B | 製品panel表示は確認。メニュー操作とAと同じACP/model/MCP設定が未確定 | GUI担当が専用buildのCLI設定にAと同じ既存公式ランチャーを指定し、新規会話のACPと明示modelを確認。printの結果で代替しない |
-| C | rendererは復旧済み。現在はMCPのroot URI errorと切断が阻害し、同じIDEへのAgent readは未成立 | GUI担当が取得済みの公式Stdio設定を1回確認。同じroot errorが残れば互換性blockedで止め、独自proxyで比較条件を変えない |
+| C | HTTP/公式SSEはroot URI error。Stdioは保存・専用Cursor再起動済みだが有効化未確認。MCP不要のC01も画面操作不能で未実施 | 次GUI担当が新queue/leaseで操作経路の回復を確認し、C01をMCPと独立に測定する。Stdioは未検証として引き継ぎ、独自proxyで比較条件を変えない |
 
 [JetBrains公式ACP設定](https://www.jetbrains.com/help/ai-assistant/acp.html)のCustom Agentは`~/.jetbrains/acp.json`を使用する。
 導入済み261版の`AcpConfigurationLoader.getConfigFilePath()`も`user.home/.jetbrains/acp.json`を返し、専用IDE config directoryへの切替は確認できなかった。
@@ -99,8 +100,8 @@ MCPの[Roots仕様](https://modelcontextprotocol.io/specification/2025-06-18/cli
 
 人間操作の前に新queue/leaseと専用profile/fixture windowを確認し、人間の操作中はAgentのGUI操作を止める。
 Aの追加install/認証/同意や新OS権限要求は既存承認へ混ぜず、該当地点で止める。人間による補助操作はsetupの操作数へ数える。
-先行2 runは所有IDE/AVD/Cursorを停止してleaseを解放済み。本人setup runは専用2アプリを開いたまま引き継ぎ、
-人間操作中はleaseを保持する。再開後も全Caseを未実施から測定し、#150/QA #380を閉じない。
+最終run `i150-compare-20260926-04` は環境修復3回・接続確認2送信で終了した。CuaのAX treeと画面の不一致、`elementHasNoFrame`、clipboard timeout/画面取得errorにより、MCP不要のC01も未保存editor操作・Agent送信へ進めなかった。これは比較対象製品の失敗ではなく、操作環境のblockedとする。
+所有IDE・Cursor・ACP Agentの停止を確認し、期限前にleaseを解放済み。元fixture 18ファイルは変更なし。追加の人間操作依頼は残っていない。再開後も全Caseを未実施から測定し、#150/QA #380を閉じない。
 
 ## 2. 準備済みfixtureの受取と具体仕様
 
