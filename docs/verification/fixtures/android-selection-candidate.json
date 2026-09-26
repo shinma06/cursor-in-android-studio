@@ -1,0 +1,39 @@
+{
+  "fixture": "issue150-selection-fixture-v2",
+  "source_commit": "7906f91944575605b41629a9f7cec983f038384b",
+  "source_tree": "f986bf0a45419f92d7a5bb1bb0eefd7ead69ddff",
+  "source_archive_sha256": "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652",
+  "apks": [
+    {
+      "module": "appRed",
+      "variant": "debug",
+      "package": "dev.example.issue150.red.debug",
+      "sha256": "456484f64e634570bd05f926abd5ddb94cda8d2832a4ba26b3d607daf090df25"
+    },
+    {
+      "module": "appRed",
+      "variant": "release",
+      "package": "dev.example.issue150.red",
+      "sha256": "ad8e8338866a63d209571b0f1c4a033267f0d3ee870645183599cf107914ea47"
+    },
+    {
+      "module": "appBlue",
+      "variant": "debug",
+      "package": "dev.example.issue150.blue.debug",
+      "sha256": "5baf1bed571022f5c3c7eb533c121d08929fa5c2f89054cc7abccdc696604ded"
+    },
+    {
+      "module": "appBlue",
+      "variant": "release",
+      "package": "dev.example.issue150.blue",
+      "sha256": "8b9140e90ffcf04d6dca4d8bf4f3a290e1133b05be73570cafad83f57be4198a"
+    }
+  ],
+  "gui_status": "pending",
+  "candidate_is_old_fixture": false,
+  "verification": {
+    "build": "固定source commitからGradle 9.3.1 / AGP 9.1.1 / JDK21で4 assembleをoffline --rerun-tasks実行、成功。",
+    "static": "4 APKのpackage/minSdk26/targetSdk37/debuggable/権限なし、DEXの識別marker/ViewBinding、apksignerの署名を確認。",
+    "gui": "未実施。実IDE/2device/C01–C10の成功は示さない。"
+  }
+}

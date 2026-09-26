@@ -38,12 +38,24 @@ BのAndroid直接読取が未実装なら「未実装」と記録する。API表
 | Device | D1/D2の2台を同時に認識。実serial→alias対応はprivate。公開値はalias/API/ABI/emulatorまたは物理/device状態。両方で選んだminSdk以上、APK実行可、ADB認証済み。今は2台存在未確認 |
 | GUI/evidence | host-wide lease、operator、固定plugin ZIP/hash、開始時刻、Case ID、証拠保存先/公開投影方針を記録。通常の利用projectは使わない |
 
+2026-09-26の導入候補（公式Marketplaceの対応宣言のみ、install/load/実動は未確認）:
+
+| 実行IDE候補 | AI Assistant | MCP Server |
+|---|---|---|
+| Quail 4 | [261.26222.135](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant/versions/stable/1177320) | [261.26222.30](https://plugins.jetbrains.com/plugin/26071-mcp-server/versions/stable/1088193) |
+| Quail 1 | [261.23567.214](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant/versions/stable/1177317) | [261.23567.174](https://plugins.jetbrains.com/plugin/26071-mcp-server/versions/stable/1034317) |
+
+A/Bは同じ実行IDEへ揃える。製品ZIPの標準Quail 1/JDK21 buildと、実行IDE/JBRは別々に識別する。
+Quail 1だけで比較した結果をQuail 4へ一般化しない。実行前に対応版と利用可能toolsetを再確認し、
+2026.2の公式Helpにあるtoolが261系にもあるとは推定しない。
+
 compatible MCP/toolsetが対象Android Studioで使えない場合は、その正確な版の組合せをblockedとして残す。
 別IDE/buildが必要なら別比較行を追加し、同条件比較と混ぜない。現行資料はIDEAのtool存在を示すだけでAndroid Studio互換を保証しない。
 
 ## 2. 準備済みfixtureの受取と具体仕様
 
 新候補は[保全・再実行手順](../verification/fixtures/android-selection/README.md)と同居sourceを正本とする。
+固定済みのsource commit/tree・source archive/4 APKのSHA256と静的検証結果は[新候補manifest](../verification/fixtures/android-selection-candidate.json)を参照する。
 2026-09-26に旧保全先不明を確認し、[新候補案](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5844771037)をPMが採用した。
 旧原本の受領は未解決履歴として保持するが、新比較の開始条件は**新source/4 APK/lock/再実行手順の受領照合**へ変更する。
 新候補を固定後、A/B/Cすべての8選択組・C01–C10を最初から確認する。旧成功の移植や一部経路だけの差替えはしない。
