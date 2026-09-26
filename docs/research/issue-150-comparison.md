@@ -103,6 +103,8 @@ Aの追加install/認証/同意や新OS権限要求は既存承認へ混ぜず�
 最終run `i150-compare-20260926-04` は環境修復3回・接続確認2送信で終了した。CuaのAX treeと画面の不一致、`elementHasNoFrame`、clipboard timeout/画面取得errorにより、MCP不要のC01も未保存editor操作・Agent送信へ進めなかった。これは比較対象製品の失敗ではなく、操作環境のblockedとする。
 所有IDE・Cursor・ACP Agentの停止を確認し、期限前にleaseを解放済み。元fixture 18ファイルは変更なし。追加の人間操作依頼は残っていない。再開後も全Caseを未実施から測定し、#150/QA #380を閉じない。
 
+既存権限のSystem Events/AX経路も[run05で再確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318)した。専用Studio/Cursorのprocessは認識されvisible=trueだが、window一覧は双方0件。Studioのwindow 1読取はinvalid index（-1719）。同時期にCuaではfixture画面を取得できたため、権限不足・アプリ未起動・製品failのいずれとも断定しない。実行元はChatGPT.app内のCodexCLIからosascript/System Eventsであり、Terminal.appの権限状態とは同一視しない。OS権限変更・Case操作・送信は行わず、所有2アプリ停止・lease解放済み。次担当は操作経路の取得可否を解消してから新queue/leaseで再開する。
+
 ## 2. 準備済みfixtureの受取と具体仕様
 
 新候補は[保全・再実行手順](../verification/fixtures/android-selection/README.md)と同居sourceを正本とする。
