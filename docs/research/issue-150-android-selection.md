@@ -199,8 +199,8 @@ class SdkSurfaceProbe {
 | Issue受入 | 本PRで用意したもの | 残作業・判定 |
 |---|---|---|
 | 固定SDKのAPI/public/internal/optional/fallback | §1–2、compile-only | module取得・classloader・各状態の実動は未確認 |
-| Cursor IDE内panelと最強IDE/MCP構成の同条件比較 | §3、三経路の環境lock/Case記録 | **未完了**: C-C01で単回不一致を観測。A/B同条件とcompatible server/toolset・Agent readは未確定 |
-| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | 旧fixture履歴と[新fixture](../verification/fixtures/android-selection/README.md)、経路別30 Case（C-C01単回不一致、他29未実施） | **未完了**: 新候補準備とC-C01の単回観測は[比較記録](issue-150-comparison.md)を参照。全Case・3反復・指標測定と同条件比較は残る |
+| Cursor IDE内panelと最強IDE/MCP構成の同条件比較 | §3、三経路の環境lock/Case記録 | **未完了**: C-C01は不一致2・正答1。A保存済み対照は選択不一致、B接続準備は終了不確定#440。A/B同条件とcompatible server/toolset・Agent readは未確定 |
+| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | 旧fixture履歴と[新fixture](../verification/fixtures/android-selection/README.md)、経路別30 Case（C-C01不一致2・正答1、他29正式Case未実施） | **未完了**: 新候補準備・C-C01の3観測・別条件対照は[比較記録](issue-150-comparison.md)を参照。全Case・A/B/C各3回の順序反復・指標測定と同条件比較は残る |
 | 直接読取とAgent toolの分離 | §4の試験契約 | 既存toolの充足/不足を実測し、必要時のみ新toolへ絞る |
 | 最初の1機能選定 | T17/T18に対する比較・採否基準 | **pending**: 効果差未測定。採用実装Issueなし |
 | XML View/ViewBinding、GUI未達の明記 | fixtureの指定、C-C01不一致は#438で再確認、未実施29件を区別 | Compose/DOMで代用しない。#150をcloseしない |
