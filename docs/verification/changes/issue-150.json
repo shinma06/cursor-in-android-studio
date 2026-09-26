@@ -27,7 +27,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。 run05でもSystem Eventsは専用IDE window 0件、window 1読取は-1719。権限不足とは断定せず、OS設定変更・Case操作・送信なしで停止した。"
+        "reason": "2026-09-26: 本人認証と接続確認は完了。AI Assistantの実CLIは2026.09.02-c22c1a3、単独CLIは2026.09.23-86fc751で同版条件が未成立。明示model・MCP受渡しも未確定の環境blocked。Case本体は未実施。 run06では既存権限の直接AXでwindow取得が可能になった。AはRed XMLを開いた段階まででCase送信・editor変更なし、Bは未実施。"
       },
       "human": {
         "actor": "human",
@@ -48,7 +48,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -438,7 +439,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。 run05でもSystem Eventsは専用IDE window 0件、window 1読取は-1719。権限不足とは断定せず、OS設定変更・Case操作・送信なしで停止した。"
+        "reason": "2026-09-26: 固定ZIPと配置JAR一致、製品panel表示は確認。新規会話のACP/model/MCP設定とAとの同版条件が未確定の環境blocked。Case本体は未実施。 run06では既存権限の直接AXでwindow取得が可能になった。AはRed XMLを開いた段階まででCase送信・editor変更なし、Bは未実施。"
       },
       "human": {
         "actor": "human",
@@ -459,7 +460,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -841,15 +843,63 @@
         "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
+      "recheck": "単回の期待値不一致を#438で再確認。これは経路Cの比較観測で、自製品Bの修正必要性は未判定。3反復・順序条件・A/B条件差・全指標を記録し、元観測を保持する。",
+      "next_action": "指定GUI担当が新queue/leaseで#438の再現性・回避確認と3反復/全指標を測定し、A/B同条件比較へ戻す。MCP不要の観測を他Caseのpassへ転用しない。",
+      "fix_issue": 438,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "fail",
+        "reason": "2026-09-26 run06: Cursor 3.22.7 / Composer 2.5 FastのIDE内Agentで1回実施。Red XMLの12行目を未保存markerへ変更・選択し添付。module/path/行と未保存markerは正解だが、diskも同じmarkerで差なしと回答。独立読取ではdiskはI150 appRedのままで期待値不一致。UI10秒、1送信。操作数/総時間・3反復・A/B同条件比較は未完了。自製品Bの不具合は未観測。editorと元18ファイル復元、所有アプリ停止・lease解放済み。",
+        "observer": "research-150-01a0dce4",
+        "at": "2026-09-26T12:47:22Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
+        "loaded_identity": "Cursor 3.22.7 stable / 37076c6c3f9e253c0fa2305197e45befd13a2260; Composer 2.5 Fast; fixture source 5b2353f56d6b3f0539cfcb47ca4dc2b71646c965"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間によるCase実施は未確認。Agentの単回不一致観測はhuman passへ転用しない。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438"
+      ]
+    },
+    {
+      "id": "C-C02",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C02 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseで画面操作の回復を確認し、MCP不要の本Caseを独立に測定する。A/BとのCLI/model条件差を記録し、結果を他Caseへ流用しない。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: IDE内panel・明示Grok 4.7設定を確認済み。専用Cursor再起動後もCuaのAX treeと画面が不一致で、入力・画面取得が失敗し未保存DocumentのCase操作・Agent送信へ進めなかった。MCP errorとは別の操作環境blocked。専用アプリ停止・lease解放済み、人間操作待ちは残っていない。 run05でもSystem Eventsは専用IDE window 0件、window 1読取は-1719。権限不足とは断定せず、OS設定変更・Case操作・送信なしで停止した。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -870,48 +920,7 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318"
-      ]
-    },
-    {
-      "id": "C-C02",
-      "issue": 150,
-      "change": "Android選択対象の比較: 経路C / C02 / T17+T18",
-      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
-      "steps": [
-        "比較手順の経路Cを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
-        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
-      ],
-      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
-      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
-      "fix_issue": null,
-      "fix_pr": null,
-      "main_eligible": false,
-      "gpt": {
-        "actor": "gpt",
-        "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
-      },
-      "human": {
-        "actor": "human",
-        "status": "pending",
-        "reason": "新候補の実IDE比較は未実施。"
-      },
-      "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
-        "docs/research/issue-150-comparison.md",
-        "docs/verification/fixtures/android-selection-candidate.json",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845647045",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845686708",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845720717",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845764581",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -925,14 +934,14 @@
       ],
       "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -952,7 +961,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -966,14 +976,14 @@
       ],
       "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -993,7 +1003,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -1007,14 +1018,14 @@
       ],
       "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -1034,7 +1045,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -1048,14 +1060,14 @@
       ],
       "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -1075,7 +1087,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -1089,14 +1102,14 @@
       ],
       "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -1116,7 +1129,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -1130,14 +1144,14 @@
       ],
       "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -1157,7 +1171,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -1171,14 +1186,14 @@
       ],
       "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -1198,7 +1213,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     },
     {
@@ -1212,14 +1228,14 @@
       ],
       "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseと操作可能な環境を確保し、保存済み公式Stdio設定の有効化とAgent readを確認する。HTTP/SSEのroot URI error、Stdio未検証、MCP不要のC01を区別して本Caseを測定する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26: 本人ログイン・IDE内panel確認済み。HTTPとIDE生成SSE設定はroots/listの非file URI error。公式Stdio設定は保存・専用Cursor再起動済みだが、画面操作の不整合で有効化未確認。再起動後ログにStdio起動/roots errorの証拠なし。Agent readとCase本体は未実施。専用アプリ停止・lease解放済み。"
+        "reason": "2026-09-26: HTTP/IDE生成SSEはroots/listの非file URI error。公式Stdioは保存・再起動済みだが有効化とAgent経由のMCP readは未確認。本Caseは未実施。run06の直接AXで画面操作が可能となりMCP不要のC-C01だけ単回不一致を観測したが、本Caseの成功には転用しない。所有アプリ停止・lease解放済み。"
       },
       "human": {
         "actor": "human",
@@ -1239,7 +1255,8 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845833740",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
       ]
     }
   ]
