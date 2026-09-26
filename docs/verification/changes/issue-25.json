@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 25,
+  "gui_required": false,
+  "reason": "列挙済み17項目と元の受入6項目について、公開済み証拠・採否・必要証拠・既存実装/QAを照合する研究文書のみ。製品コード・GUI・provider・認証/設定・未公開原本は変更しない。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "全17項目・元受入6項目・相対リンク・固定研究PR・採用先/QAの照合",
+    "固定HEAD/baseの独立レビュー（未確認能力、GUI/main残務、#146/#66/#99/#149/#150の保持）"
+  ],
+  "cases": []
+}
