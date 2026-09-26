@@ -184,7 +184,7 @@ class SdkSurfaceProbe {
 |---|---|---|
 | 固定SDKのAPI/public/internal/optional/fallback | §1–2、compile-only | module取得・classloader・各状態の実動は未確認 |
 | Cursor IDE内panelと最強IDE/MCP構成の同条件比較 | §3、三経路の環境lock/Case記録 | **blocked**: Cの実panel比較、compatible server/toolset・catalog・実会話未確認 |
-| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | fixture準備記録/4 APKへの参照と未実施Case | **pending**: 保全資材の受取照合、IDE import/sync、2device確保、GUI lease、三経路の全Case実行 |
+| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | 旧fixture履歴と[新fixture](../verification/fixtures/android-selection/README.md)、経路別30未実施Case | **pending**: 新候補のsource/4 APK受取照合、IDE import/sync、2device確保、GUI lease、三経路の全Case実行 |
 | 直接読取とAgent toolの分離 | §4の試験契約 | 既存toolの充足/不足を実測し、必要時のみ新toolへ絞る |
 | 最初の1機能選定 | T17/T18に対する比較・採否基準 | **pending**: 効果差未測定。採用実装Issueなし |
 | XML View/ViewBinding、GUI未達の明記 | fixtureの指定、全Case未実施 | Compose/DOMで代用しない。#150をcloseしない |

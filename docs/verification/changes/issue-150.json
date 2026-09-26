@@ -1,12 +1,943 @@
 {
   "schema": 1,
   "issue": 150,
-  "gui_required": false,
-  "reason": "固定SDKと一次資料のread-only事前調査・比較手順の文書のみ。Issue150全体の実IDE比較/GUI/機能選定は未達として保持する。",
+  "gui_required": true,
+  "reason": "新しいXML/ViewBinding fixtureを固定し、旧候補を転用せず三経路×C01–C10の比較を登録する。fixture生成/静的検証と実IDE比較は別判定。PR265の資料受入履歴は固定mergeとQA380に保持。",
   "cli_checks": [
     "git diff --check",
-    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "固定SDK descriptor/class署名・掲載probeのcompile-only確認、および一次資料/未達Caseの独立照合"
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "docs/verification/fixtures/android-selection/README.mdの4 assemble・APK manifest/署名/識別marker・保全hash照合"
   ],
-  "cases": []
+  "cases": [
+    {
+      "id": "A-C01",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C01 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C02",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C02 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C03",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C03 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C04",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C04 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C05",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C05 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C06",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C06 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C07",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C07 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C08",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C08 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C09",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C09 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "A-C10",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路A / C10 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Aを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C01",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C01 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C02",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C02 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C03",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C03 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C04",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C04 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C05",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C05 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C06",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C06 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C07",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C07 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C08",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C08 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C09",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C09 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "B-C10",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路B / C10 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Bを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C01",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C01 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C02",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C02 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C03",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C03 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C04",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C04 / T17",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C05",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C05 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。BlueのActivityへ一時的なコンパイルerrorを入れて`I150 Blue` run。復元/build後に起動しcrash buttonを押す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C06",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C06 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。D1/D2で起動した状態からD1だけ切断またはemulator停止。D1対象の読取/runを要求し、その後再接続",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C07",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C07 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。同じappをD1/D2で動かし、Red/Blue両方が同じlog tagを出す。対象appを再起動し古いmarkerも残す",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C08",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C08 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。同一device・同一PIDだが時刻/runNonceが異なる2起動分の合成Logcat入力を用意",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C09",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C09 / T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。Red/debugとBlue/debugの2 debug sessionを開始しbreakpointで停止。対象sessionのstack/許可marker変数を取得、resume後に旧frameで再要求",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    },
+    {
+      "id": "C-C10",
+      "issue": 150,
+      "change": "Android選択対象の比較: 経路C / C10 / T17+T18",
+      "preconditions": "新fixtureの同一source/4 APK/version lockを受領照合。固定plugin/IDE/CLI/model/MCP構成、D1/D2、指定operatorとGUI queue/host-wide leaseを確認。旧buildのpassは転用しない。",
+      "steps": [
+        "比較手順の経路Cを使う。bounded読取中にCancel、fixture project close、またはdevice切断。ログを100件超生成",
+        "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
+      ],
+      "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
+      "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
+      "next_action": "PMが新source/4 APKを受領し比較環境とGUI担当を固定する。GUI未実施のまま機能採用/優位性を確定しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。2device・固定build・対応MCP構成・GUI担当の準備待ち。"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新候補の実IDE比較は未実施。"
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "docs/research/issue-150-comparison.md",
+        "docs/verification/fixtures/android-selection-candidate.json"
+      ]
+    }
+  ]
 }

@@ -1,11 +1,11 @@
 # #150 Android選択対象: 制御fixtureと実比較手順
 
-初版2026-09-12、統合時更新2026-09-20。関連: [SDK/能力境界と未達一覧](issue-150-android-selection.md)、
+初版2026-09-12、統合時更新2026-09-20、新候補への切替2026-09-26。関連: [SDK/能力境界と未達一覧](issue-150-android-selection.md)、
 [T17/T18](acp-feature-migration-2026-09-09.md)、[GUI coordination](../development/gui-coordination.md)、
 [検証台帳](../verification/README.md)。
 
-**fixtureの基準commitと4 APKは準備記録あり。現在の現物受領は未確認で、以下の実IDE比較Caseも全件未実施。device・GUI・MCPの動作passを示さない。**
-現PRは資料のみで`gui_required=false`。#150全体に必要な下記GUI Caseを免除する意味ではない。
+**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。実IDE比較は全件未実施で、device・GUI・MCPのpassを示さない。**
+旧PR #265の資料scopeは`gui_required=false`だったが、新候補の比較Caseは経路別に[正本JSON](../verification/changes/issue-150.json)へ登録する。
 実行前に指定operatorが固定候補/Case IDをJSON台帳へ登録し、生成物を二重編集しない。
 
 ## 1. 開始条件と比較する三つの経路
@@ -34,14 +34,34 @@ BのAndroid直接読取が未実装なら「未実装」と記録する。API表
 | IDE/plugin | 実際に起動するIDE full build、Android plugin/AI Assistant/MCP Server/Debugger MCP toolset版、enabled/load状態。9/12のSDK照合対象は`AI-261.26222.65.2614.16204760`。実比較の対象build/hashを再固定し、変更時はAPI照合をやり直す |
 | Agent | A/Bは同じCLI full version・ACP protocol・明示model ID。CはCursor full version/commit・channel・実行日・panel/モード・model ID・関連extension版を別記録し、内部Agent版が非公開ならunknown。同じmodelを選べない場合は比較条件差を明示。Autoで混在させず、既存認証の公開値はplan種別のみ |
 | MCP | endpointはprivateに保持。公開記録はserver/toolset名・版、direct catalogとrouter-only catalog、input schema/権限・実動結果。片側だけ無効化して優位性を作らない |
-| Fixture/build | 下記§2の準備済みbaseline/4 APK/hash、AGP9.1.1/Gradle9.3.1を使用。Kotlin/JDK/compileSDK/build-toolsは保全済みversion lockと依存証明を受け取り記録する。新規Empty Views Activityは作らず、各経路へ同じcommitの専用コピーを渡す |
+| Fixture/build | 下記§2の新fixture source/4 APKを使用。新候補のversion lock、sourceとAPKのhashを照合し、各経路へ同じ固定候補の専用コピーを渡す。旧候補の準備記録を同一性の証拠にしない |
 | Device | D1/D2の2台を同時に認識。実serial→alias対応はprivate。公開値はalias/API/ABI/emulatorまたは物理/device状態。両方で選んだminSdk以上、APK実行可、ADB認証済み。今は2台存在未確認 |
 | GUI/evidence | host-wide lease、operator、固定plugin ZIP/hash、開始時刻、Case ID、証拠保存先/公開投影方針を記録。通常の利用projectは使わない |
+
+2026-09-26の導入候補（公式Marketplaceの対応宣言のみ、install/load/実動は未確認）:
+
+| 実行IDE候補 | AI Assistant | MCP Server |
+|---|---|---|
+| Quail 4 | [261.26222.135](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant/versions/stable/1177320) | [261.26222.30](https://plugins.jetbrains.com/plugin/26071-mcp-server/versions/stable/1088193) |
+| Quail 1 | [261.23567.214](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant/versions/stable/1177317) | [261.23567.174](https://plugins.jetbrains.com/plugin/26071-mcp-server/versions/stable/1034317) |
+
+A/Bは同じ実行IDEへ揃える。製品ZIPの標準Quail 1/JDK21 buildと、実行IDE/JBRは別々に識別する。
+Quail 1だけで比較した結果をQuail 4へ一般化しない。実行前に対応版と利用可能toolsetを再確認し、
+2026.2の公式Helpにあるtoolが261系にもあるとは推定しない。
 
 compatible MCP/toolsetが対象Android Studioで使えない場合は、その正確な版の組合せをblockedとして残す。
 別IDE/buildが必要なら別比較行を追加し、同条件比較と混ぜない。現行資料はIDEAのtool存在を示すだけでAndroid Studio互換を保証しない。
 
 ## 2. 準備済みfixtureの受取と具体仕様
+
+新候補は[保全・再実行手順](../verification/fixtures/android-selection/README.md)と同居sourceを正本とする。
+固定済みのsource commit/tree・source archive/4 APKのSHA256と静的検証結果は[新候補manifest](../verification/fixtures/android-selection-candidate.json)を参照する。
+2026-09-26に旧保全先不明を確認し、[新候補案](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5844771037)をPMが採用した。
+旧原本の受領は未解決履歴として保持するが、新比較の開始条件は**新source/4 APK/lock/再実行手順の受領照合**へ変更する。
+新候補を固定後、A/B/Cすべての8選択組・C01–C10を最初から確認する。旧成功の移植や一部経路だけの差替えはしない。
+
+<details>
+<summary>旧候補の準備・受領blocked履歴（新比較の固定値として使わない）</summary>
 
 [PMの準備完了記録](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5645727837)を正本参照とする。
 baselineは`55a4e28a05c2756a36046f395cc6d1991cdfa58a`、AGP `9.1.1` / Gradle `9.3.1`。
@@ -63,9 +83,12 @@ sourceの`git rev-parse HEAD`/clean状態と全APKのSHA-256を照合してか�
 不一致を新規projectの作成で埋めない。再buildでAPK hashが変わる場合も、原因・入力差・新hashを別候補として固定し、
 全経路の比較をその同一候補からやり直す。基準source/artifactは上書きしない。
 
-以下は準備時のfixture仕様であり、別fixtureを一から作る指示ではない。
+</details>
 
-使い捨てproject名は`issue150-selection-fixture`。2つのAndroid application moduleを持ち、Composeを使わず
+以下の仕様・受入は新候補にも維持する。
+
+
+新しい使い捨てproject名は`issue150-selection-fixture-v2`。2つのAndroid application moduleを持ち、Composeを使わず
 各moduleで`buildFeatures.viewBinding = true`。XML `activity_main.xml`は縦方向に次のViewだけを置く。
 
 - `TextView @+id/targetLabel`: `module|variant|applicationId|runNonce|pid`を表示。
@@ -89,8 +112,8 @@ releaseは非debuggableのまま、使い捨てfixtureのdebug signingを明示�
 配布用署名・鍵の利用は不要。debuggerの成功Caseはdebugのみ、releaseへのdebug要求は明示的な未対応を期待する。
 
 run configurationを`I150 Red`/`I150 Blue`として各moduleに固定する。
-準備済みsource/4 APKは上表で照合し、IDE import/syncとrun configurationの設定は未確認として実行担当へ残す。
-version lockの未取得項目は保全資料から記入し、既存のbuild成功を実IDE/実deviceの成功へ読み替えない。
+新source/4 APKはfixtureの保全手順で照合し、IDE import/syncとrun configurationの設定は未確認として実行担当へ残す。
+新候補のbuild成功も実IDE/実deviceの成功へ読み替えない。
 
 基本選択8組はすべて行う:
 
@@ -107,7 +130,7 @@ version lockの未取得項目は保全資料から記入し、既存のbuild成
 
 ## 3. 操作・期待値・現在の状態
 
-各CaseはA/B/Cで同じfixture状態から開始する。主にT17がeditor/selection/model、T18がexecution/device/log/debugger。
+各CaseはA/B/Cで同じfixture状態から開始する。正本JSONのIDは`A-C01`〜`C-C10`の30件で、経路間の部分成功をまとめてpassにしない。主にT17がeditor/selection/model、T18がexecution/device/log/debugger。
 「既存toolなし」はdirect/router双方と権限を確認した場合のみ記録する。未実装、環境blocked、timeout、製品failを分ける。
 
 | Case / 対応 | 操作 | 期待する判定 | 現在 |
