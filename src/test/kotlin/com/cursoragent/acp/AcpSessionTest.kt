@@ -20,6 +20,8 @@ class AcpSessionTest {
         val processes = CopyOnWriteArrayList<Process>()
         val events = CopyOnWriteArrayList<AgentEvent>()
         val outcomes = CopyOnWriteArrayList<String>()
+        val diagnostics = CopyOnWriteArrayList<String>()
+        var failDiagnostics = false
         val commands = CopyOnWriteArrayList<CommandCatalog>()
         val imageSupport = CopyOnWriteArrayList<Boolean?>()
         val received = CountDownLatch(1)
@@ -35,7 +37,10 @@ class AcpSessionTest {
             val server = root.resolve("fake.py")
             Files.writeString(server, AcpSessionTest::class.java.getResource("/acp/fake_agent.py")!!.readText())
             session = AcpSession({ _, _ -> ProcessBuilder("python3", server.toString(), scenario, root.toString())
-                .directory(root.toFile()).start().also(processes::add) }, gate::markUncertain, 2)
+                .directory(root.toFile()).start().also(processes::add) }, gate::markUncertain, 2, { diagnostic ->
+                diagnostics.add(diagnostic)
+                if (failDiagnostics) error("synthetic diagnostic failure")
+            })
             session.observeCommands { commands.add(it) }
             session.observeImageSupport { imageSupport.add(it) }
         }
@@ -196,6 +201,8 @@ class AcpSessionTest {
             assertEquals(2, h.starts.get())
             assertEquals("small", h.events.filterIsInstance<AgentEvent.Configuration>().last().model)
             assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
+            assertEquals(2, h.diagnostics.count { "source=turn-quiescent" in it && "outcome=COMPLETED" in it && "liveChildren=0" in it })
+            assertEquals(2, h.diagnostics.map { it.substringAfter("trace=").substringBefore(' ') }.distinct().size)
         }
     }
 
@@ -238,6 +245,8 @@ class AcpSessionTest {
             assertTrue(h.outcomes.last().startsWith("error:"))
             assertEquals(1, h.processes.size)
             assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+            assertTrue(h.diagnostics.any { "source=connection-closed" in it && "terminal=false" in it })
+            assertTrue(h.diagnostics.none { h.root.toString() in it || "synthetic prompt" in it || "session-one" in it })
         }
     }
 
@@ -294,6 +303,25 @@ class AcpSessionTest {
             assertEquals(listOf("uncertain"), h.outcomes)
             assertTrue(h.gate.isUncertain)
             assertNull(h.gate.tryRestore())
+            assertTrue(h.diagnostics.any { "source=turn-failure" in it && "phase=await-child-exit" in it &&
+                "terminal=true" in it && "outcome=CANCELLED" in it && "liveChildren=1" in it })
+        }
+    }
+
+    @Test
+    fun `provider error details stay private and broken diagnostics cannot release restoration`() {
+        Harness(temp, "prompt-error").use { h ->
+            h.failDiagnostics = true
+            h.send(prompt = "private synthetic prompt")
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertTrue(h.gate.isUncertain)
+            assertNull(h.gate.tryRestore())
+            assertFalse(h.processes.single().isAlive)
+            assertTrue(h.diagnostics.any { "source=turn-failure" in it && "terminal=false" in it })
+            for (secret in listOf("private synthetic prompt", "synthetic-provider-secret", "session-one", h.root.toString())) {
+                assertTrue(h.diagnostics.none { secret in it })
+            }
         }
     }
 

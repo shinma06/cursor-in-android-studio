@@ -36,6 +36,12 @@ internal class AcpProcessTree(private val process: Process) {
         return children.values.none { it.alive() }
     }
 
+    @Synchronized
+    fun diagnosticState(): String {
+        val live = runCatching { children.values.count { it.alive() }.toString() }.getOrDefault("unknown")
+        return "observedChildren=${children.size} liveChildren=$live"
+    }
+
     fun awaitQuiet(timeoutSeconds: Long, connectionAlive: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
         while (true) {

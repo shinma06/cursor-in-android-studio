@@ -170,6 +170,8 @@ for line in sys.stdin:
         pending = None
         if scenario == "eof":
             sys.exit(0)
+        elif scenario == "prompt-error":
+            send({"id": prompt_id, "error": {"code": -32000, "message": f"synthetic-provider-secret {root} session-one", "data": request["params"]}})
         elif scenario in ("cancel", "child"):
             if scenario == "child":
                 child = subprocess.Popen([sys.executable, "-c", "import pathlib,sys,time; p=pathlib.Path(sys.argv[1]); (p/'child-ready').touch();\nwhile not (p/'release-child').exists(): time.sleep(.01)", str(control)], stdin=subprocess.DEVNULL, env={})

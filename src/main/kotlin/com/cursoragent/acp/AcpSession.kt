@@ -22,6 +22,7 @@ internal class AcpSession(
     private val launch: (String, String) -> Process,
     private val onUncertain: () -> Unit,
     private val cancelTimeoutSeconds: Long = 10,
+    private val onDiagnostic: (String) -> Unit = {},
 ) : AutoCloseable {
     private val lock = Any()
     private val connectionLock = Any()
@@ -78,6 +79,8 @@ internal class AcpSession(
     private var connectionExecutable: String? = null
 
     private class Active(val turn: PreparedAgentTurn) {
+        val diagnosticId = java.util.UUID.randomUUID()
+        @Volatile var phase = "preparing"
         @Volatile var promptSent = false
         @Volatile var terminal = false
         @Volatile var quiescent = false
@@ -129,6 +132,7 @@ internal class AcpSession(
                         if (image != null && imageSupported != true) throw AcpException("送信時に画像対応を確認できません")
                         protocol.beginTurn()
                         processTree!!.sample()
+                        current.phase = "prompt"
                         current.promptSent = true
                         turn.promptDispatched = true
                         turn.run.emit { it.onStarted(); it.onSessionUpdated(sessionId, null) }
@@ -159,12 +163,17 @@ internal class AcpSession(
                     // Continue observing descendants while the reader receives frames independently.
                 }
             }
+            current.phase = "await-child-exit"
             processTree!!.awaitQuiet(cancelTimeoutSeconds) { !connection.isClosed && !disconnected }
             current.quiescent = true
+            diagnose(current, "turn-quiescent")
             cancelRequests()
         } catch (failure: Exception) {
             val cause = failure.cause ?: failure
-            if (current.promptSent && !current.quiescent) uncertain(current)
+            if (current.promptSent && !current.quiescent) {
+                diagnose(current, "turn-failure")
+                uncertain(current)
+            }
             if (!turn.run.wasStopped && !current.uncertain) {
                 turn.run.reportError(if (cause is AcpException) cause.message!! else "ACP接続または設定の確認に失敗しました")
             }
@@ -195,11 +204,14 @@ internal class AcpSession(
         process = child
         processTree = AcpProcessTree(child)
         if (closing || !isActive()) throw AcpException("ACP接続の準備を停止しました")
-        val connection = AcpJsonRpc(child.inputStream, child.outputStream, ::notification, ::request, onClosed = {
+        val connection = AcpJsonRpc(child.inputStream, child.outputStream, ::notification, ::request, onClosed = { reason ->
             disconnected = true
             publishImageSupport(null)
             publishCommands(com.cursoragent.service.CommandCatalog.Failed)
-            active?.takeIf { it.promptSent && !it.quiescent }?.let(::uncertain)
+            active?.takeIf { it.promptSent && !it.quiescent }?.let {
+                diagnose(it, "connection-closed", reason)
+                uncertain(it)
+            }
             // Closing pipes/process happens off the reader and never on EDT.
             thread(name = "Cursor ACP cleanup", isDaemon = true) { stopProcess() }
         })
@@ -344,6 +356,7 @@ internal class AcpSession(
         rpc?.notify("session/cancel", sessionParams())
         CompletableFuture.delayedExecutor(cancelTimeoutSeconds, TimeUnit.SECONDS).execute {
             if (active === current && !current.terminal) {
+                diagnose(current, "cancel-timeout")
                 uncertain(current)
                 disconnect()
             }
@@ -351,6 +364,16 @@ internal class AcpSession(
     }
 
     private fun cancelRequests() = requests.toList().forEach { it.answer(AgentAnswer.Cancel) }
+
+    /** Only local state and AcpJsonRpc's fixed client messages; never provider payloads or exception text. */
+    private fun diagnose(current: Active, source: String, connectionReason: String? = null) {
+        runCatching {
+            onDiagnostic("ACP termination: trace=${current.diagnosticId} source=$source phase=${current.phase} " +
+                "terminal=${current.terminal} outcome=${current.outcome} stopped=${current.turn.run.wasStopped} " +
+                "connectionClosed=${rpc?.isClosed} processAlive=${process?.isAlive} " +
+                "${processTree?.diagnosticState()} connectionReason=${connectionReason ?: "none"}")
+        } // Diagnostics cannot change cancellation, cleanup, or the restore gate.
+    }
 
     private fun uncertain(current: Active) {
         current.uncertain = true
