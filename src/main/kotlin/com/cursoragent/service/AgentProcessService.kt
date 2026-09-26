@@ -90,6 +90,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
             },
             onUncertain = operations::markUncertain,
+            onDiagnostic = { LOG.info(it) },
         )
     }
 

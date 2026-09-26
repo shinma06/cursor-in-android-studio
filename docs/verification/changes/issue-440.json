@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "issue": 440,
+  "gui_required": true,
+  "reason": "元run07の原因を確定するため、終了判定を維持した診断buildで実IDEの新会話・MCP条件・終了順序を確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *AcpSessionTest",
+    "./gradlew buildPlugin",
+    "git diff --check、固定HEAD/baseの独立レビュー（秘密非出力・終了判定維持）"
+  ],
+  "cases": [
+    {
+      "id": "ACP-TERMINATION-DIAGNOSTIC",
+      "issue": 440,
+      "change": "回答後の終了不確定を固定buildの安全な診断で切り分ける",
+      "preconditions": "独立レビュー済み診断ZIPのHEAD/ZIP SHA-256/loaded JAR、run07と同じIDE/公式CLI/model、permission/root・MCP設定/承認/接続状態を記録。指定operator・host-wide lease、新しい専用profile/使い捨てfixture。旧失敗会話は使用しない。",
+      "steps": [
+        "新会話へ「比較用の接続確認です。ファイルの参照・保存・変更・コマンド実行は行わず、「接続確認」とだけ答えてください。」を1回だけ送信する。",
+        "回答・UI終端・時刻とローカル診断traceを私的記録で照合し、prompt-end受理、phase、最初の切断/失敗、観測子の終了順序を区別する。秘密やraw wireを公開しない。",
+        "再送/復元を行わず、所有app/子processの停止とfixtureの復元を確認しleaseを解放する。結果・未確認範囲を#440/#150/#152へ双方向で記録する。"
+      ],
+      "expected": "診断に本文/秘密/raw error/path/PIDが含まれず、同一turnの静止・残子・切断を識別できる。既存の再送/復元禁止・Stop/遅着/別tab保護を維持する。正常応答だけでrun07の原因解明や比較Case合格とはしない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "この診断は原因採取用。原因確定後の最小修正と同一固定build再試験は#440で継続し、#150比較/#152全受入/mainと分ける。",
+      "next_action": "PMが固定HEAD/baseの独立レビュー後に診断ZIPとGUI測定契約を#150指定operatorへ割り当てる。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846971572",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "非GUIの対照3送信は未再現。診断buildで元条件の新会話を測定していない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "非GUIの対照3送信は未再現。診断buildで元条件の新会話を測定していない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}
