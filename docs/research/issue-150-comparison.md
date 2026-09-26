@@ -4,7 +4,7 @@
 [T17/T18](acp-feature-migration-2026-09-09.md)、[GUI coordination](../development/gui-coordination.md)、
 [検証台帳](../verification/README.md)。
 
-**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。Case本体は全件未実施。専用環境の起動とMCP直接読取は確認したが、三経路の比較passは示さない。**
+**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。C-C01は単回実施でeditorとdiskの区別に期待値不一致を観測し、専用再確認Issue #438へ追跡した。他29件は未実施。三経路の比較pass・優位性は示さない。**
 旧PR #265の資料scopeは`gui_required=false`だったが、新候補の比較Caseは経路別に[正本JSON](../verification/changes/issue-150.json)へ登録する。
 Case IDは登録済み。指定operatorが実行ごとの固定候補・構成・結果をJSON台帳へ記録し、生成物を二重編集しない。
 
@@ -65,7 +65,7 @@ compatible MCP/toolsetが対象Android Studioで使えない場合は、その�
 fixture sourceはcandidate manifest、製品buildは`5444c1c148bdc7a1b7b15fab143fa41826e8b711`、
 ZIP SHA-256は`00b81fde4f7040609b9c5460710d3baa0c6f896e23563cf6e313ceaddd84a80e`。配置JAR照合後に専用IDEで起動した。
 先行setup runはprompt0。後続runではAの接続確認と本人の挨拶の計2送信が完了したが、Case本体は未実施。
-全30件のAgent欄は環境`blocked`、human欄は`pending`とする。
+この段階では全30件が環境`blocked`だった。後続run06でC-C01のみ単回実施し`fail`へ更新した。全human欄は`pending`を維持する。
 
 | 確認対象 | 実観察と限界 |
 |---|---|
@@ -90,7 +90,7 @@ Cursorの専用user-data pathはIPC socketの長さ制限にも注意する。�
 |---|---|---|
 | A | 本人認証と接続確認は完了。実CLI版が単独CLIと異なり、MCP受渡しと同一modelが未確定 | GUI担当がAの管理CLI版を固定し、Bにも同じ既存公式ランチャーを指定して実process/model/MCPをreadbackする。最新単独CLIとの版差は別記する |
 | B | 製品panel表示は確認。メニュー操作とAと同じACP/model/MCP設定が未確定 | GUI担当が専用buildのCLI設定にAと同じ既存公式ランチャーを指定し、新規会話のACPと明示modelを確認。printの結果で代替しない |
-| C | HTTP/公式SSEはroot URI error。Stdioは保存・専用Cursor再起動済みだが有効化未確認。MCP不要のC01も画面操作不能で未実施 | 次GUI担当が新queue/leaseで操作経路の回復を確認し、C01をMCPと独立に測定する。Stdioは未検証として引き継ぎ、独自proxyで比較条件を変えない |
+| C | HTTP/公式SSEはroot URI error、Stdioは有効化未確認。MCP不要のC-C01はrun06で単回の期待値不一致 | 次GUI担当が新queue/leaseで#438の再確認とA/B比較を行う。C02以降はStdioとAgent readを別途確認し、独自proxyで比較条件を変えない |
 
 [JetBrains公式ACP設定](https://www.jetbrains.com/help/ai-assistant/acp.html)のCustom Agentは`~/.jetbrains/acp.json`を使用する。
 導入済み261版の`AcpConfigurationLoader.getConfigFilePath()`も`user.home/.jetbrains/acp.json`を返し、専用IDE config directoryへの切替は確認できなかった。
@@ -100,8 +100,25 @@ MCPの[Roots仕様](https://modelcontextprotocol.io/specification/2025-06-18/cli
 
 人間操作の前に新queue/leaseと専用profile/fixture windowを確認し、人間の操作中はAgentのGUI操作を止める。
 Aの追加install/認証/同意や新OS権限要求は既存承認へ混ぜず、該当地点で止める。人間による補助操作はsetupの操作数へ数える。
-最終run `i150-compare-20260926-04` は環境修復3回・接続確認2送信で終了した。CuaのAX treeと画面の不一致、`elementHasNoFrame`、clipboard timeout/画面取得errorにより、MCP不要のC01も未保存editor操作・Agent送信へ進めなかった。これは比較対象製品の失敗ではなく、操作環境のblockedとする。
-所有IDE・Cursor・ACP Agentの停止を確認し、期限前にleaseを解放済み。元fixture 18ファイルは変更なし。追加の人間操作依頼は残っていない。再開後も全Caseを未実施から測定し、#150/QA #380を閉じない。
+先行run `i150-compare-20260926-04` は環境修復3回・接続確認2送信で終了した。CuaのAX treeと画面の不一致、`elementHasNoFrame`、clipboard timeout/画面取得errorにより、MCP不要のC01も未保存editor操作・Agent送信へ進めなかった。これは比較対象製品の失敗ではなく、操作環境のblockedとする。
+所有IDE・Cursor・ACP Agentの停止を確認し、期限前にleaseを解放済み。元fixture 18ファイルは変更なし。追加の人間操作依頼は残っていない。当時は全Case未実施であり、#150/QA #380を閉じない。
+
+既存権限のSystem Events/AX経路も[run05で再確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318)した。専用Studio/Cursorのprocessは認識されvisible=trueだが、window一覧は双方0件。Studioのwindow 1読取はinvalid index（-1719）。同時期にCuaではfixture画面を取得できたため、権限不足・アプリ未起動・製品failのいずれとも断定しない。実行元はChatGPT.app内のCodexCLIからosascript/System Eventsであり、Terminal.appの権限状態とは同一視しない。OS権限変更・Case操作・送信は行わず、所有2アプリ停止・lease解放済み。この制限はrun05のSystem Events経路の観察に限定する。
+
+### C-C01の単回観測と適用限界
+
+[run06の実測・復元記録](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736)では、既存権限の直接AX APIで専用appを前面化するとwindow取得・標準UI操作が可能になった。OS権限変更はしていない。System Eventsのwindow 0件から全操作経路の利用不能を推定しない。操作経路の詳細と修復履歴はIssue記録、原UI証跡はprivateに保持する。
+
+| 条件・結果 | 実観測 |
+|---|---|
+| 固定構成 | Cursor 3.22.7 stable / commit `37076c6c3f9e253c0fa2305197e45befd13a2260`、IDE内Agent、明示`Composer 2.5 Fast`。新fixture source `5b2353f56d6b3f0539cfcb47ca4dc2b71646c965`。他のIDE/plugin固定値は上記環境lockを維持 |
+| 入力 | Red/Blueの同名Kotlin/XMLを切替。Red XMLの12行目labelだけ標準Replaceで`I150_UNSAVED_RED`へ変更し、editor全体と元diskを照合。16文字を選択してCmd+Lで`activity_main.xml (12)`を添付。質問に期待markerを含めずmodule/path/範囲・文字列とeditor/diskの区別を要求、保存/変更/コマンド実行は禁止 |
+| 正しく返した部分 | module `appRed`、相対path `appRed/src/main/res/layout/activity_main.xml`、12行目、未保存marker |
+| 期待値不一致 | diskも`I150_UNSAVED_RED`で「差はありません」と回答。独立読取のdiskは`I150 appRed`のまま。回答は行全体を示し、選択16文字の範囲との区別も未確認 |
+| 計測と限界 | 1送信、UI表示Worked for 10s。通常操作数・訂正回数・総時間は準備修復と分離計測できていない。3反復・順序条件・A/B同条件実測は未完了。tool表示にRead/Exploredはあるが、内部toolがbufferを読むかは未確認 |
+| 復元・次の確認 | editorをRevertし元diskとの一致、元18ファイル無変更を確認。所有アプリ/関連ACP停止・lease解放済み。[#438](https://github.com/shinma06/cursor-in-android-studio/issues/438)で再現性・回避・比較への反映を追跡 |
+
+C-C01の`fail`はこの固定条件の単回の期待値不一致を意味し、自製品Bの不具合やCursor全版の仕様ではない。全指標の測定完了・三経路の優位性・機能採用を意味しない。A-C01はRed XMLを開いた段階まででCase送信・editor変更なし。B-C01と残りCaseも未実施。MCP Stdioは未検証のままで、このMCP不要の観測から他Caseへ成功を転用しない。
 
 ## 2. 準備済みfixtureの受取と具体仕様
 
@@ -186,7 +203,7 @@ run configurationを`I150 Red`/`I150 Blue`として各moduleに固定する。
 
 | Case / 対応 | 操作 | 期待する判定 | 現在 |
 |---|---|---|---|
-| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | 環境blocked（上記再開条件） |
+| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | A/B: 環境blocked。C: 単回fail（再確認#438） |
 | C02 / T17+T18 | 上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合 | IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない | 環境blocked（上記再開条件） |
 | C03 / T17 | Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取 | 古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致 | 環境blocked（上記再開条件） |
 | C04 / T17 | fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync | sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない | 環境blocked（上記再開条件） |

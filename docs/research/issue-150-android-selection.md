@@ -199,11 +199,11 @@ class SdkSurfaceProbe {
 | Issue受入 | 本PRで用意したもの | 残作業・判定 |
 |---|---|---|
 | 固定SDKのAPI/public/internal/optional/fallback | §1–2、compile-only | module取得・classloader・各状態の実動は未確認 |
-| Cursor IDE内panelと最強IDE/MCP構成の同条件比較 | §3、三経路の環境lock/Case記録 | **blocked**: Cの実panel比較、compatible server/toolset・catalog・実会話未確認 |
-| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | 旧fixture履歴と[新fixture](../verification/fixtures/android-selection/README.md)、経路別30未実施Case | **pending**: 新候補のsource/4 APK受取照合、IDE import/sync、2device確保、GUI lease、三経路の全Case実行 |
+| Cursor IDE内panelと最強IDE/MCP構成の同条件比較 | §3、三経路の環境lock/Case記録 | **未完了**: C-C01で単回不一致を観測。A/B同条件とcompatible server/toolset・Agent readは未確定 |
+| 2module/2Variant/2device、切替・sync・失敗・PID時刻 | 旧fixture履歴と[新fixture](../verification/fixtures/android-selection/README.md)、経路別30 Case（C-C01単回不一致、他29未実施） | **未完了**: 新候補準備とC-C01の単回観測は[比較記録](issue-150-comparison.md)を参照。全Case・3反復・指標測定と同条件比較は残る |
 | 直接読取とAgent toolの分離 | §4の試験契約 | 既存toolの充足/不足を実測し、必要時のみ新toolへ絞る |
 | 最初の1機能選定 | T17/T18に対する比較・採否基準 | **pending**: 効果差未測定。採用実装Issueなし |
-| XML View/ViewBinding、GUI未達の明記 | fixtureの指定、全Case未実施 | Compose/DOMで代用しない。#150をcloseしない |
+| XML View/ViewBinding、GUI未達の明記 | fixtureの指定、C-C01不一致は#438で再確認、未実施29件を区別 | Compose/DOMで代用しない。#150をcloseしない |
 
 次の担当は指定GUI operatorが比較手順の環境lockを埋め、固定候補・Caseを検証台帳へ登録して実行する。
 Researchはその公開証拠を比較し、差がなければ追加実装なし、差があれば最小の1機能だけ選定する。
