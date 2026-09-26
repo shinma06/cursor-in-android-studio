@@ -1,8 +1,8 @@
 {
   "fixture": "issue150-selection-fixture-v2",
-  "source_commit": "7906f91944575605b41629a9f7cec983f038384b",
-  "source_tree": "f986bf0a45419f92d7a5bb1bb0eefd7ead69ddff",
-  "source_archive_sha256": "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652",
+  "source_commit": "5b2353f56d6b3f0539cfcb47ca4dc2b71646c965",
+  "source_tree": "368364962532d0bbcbb6638a321c5e08cc6fca4b",
+  "source_archive_sha256": "12fb8bc9249a745ab44d0421657289a959ffcca6f5f504badb0702fb5bdb8018",
   "apks": [
     {
       "module": "appRed",
@@ -14,7 +14,7 @@
       "module": "appRed",
       "variant": "release",
       "package": "dev.example.issue150.red",
-      "sha256": "ad8e8338866a63d209571b0f1c4a033267f0d3ee870645183599cf107914ea47"
+      "sha256": "25f0ee2db8125c1c0eda511bedfcad6df55bdb789a3fcd318d9079a80442ce4c"
     },
     {
       "module": "appBlue",
@@ -26,7 +26,7 @@
       "module": "appBlue",
       "variant": "release",
       "package": "dev.example.issue150.blue",
-      "sha256": "8b9140e90ffcf04d6dca4d8bf4f3a290e1133b05be73570cafad83f57be4198a"
+      "sha256": "c08af469126da2c7339c2e9f0dcb884d4699e519d4c1df195aa54ac9d1aa53e8"
     }
   ],
   "gui_status": "pending",
@@ -34,6 +34,8 @@
   "verification": {
     "build": "固定source commitからGradle 9.3.1 / AGP 9.1.1 / JDK21で4 assembleをoffline --rerun-tasks実行、成功。",
     "static": "4 APKのpackage/minSdk26/targetSdk37/debuggable/権限なし、DEXの識別marker/ViewBinding、apksignerの署名を確認。",
-    "gui": "未実施。実IDE/2device/C01–C10の成功は示さない。"
+    "gui": "未実施。実IDE/2device/C01–C10の成功は示さない。",
+    "archive": "別の空ディレクトリへ実展開し、全18 tracked fileの一覧・内容hashをGit固定treeと照合。Gradle wrapperの実行権限も確認。",
+    "rebuild": "debugの2 APKは旧準備artifactと同一hash。releaseの2 APKは署名block内のみbytesが変わり、新hashで固定。全ZIP entry内容は同一、4 APKの署名/manifest/marker検査は再成功。"
   }
 }
