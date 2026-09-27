@@ -1,10 +1,10 @@
 # #150 Android選択対象: 制御fixtureと実比較手順
 
-初版2026-09-12、統合時更新2026-09-20、新候補への切替2026-09-26。関連: [SDK/能力境界と未達一覧](issue-150-android-selection.md)、
+初版2026-09-12、統合時更新2026-09-20、新候補への切替2026-09-26、現在状態更新2026-09-27。関連: [SDK/能力境界と未達一覧](issue-150-android-selection.md)、
 [T17/T18](acp-feature-migration-2026-09-09.md)、[GUI coordination](../development/gui-coordination.md)、
 [検証台帳](../verification/README.md)。
 
-**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。C-C01の未保存XMLは3観測で不一致2・正答1。#438で間欠的な不一致を追跡する。Aの保存済み対照は選択文字列不一致、BのACP接続準備は回答後の終了不確定（#440）。他29件の正式Caseは未実施。三経路の比較pass・優位性は示さない。**
+**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。C-C01の未保存XMLは3観測で不一致2・正答1。#438で間欠的な不一致を追跡する。run07のA保存済み対照は選択文字列不一致、BのACP接続準備は回答後の終了不確定（#440）。その後CのMCP Agent読取は疎通確認に成功したが、同条件比較は未成立。現在の待機条件は下記「2026-09-27の現在状態と再開条件」を参照。他29件の正式Caseは未実施で、三経路の比較pass・優位性は示さない。**
 旧PR #265の資料scopeは`gui_required=false`だったが、新候補の比較Caseは経路別に[正本JSON](../verification/changes/issue-150.json)へ登録する。
 Case IDは登録済み。指定operatorが実行ごとの固定候補・構成・結果をJSON台帳へ記録し、生成物を二重編集しない。
 
@@ -52,7 +52,37 @@ Quail 1だけで比較した結果をQuail 4へ一般化しない。実行前に
 compatible MCP/toolsetが対象Android Studioで使えない場合は、その正確な版の組合せをblockedとして残す。
 別IDE/buildが必要なら別比較行を追加し、同条件比較と混ぜない。現行資料はIDEAのtool存在を示すだけでAndroid Studio互換を保証しない。
 
+### 2026-09-27の現在状態と再開条件
+
+**CのMCP Agent読取は成功済み。同一model・MCP条件でのA/B/C比較は未完了。**
+公開済みの[run18](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5851622039)、
+[run19](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5851697251)、
+[Bの承認境界確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5852376071)に基づく現在地を示す。
+
+| 経路 | 確認済みの範囲 | 残る条件・次の操作 |
+|---|---|---|
+| A | AI Assistant上のCursor ACP、管理CLI、composer-2.5表示は確認済み。run19は送信0で終了し、`Pass IntelliJ MCP server`はOFFへ復元済み | AI Assistant経由のMCP受け渡しは本人回答待ち。許可後に指定GUI担当が設定とmodel optionを読み戻し、Agent経由のMCP実呼び出しを確認する。正式未保存Caseは未実施 |
+| B | A管理CLIへの設定とACP/model応答は確認済み。#440の診断追加PR #444はdevelopへ統合済み | B専用CLIへのMCP登録・承認は本人回答待ち。サーバー有効化やC側の承認をBへ広げず、許可後に固定build/設定でAgent実呼び出しを確認する。#440の原因未確定も別の残件として維持 |
+| C | run18で承認済み専用MCPへの `get_project_modules` 実呼び出し1回が成功。Connected表示、27 tool catalog、履歴と返却JSONの9 moduleを確認。実modelは `Grok 4.7 High Fast` | 疎通証拠のみ。`Composer 2.5 Fast` の本人による選択・完了連絡待ちで、同条件比較は未成立。新GUI枠で選択結果を読み戻してから比較する |
+
+9 moduleはroot、appRed/appBlueとそれぞれのmain/unitTest/androidTestの一覧であり、選択中Variant/device/runの取得成功ではない。
+27 toolの列挙も全toolの実動・router/追加toolset確認・正式Case passを意味しない。run18のBrave modeはOFFで、
+この読取では承認ダイアログを観測しなかった。Cの旧HTTP/SSE接続失敗と、後続Stdio経路でのAgent読取成功を分ける。
+
+Bの[run20](https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5851929092)と
+[run21](https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5852036674)は各1回・再送なしで失敗が非再現だった。
+[#444の診断統合](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5851850508)も原因特定や修正完了の証拠ではなく、#440はOPENを維持する。詳細な診断結果はprivate保管とし、本書へ転載しない。
+[#445のSDK資料統合](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5852338716)は固定SDKの静的照合・契約案の追記であり、実動成功とは区別する。
+
+[run22終了・予約解放](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5852244746)を確認済み。
+Agent送信0、モデル/MCP受け渡し変更0で専用アプリ・所有処理・観測処理を停止し、fixture元18ファイル一致を確認した。
+本人回答後も新queue/leaseで専用profile・fixture・固定ZIP/ロード実体・CLI/modelを照合して再開する。
+[正式Case JSON](../verification/changes/issue-150.json)は**29 blocked / 1 fail（C-C01）、human全pending、main不可**のまま。
+疎通・診断の単回結果を正式Caseへ転用せず、採用機能と優位性は未判定、#380/#152の未達を維持する。
+
 ### 2026-09-26の環境確認と再開条件
+
+以下はrun07までの保存記録。当時の未確認・阻害条件を現在の状態へ読み替えない。現在の入口は直前の2026-09-27表。
 
 記録は[専用IDE/MCP run](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845508768)と
 [経路C・代替操作 run](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845576094)、
@@ -86,7 +116,7 @@ Cursorの専用user-data pathはIPC socketの長さ制限にも注意する。�
 [IDEAの公式Debugger説明](https://www.jetbrains.com/help/idea/agentic-debugging.html)ではdirect toolsは2026.1.3以降、router modeは2026.2以降。
 今回のdirect catalogにdebuggerがないことだけでAndroid Studioでの利用不能とは判定せず、追加toolsetの互換性・load・公開設定を再開時に確認する。
 
-| 経路 | 現在の阻害条件 | 次ownerと具体操作 |
+| 経路 | run07時点の阻害条件 | 当時の次ownerと具体操作 |
 |---|---|---|
 | A | 管理CLIとcomposer-2.5表示を確認。保存済みRed対照で選択文字列不一致。MCP受渡し・正式未保存Caseは未確認 | GUI担当がMCP構成とmodel optionを固定し、選択文字列の再確認と正式C01を実施する |
 | B | A管理CLIへの設定保存とACP/model応答は確認。接続確認の回答後に終了不確定、MCP同条件未確認 | #440で原因・終了契約を特定。再送せず、固定buildの再確認後に正式Caseへ戻す |
@@ -118,7 +148,7 @@ Aの追加install/認証/同意や新OS権限要求は既存承認へ混ぜず�
 | 計測と限界 | 1送信、UI表示Worked for 10s。通常操作数・訂正回数・総時間は準備修復と分離計測できていない。3反復・順序条件・A/B同条件実測は未完了。tool表示にRead/Exploredはあるが、内部toolがbufferを読むかは未確認 |
 | 復元・次の確認 | editorをRevertし元diskとの一致、元18ファイル無変更を確認。所有アプリ/関連ACP停止・lease解放済み。[#438](https://github.com/shinma06/cursor-in-android-studio/issues/438)で再現性・回避・比較への反映を追跡 |
 
-この初回観測は経路Cの期待値不一致で、自製品Bの不具合やCursor全版の仕様ではない。以下のrun07再確認を含め、全指標の測定完了・三経路の優位性・機能採用を意味しない。MCP StdioのAgent利用は未検証のままで、MCP不要の観測から他Caseへ成功を転用しない。
+この初回観測は経路Cの期待値不一致で、自製品Bの不具合やCursor全版の仕様ではない。以下のrun07再確認を含め、全指標の測定完了・三経路の優位性・機能採用を意味しない。run07時点ではMCP StdioのAgent利用は未検証だった。後続run18の疎通確認とは別条件であり、MCP不要の観測から他Caseへ成功を転用しない。
 
 ### run07の再確認・対照と接続準備
 
@@ -227,7 +257,7 @@ run configurationを`I150 Red`/`I150 Blue`として各moduleに固定する。
 
 | Case / 対応 | 操作 | 期待する判定 | 現在 |
 |---|---|---|---|
-| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | A: 同条件未成立、保存済み対照で不一致。B: 接続準備の終了不確定#440でblocked。C: fail維持（不一致2・正答1、#438） |
+| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | A: 同条件未成立、保存済み対照で不一致。B: MCP登録承認・同条件比較待ち、#440原因未確定でblocked。C: fail維持（不一致2・正答1、#438） |
 | C02 / T17+T18 | 上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合 | IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない | 環境blocked（上記再開条件） |
 | C03 / T17 | Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取 | 古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致 | 環境blocked（上記再開条件） |
 | C04 / T17 | fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync | sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない | 環境blocked（上記再開条件） |
