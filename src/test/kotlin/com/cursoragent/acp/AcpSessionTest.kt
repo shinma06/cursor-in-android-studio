@@ -362,6 +362,47 @@ class AcpSessionTest {
     }
 
     @Test
+    fun `normal prompt end cannot exempt a resident child created before dispatch`() {
+        val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+        Harness(temp, "resident-child") { _, _, _, failure ->
+            if (failure != null) failures.add(failure)
+        }.use { h ->
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            val child = ProcessHandle.of(Files.readString(h.root.resolve("child.pid")).toLong()).orElseThrow()
+            val started = child.info().startInstant().orElseThrow()
+            try {
+                assertTrue(child.isAlive)
+                assertEquals(0, h.wire().count { it.string("method") == "session/prompt" })
+                h.send()
+                h.finish()
+                assertFalse(h.run.wasStopped)
+                assertEquals(listOf("uncertain"), h.outcomes)
+                assertTrue(h.gate.isUncertain)
+                assertNull(h.gate.tryRestore())
+                val failure = failures.single()
+                assertEquals(AcpPrivateDiagnostics.Site.CHILD_EXIT, failure.site)
+                assertEquals(AcpPrivateDiagnostics.ResultStage.ACCEPTED, failure.resultStage)
+                assertTrue(failure.terminal)
+                assertEquals(child.pid(), failure.children!!.single().pid)
+                assertEquals(started, failure.children.single().started)
+                assertEquals(true, failure.children.single().alive)
+                assertTrue(h.diagnostics.any { "source=turn-failure" in it && "outcome=COMPLETED" in it &&
+                    "connectionClosed=false" in it && "liveChildren=1" in it })
+                child.onExit().get(5, TimeUnit.SECONDS)
+                assertFalse(h.processes.single().isAlive)
+                h.send()
+                h.finish()
+                assertTrue(h.outcomes.last().startsWith("error:"))
+                assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+                assertEquals(1, h.processes.size)
+                assertNull(h.gate.tryRestore())
+            } finally {
+                if (child.isAlive && child.info().startInstant().orElse(null) == started) child.destroyForcibly()
+            }
+        }
+    }
+
+    @Test
     fun `first private failure distinguishes absent rejected and accepted results without changing uncertainty`() {
         for ((scenario, stage) in mapOf(
             "prompt-error" to AcpPrivateDiagnostics.ResultStage.NOT_RECEIVED,
