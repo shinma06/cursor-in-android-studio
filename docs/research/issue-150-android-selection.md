@@ -4,7 +4,7 @@
 対象Issue: [#150](https://github.com/shinma06/cursor-in-android-studio/issues/150)、親 [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)。
 
 **固定SDKに必要な読取APIは存在する。ただし直接APIの優位性、最強MCP構成の実動、最初の採用機能は未判定。**
-以下は2026-09-12時点の資料・descriptor・class署名の照合、compile-only確認の保存記録。
+2026-09-12の保存記録に、§1の2026-09-27固定SDK対応表と§2の非対応時契約案を追記した。過去のcompile-onlyと今回の静的照合を区別する。
 2026-09-26の専用IDE起動・MCP直接読取・Cursor IDE内panel観察と未達条件は[実比較手順](issue-150-comparison.md#2026-09-26の環境確認と再開条件)を現状の入口とする。
 9/12の資料調査では実IDE操作、install/restart、認証変更、MCP公開、ADB起動は行っていない。製品source・共有architectureは変更しない。
 #150全体の受入は残るため、この文書PRだけでIssueをcloseせず、採用実装Issueも作成しない。
@@ -59,6 +59,58 @@ IDEの接続情報・認証・ユーザーMCP設定は読まず、接続も試�
 
 旧SDKのhashと記録は上に保持する。APIの候補は残るが、対象選択・同期世代・process分離・取消の正確性は実比較Caseで判定する。
 
+### 2026-09-27: Quail 1 / Quail 4の対応表
+
+製品base `fe756a3b34767f808383977dc29a6e7548018a49` に対する追加資料。
+Quail 1はbuild設定の `androidStudio("2026.1.1.8")` が解決したSDK、Quail 4は上記実行SDKを読み取った。
+両SDKのJAR内class一覧、`javap -public` の対象署名、descriptorと関連メソッドの `javap -c -p` を照合した。
+今回新たなcompile・class実行・IDEへのload・GUI Caseは行っていない。比較した19 classの下表の署名は両版で一致したが、API全体の互換性や第三者plugin向け安定性を示さない。
+
+| 固定対象 | Quail 1 | Quail 4 Patch 1 |
+|---|---|---|
+| IDE / Android plugin build | `261.23567.138.2611.15503007` | `261.26222.65.2614.16379836` |
+| Android plugin ID | `org.jetbrains.android` | 同左 |
+| Android plugin since / until | ともに `261.23567.138` | ともに `261.26222.65` |
+
+Quail 4の4 artifact hashは直前の表を使用する。Quail 1のSHA-256は次のとおり。
+
+| Artifact相対名 | Quail 1 SHA-256 |
+|---|---|
+| `Resources/product-info.json` | `a8063f951c625f51ced19bf031f258e5cd150f7e43baa3c96db5815a68ee2d46` |
+| `plugins/android/lib/android.jar` | `8851b965f6ca26c083c76ce97d9060145e0d828a22b4093af272071325ced927` |
+| `plugins/android/lib/android-common.jar` | `2619b2831f8991824e9f08128fa789281c912872030eba45adaf805f2f347e33` |
+| `plugins/android/lib/sdk-tools.jar` | `c49c55ce2482d541187d99f967b00d46744856aca531fcb2f3593de0cb28b38c` |
+
+以下の配置は両版共通。単純名は§5のimportと対応し、戻り値の `?` は署名文字列ではなく、静的に確認したnull経路を補記したもの。
+
+| Class / 対象署名・戻り値 | Artifact内の配置 |
+|---|---|
+| `FileDocumentManager`: `getDocument(VirtualFile)`, `getDocument(VirtualFile,Project)`, `getCachedDocument(VirtualFile)` → `Document`; `isDocumentUnsaved(Document)` → `boolean` | `lib/intellij.platform.core.jar` |
+| `PsiDocumentManager`: `getCachedPsiFile(Document)` → `PsiFile` | `lib/intellij.platform.core.jar` |
+| `AndroidFacet`: `getInstance(Module)` → `AndroidFacet?` | `plugins/android/lib/android-common.jar` |
+| `GradleAndroidModel`: `get(Module)`, `get(AndroidFacet)` → `GradleAndroidModel?`; `getSelectedVariantName()` → `String`; `getAndroidProject()` → `IdeAndroidProject` | `plugins/android/lib/android.jar` |
+| `GradleSyncState`: `isSyncInProgress()`, `lastSyncFailed()` → `boolean`; `isSyncNeeded()` → `ThreeState` | 同上 |
+| `BuildVariantUpdater`: `updateSelectedBuildVariant(Module,String)` → `void`（変更操作） | 同上 |
+| `RunManager`: `getSelectedConfiguration()` → `RunnerAndConfigurationSettings`; `ExecutionTargetManager`: `getActiveTarget(Project)` → `ExecutionTarget`; `ExecutionManager`: `getRunningProcesses()` → `ProcessHandler[]` | `lib/app.jar` |
+| `ExecutionEnvironment`: `getExecutionTarget()` → `ExecutionTarget`; `getExecutionId()` → `long` | `lib/app.jar` |
+| `AndroidExecutionTarget`: `getRunningDevices()` → `Collection<IDevice>`; `DeviceFutures`: `getIfReady()` → `List<IDevice>?`; `DeviceProvisionerService`: `getDeviceProvisioner()` → `DeviceProvisioner` | `plugins/android/lib/android.jar` |
+| `AndroidDebugBridge`: `getDevices()` → `IDevice[]`; `ProcessNameMonitor`: `getProcessNames(String,int)` → `ProcessNames` | `plugins/android/lib/sdk-tools.jar` |
+| `LogcatService`: `readLogcat(String,AndroidApiLevel,Duration,int)` → `Flow<List<LogcatMessage>>`; `LogcatHeader`: `getPid()` → `int`, `getApplicationId()` → `String`, `getTimestamp()` → `Instant` | `plugins/android/lib/android.jar` |
+| `XDebuggerManager`: `getDebugSessions()` → `XDebugSession[]`, `getCurrentSession()` → `XDebugSession`; `XDebugSession`: `isSuspended()` → `boolean`, `getCurrentStackFrame()` → `XStackFrame` | `lib/intellij.platform.debugger.jar` |
+
+Document/PSI等も未取得時のnullを扱う必要がある。上表の `?` の有無を網羅的なnullability契約として使わない。
+Kotlin compilerの同梱JARにもPlatform classの同名コピーがあるため、compiler JARを製品依存へ追加して解決しない。
+
+両版の関連bytecodeで確認した事実:
+
+- `AndroidFacet.getInstance(Module)` はdisposed moduleでnull、それ以外はFacetManagerの検索結果を返す。`GradleAndroidModel.get` は取得modelがGradleAndroidModelでなければnullを返す。
+- `GradleSyncStateHolder` のsync中/直前失敗の読取は個別にlockされる。複数getterとmodel取得をまとめた原子的snapshotではない。`isSyncNeeded()` の宣言は `ThreeState` だが、今回の両実装が返すのは `YES` / `NO`。`UNSURE` の実発生は観測していない。
+- `DeviceFutures.getIfReady()` のnullは未完了・取消・例外で返り得る。「接続deviceなし」と一意に解釈できない。
+- `LogcatService.readLogcat` は一括の有限listではなくFlowを返す。引数の履歴上限だけで購読終了・返却総量・対象app隔離を保証したとは扱わない。
+
+再照合には表の固定SDKを入手し、相対JARのhash、root `META-INF/plugin.xml` とinclude先、対象classの署名/bytecodeを確認する。
+ローカルSDK原本と生の調査出力はprivate保管のため閲覧権限が必要。上表は著者の静的確認であり、独立reviewerの原本再現やruntime成功とは区別する。
+
 ## 2. API境界: まず既存機能を使う
 
 IntelliJ Platform標準のDocument/PSI、Execution、DebuggerとAndroid plugin実装を分ける。
@@ -90,6 +142,35 @@ class bytecodeでは`ApiStatus`注釈を検出しなかったが、安定性の�
 Platformのみで成り立つ機能はAndroid型を参照しない場所へ置き、Android依存をoptionalにする場合は
 `optional="true"`と専用`config-file`でクラスのロード境界も分離する。対象をAndroid Studio専用にするかは既存product方針に従い、今回依存を変更しない。
 [Plugin dependencies](https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html)、[Verifier failure levels](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-types.html)
+
+### Optional依存の確認事実と未対応時の契約案
+
+固定した両Android pluginのroot descriptorとinclude先を確認した。`GradleSyncState` は `project-system-gradle-plugin.xml`、
+`LogcatService` は `logcat.xml` のproject service登録、`DeviceProvisionerService` はproject-level service注釈を持つ。
+rootのplugin/module依存とinclude先のGradle/Kotlin等はAndroid plugin自身の構成であり、本製品へ全項目を複製する依存リストではない。
+JARの所在やKotlin module metadataだけでも、consumer側のdescriptor依存は決められない。
+
+製品baseの [plugin.xml](../../src/main/resources/META-INF/plugin.xml) はPlatform必須、Terminal/JCEF optionalで、
+[build設定](../../build.gradle.kts) のbundled plugin依存はTerminalのみ。Android APIの製品依存・登録境界はまだない。
+Android APIを採用する場合は固定SDKの `org.jetbrains.android` へのbuild依存と、専用 `config-file` を持つoptional descriptorを整備する案とする。
+共通側の型・static初期化・service登録からAndroid classを参照させず、Android未導入/無効時にも共通機能をloadできる境界を検証する。
+既存Terminalの分離を参照し、任意JAR同梱や無条件reflectionで依存不成立を隠さない。[Plugin dependencies](https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html)
+
+Platform内でも使用機能の依存宣言は必要である。候補のDebuggerは `com.intellij.modules.xdebugger`、
+言語機能は用途に応じた `com.intellij.modules.lang`、Java固有PSIを使う場合は `com.intellij.java` を照合する。
+classが広いcompile-only classpathで見つかることを、製品descriptorが正しい証明にはしない。[Plugin compatibility](https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html)
+
+以下は**未実装・runtime未検証の契約案**。正式Caseの合否や機能採用を追加しない。
+
+| 状態 | 提案する動作 / 後続の確認 |
+|---|---|
+| Android plugin未導入・無効、非Android module | 共通UIを維持し、Android連携を利用できない理由を返す。facetなしを空の成功modelに変換しない。optional classloadingを実IDEで確認 |
+| model未取得、sync中・失敗 | 未取得/更新中/失敗を区別。前回modelを現在の成功結果として添付しない。対象と取得世代を再検証 |
+| 複数getter間のsync・選択変更 | project/module同一性と開始時の世代を完了時に再確認し、不一致なら結果を破棄。read actionだけでAndroid同期全体が原子的になるとは仮定しない |
+| project close / module dispose / 対象消失 | 遅れて完了した読取を採用せず、所有する購読・待機だけ解放。別module/deviceへ自動fallbackしない |
+| device未準備・取消・失敗 | `DeviceFutures` のnullだけから原因を断定しない。確認できた状態または未取得を返し、選択deviceを再検証 |
+| API/依存版不一致・linkage失敗 | 該当連携を利用不可として扱い、固定SDK compile・Plugin Verifier・実loadを別々に確認。classloading失敗が共通UIまで壊れないことを試験 |
+| Logcat購読・debug frameの寿命終了 | §4の量/時間制限と対象同一性を検査し、取消/dispose/resume後の遅延結果を破棄。有限返却と秘密・他appログ分離は未実測 |
 
 ## 3. Cursor IDE内panelとAI Assistant + Cursor ACP + IDE + MCP全体を比較
 
