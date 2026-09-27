@@ -24,17 +24,17 @@
       ],
       "expected": "後続が固定条件と未達を読み戻せ、正式Caseの証拠を重複・水増しせず実測を再開できる。",
       "recheck": "操作環境blockedは新queue/leaseと指定operatorで再開。別buildや部分準備を正式比較passへ転用しない。",
-      "next_action": "#457担当とPMが新queue/leaseで専用IDEの正規SDK設定UIを使い、Sync後保持・警告解消・live deviceを確認する。現在model/MCP/権限を照合して共通準備を部分受領後、正式5 Caseを再開。QA #380とACP #152/#440の未達を維持する。",
+      "next_action": "run02のSDK/MCP設定・固定artifactは部分成果としてPM受領済み。新queue/leaseで保持済み専用環境を再照合し、A/B/Cの現在model/MCP/toolset/権限と現接続deviceの比較snapshotを確定して共通準備を受領後、正式5 Caseを再開する。#458–#461の依存とQA #380、ACP #152/#440の未達を維持する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "source18/18・保全APK4/4・端末APK8/8・配置/ロードJAR5/5、規定2構成のmodule対応・両debug・Sync成功を確認。Bの人間ACP選択後status/既定モデルをreadback。人間のD1-only選択後Multiple Devices(1)を確認したが、再表示後はDROPDOWNへ変化。IDE/AVDのSDK根が異なりMissing system imageが残存。専用SDK修復1回後Sync成功でもIDEがlocal.propertiesを元SDKへ再生成した。live selected deviceと現在model/MCP/権限未確定、送信0・Run/Debug0。所有12 processのlive残存0・SDK変更復元・source18一致・lease free。共通準備受領と正式5 Case未完了。",
+        "reason": "run01: source18/18・保全APK4/4・端末APK8/8・配置/ロードJAR5/5、規定2構成のmodule対応・両debug・Sync成功を確認。Bの人間ACP選択後status/既定モデルをreadback。人間のD1-only選択後Multiple Devices(1)を確認したが、再表示後はDROPDOWNへ変化。IDE/AVDのSDK根が異なりMissing system imageが残存。専用SDK修復1回後Sync成功でもIDEがlocal.propertiesを元SDKへ再生成した。live selected deviceと現在model/MCP/権限未確定、送信0・Run/Debug0。所有12 processのlive残存0・SDK変更復元・source18一致・lease free。共通準備受領と正式5 Case未完了。 run02: 正規SDK Location→Sync成功→正常再起動で専用root保持・Missing警告解消・Running devicesからD1選択を確認。source18/JAR5/APK8一致。MCP Enable ONはAX/画面、Brave OFFは空枠/人間回答一致、既存native tools/listは27件。PMがSDK・artifact・catalogを部分成果受領し設定保持を指示。A現在UIのみ確認、Bの人間ACP選択依頼は撤回・完了報告なし、C未起動。現在model/MCP/権限比較snapshotと共通準備全受領は未達。Agent/Run/Debug0。通常Quit確認画面を取得できず所有9 processへSIGTERM、過去再起動分も含めlive0、source18一致、SDK設定保持、lease free。正式Case観測は不変。",
         "observer": "research-457-01a0e21c",
-        "at": "2026-09-27T09:45:31Z",
-        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408",
+        "at": "2026-09-27T10:47:01Z",
+        "evidence": "docs/research/issue-457-common-preparation.md",
         "execution": "computer_use"
       },
       "human": {
@@ -47,7 +47,8 @@
         "docs/verification/changes/issue-150.json",
         "https://github.com/shinma06/cursor-in-android-studio/issues/457",
         "https://github.com/shinma06/cursor-in-android-studio/issues/380",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5855003632"
       ]
     }
   ]

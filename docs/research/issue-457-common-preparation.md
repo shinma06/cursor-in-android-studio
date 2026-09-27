@@ -35,8 +35,8 @@
 5. 通常のdevice選択が操作できない場合、登録action `Select Multiple Devices...`のdialogでD1のみを選ぶ経路がある。固定Quail4の実装では1台でもtoolbarは`Multiple Devices (1)`となる。再表示したdialogのD1-onlyとtoolbarを併せて読む。構成名ごとに選択を保持し、dropdownとdialogの保存値は別なので、構成/mode切替後に再確認する。この代替経路は今回GUI未成立。
 6. toolbarのdevice名、現在の接続先、実application ID/device/execution ID/label/logを結ぶ。保存済みdevice connection IDが古い可能性、赤い警告表示、未確定の選択があれば実行前条件はblocked。
 
-次枠のSDK切替は、必要なplatform37.0/build-tools36.0.0の実体とpackage情報を比較専用SDKへ揃えてから行う。共有SDKへの参照は更新時の書込みを分離できないため、SDK Managerや自動downloadを伴う運用へ流用しない。
-固定Quail4の支援調査では、専用profileの`options/android.sdk.path.xml`（AndroidSdkPathStore）が有効なら`ANDROID_HOME`より優先される。切替後はSDK Location/SDK ManagerのUI、保存されたSDK root、Android SDK entries、fixture local.propertiesの一致とSync後保持を確認する。今回の再生成がSDK不一致処理のどの分岐かは未確認で、切替手順のGUI成功も未検証。
+SDK切替は、必要なplatform37.0/build-tools36.0.0の実体とpackage情報を比較専用SDKへ揃えてから行う。共有SDKへの参照は更新時の書込みを分離できないため、SDK Managerや自動downloadを伴う運用へ流用しない。
+固定Quail4の支援調査では、専用profileの`options/android.sdk.path.xml`（AndroidSdkPathStore）が有効なら`ANDROID_HOME`より優先される。切替後はSDK Location/SDK ManagerのUI、保存されたSDK root、Android SDK entries、fixture local.propertiesの一致とSync後保持を確認する。run01での再生成がSDK不一致処理のどの分岐かは未確認。正規UIによる切替と保持は下記run02で確認した。
 正規入口とpackage区分は[Project Structure](https://developer.android.com/studio/projects#ProjectStructure)・[SDK Manager](https://developer.android.com/studio/intro/update#sdk-manager)を参照する。
 
 最初はRed/debug/D1の同条件1組をA/B/C別に記録する。その後2 module × 2 variant × 2 deviceの8組、差が出たCaseの順序反復へ進む。準備の手動操作、通常turn、訂正、復元の操作数と時間を分離する。
@@ -60,7 +60,7 @@ Settings/XML/Run Configurationの書換えでtransport選択を代用しない�
 - source18 fileをarchiveへ戻した後にbytes一致を検証する。未保存editorの復元とdisk復元は別に確認する。leaseは安全な停止後に自分のtokenでreleaseする。
 - 後続ownerは固定source/4 APK/ZIPと5 JAR、構成→module/variant/device、model/MCP/権限、復元手順、未達・次担当を読み戻す。PMが部分受領を記録してから準備依存を解除する。#457全5 Caseの完了は解除の条件にしない。
 
-## 今回の確認範囲
+## run01の確認範囲
 
 [i457-baseline-20260927-01](https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408)、2026-09-27。
 source archive/Git/GUI用コピー18/18、保全APK4/4、端末内APK8/8、配置/実ロードJAR5/5が一致した。
@@ -78,3 +78,17 @@ Agent送信0・Run/Debug0。A/B-C01、A/B/C-C02は未実測で、29 blocked / C-
 規定構成と固定#456 pluginは停止済み専用profileに保全する。保持理由・owner・再開条件と詳細場所はprivate handoffに置く。
 次枠は正規SDK設定UIとSync後保持・警告解消・live deviceを確認し、各経路の現在model/MCP/権限を照合する。
 共通準備の部分受領は未完了で、PM受領前に後続の準備依存を解除しない。準備操作/人間介入/SDK修復の時間を実測turnの指標に合算しない。
+
+## run02で解消した準備条件
+
+[SDK/D1 checkpoint](https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5855003632)では、必要packageを専用SDKへ実体copyし全hash一致・symlink0を確認した。正規SDK Locationでの切替、Sync成功、SDK Managerの導入済み状態、PathStore/SDK entries/local.properties一致を確認した。
+SDK切替直後にDevice Manager警告が残る場合は、同じ専用profileを正常終了し、所有するCLI等を終了した後に再起動して確認する。今回の警告は再起動後に消え、D1/D2の起動中表示とRunning devicesからのD1選択が成立した。設定値は正常終了後も専用rootで保持された。
+固定source18・実ロードJAR5・端末APK8も一致した。SDK準備の解消であり、実際のapp実行・正式Caseのpassではない。
+
+MCP ServerのEnableはAX `Value:1`と画面のチェックでONを確認した。Brave modeは画面の空枠と、人間からPM経由で受けたOFF回答を照合した（AXのValueは取得できていない）。既存native stdio設定のinitialize/tools/listから現在27 toolを取得し、bridgeを終了した。tools/callやAgent送信による全tool実動の証明ではない。
+
+PMはSDK・固定artifact・native catalogを部分成果として受領し、準備済みの専用SDK root/profileを停止後も保持する判断をした。通常SDK/profile・元AVDは変更しない。保持resourceのownerと再開条件はprivate handoffに記録する。A/B/Cの現在model/MCP/権限と現接続deviceの比較snapshotが揃うまで、共通準備の依存は解除せず#458–#461はblockedを維持する。
+
+Aは現在UIで`composer-2.5`・IDE context ON・Agent・新規空chatを確認した。Bは再起動後の未送信New AgentでAgent・既定モデル・自動context ONを確認したが、接続menuの自動操作はpopup未取得/座標`noWindowsAvailable`。人間のACP選択依頼は終了時刻のためPMが撤回し、完了報告はなかった。今回のACP選択・実model/toolset/権限は未確定で、run01の人間選択を転用しない。Cは今回未起動。
+
+Agent送信0・Run/Debug0。10:45 UTCから終了操作を開始し、10:47 UTCに停止を確認した。入力空・応答未開始・Runなしを読み戻した。通常Quit要求後の確認dialogが取得できず、実行ファイルとPIDを照合した所有9 processへSIGTERMを送った（force killなし）。過去の再起動分も含めlive残存0、source18一致、SDKの3設定保持、lease freeを確認した。終了方法の制約は次担当へ引き継ぐ。正式5 Caseと他25 Case・全既存gpt/human観測は不変で、29 blocked / C-C01 fail / human30 pending / main不可を維持する。
