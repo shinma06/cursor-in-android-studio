@@ -223,7 +223,7 @@ class AgentUiController(
             return
         }
         composer.commands.update(commandConnection.catalog, true)
-        agentService.prepareAcpCommands(tabId, project.basePath!!, shared.agentExecutablePath, onImageSupport = { supported ->
+        agentService.prepareAcpCommands(tabId, project.basePath!!, shared.agentExecutablePath, recorder.conversation.id, onImageSupport = { supported ->
             runOnEdt {
                 if (!disposed && !project.isDisposed && transportState().first == AgentTransport.ACP) {
                     commandConnection.updateImageSupport(generation, supported)
@@ -501,7 +501,7 @@ class AgentUiController(
                     agentService.sendPrompt(
                         if (command != null) fullContext.orEmpty() else fullPrompt,
                         turn, tabId, sessionTurn.transport, commandText = userText.takeIf { command != null }, commandName = command,
-                        image = imagePayload,
+                        image = imagePayload, conversationId = tab.conversationId,
                     )
                 } catch (error: Exception) {
                     run.reportError("送信の準備に失敗しました: ${error.message}")

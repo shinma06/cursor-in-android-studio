@@ -31,6 +31,19 @@ run07と本source基準でAcpSession/ProcessTree/起動経路の差分はない�
 
 合成回帰は[AcpSessionTest](../../src/test/kotlin/com/cursoragent/acp/AcpSessionTest.kt)の正常2turn、EOF、残子取消を再利用し、秘密を含むprovider errorと壊れた診断callbackでも、不確定・復元拒否・所有process回収を保つことを追加確認する。fake serverの結果を実Cursor/GUI合格へ転記しない。
 
+## 非公開のprocess対応診断
+
+通常ログだけでは、同じCLI・同じIDE親の複数ACPと会話を対応付けられない。候補一覧取得の `prepare()` も送信前に接続を作るため、出生時刻だけを会話の確証にしない。
+
+専用IDEのJVM system property `cursor.agent.acp.privateDiagnosticsDir` に、operatorが事前作成した**絶対パス・POSIX 0700の専用directory**を指定した場合だけ、[AcpPrivateDiagnostics](../../src/main/kotlin/com/cursoragent/acp/AcpPrivateDiagnostics.kt)へ相関記録を出す。通常は無効。IDEの `idea.log` や会話本文、provider通信には出さない。repository/共有・同期folderへは指定せず、property/実パスと生成ファイルはprivate実行記録だけで扱う。POSIX権限を確認できない環境は記録しない。
+
+- 接続process作成時: `event=process-started`、ローカルtab UUID・保存conversation UUID、PID、OS process開始時刻、記録時刻。これはOS起動の記録で、initialize/session-new成功の証拠ではない。
+- prompt dispatch時: `event=prompt-dispatch`、同じ対応情報と既存終了診断のtrace UUID。dispatchは送出を試みる境界であり、providerの受信確認ではない。provider session ID、本文、コマンド、root、wire、例外は渡さない。開始時刻がnullならPID再利用を除外できないため対応確定に使わない。
+- 各記録は新規0600 JSONファイル。既存ファイルへ追記/上書きせず、symlink directoryは拒否する。IDE寿命あたり最大128回の記録試行で停止し、operatorが必要な記録の存在・項目を確認する。欠落を成功や接続不在と推測しない。
+- 診断は固定値とローカル識別子だけ。記録エラーは黙って棄却し、既存の終端判定/timeout/取消/再送/復元gateを変更しない。採取後はpropertyを外し、private証跡はoperatorが保全/整理する。
+
+新会話の接続準備後、process-started記録からtab/conversationとPID+開始時刻を対応付けてから送信する。送信後はprompt-dispatchのtraceを通常終了診断へ結び、OS側の所有process時系列と照合する。これはメニュー操作失敗の修正でも、run13の残子3件の原因確定でもない。callback故障時の正常2turn・既存の不確定保護と、保存先権限/上限/項目制限を合成テストで確認する。実IDEは固定ZIPで別途検証する。
+
 ## 次の固定build観測
 
 指定operatorがhost-wide leaseを取得し、新しい専用profile/fixtureへ診断ZIPを入れる。SHA/ZIP hash/loaded JAR、IDE/CLI/model、permission/root、MCP設定と承認・接続状態を固定して、元条件の**新会話に接続確認1回**。元run07 sessionを再送しない。独立review前の実運用配布はしない。

@@ -83,7 +83,7 @@ class AgentProcessService(private val project: Project) : Disposable {
     fun closeSession(tabId: String) { acpSessions.remove(tabId)?.close() }
 
 
-    private fun acpSession(tabId: String): AcpSession = acpSessions.getOrPut(tabId) {
+    private fun acpSession(tabId: String, conversationId: String?): AcpSession = acpSessions.getOrPut(tabId) {
         AcpSession(
             launch = { root, executable ->
                 GeneralCommandLine(executable.ifBlank { resolveAgentExecutable("") }, "acp")
@@ -91,14 +91,15 @@ class AgentProcessService(private val project: Project) : Disposable {
             },
             onUncertain = operations::markUncertain,
             onDiagnostic = { LOG.info(it) },
+            onPrivateDiagnostic = com.cursoragent.acp.AcpPrivateDiagnostics.forConversation(tabId, conversationId),
         )
     }
 
     /** Capture session ownership before scheduling, so a late task cannot recreate a closed tab. */
     @Synchronized
-    fun prepareAcpCommands(tabId: String, root: String, executable: String, onImageSupport: (Boolean?) -> Unit = {}, onCommands: (CommandCatalog) -> Unit) {
+    fun prepareAcpCommands(tabId: String, root: String, executable: String, conversationId: String, onImageSupport: (Boolean?) -> Unit = {}, onCommands: (CommandCatalog) -> Unit) {
         if (disposed) return
-        val session = acpSession(tabId)
+        val session = acpSession(tabId, conversationId)
         session.observeCommands(onCommands)
         session.observeImageSupport(onImageSupport)
         com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
@@ -145,7 +146,7 @@ class AgentProcessService(private val project: Project) : Disposable {
     }
 
     internal fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT, commandText: String? = null, commandName: String? = null,
-        image: com.cursoragent.ui.composer.image.ValidatedImage? = null) {
+        image: com.cursoragent.ui.composer.image.ValidatedImage? = null, conversationId: String? = null) {
         if (image != null && transport != AgentTransport.ACP) {
             turn.run.reportError("画像の送信には画像対応を確認できるACP接続が必要です。")
             turn.run.complete(-1)
@@ -154,7 +155,7 @@ class AgentProcessService(private val project: Project) : Disposable {
         if (transport == AgentTransport.ACP) {
             val session = synchronized(this) {
                 if (disposed || !turn.run.isActive) return
-                acpSession(requireNotNull(tabId))
+                acpSession(requireNotNull(tabId), conversationId)
             }
             session.send(prompt, turn, commandText, commandName, image)
             return
