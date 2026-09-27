@@ -31,9 +31,13 @@
 1. Find Actionの`Edit Configurations…`を開く。左treeの行クリックだけでは選択が変わらない場合、treeへフォーカスを置きUp/Downで移動する。
 2. **NameとModuleの両方**を読み、対象を選択してOK。toolbarの構成名と`Run '構成名'`を再取得する。名前の変更だけではmodule対応の証明にならない。
 3. Build Variantsの画像でappRed/appBlueそれぞれの値を確認する。Java AXの行名と子セル名が食い違う場合はAXだけで判定しない。
-4. 専用IDEの正規SDK設定UIで、projectのplatform/build-toolsとAVD system imageが同じSDK根から解決することを確認する。local.propertiesの変更だけではIDEが元設定で再生成し得る。Sync後にも参照先を読み、Device ManagerのMissing system imageが残れば実行前条件はblocked。Syncの終了記録と成功/警告を読み、進捗表示が消えただけで成功にしない。
+4. 専用IDEの`File → Project Structure → SDK Location → Android SDK location`で、projectのplatform/build-toolsとAVD system imageが同じSDK根から解決することを確認する。local.propertiesの変更だけではIDEが元設定で再生成し得る。Sync後にも参照先を読み、Device ManagerのMissing system imageが残れば実行前条件はblocked。Syncの終了記録と成功/警告を読み、進捗表示が消えただけで成功にしない。
 5. 通常のdevice選択が操作できない場合、登録action `Select Multiple Devices...`のdialogでD1のみを選ぶ経路がある。固定Quail4の実装では1台でもtoolbarは`Multiple Devices (1)`となる。再表示したdialogのD1-onlyとtoolbarを併せて読む。構成名ごとに選択を保持し、dropdownとdialogの保存値は別なので、構成/mode切替後に再確認する。この代替経路は今回GUI未成立。
 6. toolbarのdevice名、現在の接続先、実application ID/device/execution ID/label/logを結ぶ。保存済みdevice connection IDが古い可能性、赤い警告表示、未確定の選択があれば実行前条件はblocked。
+
+次枠のSDK切替は、必要なplatform37.0/build-tools36.0.0の実体とpackage情報を比較専用SDKへ揃えてから行う。共有SDKへの参照は更新時の書込みを分離できないため、SDK Managerや自動downloadを伴う運用へ流用しない。
+固定Quail4の支援調査では、専用profileの`options/android.sdk.path.xml`（AndroidSdkPathStore）が有効なら`ANDROID_HOME`より優先される。切替後はSDK Location/SDK ManagerのUI、保存されたSDK root、Android SDK entries、fixture local.propertiesの一致とSync後保持を確認する。今回の再生成がSDK不一致処理のどの分岐かは未確認で、切替手順のGUI成功も未検証。
+正規入口とpackage区分は[Project Structure](https://developer.android.com/studio/projects#ProjectStructure)・[SDK Manager](https://developer.android.com/studio/intro/update#sdk-manager)を参照する。
 
 最初はRed/debug/D1の同条件1組をA/B/C別に記録する。その後2 module × 2 variant × 2 deviceの8組、差が出たCaseの順序反復へ進む。準備の手動操作、通常turn、訂正、復元の操作数と時間を分離する。
 
