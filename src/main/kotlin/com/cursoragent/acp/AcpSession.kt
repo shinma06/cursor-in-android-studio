@@ -27,6 +27,7 @@ internal class AcpSession(
     private val cancelTimeoutSeconds: Long = 10,
     private val onDiagnostic: (String) -> Unit = {},
     private val onPrivateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?, AcpPrivateDiagnostics.Failure?) -> Unit)? = null,
+    private val isWorkspaceUncertain: () -> Boolean,
 ) : AutoCloseable {
     private val lock = Any()
     private val connectionLock = Any()
@@ -101,7 +102,7 @@ internal class AcpSession(
         val current = Active(turn)
         synchronized(lock) {
             if (closing || disconnected || active != null) {
-                turn.run.reportError("このACP会話は再送できません。新しい会話を開始してください。")
+                turn.run.reportError(if (isWorkspaceUncertain()) UNCERTAIN_MESSAGE else "このACP会話は再送できません。新しい会話を開始してください。")
                 turn.run.complete(-1)
                 return
             }
@@ -138,6 +139,7 @@ internal class AcpSession(
                             throw AcpException("選択したコマンドを確認できません")
                         }
                         if (image != null && imageSupported != true) throw AcpException("送信時に画像対応を確認できません")
+                        checkWorkspace()
                         protocol.beginTurn()
                         processTree!!.sample()
                         current.phase = "prompt"
@@ -191,7 +193,7 @@ internal class AcpSession(
                 uncertain(current)
             }
             if (!turn.run.wasStopped && !current.uncertain) {
-                turn.run.reportError(if (cause is AcpException) cause.message!! else "ACP接続または設定の確認に失敗しました")
+                turn.run.reportError(if (isWorkspaceUncertain()) UNCERTAIN_MESSAGE else if (cause is AcpException) cause.message!! else "ACP接続または設定の確認に失敗しました")
             }
             if (cause !is AcpLocalRejection || current.promptSent) disconnect()
         } finally {
@@ -206,7 +208,12 @@ internal class AcpSession(
         }
     }
 
+    private fun checkWorkspace() {
+        if (isWorkspaceUncertain()) throw AcpException(UNCERTAIN_MESSAGE)
+    }
+
     private fun connect(root: String, executable: String, isActive: () -> Boolean): AcpJsonRpc = synchronized(connectionLock) {
+        checkWorkspace()
         if (closing || disconnected || !isActive()) throw AcpException("ACP接続の準備を停止しました")
         rpc?.let {
             if (connectionRoot != root || connectionExecutable != executable || it.isClosed) {
@@ -250,7 +257,7 @@ internal class AcpSession(
                 addProperty("terminal", false)
             })
         }
-        connection.request("initialize", initialize) {
+        connection.request("initialize", initialize, onDispatch = ::checkWorkspace) {
             val body = it.asJsonObject
             val version = body["protocolVersion"]
             require(version?.isJsonPrimitive == true && version.asJsonPrimitive.isNumber &&
@@ -261,7 +268,7 @@ internal class AcpSession(
         }.get(20, TimeUnit.SECONDS)
         if (!isActive()) throw AcpException("ACP接続の準備を停止しました")
         // P0: existing CLI authentication works; never launch an interactive login flow here.
-        connection.request("session/new", jsonObject("cwd" to root).apply { add("mcpServers", JsonArray()) }) { result ->
+        connection.request("session/new", jsonObject("cwd" to root).apply { add("mcpServers", JsonArray()) }, onDispatch = ::checkWorkspace) { result ->
             val body = result.asJsonObject
             sessionId = body.requiredString("sessionId").also { require(it.isNotEmpty()) }
             configuration.replace(body)
@@ -463,7 +470,7 @@ internal class AcpSession(
     }
 
     companion object {
-        const val UNCERTAIN_MESSAGE = "ACPの実行終了を確認できません。再送せず、残っている処理を確認してください。このプロジェクトの復元は無効です。"
+        const val UNCERTAIN_MESSAGE = com.cursoragent.service.WorkspaceOperationGate.UNCERTAIN_MESSAGE
 
         fun validateSettings(settings: TurnSettings, mode: WorktreeMode) {
             if (settings.permission != PermissionMode.ASK_EVERY_TIME || settings.sandbox != SandboxMode.DEFAULT || mode != WorktreeMode.DEFAULT) {

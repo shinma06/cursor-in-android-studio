@@ -1,4 +1,4 @@
-"""Synthetic local ACP server; no Cursor, account, network or project edits."""
+"""Synthetic local ACP server; no Cursor, account or network; writes only inside its temporary fixture."""
 import json
 import os
 import pathlib
@@ -175,6 +175,20 @@ for line in sys.stdin:
         pending = None
         if scenario == "eof":
             sys.exit(0)
+        elif scenario == "post-terminal-writer":
+            # A completed execute tool may have started independent work; end_turn is not process exit.
+            child = subprocess.Popen([sys.executable, "-c",
+                "import pathlib,sys,time; p=pathlib.Path(sys.argv[1]);\n"
+                "while not (p/'release-write').exists(): time.sleep(.01)\n"
+                "(p/'late-write.txt').write_text('after terminal'); time.sleep(30)", str(control)],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env={})
+            (control / "child.pid").write_text(str(child.pid))
+            threading.Thread(target=child.wait, daemon=True).start()
+            update(sessionUpdate="tool_call", toolCallId="writer", title="Synthetic writer", kind="execute", status="in_progress")
+            update(sessionUpdate="tool_call_update", toolCallId="writer", status="completed")
+            update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": "completed"})
+            finish()
+            (control / "prompt-ended").touch()
         elif scenario == "bad-stop-reason":
             finish("synthetic-provider-secret")
         elif scenario == "prompt-error":
@@ -252,14 +266,23 @@ for line in sys.stdin:
         if scenario == "task-stop":
             send({"method": "cursor/task", "params": {"toolCallId": "task-one", "agentId": "after-stop"}})
     elif "method" not in request and pending is not None and request.get("id") == pending:
-        if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard", "task-reopened"):
+        if scenario == "unknown" or scenario in ("task-request", "task-failed", "task-late-standard", "task-late-idle", "task-reopened"):
             assert request["error"]["code"] == -32601
+        if scenario == "task-late-standard":
+            # Keep this turn active after end_turn; the idle case below tests genuinely later activity.
+            child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"],
+                                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env={})
+            threading.Thread(target=child.wait, daemon=True).start()
         if request.get("result") == {"outcome": {"outcome": "cancelled"}}:
             cancelled.set()
             finish("cancelled")
         else:
             finish(scenario if scenario in ("refusal", "max_tokens", "max_turn_requests", "cancelled") else "end_turn")
-        if scenario == "task-late-standard":
+        if scenario == "task-late-idle":
+            while not (control / "release-late").exists():
+                if closed.wait(.01):
+                    break
+        if scenario in ("task-late-standard", "task-late-idle"):
             update(sessionUpdate="tool_call_update", toolCallId="task-one", status="in_progress")
 
 closed.set()

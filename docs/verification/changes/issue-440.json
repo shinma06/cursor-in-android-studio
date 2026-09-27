@@ -2,13 +2,14 @@
   "schema": 1,
   "issue": 440,
   "gui_required": true,
-  "reason": "run23で回答終端受理後も送信前からの常駐子4件が残る阻害条件を特定。現行終了保護の回帰を追加し、診断GUIの未達項目・MCP併用の再設計/固定build受入を保持する。",
+  "reason": "既存の診断GUI未達を保持し、終了不確定後の別会話/print新規送信とACP接続準備の拒否を固定buildで検証する。常駐MCPの複数turn継続は未解決。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
     "./gradlew test --tests *AcpSessionTest --tests *AcpPrivateDiagnosticsTest",
     "./gradlew buildPlugin",
     "git diff --check、固定HEAD/baseの独立レビュー（秘密非出力・終了判定維持）",
-    "./gradlew test --tests *AcpSessionTest：session/newで起動した常駐子が正常end_turn後も生存する場合の終了不確定・同接続再送拒否・復元拒否・cleanupを検証（合成fixture）"
+    "./gradlew test --tests *AcpSessionTest：session/newで起動した常駐子が正常end_turn後も生存する場合の終了不確定・同接続再送拒否・復元拒否・cleanupを検証（合成fixture）",
+    "./gradlew test --tests *AcpSessionTest --tests *WorkspaceOperationGateTest：終端後writerと別tab準備中の不確定化、print起動予約、新規metadata接続拒否（合成fixture）"
   ],
   "cases": [
     {
@@ -156,6 +157,52 @@
         "actor": "human",
         "status": "pending",
         "reason": "今回の失敗snapshot追加buildは実IDE未検証。旧run17の失敗と未解明状態を保持。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "ACP-PROJECT-UNCERTAINTY",
+      "issue": 440,
+      "change": "終了不確定後に別会話やprintへ切り替えても新規送信・接続準備を拒否する",
+      "preconditions": "独立レビュー済み固定ZIPのHEAD/SHA-256/loaded JAR、指定operator・GUI lease、使い捨てfixtureと専用IDE。private相関directoryを0700で事前準備。既存の実行/外部IDE作業の所有と停止手順を明確にする。",
+      "steps": [
+        "正常条件の新会話で2turnと復元gateの対照を確認し、所有処理終了後に専用IDE/projectを新しくして失敗条件へ切り替える。",
+        "失敗条件の新規ACP会話へ1回送信し、回答後の終了不確定を診断traceと照合する。回答・tool結果の観測と実行成功を分ける。",
+        "同projectで同会話、別ACP会話、printの送信を試みる。新しいprompt/processが開始されず、日本語で別会話を含む送信と復元の停止が表示されることを確認する。別ACP会話の候補取得も新規接続を起動しないことを確認する。",
+        "復元拒否を確認する。開始受理済みの他runが勝手に停止されないこと、別projectに影響しないことを条件を分けて確認する。準備中→送信直前の競合は合成回帰と区別して記録する。",
+        "外部IDEを含む全所有作業の終了を確認してからfixtureを戻し、leaseを解放する。#440/#150/#152へ結果・未確認・main残を双方向で引き継ぐ。"
+      ],
+      "expected": "検出済み不確定はproject寿命中保持され、別tab/transportで送信を回避できない。準備済みturnはdispatch前に拒否され、既存runの所有/停止範囲を変えない。正常対照は継続可能。常駐childの安全な除外や外部仕事の全検出は主張しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "合成反例は実Cursor/GUIのpassではない。常駐MCPの継続と従来3Caseの未達は保持。",
+      "next_action": "PMが固定HEAD/baseの独立レビュー後、#150指定operatorへ固定build GUIを割り当てる。Bは完全cleanupを挟む1prompt/専用project寿命の条件別比較とする。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "新規送信拒否を追加した固定buildの実IDE確認は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新規送信拒否を追加した固定buildの実IDE確認は未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,

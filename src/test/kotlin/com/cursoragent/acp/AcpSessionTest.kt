@@ -15,8 +15,7 @@ import kotlin.concurrent.thread
 class AcpSessionTest {
     @TempDir lateinit var temp: Path
 
-    private class Harness(val root: Path, scenario: String, privateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?, AcpPrivateDiagnostics.Failure?) -> Unit)? = null) : AutoCloseable {
-        val gate = WorkspaceOperationGate()
+    private class Harness(val root: Path, scenario: String, val gate: WorkspaceOperationGate = WorkspaceOperationGate(), privateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?, AcpPrivateDiagnostics.Failure?) -> Unit)? = null) : AutoCloseable {
         val processes = CopyOnWriteArrayList<Process>()
         val events = CopyOnWriteArrayList<AgentEvent>()
         val outcomes = CopyOnWriteArrayList<String>()
@@ -40,14 +39,14 @@ class AcpSessionTest {
                 .directory(root.toFile()).start().also(processes::add) }, gate::markUncertain, 2, { diagnostic ->
                 diagnostics.add(diagnostic)
                 if (failDiagnostics) error("synthetic diagnostic failure")
-            }, privateDiagnostic)
+            }, privateDiagnostic, isWorkspaceUncertain = { gate.isUncertain })
             session.observeCommands { commands.add(it) }
             session.observeImageSupport { imageSupport.add(it) }
         }
 
         fun send(model: String = "", mode: AgentMode = AgentMode.AGENT, prompt: String = "synthetic prompt", commandText: String? = null,
-            image: com.cursoragent.ui.composer.image.ValidatedImage? = null) {
-            val preparation = gate.tryPrepare()!!
+            image: com.cursoragent.ui.composer.image.ValidatedImage? = null,
+            preparation: WorkspaceOperationGate.Preparation = gate.tryPrepare()!!) {
             run = AgentRun(object : AgentProcessListener {
                 override fun onStarted() { starts.incrementAndGet() }
                 override fun onStructuredEvent(event: AgentEvent) {
@@ -133,6 +132,24 @@ class AcpSessionTest {
             h.finish()
             assertEquals(listOf("uncertain"), h.outcomes)
             assertNull(h.gate.tryRestore())
+            assertEquals("completed", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
+    fun `tool activity after completion blocks new sends without rewriting the completed turn`() {
+        Harness(temp, "task-late-idle").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            h.gate.tryRestore()!!.close()
+            Files.writeString(h.root.resolve("release-late"), "")
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (!h.gate.isUncertain && System.nanoTime() < deadline) Thread.sleep(10)
+            assertTrue(h.gate.isUncertain)
+            assertNull(h.gate.tryPrepare())
+            assertNull(h.gate.tryRestore())
+            assertEquals(listOf("completed:0"), h.outcomes)
             assertEquals("completed", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
         }
     }
@@ -271,12 +288,14 @@ class AcpSessionTest {
     @Test
     fun `EOF after prompt latches uncertainty rejects same session retry and releases pending once`() {
         Harness(temp, "eof").use { h ->
+            val retryPreparation = h.gate.tryPrepare()!!
             h.send()
             h.finish()
             assertEquals(listOf("uncertain"), h.outcomes)
             assertTrue(h.gate.isUncertain)
             assertNull(h.gate.tryRestore())
-            h.send()
+            assertNull(h.gate.tryPrepare())
+            h.send(preparation = retryPreparation)
             h.finish()
             assertTrue(h.outcomes.last().startsWith("error:"))
             assertEquals(1, h.processes.size)
@@ -362,6 +381,50 @@ class AcpSessionTest {
     }
 
     @Test
+    fun `completed tool can leave a writer and uncertainty blocks another prepared tab before dispatch`() {
+        val gate = WorkspaceOperationGate()
+        val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+        Harness(temp.resolve("writer"), "post-terminal-writer", gate) { _, _, _, failure ->
+            if (failure != null) failures.add(failure)
+        }.use { a ->
+            Harness(temp.resolve("other"), "commands-delayed", gate).use { b ->
+                // Reserve another turn before uncertainty, then hold its session/new response.
+                b.send()
+                awaitFile(b.root.resolve("new-ready"))
+                a.send()
+                awaitFile(a.root.resolve("prompt-ended"))
+                Files.writeString(a.root.resolve("release-write"), "")
+                awaitFile(a.root.resolve("late-write.txt"))
+                assertEquals("after terminal", Files.readString(a.root.resolve("late-write.txt")))
+                assertNull(gate.tryRestore())
+                a.finish()
+                val failure = failures.single()
+                assertEquals(AcpPrivateDiagnostics.ResultStage.ACCEPTED, failure.resultStage)
+                val child = failure.children!!.single()
+                assertEquals(true, child.alive)
+                ProcessHandle.of(child.pid).ifPresent { it.onExit().get(5, TimeUnit.SECONDS) }
+                assertTrue(a.events.filterIsInstance<AgentEvent.Tool>().any { it.state.status == "completed" })
+                assertEquals(listOf("uncertain"), a.outcomes)
+                assertTrue(gate.isUncertain)
+                assertNull(gate.tryPrepare())
+                Files.writeString(b.root.resolve("release-new"), "")
+                b.finish()
+                assertEquals(0, b.wire().count { it.string("method") == "session/prompt" })
+                assertFalse(b.lastTurn.promptDispatched)
+                assertTrue(b.outcomes.single().startsWith("error:"))
+                assertTrue((a.processes + b.processes).none { it.isAlive })
+                assertNull(gate.tryRestore())
+                // A new tab's metadata preparation must not launch another ACP process either.
+                Harness(temp.resolve("new-tab"), "normal", gate).use { c ->
+                    c.session.prepare(c.root.toRealPath().toString(), "synthetic")
+                    assertTrue(c.processes.isEmpty())
+                    assertEquals(CommandCatalog.Failed, c.commands.last())
+                }
+            }
+        }
+    }
+
+    @Test
     fun `normal prompt end cannot exempt a resident child created before dispatch`() {
         val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
         Harness(temp, "resident-child") { _, _, _, failure ->
@@ -371,6 +434,7 @@ class AcpSessionTest {
             val child = ProcessHandle.of(Files.readString(h.root.resolve("child.pid")).toLong()).orElseThrow()
             val started = child.info().startInstant().orElseThrow()
             try {
+                val retryPreparation = h.gate.tryPrepare()!!
                 assertTrue(child.isAlive)
                 assertEquals(0, h.wire().count { it.string("method") == "session/prompt" })
                 h.send()
@@ -390,7 +454,8 @@ class AcpSessionTest {
                     "connectionClosed=false" in it && "liveChildren=1" in it })
                 child.onExit().get(5, TimeUnit.SECONDS)
                 assertFalse(h.processes.single().isAlive)
-                h.send()
+                assertNull(h.gate.tryPrepare())
+                h.send(preparation = retryPreparation)
                 h.finish()
                 assertTrue(h.outcomes.last().startsWith("error:"))
                 assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })

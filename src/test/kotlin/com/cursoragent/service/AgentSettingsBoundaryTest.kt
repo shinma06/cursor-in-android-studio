@@ -69,7 +69,7 @@ class AgentSettingsBoundaryTest {
         var launches = 0
         val errors = mutableListOf<String>()
         val gate = WorkspaceOperationGate()
-        AcpSession({ _, _ -> launches++; error("Unsupported settings must not launch") }, gate::markUncertain).use { session ->
+        AcpSession({ _, _ -> launches++; error("Unsupported settings must not launch") }, gate::markUncertain, isWorkspaceUncertain = { gate.isUncertain }).use { session ->
             val preparation = gate.tryPrepare()!!
             val run = AgentRun(object : AgentProcessListener {
                 override fun onError(message: String) { errors.add(message) }

@@ -88,3 +88,31 @@ run17では最初の失敗が `phase=prompt / terminal=false` で、既存相関
 失敗ならUI送信時刻/会話/turnとprivate診断traceを照合し、最初の失敗行を後始末によるclose行と分ける。`terminal=true` / `phase=await-child-exit` / 残子ありと、prompt中の切断を区別する。必要なprocess対応は指定operatorが所有PIDだけを私的記録へ採取する。成功でも単回の未再現として扱い、run07原因解明や#150比較Case passにしない。回答後の自動再送・強制的な復元はしない。
 
 観測後、所有app/子process停止とfixture復元を確認してleaseを解放し、原因に応じて#440で最小修正または制約を判断する。#150と[QA #152](https://github.com/shinma06/cursor-in-android-studio/issues/152)へ双方向で結果/未確認/main残を引き継ぐ。#146原本・公開承認・既存ownerを維持する。#440は診断PRの統合だけではcloseしない。
+
+
+## 終端と新規送信の安全条件（2026-09-27）
+
+この節はbase `d83711454c7dcbf8cc23be0d93c20324003dea8d` に対する再検討。正常な回答と全toolの終端だけで常駐子を除外する案は採用しない。[ACP prompt turn](https://agentclientprotocol.com/protocol/v1/prompt-turn)はprompt完了後の次promptを認めるが、OS子孫や外部IDEの静止を保証しない。[tool calls](https://agentclientprotocol.com/protocol/v1/tool-calls)のcompletedはtool呼出しの状態で、独立processの全退出証明ではない（9/27確認）。
+
+管理CLI `2026.09.02-c22c1a3` の配布コードでは、`handlePrompt` が `processPrompt` の復帰をend_turnへ、`toolCallCompleted` をcompletedへ写す。常駐子/外部IDE作業の静止確認はこの変換にはない。これは当該版の静的確認であり、全内部経路の実行検証ではない。run25でも実MCP返却と回答が得られた後に残子1件で終了不確定となったが、first-failure snapshotは採取できていない。[run25観測](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982)の範囲を広げない。
+
+反例はAcpSessionTestの `completed tool can leave a writer and uncertainty blocks another prepared tab before dispatch`。一時fixture内の実Python childをturn中に起動し、execute toolのcompletedとend_turnを送った**後**にchildの書込みを解放する。回答終端はACCEPTEDでもファイルが変わり、childは生存する。これはCursorが必ず同じ動作をする証拠ではなく、提案条件だけでは排除できない状態である。送信前から生存するchildの既存回帰も維持する。tool名や出生時刻をread-only/常駐の安全証明へ転用しない。
+
+| 境界 | 判断と修正 |
+| --- | --- |
+| 回答表示 | 受信済み回答/tool結果は表示できる。実行成功・静止・Case全項目passとは分ける |
+| 同会話の次送信 | 不確定後の拒否を維持。end_turnだけで復帰させず、失敗promptを再送しない |
+| 別会話/transportの準備 | 旧tryPrepareは不確定でも通り、metadata接続はgate外だった。同じ作業領域へ別writerを開始できる安全上の欠陥のため、不確定後はproject共通gateで拒否する |
+| 準備済みturn | ACPの接続開始・initialize/session-new/prompt dispatch、printのprocess起動予約で再確認。別tabがsession/new待ちの間に不確定化する回帰を通す。開始受理済み処理への一括Stopは追加しない |
+| 復元 | project寿命中の禁止を維持。接続closeや所有child回収後も解除しない |
+
+この修正は常駐MCPを伴う複数turnの実現ではない。外部IDEのbuild/run、MCPが返却済みでも継続する仕事、未観測detachはACPのprocess treeに入らない可能性がある。共通gateは**検出済み不確定後**の開始を防ぎ、あらゆる外部仕事を検出/停止する契約ではない。安全な継続には実行所有者からの停止/静止確認が必要で、現行ACPの終端値だけからは構築できない。
+
+### B比較を再開する条件別手順
+
+1. #150指定operatorがleaseと固定ZIP/loaded identityを確保し、同じCaseのA/BでIDE・CLI/model・fixture・MCP接続先/承認・未保存状態等を照合する。差がある項目を同条件と推測しない。失敗snapshot用0700 directoryと相関記録の存在を送信前に確認する。
+2. 専用IDE/project寿命ごとに、新しいB会話へ**1 promptだけ**送る。Caseが要求する実MCP返却、tool対象、回答、IDE操作を各々記録する。終了不確定でも採取できた項目の証拠は残すが、全Case passへ繰り上げない。複数turnを要する項目は継続不能として記録し、fresh sessionを同会話2turnの代用にしない。
+3. 診断・UI終端と最初の失敗を対応付け、未実行手順はblocked、実施して期待を満たさなかった手順はfailとして#150のownerが判定する。この資料から#150のCase状態を一括変更しない。
+4. 所有ACP/childに加え、起動した外部IDEのbuild/run等も担当operatorが終了確認する。確認できない処理があれば次runとfixture復元を止め、所有者へ引き継ぐ。未知processを推測でkillしない。完全cleanup後にfixture基準へ戻し、専用IDE/projectを新しくして次Caseを行う。tabを増やすだけ、再起動するだけではcleanupの証明にならない。
+
+新規送信拒否の固定build GUI Caseは[issue-440.json](../verification/changes/issue-440.json)へ追加し、#150/#152へ移管する。#440の常駐継続問題・従来の診断GUI未達・main反映は残る。反例の合成passを実Cursor/GUI受入へ転記しない。

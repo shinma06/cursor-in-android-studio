@@ -9,10 +9,10 @@ class WorkspaceOperationGate {
         private set
 
     /** A lost ACP execution cannot be made safe by merely closing its UI or process. */
-    fun markUncertain() { isUncertain = true }
+    fun markUncertain() = synchronized(lock) { isUncertain = true }
 
     fun tryPrepare(): Preparation? = synchronized(lock) {
-        if (restoring) null else {
+        if (isUncertain || restoring) null else {
             preparations++
             Preparation()
         }
@@ -33,6 +33,7 @@ class WorkspaceOperationGate {
         /** Reserve before OSProcessHandler construction; cancellation must not release this reservation. */
         fun launchingProcess(): AutoCloseable = synchronized(lock) {
             check(preparing) { "Preparation already ended" }
+            check(!isUncertain) { UNCERTAIN_MESSAGE }
             processes++
             once {
                 synchronized(lock) {
@@ -54,6 +55,10 @@ class WorkspaceOperationGate {
                 preparations--
             }
         }
+    }
+
+    companion object {
+        const val UNCERTAIN_MESSAGE = "ACPの実行終了を確認できません。残っている処理を確認してください。このプロジェクトでは別会話を含む新規送信と復元を停止しています。"
     }
 
     private fun once(action: () -> Unit): AutoCloseable {
