@@ -152,6 +152,11 @@ for line in sys.stdin:
         response(request["id"], initialized)
     elif method == "session/new":
         assert request["params"]["cwd"] == str(root.resolve())
+        if scenario == "resident-child":
+            child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"],
+                                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env={})
+            (control / "child.pid").write_text(str(child.pid))
+            threading.Thread(target=child.wait, daemon=True).start()
         cancelled.clear()
         if scenario == "commands-delayed":
             threading.Thread(target=new_session, args=(request["id"],), daemon=True).start()

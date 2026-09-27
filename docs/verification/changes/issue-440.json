@@ -2,12 +2,13 @@
   "schema": 1,
   "issue": 440,
   "gui_required": true,
-  "reason": "元run07の原因を確定するため、終了判定を維持した診断buildで実IDEの新会話・MCP条件・終了順序を確認する。",
+  "reason": "run23で回答終端受理後も送信前からの常駐子4件が残る阻害条件を特定。現行終了保護の回帰を追加し、診断GUIの未達項目・MCP併用の再設計/固定build受入を保持する。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
     "./gradlew test --tests *AcpSessionTest --tests *AcpPrivateDiagnosticsTest",
     "./gradlew buildPlugin",
-    "git diff --check、固定HEAD/baseの独立レビュー（秘密非出力・終了判定維持）"
+    "git diff --check、固定HEAD/baseの独立レビュー（秘密非出力・終了判定維持）",
+    "./gradlew test --tests *AcpSessionTest：session/newで起動した常駐子が正常end_turn後も生存する場合の終了不確定・同接続再送拒否・復元拒否・cleanupを検証（合成fixture）"
   ],
   "cases": [
     {
@@ -21,21 +22,27 @@
         "再送/復元を行わず、所有app/子processの停止とfixtureの復元を確認しleaseを解放する。結果・未確認範囲を#440/#150/#152へ双方向で記録する。"
       ],
       "expected": "通常ログに本文/秘密/raw error/path/PIDが含まれず、同一turnの静止・残子・切断を識別できる。既存の再送/復元禁止・Stop/遅着/別tab保護を維持する。正常応答だけでrun07の原因解明や比較Case合格とはしない。",
-      "history": [],
+      "history": [
+        {
+          "note": "run23（source 5799f28a429d8919d33d677ab4bfadad422895cb）でCHILD_EXIT/ACCEPTED/terminal=trueと送信前から生存する4子の相関を分析。全手順の合格や新候補のpassではない。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750"
+        }
+      ],
       "fix_issue": null,
       "fix_pr": null,
-      "recheck": "この診断は原因採取用。原因確定後の最小修正と同一固定build再試験は#440で継続し、#150比較/#152全受入/mainと分ける。",
-      "next_action": "PMが固定HEAD/baseの独立レビュー後に診断ZIPとGUI測定契約を#150指定operatorへ割り当てる。",
+      "recheck": "run23の常駐子と現行終了保護の不整合はdocs/research/issue-440-acp-termination.mdを参照。診断動作の部分観測とB比較/全GUI/main合格を区別し、未達を#440/#150/#152に保持する。",
+      "next_action": "#150/#152指定operatorとPMがrun23の既存証拠で確認できる項目と不足を照合する。MCP常駐を伴うBの継続/終了契約を選定後、実装・独立レビュー・新固定buildの全必要Caseを検証する。旧失敗会話は再送しない。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/440",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846971572",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750"
       ],
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "旧診断buildではrun13に終了不確定を再現。新しいprivate相関診断buildの実IDE検証は未実施。",
+        "reason": "run23の固定診断buildで相関付き失敗を採取済み。今回の分析/合成回帰は全GUI手順の完了やMCP併用時の成功を証明しないため、既存Caseのpassは未登録。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -66,21 +73,27 @@
         "通常ログにPID/tab/conversationの追加がないこと、privateファイル0600、最大128記録試行、property無指定では新規記録がないことを確認する。採取後は所有process停止とfixture復元、property除去・private証拠保全を確認する。"
       ],
       "expected": "送信前からB会話とACP親を対応付け、送信traceを既存終了診断へ結べる。process-started/prompt-dispatchの項目は時刻・event・ローカルUUID・PID・開始時刻のみ。失敗時の追加項目はACP-PRIVATE-FIRST-FAILUREで確認する。記録不能や開始時刻nullを対応確定に使わず、既存終了/Stop/再送・復元の判定を変えない。",
-      "history": [],
+      "history": [
+        {
+          "note": "run23（source 5799f28a429d8919d33d677ab4bfadad422895cb）でCHILD_EXIT/ACCEPTED/terminal=trueと送信前から生存する4子の相関を分析。全手順の合格や新候補のpassではない。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750"
+        }
+      ],
       "fix_issue": null,
       "fix_pr": null,
-      "recheck": "この診断は原因採取用。原因確定後の最小修正と同一固定build再試験は#440で継続し、#150比較/#152全受入/mainと分ける。",
-      "next_action": "PMが独立レビュー後に新固定ZIPを指定operatorへ割り当てる。GUI観測は今回のCLI合格と区別する。",
+      "recheck": "run23の常駐子と現行終了保護の不整合はdocs/research/issue-440-acp-termination.mdを参照。診断動作の部分観測とB比較/全GUI/main合格を区別し、未達を#440/#150/#152に保持する。",
+      "next_action": "#150/#152指定operatorとPMがrun23の既存証拠で確認できる項目と不足を照合する。MCP常駐を伴うBの継続/終了契約を選定後、実装・独立レビュー・新固定buildの全必要Caseを検証する。旧失敗会話は再送しない。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/440",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846971572",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750"
       ],
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "旧診断buildではrun13に終了不確定を再現。新しいprivate相関診断buildの実IDE検証は未実施。",
+        "reason": "run23の固定診断buildで相関付き失敗を採取済み。今回の分析/合成回帰は全GUI手順の完了やMCP併用時の成功を証明しないため、既存Caseのpassは未登録。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -111,21 +124,27 @@
         "raw例外文/command/wire/provider情報がないこと、通常ログ不変、0700/0600と128記録上限、終了不確定時の再送/復元拒否を確認する。所有process停止・fixture復元・lease解放後に#440/#150/#152へ非機密結果を記録する。"
       ],
       "expected": "最初に観測した失敗を1 turn最大1回、保持中512子孫以内でprivate記録する。採取不能はnull、未観測や正常終了と同一視しない。記録失敗でも終了保護・timeout・再送/復元挙動を変えない。並行observerの記録順だけで根本原因を確定しない。",
-      "history": [],
+      "history": [
+        {
+          "note": "run23（source 5799f28a429d8919d33d677ab4bfadad422895cb）でCHILD_EXIT/ACCEPTED/terminal=trueと送信前から生存する4子の相関を分析。全手順の合格や新候補のpassではない。",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750"
+        }
+      ],
       "fix_issue": null,
       "fix_pr": null,
-      "recheck": "この診断は原因採取用。原因確定後の最小修正と同一固定build再試験は#440で継続し、#150比較/#152全受入/mainと分ける。",
-      "next_action": "独立レビュー済みの新固定ZIPをPMが指定operatorへ割り当て、予算・lease付きで実測する。正常回は未再現として扱う。",
+      "recheck": "run23の常駐子と現行終了保護の不整合はdocs/research/issue-440-acp-termination.mdを参照。診断動作の部分観測とB比較/全GUI/main合格を区別し、未達を#440/#150/#152に保持する。",
+      "next_action": "#150/#152指定operatorとPMがrun23の既存証拠で確認できる項目と不足を照合する。MCP常駐を伴うBの継続/終了契約を選定後、実装・独立レビュー・新固定buildの全必要Caseを検証する。旧失敗会話は再送しない。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/440",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846971572",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750"
       ],
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "今回の失敗snapshot追加buildは実IDE未検証。旧run17の失敗と未解明状態を保持。",
+        "reason": "run23の固定診断buildで相関付き失敗を採取済み。今回の分析/合成回帰は全GUI手順の完了やMCP併用時の成功を証明しないため、既存Caseのpassは未登録。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
