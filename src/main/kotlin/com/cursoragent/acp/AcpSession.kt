@@ -60,7 +60,9 @@ internal class AcpSession(
     }
 
     /** Metadata connection only: no turn, prompt, inference, checkpoint, or transport lock. */
-    fun prepare(root: String, executable: String) {
+    fun prepare(root: String, executable: String): Unit = synchronized(connectionLock) {
+        // Metadata owns only a connection it creates. Keep failure cleanup inside the same lock as creation.
+        if (rpc != null || closing || disconnected) return@synchronized
         try {
             connect(root, executable) { !closing && !disconnected }
         } catch (_: Exception) {

@@ -381,6 +381,31 @@ class AcpSessionTest {
     }
 
     @Test
+    fun `delayed metadata preparation after uncertainty cannot stop an accepted prompt`() {
+        Harness(temp, "events").use { h ->
+            val delayedMetadata = h.gate.tryPrepare()!!
+            h.send()
+            awaitFile(h.root.resolve("events-ready"))
+            val commands = h.commands.toList()
+            h.gate.markUncertain()
+            delayedMetadata.use { h.session.prepare(h.root.toRealPath().toString(), "synthetic") }
+            assertTrue(h.processes.single().isAlive)
+            assertTrue(h.run.isActive)
+            assertTrue(h.outcomes.isEmpty())
+            assertEquals(commands, h.commands.toList())
+            Files.writeString(h.root.resolve("release-events"), "")
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            assertFalse(h.run.wasStopped)
+            assertTrue(h.processes.single().isAlive)
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+            assertEquals(0, h.wire().count { it.string("method") == "session/cancel" })
+            assertNull(h.gate.tryPrepare())
+            assertNull(h.gate.tryRestore())
+        }
+    }
+
+    @Test
     fun `completed tool can leave a writer and uncertainty blocks another prepared tab before dispatch`() {
         val gate = WorkspaceOperationGate()
         val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()

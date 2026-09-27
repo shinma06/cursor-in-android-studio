@@ -9,7 +9,7 @@
     "./gradlew buildPlugin",
     "git diff --check、固定HEAD/baseの独立レビュー（秘密非出力・終了判定維持）",
     "./gradlew test --tests *AcpSessionTest：session/newで起動した常駐子が正常end_turn後も生存する場合の終了不確定・同接続再送拒否・復元拒否・cleanupを検証（合成fixture）",
-    "./gradlew test --tests *AcpSessionTest --tests *WorkspaceOperationGateTest：終端後writerと別tab準備中の不確定化、print起動予約、新規metadata接続拒否（合成fixture）"
+    "./gradlew test --tests *AcpSessionTest --tests *WorkspaceOperationGateTest：終端後writerと別tab準備中の不確定化、print起動予約、新規metadata接続拒否（合成fixture）。delayed metadata preparation回帰で、予約後に不確定化した候補取得が開始済みpromptを停止せず完了させることも確認"
   ],
   "cases": [
     {
