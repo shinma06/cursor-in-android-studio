@@ -23,6 +23,7 @@ internal class AcpSession(
     private val onUncertain: () -> Unit,
     private val cancelTimeoutSeconds: Long = 10,
     private val onDiagnostic: (String) -> Unit = {},
+    private val onPrivateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?) -> Unit)? = null,
 ) : AutoCloseable {
     private val lock = Any()
     private val connectionLock = Any()
@@ -71,6 +72,7 @@ internal class AcpSession(
     @Volatile private var rpc: AcpJsonRpc? = null
     @Volatile private var process: Process? = null
     @Volatile private var processTree: AcpProcessTree? = null
+    private var diagnosticProcess: Pair<Long, java.time.Instant?>? = null
     @Volatile private var sessionId: String? = null
     @Volatile private var closing = false
     @Volatile private var disconnected = false
@@ -134,6 +136,7 @@ internal class AcpSession(
                         processTree!!.sample()
                         current.phase = "prompt"
                         current.promptSent = true
+                        privateDiagnostic(current.diagnosticId)
                         turn.promptDispatched = true
                         turn.run.emit { it.onStarted(); it.onSessionUpdated(sessionId, null) }
                     }
@@ -203,6 +206,10 @@ internal class AcpSession(
         val child = launch(root, executable)
         process = child
         processTree = AcpProcessTree(child)
+        if (onPrivateDiagnostic != null) {
+            diagnosticProcess = runCatching { child.pid() to child.info().startInstant().orElse(null) }.getOrNull()
+            privateDiagnostic()
+        }
         if (closing || !isActive()) throw AcpException("ACP接続の準備を停止しました")
         val connection = AcpJsonRpc(child.inputStream, child.outputStream, ::notification, ::request, onClosed = { reason ->
             disconnected = true
@@ -364,6 +371,10 @@ internal class AcpSession(
     }
 
     private fun cancelRequests() = requests.toList().forEach { it.answer(AgentAnswer.Cancel) }
+
+    private fun privateDiagnostic(trace: java.util.UUID? = null) {
+        runCatching { diagnosticProcess?.let { (pid, started) -> onPrivateDiagnostic?.invoke(pid, started, trace) } }
+    }
 
     /** Only local state and AcpJsonRpc's fixed client messages; never provider payloads or exception text. */
     private fun diagnose(current: Active, source: String, connectionReason: String? = null) {

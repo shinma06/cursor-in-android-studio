@@ -15,7 +15,7 @@ import kotlin.concurrent.thread
 class AcpSessionTest {
     @TempDir lateinit var temp: Path
 
-    private class Harness(val root: Path, scenario: String) : AutoCloseable {
+    private class Harness(val root: Path, scenario: String, privateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?) -> Unit)? = null) : AutoCloseable {
         val gate = WorkspaceOperationGate()
         val processes = CopyOnWriteArrayList<Process>()
         val events = CopyOnWriteArrayList<AgentEvent>()
@@ -40,7 +40,7 @@ class AcpSessionTest {
                 .directory(root.toFile()).start().also(processes::add) }, gate::markUncertain, 2, { diagnostic ->
                 diagnostics.add(diagnostic)
                 if (failDiagnostics) error("synthetic diagnostic failure")
-            })
+            }, privateDiagnostic)
             session.observeCommands { commands.add(it) }
             session.observeImageSupport { imageSupport.add(it) }
         }
@@ -203,6 +203,29 @@ class AcpSessionTest {
             assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
             assertEquals(2, h.diagnostics.count { "source=turn-quiescent" in it && "outcome=COMPLETED" in it && "liveChildren=0" in it })
             assertEquals(2, h.diagnostics.map { it.substringAfter("trace=").substringBefore(' ') }.distinct().size)
+        }
+    }
+
+    @Test
+    fun `metadata connection and two turns correlate to the same process without changing failure handling`() {
+        val records = CopyOnWriteArrayList<Triple<Long, java.time.Instant?, java.util.UUID?>>()
+        Harness(temp, "normal") { pid, started, trace ->
+            records.add(Triple(pid, started, trace))
+            error("private sink failed")
+        }.use { h ->
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            assertEquals(1, records.size)
+            assertNull(records.single().third)
+            assertEquals(h.processes.single().pid(), records.single().first)
+            assertEquals(h.processes.single().info().startInstant().orElse(null), records.single().second)
+            assertEquals(0, h.wire().count { it.string("method") == "session/prompt" })
+            repeat(2) { h.send(); h.finish() }
+            assertEquals(3, records.size)
+            assertEquals(1, records.map { it.first to it.second }.distinct().size)
+            assertEquals(records.drop(1).map { it.third.toString() },
+                h.diagnostics.map { it.substringAfter("trace=").substringBefore(' ') })
+            assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
+            h.gate.tryRestore()!!.close()
         }
     }
 

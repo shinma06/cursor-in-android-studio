@@ -5,7 +5,7 @@
   "reason": "元run07の原因を確定するため、終了判定を維持した診断buildで実IDEの新会話・MCP条件・終了順序を確認する。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
-    "./gradlew test --tests *AcpSessionTest",
+    "./gradlew test --tests *AcpSessionTest --tests *AcpPrivateDiagnosticsTest",
     "./gradlew buildPlugin",
     "git diff --check、固定HEAD/baseの独立レビュー（秘密非出力・終了判定維持）"
   ],
@@ -20,7 +20,7 @@
         "回答・UI終端・時刻とローカル診断traceを私的記録で照合し、prompt-end受理、phase、最初の切断/失敗、観測子の終了順序を区別する。秘密やraw wireを公開しない。",
         "再送/復元を行わず、所有app/子processの停止とfixtureの復元を確認しleaseを解放する。結果・未確認範囲を#440/#150/#152へ双方向で記録する。"
       ],
-      "expected": "診断に本文/秘密/raw error/path/PIDが含まれず、同一turnの静止・残子・切断を識別できる。既存の再送/復元禁止・Stop/遅着/別tab保護を維持する。正常応答だけでrun07の原因解明や比較Case合格とはしない。",
+      "expected": "通常ログに本文/秘密/raw error/path/PIDが含まれず、同一turnの静止・残子・切断を識別できる。既存の再送/復元禁止・Stop/遅着/別tab保護を維持する。正常応答だけでrun07の原因解明や比較Case合格とはしない。",
       "history": [],
       "fix_issue": null,
       "fix_pr": null,
@@ -35,7 +35,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "非GUIの対照3送信は未再現。診断buildで元条件の新会話を測定していない。",
+        "reason": "旧診断buildではrun13に終了不確定を再現。新しいprivate相関診断buildの実IDE検証は未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -46,7 +46,52 @@
       "human": {
         "actor": "human",
         "status": "pending",
-        "reason": "非GUIの対照3送信は未再現。診断buildで元条件の新会話を測定していない。",
+        "reason": "新しいprivate相関診断buildの人間による実IDE検証は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "ACP-PRIVATE-CORRELATION",
+      "issue": 440,
+      "change": "B会話とACP親processを非公開の最小診断で対応付ける",
+      "preconditions": "固定診断ZIP/loaded identity、専用IDE/fixture/GUI lease。専用IDEのJVM property cursor.agent.acp.privateDiagnosticsDir に、事前作成したPOSIX 0700のprivate絶対directoryを指定。共有folderへ保存しない。",
+      "steps": [
+        "新規ACP会話の接続準備を行い、送信前のprocess-started JSONからtab/conversationとPID・OS開始時刻を照合する。対応が不明なら送信しない。",
+        "新会話に合成promptを1回だけ送信し、prompt-dispatch JSONの同じPID/開始時刻とtraceを通常の終了診断へ対応付ける。本文/raw wire/provider IDが記録されていないことを確認する。",
+        "通常ログにPID/tab/conversationの追加がないこと、privateファイル0600、最大128記録試行、property無指定では新規記録がないことを確認する。採取後は所有process停止とfixture復元、property除去・private証拠保全を確認する。"
+      ],
+      "expected": "送信前からB会話とACP親を対応付け、送信traceを既存終了診断へ結べる。private項目は時刻・event・ローカルUUID・PID・開始時刻のみ。記録不能や開始時刻nullを対応確定に使わず、既存終了/Stop/再送・復元の判定を変えない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "この診断は原因採取用。原因確定後の最小修正と同一固定build再試験は#440で継続し、#150比較/#152全受入/mainと分ける。",
+      "next_action": "PMが独立レビュー後に新固定ZIPを指定operatorへ割り当てる。GUI観測は今回のCLI合格と区別する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846971572",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "旧診断buildではrun13に終了不確定を再現。新しいprivate相関診断buildの実IDE検証は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新しいprivate相関診断buildの人間による実IDE検証は未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
