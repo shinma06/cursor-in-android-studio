@@ -369,7 +369,7 @@ class AgentUiController(
         timeline.runStatus.begin()
         changes.beginTurn(sessionTurn.token.turnId)
         lateinit var run: AgentRun
-        var preparationFailure = RestorePolicy.BUSY
+        var preparationFailure: String? = null
         val usageTicket = composer.contextUsage.beginTurn(settings.model)
         val turn = try {
             agentService.prepareTurn(workspace, settings) {
@@ -394,7 +394,7 @@ class AgentUiController(
             if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
             sessions.finishTurn(sessionTurn.token)
             activeToken = null
-            timeline.showStatus(preparationFailure)
+            timeline.showStatus(preparationFailure ?: agentService.restoreUnavailableReason())
             return false
         }
         val sentImage = if (queued == null) imageDraft.retain() else sourceImage

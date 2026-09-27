@@ -90,6 +90,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                     .withWorkDirectory(File(root)).withCharset(StandardCharsets.UTF_8).createProcess()
             },
             onUncertain = operations::markUncertain,
+            isWorkspaceUncertain = { operations.isUncertain },
             onDiagnostic = { LOG.info(it) },
             onPrivateDiagnostic = com.cursoragent.acp.AcpPrivateDiagnostics.forConversation(tabId, conversationId),
         )
@@ -104,8 +105,11 @@ class AgentProcessService(private val project: Project) : Disposable {
         session.observeImageSupport(onImageSupport)
         com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
             val canonicalRoot = runCatching { RestoreTarget.capture(root, WorktreeMode.DEFAULT).rootPath }.getOrNull()
-            if (canonicalRoot == null) onCommands(CommandCatalog.Failed)
-            else session.prepare(canonicalRoot, executable)
+            val preparation = operations.tryPrepare()
+            if (canonicalRoot == null || preparation == null) {
+                preparation?.close()
+                onCommands(CommandCatalog.Failed)
+            } else preparation.use { session.prepare(canonicalRoot, executable) }
         }
     }
 
@@ -147,6 +151,11 @@ class AgentProcessService(private val project: Project) : Disposable {
 
     internal fun sendPrompt(prompt: String, turn: PreparedAgentTurn, tabId: String? = null, transport: AgentTransport = AgentTransport.PRINT, commandText: String? = null, commandName: String? = null,
         image: com.cursoragent.ui.composer.image.ValidatedImage? = null, conversationId: String? = null) {
+        if (operations.isUncertain) {
+            turn.run.reportError(WorkspaceOperationGate.UNCERTAIN_MESSAGE)
+            turn.run.complete(-1)
+            return
+        }
         if (image != null && transport != AgentTransport.ACP) {
             turn.run.reportError("画像の送信には画像対応を確認できるACP接続が必要です。")
             turn.run.complete(-1)
@@ -188,7 +197,13 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
         LOG.info("Starting print agent")
 
-        val processReservation = turn.preparation.launchingProcess()
+        val processReservation = try {
+            turn.preparation.launchingProcess()
+        } catch (_: IllegalStateException) {
+            run.reportError(if (operations.isUncertain) WorkspaceOperationGate.UNCERTAIN_MESSAGE else "送信の準備を開始できませんでした。")
+            run.complete(-1)
+            return
+        }
         val handler = try {
             OSProcessHandler(commandLine)
         } catch (e: Exception) {

@@ -84,7 +84,7 @@ printのコマンド出力と長い要約、ACPのtool内容は既定で折り�
 
 ## ACP接続（#147）
 
-`AcpSession`をproject serviceがtab ID別に所有する。初回送信時だけ `agent acp` をroot作業ディレクトリで起動し、initialize → session/new → config確認 → promptと進む。既存認証を使い、自動loginはしない。次ターンは同じ接続/provider sessionを使用し、タブのcloseだけなら他接続を終了しない。root/executable変更・不確定切断後の同接続再送は拒否する。旧print履歴と保存XML/enumは変更しない。ACP session IDは旧履歴へ保存しない。
+`AcpSession`をproject serviceがtab ID別に所有する。候補取得の接続準備または初回送信時に `agent acp` をroot作業ディレクトリで起動し、initialize → session/new → config確認 → promptと進む。既存認証を使い、自動loginはしない。次ターンは同じ接続/provider sessionを使用し、タブのcloseだけなら他接続を終了しない。root/executable変更・不確定切断後の同接続再送は拒否する。旧print履歴と保存XML/enumは変更しない。ACP session IDは旧履歴へ保存しない。
 
 - `AcpJsonRpc`はbackground readerと上限付きwriter queueを分離。改行単位のUTF-8、JSON-RPC request/response/notification、opaque string/numeric ID、null/errorを処理する。1 frameは1 MiB、outbound待ち/inbound requestは各32、1 turnの更新・要求payloadは4 Mi文字、tool/観測childは各512件まで。超過・不正frame・EOFはpendingを解放して接続を終了する。stderrは読み捨て、prompt/key/raw errorを診断へ出さない。
 - textは正当な重複を含むdeltaのままEDTへ渡し、message ID変更・thought/tool/requestを境に本文を分ける。readerで全文コピーを蓄積せず、printのdeduper/result補完を使わない。toolは改行を含むopaque IDでupsertし、省略fieldを保持、明示content/locationsを置換する。`completed`は報告状態であり、shell成功や復元可の証明ではない。
@@ -92,7 +92,7 @@ printのコマンド出力と長い要約、ACPのtool内容は既定で折り�
 - Client fs read/writeとterminalはfalse、未実装elicitationは広告しない。これはAgent自身のファイル操作を禁止する宣言ではない。標準permission設定でも即時編集が起こり得る。ACP diffは閲覧のみで、正確な復元由来がない変更カードにRevertを提供しない。既存checkpointのroot/後続編集/Git制約は維持する。
 - mode/modelはsessionのselect configOptions（確認済みID `mode` / `model`）を使い、set_config_option応答の全listを置換し、最終的な組み合わせを照合してからpromptを送る。初回modelはserver既定、以降は返された一覧のみ。printのmodel catalog/flagsをACPへ流用しない。permissionは標準、sandboxはCLI既定、worktreeはこのprojectのみを許可し、他の設定を無視せず送信前に説明する。
 
-Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・prompt応答だけで復元を解放しない**。応答完了、拒否、長さ/要求回数上限、Agent側取消はtyped終端値で区別し、日本語で表示する。準備予約をprompt終端まで保持し、実行中に観測した子processの終了も確認する。PIDと起動時刻を保持してreparenting/PID再利用を区別し、識別不能・応答なし・childが残る・切断・終端後のtool更新は不確定とする。不確定は対象processの回収を試み、同接続再送とproject寿命中の復元を拒否する。静止したidle接続のみなら復元できる。 #440の[終了診断](../research/issue-440-acp-termination.md)はlocal trace/phase/typed終端/接続状態/子数だけを記録し、provider本文・生error・pathを出さない。明示opt-inの非公開0600ファイルでは、tab/conversationとACP PID・開始時刻、送信traceの対応に加え、最初に観測した失敗箇所/固定分類・応答検証段階・保持子孫のPID/開始時刻/生存状態/現在の親関係を別途採取できる（POSIX 0700保存先・128記録試行上限）。通常ログへ識別情報を追加しない。診断結果で終了条件を変えず、run07の原因と固定build GUI受入は未確定。
+Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・prompt応答だけで復元を解放しない**。応答完了、拒否、長さ/要求回数上限、Agent側取消はtyped終端値で区別し、日本語で表示する。準備予約をprompt終端まで保持し、実行中に観測した子processの終了も確認する。PIDと起動時刻を保持してreparenting/PID再利用を区別し、識別不能・応答なし・childが残る・切断・終端後のtool更新は不確定とする。不確定は対象processの回収を試み、同接続再送に加え、project寿命中の別tab/printを含む新規送信・ACP metadata接続準備と復元を拒否する。準備済みturnもACP prompt dispatchまたはprint process起動予約で再確認する。判定前に開始を受理済みの処理を遡って停止せず、既存実行の完了・Stopは各runが所有する。静止したidle接続のみなら復元できる。 #440の[終了診断](../research/issue-440-acp-termination.md)はlocal trace/phase/typed終端/接続状態/子数だけを記録し、provider本文・生error・pathを出さない。明示opt-inの非公開0600ファイルでは、tab/conversationとACP PID・開始時刻、送信traceの対応に加え、最初に観測した失敗箇所/固定分類・応答検証段階・保持子孫のPID/開始時刻/生存状態/現在の親関係を別途採取できる（POSIX 0700保存先・128記録試行上限）。通常ログへ識別情報を追加しない。診断結果で終了条件を変えず、run07の原因と固定build GUI受入は未確定。
 
 観測は25 ms間隔の条件確認であり、短時間に生成・離脱した未観測子processまで保証するものではない。常駐childや任意のdetachを安全に許可したという契約はなく、該当用途は対象外。10秒の期限は「待てば安全」の判定ではなく、不確定へ移す期限。識別できないprocessを推測でkillしない。
 
@@ -103,7 +103,7 @@ Stopはsession/cancelと未回答requestの取消を送る。**cancel送信・pr
 | 判断 | 実装 / 回帰確認 | 証明の限界 |
 | --- | --- | --- |
 | ACP接続実装とGUI受入 | [AcpSession](../../src/main/kotlin/com/cursoragent/acp/AcpSession.kt) / [AcpSessionTest](../../src/test/kotlin/com/cursoragent/acp/AcpSessionTest.kt) / [変更Case](../verification/changes/issue-147.json) / [QA #152](https://github.com/shinma06/cursor-in-android-studio/issues/152) | fake serverは合成契約。#146の公開承認待ちwireや固定build GUIを代替しない |
-| 取消と物理終了・復元排他 | [AgentRun](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt) / [WorkspaceOperationGateTest](../../src/test/kotlin/com/cursoragent/service/WorkspaceOperationGateTest.kt) / AcpSessionTest | 観測child外の任意detachまでは保証しない。不確定なら復元拒否 |
+| 取消と物理終了・復元排他 | [AgentRun](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt) / [WorkspaceOperationGateTest](../../src/test/kotlin/com/cursoragent/service/WorkspaceOperationGateTest.kt) / AcpSessionTest | 観測child外の任意detachまでは保証しない。不確定ならprojectの新規送信と復元拒否 |
 | root/後続編集/未保存保護 | [RestoreTarget](../../src/main/kotlin/com/cursoragent/service/RestoreTarget.kt) / [FileRevertOperationTest](../../src/test/kotlin/com/cursoragent/service/FileRevertOperationTest.kt) / [RestorePolicyTest](../../src/test/kotlin/com/cursoragent/service/RestorePolicyTest.kt) | 来歴不明、ISOLATED、root外、after不一致、未保存内容は拒否。snapshotの未追跡本文制約は上記参照 |
 | 旧履歴の互換 | [ChatHistoryState](../../src/main/kotlin/com/cursoragent/settings/ChatHistoryState.kt) / [PastChatsCoordinator](../../src/main/kotlin/com/cursoragent/ui/PastChatsCoordinator.kt) / [#44](https://github.com/shinma06/cursor-in-android-studio/issues/44) | metadata保持は本文永続化やACP provider resumeの保証ではない。旧metadataと新本文JSONの移行・破損・再開はConversationStoreTestで確認し、実IDE再起動は別QA |
 | parser / 表示 | [print fixtureの出所](../../src/test/resources/stream-json-fixtures/README.md) / [AssistantChunkDeduperTest](../../src/test/kotlin/com/cursoragent/parser/AssistantChunkDeduperTest.kt) / [MarkdownRenderer](../../src/main/kotlin/com/cursoragent/ui/timeline/AssistantMessageBubble.kt) | completed採取とstarted推定、heuristicとACP deltaを区別。HTMLはescapeしraw実行しない |

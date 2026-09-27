@@ -126,6 +126,24 @@ class WorkspaceOperationGateTest {
     }
 
     @Test
+    fun `uncertainty rejects new preparation and a previously reserved print launch`() {
+        val gate = WorkspaceOperationGate()
+        val prepared = gate.tryPrepare()!!
+        val running = prepared.launchingProcess()
+        gate.markUncertain()
+        assertNull(gate.tryPrepare())
+        assertNull(gate.tryRestore())
+        val error = assertThrows(IllegalStateException::class.java) { prepared.launchingProcess() }
+        assertEquals(WorkspaceOperationGate.UNCERTAIN_MESSAGE, error.message)
+        // Existing execution retains ownership; uncertainty does not cancel it or reset after cleanup.
+        prepared.close()
+        running.close()
+        assertNull(gate.tryPrepare())
+        assertNull(gate.tryRestore())
+        WorkspaceOperationGate().tryPrepare()!!.close()
+    }
+
+    @Test
     fun `closing preparation permanently rejects a later launch`() {
         val gate = WorkspaceOperationGate()
         val preparation = gate.tryPrepare()!!
