@@ -24,17 +24,17 @@
       ],
       "expected": "後続が固定条件と未達を読み戻せ、正式Caseの証拠を重複・水増しせず実測を再開できる。",
       "recheck": "操作環境blockedは新queue/leaseと指定operatorで再開。別buildや部分準備を正式比較passへ転用しない。",
-      "next_action": "#457担当とPMが現接続device、現在model/MCP/権限と後続受領を確定する。正式5 Caseの未達は#150、GUI/main追跡はQA #380、ACP終端は#152/#440に維持する。",
+      "next_action": "#457担当とPMが新queue/leaseで専用IDEの正規SDK設定UIを使い、Sync後保持・警告解消・live deviceを確認する。現在model/MCP/権限を照合して共通準備を部分受領後、正式5 Caseを再開。QA #380とACP #152/#440の未達を維持する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "source18/18・保全APK4/4・端末APK8/8・配置/ロードJAR5/5が一致し、規定2構成のmodule対応・両debug・Sync成功を確認。Bは人間のACP選択後status/既定モデルをreadback、メニューcheckedと実modelは未確認。device現接続の選択と各経路の現在MCP/権限が未確定で、Agent送信0・Run/Debug0。準備の部分受領と正式5 Caseの実測は未完了。",
+        "reason": "source18/18・保全APK4/4・端末APK8/8・配置/ロードJAR5/5、規定2構成のmodule対応・両debug・Sync成功を確認。Bの人間ACP選択後status/既定モデルをreadback。人間のD1-only選択後Multiple Devices(1)を確認したが、再表示後はDROPDOWNへ変化。IDE/AVDのSDK根が異なりMissing system imageが残存。専用SDK修復1回後Sync成功でもIDEがlocal.propertiesを元SDKへ再生成した。live selected deviceと現在model/MCP/権限未確定、送信0・Run/Debug0。所有12 processのlive残存0・SDK変更復元・source18一致・lease free。共通準備受領と正式5 Case未完了。",
         "observer": "research-457-01a0e21c",
-        "at": "2026-09-27T09:27:00Z",
-        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573",
+        "at": "2026-09-27T09:45:31Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408",
         "execution": "computer_use"
       },
       "human": {
@@ -46,7 +46,8 @@
         "docs/research/issue-457-common-preparation.md",
         "docs/verification/changes/issue-150.json",
         "https://github.com/shinma06/cursor-in-android-studio/issues/457",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/380"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/380",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
       ]
     }
   ]

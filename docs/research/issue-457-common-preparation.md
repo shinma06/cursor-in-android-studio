@@ -31,7 +31,7 @@
 1. Find Actionの`Edit Configurations…`を開く。左treeの行クリックだけでは選択が変わらない場合、treeへフォーカスを置きUp/Downで移動する。
 2. **NameとModuleの両方**を読み、対象を選択してOK。toolbarの構成名と`Run '構成名'`を再取得する。名前の変更だけではmodule対応の証明にならない。
 3. Build Variantsの画像でappRed/appBlueそれぞれの値を確認する。Java AXの行名と子セル名が食い違う場合はAXだけで判定しない。
-4. Syncの終了記録と成功/警告を読む。進捗表示が見えないだけでは同期成功としない。
+4. 専用IDEの正規SDK設定UIで、projectのplatform/build-toolsとAVD system imageが同じSDK根から解決することを確認する。local.propertiesの変更だけではIDEが元設定で再生成し得る。Sync後にも参照先を読み、Device ManagerのMissing system imageが残れば実行前条件はblocked。Syncの終了記録と成功/警告を読み、進捗表示が消えただけで成功にしない。
 5. 通常のdevice選択が操作できない場合、登録action `Select Multiple Devices...`のdialogでD1のみを選ぶ経路がある。固定Quail4の実装では1台でもtoolbarは`Multiple Devices (1)`となる。再表示したdialogのD1-onlyとtoolbarを併せて読む。構成名ごとに選択を保持し、dropdownとdialogの保存値は別なので、構成/mode切替後に再確認する。この代替経路は今回GUI未成立。
 6. toolbarのdevice名、現在の接続先、実application ID/device/execution ID/label/logを結ぶ。保存済みdevice connection IDが古い可能性、赤い警告表示、未確定の選択があれば実行前条件はblocked。
 
@@ -58,12 +58,19 @@ Settings/XML/Run Configurationの書換えでtransport選択を代用しない�
 
 ## 今回の確認範囲
 
-[i457-baseline-20260927-01](https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573)、2026-09-27。
+[i457-baseline-20260927-01](https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408)、2026-09-27。
 source archive/Git/GUI用コピー18/18、保全APK4/4、端末内APK8/8、配置/実ロードJAR5/5が一致した。
 Edit Configurationsで両module対応を読み、規定I150 Red/Blueへ設定。toolbarはI150 Red、画面の両moduleはdebug(default)、Syncは`BUILD SUCCESSFUL in 12s`（SDK XML版の警告1）。
 
-D1名は表示されたが、赤い警告と過去connection IDを含む保存値があり、現接続の選択・実行一致は未確認。
-Bは人間が同じ未送信tabでACPを選択し、選択直後の日本語statusと`ACPの既定モデル`表示をreadbackした。メニューchecked値は再取得できず、初回接続のmodel実値は未確認。
-「その他の操作」、RunのSelect Device、HelpのFind Action/ショートカットは今回のCua操作でpopup/searchを取得できず、座標操作も`noWindowsAvailable`で不成立。Agent送信0・Run/Debug0。これは操作経路のblockedであり製品能力failではない。
-A/B-C01、A/B/C-C02は未実測で、既存の29 blocked / C-C01 fail / human全30 pending / main不可を維持する。
-共通準備の部分受領はまだ未完了。device現接続・B transport/model・各経路の現在toolset/権限を確定後、PMへ受領を渡す。
+人間のD1-only選択後はtoolbar `Multiple Devices (1)`を確認した。再表示試行後はDROPDOWNのD1へ変化したため、過去dialogチェックを現在選択の証拠にしない。
+Device ManagerはD1/D2のMissing system imageを表示した。IDEのproject SDKはplatform/build-toolsを持つ通常SDK、AVDはsystem imageを持つ専用SDKを参照していた。
+専用fixture内でSDK参照を揃える可逆修復1回を試し、人間のSync後18:42 / `BUILD SUCCESSFUL in 461ms`を確認したが、IDEがlocal.propertiesを通常SDKへ再生成し警告が残った。ADBの2台device状態とAPK8件一致は、IDEのlive選択/実行一致を証明しない。
+
+Bは人間が同じ未送信tabでACPを選択し、直後の日本語statusと`ACPの既定モデル`表示をreadbackした。メニューchecked値は再取得できず、初回接続のmodel実値は未確認。
+「その他の操作」、RunのSelect Device、Find Actionは今回のCua操作で安定してpopupを取得できず、座標操作も`noWindowsAvailable`で不成立。これは操作環境のblockedであり製品能力failではない。
+Agent送信0・Run/Debug0。A/B-C01、A/B/C-C02は未実測で、29 blocked / C-C01 fail / human全30 pending / main不可を維持する。
+
+終了時に入力空・応答未開始・Runなし・dialogなしを確認。所有12 processを追跡してlive残存0、local.propertiesを元bytesへ復元し今回の専用SDK参照2件のみ除去、source18一致、lease freeを確認した。
+規定構成と固定#456 pluginは停止済み専用profileに保全する。保持理由・owner・再開条件と詳細場所はprivate handoffに置く。
+次枠は正規SDK設定UIとSync後保持・警告解消・live deviceを確認し、各経路の現在model/MCP/権限を照合する。
+共通準備の部分受領は未完了で、PM受領前に後続の準備依存を解除しない。準備操作/人間介入/SDK修復の時間を実測turnの指標に合算しない。
