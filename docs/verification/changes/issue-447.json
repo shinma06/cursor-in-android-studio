@@ -25,7 +25,7 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "失敗時は修正Issue/PRと再確認buildを記録する。",
-      "next_action": "#447と#440修正を含む固定ZIPで、指定GUI担当が実施する。",
+      "next_action": "#447修正を含む固定ZIPで、指定GUI担当が実施する。#440の終了未確認は別途記録し、同一会話の追加送信は行わない。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/447",
@@ -62,7 +62,7 @@
       "preconditions": "GUI担当・host lease・固定buildを確定。人間の手順はdocs/verification/human-qa.mdを参照。",
       "steps": [
         "固定buildと公開可能な合成ACP入力を使い、tool名だけ、未知MCP、追加引数、別projectPath、重複キー、過大/不正contentを送る。Allowが無効で拒否/取消できるか確認する。",
-        "既知tool更新の後にrawInputの不正値/消去を送り、以前の対象で許可されないことを確認する。新しいturnで同じtool IDを使っても前turnの対象を引き継がない。",
+        "既知tool更新の後にrawInputの不正値/消去を送り、以前の対象で許可されないことを確認する。許可要求自体の未知rawInput・不一致content・別kindも拒否し、続く同じIDだけの要求で以前の対象とAllowが復活しないことを確認する。新しいturnで同じtool IDを使っても前turnの対象を引き継がない。",
         "有効なMCP許可要求をStop/closeで取り消し、遅いクリック・連打で許可を送らないことを確認する。既存command/path/location/diff要求の許可・拒否も回帰確認する。"
       ],
       "expected": "不正・未知・不一致の対象は許可されない。既存の一度だけの返答とStop/close取消、ファイル/commandの許可契約を維持する。",
@@ -70,7 +70,7 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "失敗時は修正Issue/PRと再確認buildを記録する。",
-      "next_action": "#447と#440修正を含む固定ZIPで、指定GUI担当が実施する。",
+      "next_action": "#447修正を含む固定ZIPで、指定GUI担当が実施する。#440の終了未確認は別途記録し、同一会話の追加送信は行わない。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/447",

@@ -122,9 +122,10 @@ internal class AcpProtocol {
                 val payload = params.getAsJsonObject("toolCall")
                 val id = payload.requiredString("toolCallId")
                 val permissionTool = tool(payload, tools[id] ?: AgentTool(id))
-                AgentInput.Permission(permissionTool.copy(
-                    mcpTarget = permissionTool.mcpTarget?.takeIf { matchesMcpPermission(payload, it) },
-                ), options)
+                val target = permissionTool.mcpTarget?.takeIf { matchesMcpPermission(payload, it) }
+                // Permission updates replace retained confidence, but do not create or advance execution state.
+                tools[id]?.let { tools[id] = it.copy(mcpTarget = target) }
+                AgentInput.Permission(permissionTool.copy(mcpTarget = target), options)
             }
             "cursor/ask_question" -> {
                 params.requiredString("toolCallId")

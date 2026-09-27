@@ -4,6 +4,7 @@ import com.cursoragent.service.AgentAnswer
 import com.cursoragent.service.AgentInput
 import com.cursoragent.service.AgentInputRequest
 import com.cursoragent.ui.timeline.AgentRequestCard
+import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.junit.jupiter.api.Assertions.*
@@ -76,6 +77,70 @@ class AcpMcpPermissionTest {
             assertFalse(pending.answer(AgentAnswer.Permission("allow-once")), "mutation $index")
             assertTrue(pending.answer(AgentAnswer.Permission("reject-once")))
         }
+    }
+
+    @Test
+    fun `rejected permission updates cannot revive a stale target through an ID only request`() {
+        val mutations: List<(JsonObject) -> Unit> = listOf(
+            { it.getAsJsonObject("toolCall").getAsJsonObject("rawInput").addProperty("toolName", "execute_terminal_command") },
+            { it.getAsJsonObject("toolCall").add("rawInput", JsonNull.INSTANCE) },
+            { it.getAsJsonObject("toolCall").getAsJsonObject("rawInput").getAsJsonObject("args").addProperty("secret", "hidden") },
+            { it.getAsJsonObject("toolCall").getAsJsonObject("rawInput").getAsJsonObject("args").addProperty("projectPath", "/other") },
+            { it.getAsJsonObject("toolCall").addProperty("kind", "execute") },
+            { it.getAsJsonObject("toolCall").add("content", JsonNull.INSTANCE) },
+        )
+        mutations.forEachIndexed { index, mutate ->
+            val protocol = AcpProtocol()
+            val data = fixture()
+            assertTrue(permission(data, protocol).tool.hasPermissionTarget)
+            val changed = data.getAsJsonObject("request").deepCopy().apply {
+                getAsJsonObject("toolCall").add("rawInput", data.getAsJsonObject("update")["rawInput"].deepCopy())
+                mutate(this)
+            }
+            val idOnly = data.getAsJsonObject("request").deepCopy().apply {
+                add("toolCall", JsonObject().apply { addProperty("toolCallId", "mcp-1") })
+            }
+            for (request in listOf(changed, idOnly)) {
+                val input = protocol.input("session/request_permission", request) as AgentInput.Permission
+                assertNull(input.tool.mcpTarget, "mutation $index")
+                val replies = mutableListOf<AgentAnswer>()
+                val pending = AgentInputRequest(input) { replies.add(it); it }
+                SwingUtilities.invokeAndWait {
+                    val buttons = AgentRequestCard(pending).components.filterIsInstance<JButton>()
+                    val allow = buttons.filter { it.text.contains("許可") }
+                    assertEquals(2, allow.size)
+                    assertTrue(allow.all { !it.isEnabled }, "mutation $index")
+                }
+                assertFalse(pending.answer(AgentAnswer.Permission("allow-once")), "mutation $index")
+                assertFalse(pending.answer(AgentAnswer.Permission("allow-always")), "mutation $index")
+                assertTrue(pending.answer(AgentAnswer.Permission("reject-once")))
+                assertEquals(listOf(AgentAnswer.Permission("reject-once")), replies)
+            }
+        }
+    }
+
+    @Test
+    fun `valid permission updates retain only the current target without changing execution state`() {
+        val protocol = AcpProtocol()
+        val data = fixture()
+        data.getAsJsonObject("update").addProperty("status", "completed")
+        permission(data, protocol)
+        val request = data.getAsJsonObject("request")
+        request.getAsJsonObject("toolCall").add("rawInput", data.getAsJsonObject("update")["rawInput"].deepCopy())
+        request.getAsJsonObject("toolCall").getAsJsonObject("rawInput").getAsJsonObject("args")
+            .addProperty("projectPath", "/new-project")
+        replaceContent(data, "```json\n{\"projectPath\":\"/new-project\"}\n```")
+        val updated = protocol.input("session/request_permission", request) as AgentInput.Permission
+        assertEquals("/new-project", updated.tool.mcpTarget?.projectPath)
+        val idOnly = request.deepCopy().apply {
+            add("toolCall", JsonObject().apply { addProperty("toolCallId", "mcp-1") })
+        }
+        val retained = protocol.input("session/request_permission", idOnly) as AgentInput.Permission
+        assertEquals(updated.tool.mcpTarget, retained.tool.mcpTarget)
+        assertFalse(protocol.hasUnfinishedTools)
+        request.getAsJsonObject("toolCall").addProperty("toolCallId", "permission-only")
+        assertTrue((protocol.input("session/request_permission", request) as AgentInput.Permission).tool.hasPermissionTarget)
+        assertFalse(protocol.hasUnfinishedTools)
     }
 
     @Test
