@@ -4,7 +4,7 @@
 [T17/T18](acp-feature-migration-2026-09-09.md)、[GUI coordination](../development/gui-coordination.md)、
 [検証台帳](../verification/README.md)。
 
-**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。C-C01の未保存XMLは旧run06/run07で不一致2・正答1。後続run438-01はMCP有効・Composer固定の3回で保存値を区別したが、選択範囲の未達がありfailを維持する。#438で条件差を追跡する。run07のA保存済み対照は選択文字列不一致、BのACP接続準備は回答後の終了不確定（#440）。その後CのMCP Agent読取は疎通確認に成功したが、同条件比較は未成立。現在の待機条件は下記「2026-09-27の現在状態と再開条件」を参照。他29件の正式Caseは未実施で、三経路の比較pass・優位性は示さない。**
+**旧fixtureは保全先不明。PMが新候補で全比較をやり直す案を採用したため、[新fixture](../verification/fixtures/android-selection/README.md)を実行対象とする。旧候補の復元・hash一致は主張しない。C-C01の未保存XMLは旧run06/run07で不一致2・正答1。後続run438-01はMCP有効・Composer固定の3回で保存値を区別したが、選択範囲の未達がありfailを維持する。#438で条件差を追跡する。Aはrun24でMCPの9 module取得に成功したが、保存済み対照の範囲不一致と未保存試行の条件喪失がありblockedを維持。BのACP接続準備は回答後の終了不確定（#440）。その後CのMCP Agent読取は疎通確認に成功したが、同条件比較は未成立。現在の待機条件は下記「2026-09-27の現在状態と再開条件」を参照。他29件の正式Caseはblockedで、三経路の比較pass・優位性は示さない。**
 旧PR #265の資料scopeは`gui_required=false`だったが、新候補の比較Caseは経路別に[正本JSON](../verification/changes/issue-150.json)へ登録する。
 Case IDは登録済み。指定operatorが実行ごとの固定候補・構成・結果をJSON台帳へ記録し、生成物を二重編集しない。
 
@@ -54,14 +54,14 @@ compatible MCP/toolsetが対象Android Studioで使えない場合は、その�
 
 ### 2026-09-27の現在状態と再開条件
 
-**CのMCP Agent読取は成功済み。同一model・MCP条件でのA/B/C比較は未完了。**
+**A/CのMCP Agent読取は成功済み。同一model・MCP条件でのA/B/C比較は未完了。**
 公開済みの[run18](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5851622039)、
 [run19](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5851697251)、
-[Bの承認境界確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5852376071)に基づく現在地を示す。C行だけは[run438-01](https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5853314385)を反映した。A/B行の後続状況は各担当のIssue記録を参照する。
+[Bの承認境界確認](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5852376071)を旧状況の根拠とする。A行は[run24結果](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853490116)と[時刻補正](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853526719)、C行は[run438-01](https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5853314385)を反映した。B行と下記run20–22は当時の記録であり、後続状況はB担当のIssue記録を参照する。
 
 | 経路 | 確認済みの範囲 | 残る条件・次の操作 |
 |---|---|---|
-| A | AI Assistant上のCursor ACP、管理CLI、composer-2.5表示は確認済み。run19は送信0で終了し、`Pass IntelliJ MCP server`はOFFへ復元済み | AI Assistant経由のMCP受け渡しは本人回答待ち。許可後に指定GUI担当が設定とmodel optionを読み戻し、Agent経由のMCP実呼び出しを確認する。正式未保存Caseは未実施 |
+| A | run24はCursor ACP、IDE context/IntelliJ MCP受渡しON。UIはcomposer-2.5、profile保存値はcomposer-2.5[fast=true]。MCP事前確認で9 modules取得。保存済み対照は列または文字列が不一致 | 正式未保存C01は最初のMCP許可前にdiskもmarkerとなり条件喪失。C02は選択操作が確定せず準備blocked。次A担当が保存挙動と選択状態をreadbackしてから再試験する |
 | B | A管理CLIへの設定とACP/model応答は確認済み。#440の診断追加PR #444はdevelopへ統合済み | B専用CLIへのMCP登録・承認は本人回答待ち。サーバー有効化やC側の承認をBへ広げず、許可後に固定build/設定でAgent実呼び出しを確認する。#440の原因未確定も別の残件として維持 |
 | C | run18のGrok条件でmodule取得成功。後続run438-01はComposer 2.5 Fast・MCP有効で未保存Redを3回測定し、実MCP返却と独立disk読取により保存値を区別。保存Red/Blue対照も値一致 | 選択16文字の境界は行全体/引用符付き値と混在。範囲補足試行は禁じたShell要求で停止。下記条件別記録を参照し、C-C01 fail・三経路順序反復待ちを維持。添付後・送信直前にmodelを再確認する |
 
@@ -173,6 +173,42 @@ Cの3観測はすべて上記固定Cursor/fixture、新規会話、明示Compose
 | B・ACP接続準備 | 同じ管理CLIの設定保存後、ACPへ切替。初回の読取/変更/コマンドを禁止した接続確認を14:11:38に1回送信。composer-2.5[fast=true]と「接続確認」を受信し、UI約14秒で実行終了不確定のエラー。保存turnもfailed | stopReason・切断理由・B物理終了の瞬間は未採取、原因帰属未確定。再送なし。独立調査[#440](https://github.com/shinma06/cursor-in-android-studio/issues/440)とACP QA #152へ。正式B-C01は未実施でblocked |
 
 run07は送信5/8で終了。専用Studio/Cursorを通常UIで閉じ、記録した子processと管理ACPの残存なし、fixture元18ファイル一致、GUI lease解放を確認した。Blue対照は未実施。A/B/Cの最強MCP構成・同条件比較、他29正式Case、人間確認、採用判断、main反映は引き続き未完了。
+
+### run24: AのMCP読取と未保存試験の条件喪失
+
+[実測結果](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853490116)と
+[時刻補正・再開手順](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853526719)（2026-09-27）。
+Android Studio `AI-261.26222.65.2614.16379836`、AI Assistant `261.26222.135`、MCP Server `261.26222.30`、
+管理Cursor CLI `2026.09.02-c22c1a3`。専用profileのIDE context/IntelliJ MCP受渡しはON、
+UIは`composer-2.5`、起動前/終了後の保存値は`composer-2.5[fast=true]`。provider内部のmodel使用までは未確認。
+配置製品sourceは#444 `5799f28a429d8919d33d677ab4bfadad422895cb`、CI ZIP SHA-256は
+`2ea6978236a866f62b64447f1e93d6b12d87337be7dd296ae25d4e22cbb9d3f0`で、配置/実ロード5 JARを照合した。
+fixture sourceは`5b2353f56d6b3f0539cfcb47ca4dc2b71646c965`。固定4 APK hashは事前照合済みだが、端末上APKの今回の再hashは未実施。
+
+| 試行 | 観測と限界 |
+|---|---|
+| MCP事前確認 | `projectPath`指定の`get_project_modules`を今回だけ許可し9 modules取得。専用登録server経由の実呼出しであり、native MCP受渡しだけの効果とは断定しない |
+| 保存済Red対照 | module/path/12行/選択`I150 appRed`/UTF-16 `[418,429)`一致。列は実際23–33に対し24–34と回答 |
+| 保存済Blue対照 | module/path/12行/UTF-16 `[418,430)`一致。実選択`I150 appBlue`を`150 appBlue"`と誤回答 |
+| 未保存Red試行 | 同名Kotlin/XML切替後、16文字`I150_UNSAVED_RED`を選択。送信前はdisk旧値だったが、最初のMCP許可前にdiskもmarkerへ変化。回答はその時点のmarker/範囲/disk同値を正しく識別したが、未保存とdisk旧値の比較にはならない |
+| C02準備 | D1/D2のAPI37 arm64起動と各4package配置を確認。run configuration/deviceの選択操作が確定せずtoolbarはappBlue/D2、Variant未確認。C02送信なし、8組合せ未実施 |
+
+未保存試行のUTC送信前disk照合は06:34:39.119、Return操作tool callは06:34:45.534–06:34:50.979、
+取得したfile mtimeは06:34:50.147、最初の独立disk不一致確認は06:35:08.245、最初のMCP許可は06:35:51.208以降。
+mtimeは書込主体や契機の証拠ではない。既報「送信約11秒後」は送信前記録との差であり、キー送信時刻からの値ではない。
+**A-C01は条件喪失のblockedを維持し、Agentの未保存識別failにもpassにもしない。**
+
+送信は4回（事前確認1・対照2・未保存1）、訂正送信/再送0。各対照はMCP許可6回とpython実行要求のReject1回、
+未保存試行はMCP許可3回。引数不足からのprovider内再試行を含む。質問入力/送信は各1回で、file切替・選択・
+環境/フォーカス復旧は準備操作として別記し、許可回数を全操作数とはしない。
+送信前記録から回答終端の観察までRed191.7秒、Blue249.8秒、未保存211.8秒。operator待ちを含み性能比較には使わない。
+三経路の順序交替反復、追加Debugger/Android MCPの適合確認、残Caseと採用判断は未完了。
+
+Redのeditor/diskを明示復元し18file一致、専用IDE/D1/D2終了・owned process 0・lease解放を
+[読み戻した](https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181)。保存せず復元できた試行とはしない。
+次A担当は新queue/leaseで未保存条件の保持を先に確認する。C02は必要なら人へ選択操作を引き継ぎ、
+規定の`I150 Red`/`I150 Blue`とmodule対応、Red/debug/D1と同期完了をreadbackしてから開始する。
+run24で見えた構成名は`appRed`/`appBlue`であり、規定構成の設定完了やIDE機能非対応を示さない。
 
 ### run438-01: MCP有効時のC-C01と回避の限界
 
@@ -297,7 +333,7 @@ run configurationを`I150 Red`/`I150 Blue`として各moduleに固定する。
 
 | Case / 対応 | 操作 | 期待する判定 | 現在 |
 |---|---|---|---|
-| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | A: 同条件未成立、保存済み対照で不一致。B: MCP登録承認・同条件比較待ち、#440原因未確定でblocked。C: fail維持（旧不一致2・正答1、MCP有効時は保存値を3回区別したが範囲未達、#438） |
+| C01 / T17 | RedとBlueの同名XML/Kotlinを切替。Redのlabelだけ未保存marker `I150_UNSAVED_RED`へ変更し選択範囲を渡す | module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない | A: run24は未保存条件喪失でblocked、保存済み対照で範囲不一致。B: MCP登録承認・同条件比較待ち、#440原因未確定でblocked。C: fail維持（旧不一致2・正答1、MCP有効時は保存値を3回区別したが範囲未達、#438） |
 | C02 / T17+T18 | 上記8組を選択、同期安定後に対象snapshotを取得してrun、label/logを照合 | IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない | 環境blocked（上記再開条件） |
 | C03 / T17 | Red/debug/D1の読取開始直後にBlue/release/D2へ切替。Variant更新/sync中と完了後に再読取 | 古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致 | 環境blocked（上記再開条件） |
 | C04 / T17 | fixtureのGradle設定末尾に一時的な構文errorを追加しsync。失敗後に復元し再sync | sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない | 環境blocked（上記再開条件） |

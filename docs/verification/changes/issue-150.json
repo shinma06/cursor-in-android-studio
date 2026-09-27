@@ -20,14 +20,14 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "next_action": "PM指定のA GUI担当が新queue/leaseで専用profileの保存挙動を確認し、送信後もdisk旧値が保持されることを独立readbackして正式未保存Caseを再試験する。model/MCP・固定候補を再照合し、保存済対照と三経路順序反復を分離して記録する。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。 2026-09-27 run24: AのMCP事前確認で9 modules取得。保存済Red対照は列が1文字ずれ、Blue対照は選択文字列不一致。正式未保存Red試行は送信前disk旧値を確認したが、最初のMCP許可前にdiskもmarkerへ変化し条件喪失。書込主体/契機は未特定で、Agentの未保存識別failとは判定しない。回答後にeditor/diskを復元し18file一致を確認。A-C01 blockedを維持する。"
       },
       "human": {
         "actor": "human",
@@ -50,7 +50,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853490116",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853526719",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181"
       ]
     },
     {
@@ -64,14 +67,14 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "GUI担当がA/Bのmodel optionとMCP受渡しを固定し、保存済み対照の選択不一致を再確認後、正式Caseを測定する。",
+      "next_action": "PM指定のA GUI担当が新queue/leaseで対象を準備し、必要なら人の手動操作へ引き継ぐ。規定のI150 Red/Blue構成とmodule対応、toolbarのRed/D1、Build VariantsのappRed=debugと同期完了をreadbackしてから8組合せを実施する。run24のappRed/appBlue表示を規定構成の確認済み扱いにしない。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: 管理CLI 2026.09.02-c22c1a3 / Cursor ACP / composer-2.5表示を確認。保存済みRed対照はmodule/path/行が一致したが、選択I150 appRedを別の11文字と誤回答。MCP同条件と正式未保存C01を含むCase本体は未成立/未実施。対照の1観測を正式Caseのfail/passへ転用しない。"
+        "reason": "2026-09-27 run24: D1/D2のAPI37 arm64起動と各4fixture package配置を確認。ただしrun configurationのappRed候補とD1候補の選択操作が確定せずtoolbarはappBlue/D2のまま。Variantは未readback、C02製品送信なし、8組合せの確認なし。準備操作のblockedでありIDE非対応やAgentの対象誤認を証明しない。"
       },
       "human": {
         "actor": "human",
@@ -92,7 +95,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853490116",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853526719",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181"
       ]
     },
     {
