@@ -15,7 +15,7 @@ import kotlin.concurrent.thread
 class AcpSessionTest {
     @TempDir lateinit var temp: Path
 
-    private class Harness(val root: Path, scenario: String, privateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?) -> Unit)? = null) : AutoCloseable {
+    private class Harness(val root: Path, scenario: String, privateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?, AcpPrivateDiagnostics.Failure?) -> Unit)? = null) : AutoCloseable {
         val gate = WorkspaceOperationGate()
         val processes = CopyOnWriteArrayList<Process>()
         val events = CopyOnWriteArrayList<AgentEvent>()
@@ -209,7 +209,8 @@ class AcpSessionTest {
     @Test
     fun `metadata connection and two turns correlate to the same process without changing failure handling`() {
         val records = CopyOnWriteArrayList<Triple<Long, java.time.Instant?, java.util.UUID?>>()
-        Harness(temp, "normal") { pid, started, trace ->
+        Harness(temp, "normal") { pid, started, trace, failure ->
+            assertNull(failure)
             records.add(Triple(pid, started, trace))
             error("private sink failed")
         }.use { h ->
@@ -239,6 +240,11 @@ class AcpSessionTest {
                 // Synchronize on a sampled child, not elapsed time: the child must be tracked before cancel.
                 val tree = AcpProcessTree(a.processes.single())
                 assertFalse(tree.isQuiet())
+                val observed = tree.diagnosticChildren().single()
+                val childHandle = ProcessHandle.of(observed.pid).orElseThrow()
+                assertEquals(childHandle.info().startInstant().orElse(null), observed.started)
+                assertEquals(a.processes.single().pid(), observed.parentPid)
+                assertEquals(true, observed.alive)
                 a.run.stop()
                 awaitFile(a.root.resolve("cancel-response"))
                 assertNull(a.gate.tryRestore())
@@ -248,6 +254,13 @@ class AcpSessionTest {
                 assertEquals(listOf("completed:0"), b.outcomes)
                 Files.createFile(a.root.resolve("release-child"))
                 a.finish()
+                childHandle.onExit().get(5, TimeUnit.SECONDS)
+                val retained = tree.diagnosticChildren().single()
+                assertEquals(observed.pid, retained.pid)
+                assertEquals(observed.started, retained.started)
+                assertEquals(false, retained.alive)
+                assertNull(retained.parentPid)
+                assertEquals("observedChildren=1 liveChildren=0", tree.diagnosticState())
                 assertEquals(listOf("stopped"), a.outcomes)
                 assertFalse(a.gate.isUncertain)
                 a.gate.tryRestore()!!.close()
@@ -317,10 +330,17 @@ class AcpSessionTest {
 
     @Test
     fun `persistent child after cancellation latches uncertainty instead of claiming stopped`() {
-        Harness(temp, "child").use { h ->
+        val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+        Harness(temp, "child") { _, _, _, failure ->
+            if (failure != null) {
+                failures.add(failure)
+                error("synthetic private sink failure")
+            }
+        }.use { h ->
             h.send()
             assertTrue(h.received.await(5, TimeUnit.SECONDS))
             awaitFile(h.root.resolve("child-ready"))
+            val parentStarted = h.processes.single().info().startInstant().orElse(null)
             h.run.stop()
             h.finish()
             assertEquals(listOf("uncertain"), h.outcomes)
@@ -328,6 +348,42 @@ class AcpSessionTest {
             assertNull(h.gate.tryRestore())
             assertTrue(h.diagnostics.any { "source=turn-failure" in it && "phase=await-child-exit" in it &&
                 "terminal=true" in it && "outcome=CANCELLED" in it && "liveChildren=1" in it })
+            val failure = failures.single()
+            assertEquals(AcpPrivateDiagnostics.Site.CHILD_EXIT, failure.site)
+            assertEquals(AcpPrivateDiagnostics.ResultStage.ACCEPTED, failure.resultStage)
+            assertTrue(failure.terminal)
+            val child = failure.children!!.single()
+            assertEquals(Files.readString(h.root.resolve("child.pid")).toLong(), child.pid)
+            assertTrue(child.alive == true)
+            assertEquals(h.processes.single().pid(), child.parentPid)
+            assertEquals(parentStarted, child.parentStarted)
+            assertFalse(h.processes.single().isAlive)
+        }
+    }
+
+    @Test
+    fun `first private failure distinguishes absent rejected and accepted results without changing uncertainty`() {
+        for ((scenario, stage) in mapOf(
+            "prompt-error" to AcpPrivateDiagnostics.ResultStage.NOT_RECEIVED,
+            "bad-stop-reason" to AcpPrivateDiagnostics.ResultStage.STOP_REASON,
+            "task-reopened" to AcpPrivateDiagnostics.ResultStage.TOOL_STATE,
+        )) {
+            val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+            Harness(temp.resolve(scenario), scenario) { _, _, _, failure ->
+                if (failure != null) failures.add(failure)
+            }.use { h ->
+                h.send()
+                h.finish()
+                val failure = failures.single()
+                assertEquals(AcpPrivateDiagnostics.Site.PROMPT_RESPONSE, failure.site)
+                assertEquals(AcpPrivateDiagnostics.Category.ACP, failure.category)
+                assertEquals(stage, failure.resultStage)
+                assertFalse(failure.terminal)
+                assertEquals(listOf("uncertain"), h.outcomes)
+                assertNull(h.gate.tryRestore())
+                assertFalse(h.processes.single().isAlive)
+                assertTrue(h.diagnostics.none { "synthetic-provider-secret" in it })
+            }
         }
     }
 

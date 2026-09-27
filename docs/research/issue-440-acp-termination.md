@@ -44,6 +44,16 @@ run07と本source基準でAcpSession/ProcessTree/起動経路の差分はない�
 
 新会話の接続準備後、process-started記録からtab/conversationとPID+開始時刻を対応付けてから送信する。送信後はprompt-dispatchのtraceを通常終了診断へ結び、OS側の所有process時系列と照合する。これはメニュー操作失敗の修正でも、run13の残子3件の原因確定でもない。callback故障時の正常2turn・既存の不確定保護と、保存先権限/上限/項目制限を合成テストで確認する。実IDEは固定ZIPで別途検証する。
 
+## 非公開の失敗snapshot
+
+run17では最初の失敗が `phase=prompt / terminal=false` で、既存相関記録には子孫の個別識別情報がなかった。`terminal=false` は応答未受信だけでなく、stopReasonや未完了toolの検証失敗でも成立する。外側の逐次process観測とも同時刻とは限らず、子数だけで所属や原因を断定できない。
+
+同じopt-in先へ、送信後のturn失敗・接続close・cancel timeoutのうち最初に観測した1件を `event=first-failure` として追加する。`site` は呼出箇所、`category` は固定enumの例外分類（本文/stack/クラス名なし）、`resultStage` は NOT_RECEIVED / STOP_REASON / TOOL_STATE / ACCEPTED、`terminal` はその時点の受理状態。NOT_RECEIVEDは成功result callbackの未開始を示し、RPC errorや接続失敗も含む。並行する失敗は最初に記録権を取ったobserverを残すため、根本原因や全threadの厳密な時間順を保証しない。
+
+`children` は既存監視が保持する最大512件だけを、追加探索・削除せず採取する。各項目はPIDと保持中の開始時刻、同じ開始時刻のprocessが生存するか（true/false/null）、取得できた現在のparent PID/開始時刻。nullは取得不能、alive=falseは終了またはPID再利用による不一致であり、現在の別個体を同じ子と扱わない。parentはalive=trueかつ識別を再確認できたときだけ採取し、nullを「親なし」の確証にしない。全体取得不能はchildren=null、空集合とは区別する。逐次読取りなので同時snapshotではなく、記録時刻も出生時刻とは異なる。
+
+通常ログは変更せず、0700保存先・0600新規ファイル・128記録試行の上限を共有する。診断は当該経路のcleanup開始前に試みるが、並行する別経路のcleanupを止めない。診断失敗を伝播させず、結果を終了/timeout/再送/復元判定に使わない。`AcpSessionTest` の合成RPC error・不正stopReason・未完了tool・残子取消と、`AcpPrivateDiagnosticsTest` の項目/権限/上限で検証する。原因確定・実IDE受入は別途必要。
+
 ## 次の固定build観測
 
 指定operatorがhost-wide leaseを取得し、新しい専用profile/fixtureへ診断ZIPを入れる。SHA/ZIP hash/loaded JAR、IDE/CLI/model、permission/root、MCP設定と承認・接続状態を固定して、元条件の**新会話に接続確認1回**。元run07 sessionを再送しない。独立review前の実運用配布はしない。

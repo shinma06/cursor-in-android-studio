@@ -42,6 +42,27 @@ internal class AcpProcessTree(private val process: Process) {
         return "observedChildren=${children.size} liveChildren=$live"
     }
 
+    data class DiagnosticChild(
+        val pid: Long,
+        val started: Instant,
+        val alive: Boolean?,
+        val parentPid: Long?,
+        val parentStarted: Instant?,
+    )
+
+    /** Retained identities only: do not sample/prune or change lifecycle state for diagnostics. */
+    @Synchronized
+    fun diagnosticChildren(): List<DiagnosticChild> = children.map { (identity, child) ->
+        val alive = runCatching { child.alive() }.getOrNull()
+        val parent = runCatching {
+            if (alive != true) null else child.handle.parent().orElse(null)?.let {
+                val relation = it.pid() to it.info().startInstant().orElse(null)
+                relation.takeIf { child.alive() }
+            }
+        }.getOrNull()
+        DiagnosticChild(identity.first, identity.second, alive, parent?.first, parent?.second)
+    }
+
     fun awaitQuiet(timeoutSeconds: Long, connectionAlive: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
         while (true) {
