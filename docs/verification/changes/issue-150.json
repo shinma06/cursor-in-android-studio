@@ -863,19 +863,20 @@
         "実際の選択対象・tool/catalog・結果・操作数/訂正回数/時間・許可/復帰導線を記録する。C02は8選択組を全て確認する。"
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
-      "recheck": "間欠的な不一致2/正答1を#438で追跡。探索表示差と因果を混同せず、同条件A/B/C各3回の順序・全指標を測定する。経路Cの観測からBの優位性を推定しない。",
-      "next_action": "MCP/model条件を揃えた正式比較とBlue対照を新queue/leaseで実施。Cの不一致・正答双方を保持し、他Caseへ成功を転用しない。",
+      "recheck": "MCP有効条件の保存値判別と、正確範囲/コマンド禁止の未達を分離。旧不一致・正答を保持し、A/B/Cの同条件各3回の順序・全指標を測定する。C単独反復からBの優位性を推定しない。",
+      "next_action": "PM/GUI担当がA/Bの条件を整え、三経路順序反復と正確な選択範囲・安全な回避を新queue/leaseで確認する。#438/QA #380へ未達を保持。",
       "fix_issue": 438,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "fail",
-        "reason": "2026-09-26 run06/run07: 同じCursor 3.22.7 / Composer 2.5 Fast、新規会話、同文prompt、Red XML12行目の未保存16文字添付で3観測。不一致2（diskも未保存markerと誤回答）・正答1（disk I150 appRedを区別）。間欠的な不一致としてfailを維持し常時再現とは扱わない。UI10/10/27秒は総時間ではない。各回editor復元・元18ファイル一致。正式A/B/C各3回ローテーションと全指標は未測定。保存済みRed対照の正答は別条件。",
-        "observer": "research-150-01a0dce4",
-        "at": "2026-09-26T14:08:05Z",
-        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5846920076",
-        "loaded_identity": "Cursor 3.22.7 stable / 37076c6c3f9e253c0fa2305197e45befd13a2260; Composer 2.5 Fast; fixture source 5b2353f56d6b3f0539cfcb47ca4dc2b71646c965"
+        "reason": "2026-09-27 run438-01: 同一fixture/Cursor 3.22.7、Composer 2.5 Fast、MCP有効の新規会話3回はeditor I150_UNSAVED_REDとdisk I150 appRedを区別（UI13/31/32秒、送信まで28/16/14操作、準備の再試行を含む）。実MCP返却の保存値と独立disk読取を照合。一方16文字選択は行全体/引用符付き値と混在しfailを維持。保存Red/Blue対照は値一致、範囲補足の別試行は禁じたShell要求で停止し最終回答なし。2件のShellに実行後hookとexitCode=0があり、OS本体実行は独立未確認。Grokへ切替わった1試行は除外。旧不一致2/正答1とrun12を保持し、三経路順序反復は未達。元18ファイル・editor復元、owned process停止・lease解放済み。",
+        "observer": "research-438-01a0e165",
+        "at": "2026-09-27T06:14:07Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5853314385",
+        "loaded_identity": "Cursor 3.22.7 stable / 37076c6c3f9e253c0fa2305197e45befd13a2260; Composer 2.5 Fast; IntelliJ MCP enabled; fixture source 5b2353f56d6b3f0539cfcb47ca4dc2b71646c965",
+        "execution": "computer_use"
       },
       "human": {
         "actor": "human",
@@ -900,7 +901,24 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
         "https://github.com/shinma06/cursor-in-android-studio/issues/438",
         "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5846920076",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5850852384",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5850965605",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5853314385"
+      ],
+      "history": [
+        {
+          "note": "run06/run07の固定条件観測を保持。後続のMCP有効条件で上書きしない。",
+          "observation": {
+            "actor": "gpt",
+            "status": "fail",
+            "reason": "2026-09-26 run06/run07: 同じCursor 3.22.7 / Composer 2.5 Fast、新規会話、同文prompt、Red XML12行目の未保存16文字添付で3観測。不一致2（diskも未保存markerと誤回答）・正答1（disk I150 appRedを区別）。間欠的な不一致としてfailを維持し常時再現とは扱わない。UI10/10/27秒は総時間ではない。各回editor復元・元18ファイル一致。正式A/B/C各3回ローテーションと全指標は未測定。保存済みRed対照の正答は別条件。",
+            "observer": "research-150-01a0dce4",
+            "at": "2026-09-26T14:08:05Z",
+            "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5846920076",
+            "loaded_identity": "Cursor 3.22.7 stable / 37076c6c3f9e253c0fa2305197e45befd13a2260; Composer 2.5 Fast; fixture source 5b2353f56d6b3f0539cfcb47ca4dc2b71646c965"
+          }
+        }
       ]
     },
     {

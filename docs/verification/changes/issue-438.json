@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "issue": 438,
+  "gui_required": true,
+  "reason": "C-C01の追加実測と条件別回避を記録する。C単独3回の保存値判別を正確範囲・三経路順序・安全条件の合格へ転用しない。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "verification.validate_changeによるissue-438/150 JSON検証、C-C01以外29Caseとhuman観測の不変照合"
+  ],
+  "cases": [
+    {
+      "issue": 438,
+      "preconditions": "比較専用profile/同一fixture、固定Cursor版/model/MCP設定、新規会話、指定GUI operatorとqueue/host-wide lease。通常profileと他projectへ広げない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5853314385",
+        "docs/research/issue-150-comparison.md",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/380"
+      ],
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間による実施は未確認。Agentの観測を転用しない。"
+      },
+      "id": "C-RESEARCH-ACCEPTANCE",
+      "change": "C-C01の条件別再現性・回避の限界と三経路比較を調査する",
+      "steps": [
+        "Red/Blueの同名Kotlin/XMLを切替え、Red XML12行のlabelだけ未保存markerへ変更し16文字を添付する。",
+        "新規会話と固定質問で3回確認し、送信直前model、tool表示/返却、操作/訂正/時間と独立disk読取を記録する。",
+        "各回editorを復元し元18ファイル一致を確認する。",
+        "A/B/Cで同一fixture・目的・許可・model条件を照合する。",
+        "A→B→C、B→C→A、C→A→Bで各3回の指標を記録し、C単独観測と混ぜない。",
+        "MCP有効条件の保存値判別を旧MCP無効時の不一致と分けて記録する。",
+        "別会話で選択列を補足し、手動入力負担・正確範囲・コマンド禁止を確認する。",
+        "禁止操作を要求したら追加送信せず停止し、実行記録・元18ファイル・owned process・leaseを照合する。"
+      ],
+      "expected": "固定条件の反復・tool証拠・操作/訂正/時間・条件別回避を記録し、三経路の順序条件を満たした比較を#150へ戻す。外部製品の不一致を自製品の不具合や優位性へ一般化しない。",
+      "recheck": "旧観測と条件変更後の結果を分離し、新queue/lease・固定条件で未達部分を確認する。",
+      "next_action": "PMがA/B担当と#150の三経路順序反復を割当てる。C-C01の正式failはissue-150.json、専用追跡は#438、GUI/main未達はQA #380で維持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "調査受入は三経路順序反復が未実施のためblocked。C単独3回はMCP有効・Composer固定で保存値を区別したが、選択範囲が未達。列補足試行は禁じたShell要求でStop、2件に実行後hookとexitCode=0、OS本体実行は独立未確認。製品観測の正式failはissue-150.jsonのC-C01に保持し、ここでpassへ変更しない。元18ファイル一致・editor復元・owned22停止・lease free。",
+        "observer": "research-438-01a0e165",
+        "at": "2026-09-27T06:14:07Z",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/438#issuecomment-5853314385",
+        "execution": "computer_use"
+      }
+    }
+  ]
+}
