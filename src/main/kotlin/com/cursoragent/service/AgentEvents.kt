@@ -36,10 +36,14 @@ data class AgentTool(
     val path: String? = null,
     val task: AgentTask? = null,
     val locationsNotice: String? = null,
+    val mcpTarget: AgentMcpTarget? = null,
 ) {
     val hasPermissionTarget: Boolean get() = !command.isNullOrBlank() || !path.isNullOrBlank() ||
-        locations.isNotEmpty() || content.any { it is AgentToolContent.Diff }
+        locations.isNotEmpty() || content.any { it is AgentToolContent.Diff } || mcpTarget != null
 }
+
+/** Ephemeral, bounded permission metadata; never raw arguments or a persisted capability. */
+data class AgentMcpTarget(val server: String, val tool: String, val projectPath: String)
 
 sealed interface AgentToolContent {
     data class Text(val text: String) : AgentToolContent

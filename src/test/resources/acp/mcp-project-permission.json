@@ -1,0 +1,52 @@
+{
+  "provenance": "Synthetic values passed through installed Cursor CLI 2026.09.02-c22c1a3 extractToolCallInput and requestApproval/formatOperation. Not captured live run23 wire. See #447.",
+  "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "mcp-1",
+    "title": "fixture-ide: get_project_modules",
+    "kind": "other",
+    "status": "pending",
+    "rawInput": {
+      "providerIdentifier": "fixture-ide",
+      "toolName": "get_project_modules",
+      "args": {
+        "projectPath": "/fixture/android"
+      }
+    }
+  },
+  "request": {
+    "sessionId": "synthetic-session",
+    "toolCall": {
+      "toolCallId": "mcp-1",
+      "title": "fixture-ide-get_project_modules: get_project_modules",
+      "kind": "other",
+      "status": "pending",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "```json\n{\n  \"projectPath\": \"/fixture/android\"\n}\n```"
+          }
+        }
+      ]
+    },
+    "options": [
+      {
+        "optionId": "allow-once",
+        "name": "Allow once",
+        "kind": "allow_once"
+      },
+      {
+        "optionId": "allow-always",
+        "name": "Allow always",
+        "kind": "allow_always"
+      },
+      {
+        "optionId": "reject-once",
+        "name": "Reject",
+        "kind": "reject_once"
+      }
+    ]
+  }
+}

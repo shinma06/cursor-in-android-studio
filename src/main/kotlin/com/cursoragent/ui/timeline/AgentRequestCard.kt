@@ -155,7 +155,8 @@ class StructuredToolCard(tool: AgentTool, viewDiff: (AgentToolContent.Diff) -> U
 }
 
 private fun toolDescription(tool: AgentTool): String = listOfNotNull(
-    tool.title, tool.command?.let { "コマンド: $it" }, tool.path?.let { "ファイル: $it" },
+    tool.mcpTarget?.let { "MCPサーバー: ${it.server}\n操作: ${it.tool}\n対象project: ${it.projectPath}" } ?: tool.title,
+    tool.command?.let { "コマンド: $it" }, tool.path?.let { "ファイル: $it" },
     tool.locations.takeIf { it.isNotEmpty() }?.joinToString("\n"),
     tool.content.filterIsInstance<AgentToolContent.Diff>().takeIf { it.isNotEmpty() }?.joinToString("\n") { it.path },
 ).joinToString("\n")
