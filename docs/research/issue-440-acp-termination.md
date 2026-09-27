@@ -54,6 +54,33 @@ run17では最初の失敗が `phase=prompt / terminal=false` で、既存相関
 
 通常ログは変更せず、0700保存先・0600新規ファイル・128記録試行の上限を共有する。診断は当該経路のcleanup開始前に試みるが、並行する別経路のcleanupを止めない。診断失敗を伝播させず、結果を終了/timeout/再送/復元判定に使わない。`AcpSessionTest` の合成RPC error・不正stopReason・未完了tool・残子取消と、`AcpPrivateDiagnosticsTest` の項目/権限/上限で検証する。原因確定・実IDE受入は別途必要。
 
+## run23で特定した終了障害と残る制約
+
+2026-09-27。[観測引継ぎ](https://github.com/shinma06/cursor-in-android-studio/issues/440#issuecomment-5853026750)の固定製品sourceは `5799f28a429d8919d33d677ab4bfadad422895cb`、CI ZIP SHA-256は `2ea6978236a866f62b64447f1e93d6b12d87337be7dd296ae25d4e22cbb9d3f0`。operatorの配置・ロード照合と、保全済みprivate相関JSON/OS時系列を照合した。診断と終了判定のsourceは本調査base `fcbdc6af37c7c10be13cebec581999cf38918c45` でも同じ。管理CLIは `2026.09.02-c22c1a3`。Bは接続先の既定modelを選び、接続後の設定表示は `composer-2.5[fast=true]`。provider内部のモデルは未検証。
+
+### 確定した順序
+
+1. 新規B会話のprocess-startedとprompt-dispatch、first-failureは、tab/conversation・ACP親PID/OS開始時刻・traceが一致した。PID単体やIDE直下の出生順による推定ではない。
+2. prompt-dispatchの約78〜79秒前から、ACP直下にJetBrains MCP stdio bridgeとCursor worker server、そのworker配下にTypeScript language server関連2件が存在した。合計4件は送信直前・直後のOS観測にもあり、first-failureの保持個体/開始時刻/親関係と一致した。これらをturn中に新しく起動した処理とは扱わない。
+3. MCP許可要求にRejectを1回返し、回答を受信。first-failureは `site=CHILD_EXIT / category=ACP / resultStage=ACCEPTED / terminal=true`。同traceの通常診断は `phase=await-child-exit / outcome=COMPLETED / stopped=false / connectionClosed=false / processAlive=true / observedChildren=4 / liveChildren=4`。provider終端を受理した後も4件が生存していた。
+4. その後、client自身の接続close診断が続き、次の外側OS観測では当該親と4件が消失した。接続closeが最初の失敗原因だったという順序ではない。外側観測の該当約161秒間の最大間隔は0.747秒で、短命子・サンプル間の挙動・消失の厳密な瞬間は保証しない。終了時のfixture18ファイル一致と全所有処理停止はoperatorの記録を保持する。
+
+**直接の阻害条件は、送信前からの常駐子4件にも全退出を要求する製品の静止判定である。** `AcpProcessTree.awaitQuiet()` は子が残れば正常なprompt endだけでは完了させない。10秒期限による失敗と整合するが、現診断のcategory=ACPは例外理由を分離せず、終端受信の厳密時刻も記録しないため、期限到達と一時的な個体照会失敗の最終的な識別まではできない。先行run07/13/17の原因をこの結果から遡及確定しない。Rejectが常駐子を作った証拠もなく、実際に4件は送信前に存在した。許可UIの問題は別の[#447](https://github.com/shinma06/cursor-in-android-studio/issues/447)。
+
+[ACPのprompt turn](https://agentclientprotocol.com/protocol/v1/prompt-turn)のstopReasonはturnの終端を表す。[Cursor ACP](https://cursor.com/docs/cli/acp)はproject/user MCP設定の利用をサポートする。いずれも、この製品が必要とする全OS子孫の退出を示す信号ではない（2026-09-27確認）。従ってCLIのACP仕様違反とは断定せず、製品の安全契約と常駐構成の不整合として扱う。
+
+### 最小案の評価と採否
+
+| 案 | 評価・採否 |
+| --- | --- |
+| 送信前baselineの個体、process名、MCP種別を終了待ちから除外する | 不採用。出生時点は分かっても既存worker/bridgeがturn中の仕事を受けたか・停止したかは分からない。OSのsleep状態もアプリの静止保証ではない。待機期限を延ばしても常駐という条件は変わらない |
+| prompt-end受理後、専有ACP接続と観測子を終了させてからturn完了にする | 単回の終了方式として検討可能だが現状の最小修正では採用しない。`stopProcess()` はこの接続の観測子と親を対象とするが、成功を返すAPIではなく失敗はprojectを不確定にする。`onClosed` はquiescent前の接続closeを不確定にする。同会話の次turnは同じresident sessionを再利用する契約で、終了後の `session/load` / `resume` は未実装。単回を完了にしても2turn目を失う。外部IDEへ渡ったMCP処理の終了をbridgeの消失だけで証明することもできない。採用には意図したcloseと障害closeの区別、停止結果/子回収、会話継続と別tab非干渉の固定build受入が必要 |
+| turn完了・次prompt受付とrestore可否を分ける | 将来の設計候補。既に `WorkspaceOperationGate.tryPrepare()` と `tryRestore()` は分かれているが、`AcpSession` は物理静止を確認できない接続を再利用しない。継続には「終端は受理済み、物理静止は未確認」という別の状態・UI/保存/取消/遅着契約が必要。不確定runを成功に置き換えたり、既存失敗会話へ再送したりする変更は行わない |
+
+本変更は製品runtime・timeout・復元gate・再送禁止を変更しない。合成 `resident-child` はsession/new時に子を起動し、prepare完了後・prompt前に生存を確認してから正常end_turnを返す。`AcpSessionTest` でCHILD_EXIT/ACCEPTED、子の同一個体・生存、COMPLETED診断と不確定outcomeの区別、cleanup、同接続再送拒否、project復元拒否を確認する。これは制約の再現テストであり実CLIやGUIの合格ではない。
+
+#150のMCPをそろえたB経路は依然として利用可能性の阻害があり、B全Caseの同条件比較を完了できる根拠はない。ただし個別Case未実施をすべてfailとせず、正式結果は#150の正本で管理する。MCPを外す/printへ切り替える対照実験は別条件であり、B ACP＋MCPの代替合格にはならない。A/Cの独立比較は継続可能。Bの次操作は上記候補の安全契約をPMが選定し、必要な実装・回帰/固定build検証を割り当てること。#440を閉じず、#150/#152の全既存Case・main未達を保持する。private相関証拠は指定operator/PMがアクセス管理し、PID・絶対パス・command・wireを公開しない。
+
 ## 次の固定build観測
 
 指定operatorがhost-wide leaseを取得し、新しい専用profile/fixtureへ診断ZIPを入れる。SHA/ZIP hash/loaded JAR、IDE/CLI/model、permission/root、MCP設定と承認・接続状態を固定して、元条件の**新会話に接続確認1回**。元run07 sessionを再送しない。独立review前の実運用配布はしない。
