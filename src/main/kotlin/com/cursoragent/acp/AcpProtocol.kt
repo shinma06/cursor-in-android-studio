@@ -121,7 +121,11 @@ internal class AcpProtocol {
                 require(options.isNotEmpty() && options.map { it.id }.toSet().size == options.size)
                 val payload = params.getAsJsonObject("toolCall")
                 val id = payload.requiredString("toolCallId")
-                AgentInput.Permission(tool(payload, tools[id] ?: AgentTool(id)), options)
+                val permissionTool = tool(payload, tools[id] ?: AgentTool(id))
+                val target = permissionTool.mcpTarget?.takeIf { matchesMcpPermission(payload, it) }
+                // Permission updates replace retained confidence, but do not create or advance execution state.
+                tools[id]?.let { tools[id] = it.copy(mcpTarget = target) }
+                AgentInput.Permission(permissionTool.copy(mcpTarget = target), options)
             }
             "cursor/ask_question" -> {
                 params.requiredString("toolCallId")
@@ -166,6 +170,7 @@ internal class AcpProtocol {
             // Quiescence uses the latest wire state, never the presentation's retained result.
             status = update.string("status") ?: old.status,
             task = task,
+            mcpTarget = if (update.has("rawInput")) mcpPermissionTarget(update["rawInput"]) else old.mcpTarget,
             content = if (update.has("content")) contents.tool(update["content"]) else old.content,
             locations = locations.first,
             locationsNotice = locations.second,

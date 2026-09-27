@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "issue": 447,
+  "gui_required": true,
+  "reason": "MCP-PERMISSION-TARGET / MCP-PERMISSION-REJECTの許可画面と実tool結果を固定buildで確認する。#440終了処理とは分離する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew test",
+    "固定HEAD/baseの別sessionレビュー"
+  ],
+  "cases": [
+    {
+      "id": "MCP-PERMISSION-TARGET",
+      "issue": 447,
+      "change": "MCP module読取の対象表示と明示許可",
+      "preconditions": "GUI担当・host lease・固定buildを確定。人間の手順はdocs/verification/human-qa.mdを参照。",
+      "steps": [
+        "担当がleaseと固定ZIP/source/loaded JARを照合し、専用fixture・同意済みIntelliJ MCP Server・ACPを使う。許可設定は変更せず、送信直前のmodelを記録する。",
+        "get_project_modulesを1回実行してmodule名を返す事前確認を送る。MCPサーバー・操作・対象projectが切れずに表示され、今回だけ許可が有効か確認する。",
+        "今回だけ許可を1回押し、実MCP結果と表示を照合する。既存A経路と対象が一致するか記録する。終了未確認は#440へ別途記録し、再送しない。",
+        "tool情報/許可カードが会話履歴の永続保存に追加されず、通常のtoolカテゴリ要約だけが残ることを確認する。"
+      ],
+      "expected": "検証可能な既知MCP操作だけ対象を表示して一度許可でき、module名の実応答を得る。合成fixture成功を実IDE成功と扱わない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗時は修正Issue/PRと再確認buildを記録する。",
+      "next_action": "#447修正を含む固定ZIPで、指定GUI担当が実施する。#440の終了未確認は別途記録し、同一会話の追加送信は行わない。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "https://agentclientprotocol.com/protocol/v1/tool-calls"
+      ],
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストとCLI要求組立の確認は固定build GUI受入を代替しない。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストとCLI要求組立の確認は固定build GUI受入を代替しない。"
+      }
+    },
+    {
+      "id": "MCP-PERMISSION-REJECT",
+      "issue": 447,
+      "change": "不正・未知対象と停止後の許可禁止",
+      "preconditions": "GUI担当・host lease・固定buildを確定。人間の手順はdocs/verification/human-qa.mdを参照。",
+      "steps": [
+        "固定buildと公開可能な合成ACP入力を使い、tool名だけ、未知MCP、追加引数、別projectPath、重複キー、過大/不正contentを送る。Allowが無効で拒否/取消できるか確認する。",
+        "既知tool更新の後にrawInputの不正値/消去を送り、以前の対象で許可されないことを確認する。許可要求自体の未知rawInput・不一致content・別kindも拒否し、続く同じIDだけの要求で以前の対象とAllowが復活しないことを確認する。新しいturnで同じtool IDを使っても前turnの対象を引き継がない。",
+        "有効なMCP許可要求をStop/closeで取り消し、遅いクリック・連打で許可を送らないことを確認する。既存command/path/location/diff要求の許可・拒否も回帰確認する。"
+      ],
+      "expected": "不正・未知・不一致の対象は許可されない。既存の一度だけの返答とStop/close取消、ファイル/commandの許可契約を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗時は修正Issue/PRと再確認buildを記録する。",
+      "next_action": "#447修正を含む固定ZIPで、指定GUI担当が実施する。#440の終了未確認は別途記録し、同一会話の追加送信は行わない。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150",
+        "https://agentclientprotocol.com/protocol/v1/tool-calls"
+      ],
+      "gpt": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成テストとCLI要求組立の確認は固定build GUI受入を代替しない。"
+      },
+      "human": {
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null,
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成テストとCLI要求組立の確認は固定build GUI受入を代替しない。"
+      }
+    }
+  ]
+}
