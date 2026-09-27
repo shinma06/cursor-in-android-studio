@@ -8,6 +8,8 @@
 旧PR #265の資料scopeは`gui_required=false`だったが、新候補の比較Caseは経路別に[正本JSON](../verification/changes/issue-150.json)へ登録する。
 Case IDは登録済み。指定operatorが実行ごとの固定候補・構成・結果をJSON台帳へ記録し、生成物を二重編集しない。
 
+後続 #458–#461 の開始前は、[#457共通準備の受領条件](issue-457-common-preparation.md)で固定候補・構成対応・未達条件を照合する。準備の部分確認を正式Caseのpassへ転用しない。
+
 ## 1. 開始条件と比較する三つの経路
 
 共通fixture・目的・許可範囲を固定し、次の三経路を別々に記録する。

@@ -20,7 +20,7 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PM指定のA GUI担当が新queue/leaseで専用profileの保存挙動を確認し、送信後もdisk旧値が保持されることを独立readbackして正式未保存Caseを再試験する。model/MCP・固定候補を再照合し、保存済対照と三経路順序反復を分離して記録する。",
+      "next_action": "PM指定のA GUI担当が新queue/leaseで専用profileの保存挙動を確認し、送信後もdisk旧値が保持されることを独立readbackして正式未保存Caseを再試験する。model/MCP・固定候補を再照合し、保存済対照と三経路順序反復を分離して記録する。 #457共通準備で固定source/4 APK/ロードJAR・I150 Red/Blueのmodule対応を照合済み。現接続device、各経路の現在model/MCP/権限を確定し、PMの準備受領後に未実測範囲を続行する。 専用IDEの正規SDK設定UIで参照先を揃え、Sync後保持とMissing system image解消を先に確認する。local.properties書換えだけではIDEに再生成された。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
@@ -53,7 +53,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853490116",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853526719",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181",
+        "docs/research/issue-457-common-preparation.md",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
       ]
     },
     {
@@ -67,7 +70,7 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PM指定のA GUI担当が新queue/leaseで対象を準備し、必要なら人の手動操作へ引き継ぐ。規定のI150 Red/Blue構成とmodule対応、toolbarのRed/D1、Build VariantsのappRed=debugと同期完了をreadbackしてから8組合せを実施する。run24のappRed/appBlue表示を規定構成の確認済み扱いにしない。",
+      "next_action": "PM指定のA GUI担当が新queue/leaseで対象を準備し、必要なら人の手動操作へ引き継ぐ。規定のI150 Red/Blue構成とmodule対応、toolbarのRed/D1、Build VariantsのappRed=debugと同期完了をreadbackしてから8組合せを実施する。run24のappRed/appBlue表示を規定構成の確認済み扱いにしない。 #457共通準備で固定source/4 APK/ロードJAR・I150 Red/Blueのmodule対応を照合済み。現接続device、各経路の現在model/MCP/権限を確定し、PMの準備受領後に未実測範囲を続行する。 専用IDEの正規SDK設定UIで参照先を揃え、Sync後保持とMissing system image解消を先に確認する。local.properties書換えだけではIDEに再生成された。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
@@ -98,7 +101,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853490116",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853526719",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853494181",
+        "docs/research/issue-457-common-preparation.md",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
       ]
     },
     {
@@ -448,7 +454,7 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。 #457共通準備で固定source/4 APK/ロードJAR・I150 Red/Blueのmodule対応を照合済み。現接続device、各経路の現在model/MCP/権限を確定し、PMの準備受領後に未実測範囲を続行する。 専用IDEの正規SDK設定UIで参照先を揃え、Sync後保持とMissing system image解消を先に確認する。local.properties書換えだけではIDEに再生成された。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
@@ -481,7 +487,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
         "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038",
+        "docs/research/issue-457-common-preparation.md",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
       ]
     },
     {
@@ -495,7 +504,7 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。 #457共通準備で固定source/4 APK/ロードJAR・I150 Red/Blueのmodule対応を照合済み。現接続device、各経路の現在model/MCP/権限を確定し、PMの準備受領後に未実測範囲を続行する。 専用IDEの正規SDK設定UIで参照先を揃え、Sync後保持とMissing system image解消を先に確認する。local.properties書換えだけではIDEに再生成された。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
@@ -526,7 +535,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
         "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038",
+        "docs/research/issue-457-common-preparation.md",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
       ]
     },
     {
@@ -968,7 +980,7 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。",
+      "next_action": "次GUI担当が新queue/leaseで保存済み公式Stdioの有効化・Agent経由のMCP readを確認し、本Caseを実測する。C-C01単回観測とHTTP/SSEのroot URI errorを区別する。 #457共通準備で固定source/4 APK/ロードJAR・I150 Red/Blueのmodule対応を照合済み。現接続device、各経路の現在model/MCP/権限を確定し、PMの準備受領後に未実測範囲を続行する。 専用IDEの正規SDK設定UIで参照先を揃え、Sync後保持とMissing system image解消を先に確認する。local.properties書換えだけではIDEに再生成された。",
       "fix_issue": null,
       "fix_pr": null,
       "main_eligible": false,
@@ -996,7 +1008,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
+        "docs/research/issue-457-common-preparation.md",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854529573",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408"
       ]
     },
     {
