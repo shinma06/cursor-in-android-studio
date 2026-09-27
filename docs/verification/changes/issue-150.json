@@ -448,14 +448,14 @@
       ],
       "expected": "module/相対file/範囲/未保存Documentを正確に識別。diskの旧値やBlueと混同しない。保存せず復元し後続を汚さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -478,7 +478,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846203318",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846466736",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -492,14 +495,14 @@
       ],
       "expected": "IDE選択module/Variant/device、実application ID、実行device、execution IDの対応一致。候補一覧と選択値を混同しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -520,7 +523,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -534,14 +540,14 @@
       ],
       "expected": "古い結果を新対象へ貼らない。sync中はstale/更新中を明示し、完了後に新しい世代へ一致",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -562,7 +568,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -576,14 +585,14 @@
       ],
       "expected": "sync失敗を空module/成功扱いにしない。旧modelなら古い旨を表示。復旧を認識。他project/ユーザー設定は編集しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -604,7 +613,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -618,14 +630,14 @@
       ],
       "expected": "build失敗・起動成功・runtime crashを区別。失敗した実行から別run/deviceの成功を返さず、対象に属するerrorだけ表示",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -646,7 +658,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -660,14 +675,14 @@
       ],
       "expected": "offline/disconnectedを日本語で明示。D2へ自動転送しない。再接続後にdevice/process同一性を取り直す",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -688,7 +703,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -702,14 +720,14 @@
       ],
       "expected": "device/package/PID/runNonce/起動区間で限定。直近5秒/100件/32 KiBを検査。他app/deviceと旧processの履歴を返さない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -730,7 +748,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -744,14 +765,14 @@
       ],
       "expected": "PID一致だけで古い実行へ結合しない。これはPID再利用の境界fixtureであり、OSの実PID再利用を実測した扱いにはしない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -772,7 +793,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -786,14 +810,14 @@
       ],
       "expected": "明示session/execution IDを使う。suspended時だけ値取得、resume後はframe失効。releaseはdebug不可を明示。既存Debugger MCPの能力も測る",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -814,7 +838,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
@@ -828,14 +855,14 @@
       ],
       "expected": "期限/取消/打切りが明示され、古い結果・購読が残らない。他session/processは停止しない。上限を超えるログ/変数は公開しない",
       "recheck": "構成不能は組合せと次担当をblockedに記録。製品failは専用修正Issue/PRと新候補で再確認。候補変更時は全経路を再照合する。",
-      "next_action": "#440でACP接続準備の終了不確定を切り分け、固定buildの正常終了とMCP同条件を確認して正式Caseへ戻す。",
+      "next_action": "PM/指定GUI担当が#440の終了契約と固定build再確認、A/B/Cのmodel/MCP構成差を解消・明記して正式Caseへ戻す。#447の会話再表示/非永続化境界・REJECT未実施は別追跡。run25の疎通成功をCase passへ転用せず、終了不確定後は自動再送しない。",
       "fix_issue": 440,
       "fix_pr": null,
       "main_eligible": false,
       "gpt": {
         "actor": "gpt",
         "status": "blocked",
-        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。"
+        "reason": "2026-09-26 run07: Aと同じ管理CLIへの設定保存、ACP切替、composer-2.5[fast=true]と接続確認の回答を取得。ただしUI約14秒で実行終了不確定、保存turnもfailed。再送なし。原因は#440で調査し、正式Case本体は未実施のblocked。MCP同条件も未確認。 2026-09-27 run25: #449固定buildで対象表示とAllow once1回、実get_project_modules返却9件と回答一致をprovider sessionで確認。UIのtool詳細本文は提供なし。schema lookupは別途1回。送信から約57秒・許可から約14秒で#440終了不確定が再現し再送なし。正式Caseは未実施でblockedを保持。Aとtool/projectPathは照合したがserver表示名・配置build・観測方法に差があり、三経路同条件比較の成功ではない。"
       },
       "human": {
         "actor": "human",
@@ -856,7 +883,10 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845915201",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5845952081",
         "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846021374",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846989864",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5853640982",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853650895",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/447#issuecomment-5853651038"
       ]
     },
     {
