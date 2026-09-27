@@ -1,5 +1,8 @@
 package com.cursoragent.acp
 
+import com.cursoragent.acp.AcpPrivateDiagnostics.Category
+import com.cursoragent.acp.AcpPrivateDiagnostics.ResultStage
+import com.cursoragent.acp.AcpPrivateDiagnostics.Site
 import com.cursoragent.service.AgentAnswer
 import com.cursoragent.service.AgentEvent
 import com.cursoragent.service.AgentInputRequest
@@ -23,7 +26,7 @@ internal class AcpSession(
     private val onUncertain: () -> Unit,
     private val cancelTimeoutSeconds: Long = 10,
     private val onDiagnostic: (String) -> Unit = {},
-    private val onPrivateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?) -> Unit)? = null,
+    private val onPrivateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?, AcpPrivateDiagnostics.Failure?) -> Unit)? = null,
 ) : AutoCloseable {
     private val lock = Any()
     private val connectionLock = Any()
@@ -82,6 +85,8 @@ internal class AcpSession(
 
     private class Active(val turn: PreparedAgentTurn) {
         val diagnosticId = java.util.UUID.randomUUID()
+        val failureRecorded = java.util.concurrent.atomic.AtomicBoolean()
+        @Volatile var resultStage = ResultStage.NOT_RECEIVED
         @Volatile var phase = "preparing"
         @Volatile var promptSent = false
         @Volatile var terminal = false
@@ -103,6 +108,7 @@ internal class AcpSession(
             active = current
         }
         turn.run.attachCancellation { cancel(current) }
+        var failureSite = Site.PROMPT_REQUEST
         try {
             validateSettings(turn.settings, turn.workspace.mode)
             if (!turn.run.isActive) return
@@ -141,6 +147,7 @@ internal class AcpSession(
                         turn.run.emit { it.onStarted(); it.onSessionUpdated(sessionId, null) }
                     }
                 }) { result ->
+                    current.resultStage = ResultStage.STOP_REASON
                     val reason = result.asJsonObject.requiredString("stopReason")
                     val outcome = when (reason) {
                         "end_turn" -> AgentTurnOutcome.COMPLETED
@@ -150,15 +157,19 @@ internal class AcpSession(
                         "cancelled" -> AgentTurnOutcome.CANCELLED
                         else -> throw AcpException("ACPの終了理由を確認できません")
                     }
+                    current.resultStage = ResultStage.TOOL_STATE
                     synchronized(lock) {
                         if (protocol.hasBackgroundTasks || reason != "cancelled" && protocol.hasUnfinishedTools) throw AcpException("ACPツールの停止を確認できません")
                         current.outcome = outcome
                         current.terminal = true
+                        current.resultStage = ResultStage.ACCEPTED
                     }
                 }
             }
             while (true) {
+                failureSite = Site.PROCESS_SAMPLE
                 processTree!!.sample()
+                failureSite = Site.PROMPT_RESPONSE
                 try {
                     response.get(25, TimeUnit.MILLISECONDS)
                     break
@@ -166,6 +177,7 @@ internal class AcpSession(
                     // Continue observing descendants while the reader receives frames independently.
                 }
             }
+            failureSite = Site.CHILD_EXIT
             current.phase = "await-child-exit"
             processTree!!.awaitQuiet(cancelTimeoutSeconds) { !connection.isClosed && !disconnected }
             current.quiescent = true
@@ -174,6 +186,7 @@ internal class AcpSession(
         } catch (failure: Exception) {
             val cause = failure.cause ?: failure
             if (current.promptSent && !current.quiescent) {
+                privateFailure(current, failureSite, cause)
                 diagnose(current, "turn-failure")
                 uncertain(current)
             }
@@ -216,6 +229,7 @@ internal class AcpSession(
             publishImageSupport(null)
             publishCommands(com.cursoragent.service.CommandCatalog.Failed)
             active?.takeIf { it.promptSent && !it.quiescent }?.let {
+                privateFailure(it, Site.CONNECTION_CLOSED)
                 diagnose(it, "connection-closed", reason)
                 uncertain(it)
             }
@@ -363,6 +377,7 @@ internal class AcpSession(
         rpc?.notify("session/cancel", sessionParams())
         CompletableFuture.delayedExecutor(cancelTimeoutSeconds, TimeUnit.SECONDS).execute {
             if (active === current && !current.terminal) {
+                privateFailure(current, Site.CANCEL_TIMEOUT)
                 diagnose(current, "cancel-timeout")
                 uncertain(current)
                 disconnect()
@@ -373,7 +388,29 @@ internal class AcpSession(
     private fun cancelRequests() = requests.toList().forEach { it.answer(AgentAnswer.Cancel) }
 
     private fun privateDiagnostic(trace: java.util.UUID? = null) {
-        runCatching { diagnosticProcess?.let { (pid, started) -> onPrivateDiagnostic?.invoke(pid, started, trace) } }
+        runCatching { diagnosticProcess?.let { (pid, started) -> onPrivateDiagnostic?.invoke(pid, started, trace, null) } }
+    }
+
+    /** First observer wins; transport/turn failures may race. Never expose Throwable text or class names. */
+    private fun privateFailure(current: Active, site: Site, cause: Throwable? = null) {
+        if (onPrivateDiagnostic == null || !current.failureRecorded.compareAndSet(false, true)) return
+        runCatching {
+            val (pid, started) = diagnosticProcess ?: return
+            val category = when (cause) {
+                null -> Category.NONE
+                is AcpException -> Category.ACP
+                is InterruptedException -> Category.INTERRUPTED
+                is java.util.concurrent.CancellationException -> Category.CANCELLED
+                is java.io.IOException -> Category.IO
+                is SecurityException -> Category.SECURITY
+                is IllegalArgumentException -> Category.INVALID_ARGUMENT
+                is IllegalStateException -> Category.INVALID_STATE
+                else -> Category.OTHER
+            }
+            val failure = AcpPrivateDiagnostics.Failure(site, category, current.resultStage, current.terminal,
+                runCatching { processTree?.diagnosticChildren() }.getOrNull())
+            onPrivateDiagnostic?.invoke(pid, started, current.diagnosticId, failure)
+        } // A failed private snapshot/sink cannot change uncertainty, cleanup or restoration.
     }
 
     /** Only local state and AcpJsonRpc's fixed client messages; never provider payloads or exception text. */

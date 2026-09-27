@@ -65,7 +65,7 @@
         "新会話に合成promptを1回だけ送信し、prompt-dispatch JSONの同じPID/開始時刻とtraceを通常の終了診断へ対応付ける。本文/raw wire/provider IDが記録されていないことを確認する。",
         "通常ログにPID/tab/conversationの追加がないこと、privateファイル0600、最大128記録試行、property無指定では新規記録がないことを確認する。採取後は所有process停止とfixture復元、property除去・private証拠保全を確認する。"
       ],
-      "expected": "送信前からB会話とACP親を対応付け、送信traceを既存終了診断へ結べる。private項目は時刻・event・ローカルUUID・PID・開始時刻のみ。記録不能や開始時刻nullを対応確定に使わず、既存終了/Stop/再送・復元の判定を変えない。",
+      "expected": "送信前からB会話とACP親を対応付け、送信traceを既存終了診断へ結べる。process-started/prompt-dispatchの項目は時刻・event・ローカルUUID・PID・開始時刻のみ。失敗時の追加項目はACP-PRIVATE-FIRST-FAILUREで確認する。記録不能や開始時刻nullを対応確定に使わず、既存終了/Stop/再送・復元の判定を変えない。",
       "history": [],
       "fix_issue": null,
       "fix_pr": null,
@@ -92,6 +92,51 @@
         "actor": "human",
         "status": "pending",
         "reason": "新しいprivate相関診断buildの人間による実IDE検証は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "ACP-PRIVATE-FIRST-FAILURE",
+      "issue": 440,
+      "change": "最初の失敗段階と保持子孫を非公開traceで照合する",
+      "preconditions": "固定診断ZIP/loaded identity、専用IDE/fixture/GUI lease。専用IDEのJVM property cursor.agent.acp.privateDiagnosticsDir に、事前作成したPOSIX 0700のprivate絶対directoryを指定。共有folderへ保存しない。",
+      "steps": [
+        "固定buildの新規ACP会話で既知の失敗条件を予算内1回だけ観測し、再送せずfirst-failureとprompt-dispatchのtrace・親PID/開始時刻を対応付ける。",
+        "site/category/resultStage/terminalと保持子孫のPID/開始時刻/alive/parentをprivateなOS時系列へ照合する。null・PID再利用・採取時刻の差を区別し、個体不明を推測で補わない。",
+        "raw例外文/command/wire/provider情報がないこと、通常ログ不変、0700/0600と128記録上限、終了不確定時の再送/復元拒否を確認する。所有process停止・fixture復元・lease解放後に#440/#150/#152へ非機密結果を記録する。"
+      ],
+      "expected": "最初に観測した失敗を1 turn最大1回、保持中512子孫以内でprivate記録する。採取不能はnull、未観測や正常終了と同一視しない。記録失敗でも終了保護・timeout・再送/復元挙動を変えない。並行observerの記録順だけで根本原因を確定しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "この診断は原因採取用。原因確定後の最小修正と同一固定build再試験は#440で継続し、#150比較/#152全受入/mainと分ける。",
+      "next_action": "独立レビュー済みの新固定ZIPをPMが指定operatorへ割り当て、予算・lease付きで実測する。正常回は未再現として扱う。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/440",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/150#issuecomment-5846971572",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回の失敗snapshot追加buildは実IDE未検証。旧run17の失敗と未解明状態を保持。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回の失敗snapshot追加buildは実IDE未検証。旧run17の失敗と未解明状態を保持。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,

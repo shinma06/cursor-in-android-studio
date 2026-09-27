@@ -1,5 +1,6 @@
 package com.cursoragent.acp
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -20,21 +21,32 @@ internal object AcpPrivateDiagnostics {
     private val filePermissions = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
     private var attempts = 0
 
-    fun forConversation(tabId: String, conversationId: String?): ((Long, Instant?, UUID?) -> Unit)? = runCatching {
+    enum class Site { PROMPT_REQUEST, PROCESS_SAMPLE, PROMPT_RESPONSE, CHILD_EXIT, CONNECTION_CLOSED, CANCEL_TIMEOUT }
+    enum class ResultStage { NOT_RECEIVED, STOP_REASON, TOOL_STATE, ACCEPTED }
+    enum class Category { NONE, ACP, INTERRUPTED, CANCELLED, IO, SECURITY, INVALID_ARGUMENT, INVALID_STATE, OTHER }
+    data class Failure(
+        val site: Site,
+        val category: Category,
+        val resultStage: ResultStage,
+        val terminal: Boolean,
+        val children: List<AcpProcessTree.DiagnosticChild>?,
+    )
+
+    fun forConversation(tabId: String, conversationId: String?): ((Long, Instant?, UUID?, Failure?) -> Unit)? = runCatching {
         val directory = System.getProperty(DIRECTORY_PROPERTY)?.takeIf { it.isNotBlank() } ?: return null
         val tab = UUID.fromString(tabId)
         val conversation = UUID.fromString(conversationId ?: return null)
         val path = Path.of(directory)
         if (!path.isAbsolute) return null
-        val callback: (Long, Instant?, UUID?) -> Unit = { pid, started, trace ->
-            record(path, tab, conversation, pid, started, trace)
+        val callback: (Long, Instant?, UUID?, Failure?) -> Unit = { pid, started, trace, failure ->
+            record(path, tab, conversation, pid, started, trace, failure)
         }
         callback
     }.getOrNull()
 
-    // ponytail: at most 128 small records per IDE lifetime; restart a dedicated diagnostic IDE for more.
+    // ponytail: at most 128 bounded records per IDE lifetime; restart a dedicated diagnostic IDE for more.
     @Synchronized
-    private fun record(directory: Path, tab: UUID, conversation: UUID, pid: Long, started: Instant?, trace: UUID?) {
+    private fun record(directory: Path, tab: UUID, conversation: UUID, pid: Long, started: Instant?, trace: UUID?, failure: Failure?) {
         if (attempts >= 128) return
         attempts++
         runCatching {
@@ -42,12 +54,29 @@ internal object AcpPrivateDiagnostics {
             if (!attributes.isDirectory || attributes.permissions() != directoryPermissions) return
             val record = JsonObject().apply {
                 addProperty("at", Instant.now().toString())
-                addProperty("event", if (trace == null) "process-started" else "prompt-dispatch")
+                addProperty("event", if (failure != null) "first-failure" else if (trace == null) "process-started" else "prompt-dispatch")
                 addProperty("tab", tab.toString())
                 addProperty("conversation", conversation.toString())
                 addProperty("pid", pid)
                 addProperty("processStartedAt", started?.toString())
                 addProperty("trace", trace?.toString())
+                if (failure != null) {
+                    addProperty("site", failure.site.name)
+                    addProperty("category", failure.category.name)
+                    addProperty("resultStage", failure.resultStage.name)
+                    addProperty("terminal", failure.terminal)
+                    add("children", failure.children?.let { children ->
+                        JsonArray().apply {
+                            children.forEach { child -> add(JsonObject().apply {
+                                addProperty("pid", child.pid)
+                                addProperty("processStartedAt", child.started.toString())
+                                addProperty("alive", child.alive)
+                                addProperty("parentPid", child.parentPid)
+                                addProperty("parentStartedAt", child.parentStarted?.toString())
+                            }) }
+                        }
+                    })
+                }
             }
             val bytes = ByteBuffer.wrap((record.toString() + "\n").toByteArray(Charsets.UTF_8))
             // CREATE_NEW refuses existing files/symlinks; permissions apply atomically at creation.

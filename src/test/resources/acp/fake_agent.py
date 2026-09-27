@@ -170,6 +170,8 @@ for line in sys.stdin:
         pending = None
         if scenario == "eof":
             sys.exit(0)
+        elif scenario == "bad-stop-reason":
+            finish("synthetic-provider-secret")
         elif scenario == "prompt-error":
             send({"id": prompt_id, "error": {"code": -32000, "message": f"synthetic-provider-secret {root} session-one", "data": request["params"]}})
         elif scenario in ("cancel", "child"):
