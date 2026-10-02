@@ -26,9 +26,14 @@ class AgentTurnListenerFactory(
     private val chatHistoryState: ChatHistoryState,
     private val onRunFinished: () -> Unit,
 ) {
-    fun create(userText: String, usageTicket: Long): AgentProcessListener {
+    fun create(userText: String, usageTicket: Long, isCurrent: () -> Boolean): AgentProcessListener {
         var assistantStarted = false
         val assistantDeduper = AssistantChunkDeduper()
+
+        fun runOnEdt(block: () -> Unit) {
+            val update = { if (!project.isDisposed && isCurrent()) block() }
+            if (SwingUtilities.isEventDispatchThread()) update() else SwingUtilities.invokeLater(update)
+        }
 
         return object : AgentProcessListener {
             override fun onAssistantDelta(text: String) {
@@ -154,9 +159,5 @@ class AgentTurnListenerFactory(
                 }
             }
         }
-    }
-
-    private fun runOnEdt(block: () -> Unit) {
-        if (SwingUtilities.isEventDispatchThread()) block() else SwingUtilities.invokeLater(block)
     }
 }

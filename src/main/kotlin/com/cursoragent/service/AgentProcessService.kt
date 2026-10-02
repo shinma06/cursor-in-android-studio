@@ -38,22 +38,25 @@ interface AgentProcessListener {
 @Service(Service.Level.PROJECT)
 class AgentProcessService(private val project: Project) : Disposable {
     private val LOG = logger<AgentProcessService>()
-    private val activeHandler = AtomicReference<OSProcessHandler?>(null)
+    private val activeRun = AtomicReference<AgentRun?>(null)
+    @Volatile
     private var chatId: String? = null
 
-    fun sendPrompt(prompt: String, listener: AgentProcessListener) {
-        if (prompt.isBlank()) return
+    fun prepareRun(listener: AgentProcessListener): AgentRun = AgentRun(listener).also {
+        activeRun.getAndSet(it)?.stop()
+    }
 
-        killActiveProcess()
+    fun sendPrompt(prompt: String, run: AgentRun) {
+        if (prompt.isBlank() || project.isDisposed || !run.isActive) return
 
         val settings = AgentSettingsState.getInstance()
         val workspace = project.basePath
         if (workspace.isNullOrBlank()) {
-            listener.onError("プロジェクトルートが取得できません")
+            run.complete(-1, "プロジェクトルートが取得できません")
             return
         }
 
-        listener.onUserMessage(prompt)
+        run.emit { it.onUserMessage(prompt) }
 
         val commandLine = buildCommandLine(prompt, workspace, settings)
         LOG.info("Starting agent: ${commandLine.commandLineString}")
@@ -66,45 +69,54 @@ class AgentProcessService(private val project: Project) : Disposable {
             // out of an IDE action handler as a raw platform exception instead of
             // going through the plugin's own error UI.
             LOG.warn("Failed to start agent process", e)
-            listener.onError("cursor-agent CLIの起動に失敗しました: ${e.message}")
+            run.complete(-1, "cursor-agent CLIの起動に失敗しました: ${e.message}")
             return
         }
-        activeHandler.set(handler)
+        run.attachProcess({
+            try {
+                handler.destroyProcess()
+            } finally {
+                // Also cover cancellation before startNotify/listener setup succeeds.
+                handler.process.destroy()
+            }
+        }) { !handler.process.isAlive }
 
         val parser = StreamJsonParser { event ->
-            when (event) {
-                is StreamEvent.SessionInit -> {
-                    chatId = event.sessionId ?: chatId
-                    listener.onSessionUpdated(chatId, event.model)
-                }
-
-                is StreamEvent.AssistantDelta -> {
-                    if (event.text.isNotEmpty()) listener.onAssistantDelta(event.text)
-                }
-
-                is StreamEvent.ThinkingDelta -> {
-                    if (event.text.isNotBlank()) listener.onThinking(event.text.trim())
-                }
-
-                is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
-
-                is StreamEvent.ToolCallStarted -> listener.onToolCallStarted(event.payload)
-
-                is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
-
-                is StreamEvent.Result -> {
-                    listener.onTokenUsage(event.usage)
-                    chatId = event.sessionId ?: chatId
-                    listener.onSessionUpdated(chatId, event.model)
-                    if (event.isError) {
-                        listener.onError(event.result ?: "Agent returned an error")
-                    } else if (!event.result.isNullOrBlank()) {
-                        listener.onResultFallback(event.result)
+            run.emit { listener ->
+                when (event) {
+                    is StreamEvent.SessionInit -> {
+                        chatId = event.sessionId ?: chatId
+                        listener.onSessionUpdated(chatId, event.model)
                     }
-                }
 
-                is StreamEvent.Unknown -> {
-                    LOG.debug("Unknown stream event: ${event.type}")
+                    is StreamEvent.AssistantDelta -> {
+                        if (event.text.isNotEmpty()) listener.onAssistantDelta(event.text)
+                    }
+
+                    is StreamEvent.ThinkingDelta -> {
+                        if (event.text.isNotBlank()) listener.onThinking(event.text.trim())
+                    }
+
+                    is StreamEvent.ToolCall -> listener.onToolCall(event.toolName)
+
+                    is StreamEvent.ToolCallStarted -> listener.onToolCallStarted(event.payload)
+
+                    is StreamEvent.ToolCallCompleted -> listener.onToolCallCompleted(event.payload)
+
+                    is StreamEvent.Result -> {
+                        listener.onTokenUsage(event.usage)
+                        chatId = event.sessionId ?: chatId
+                        listener.onSessionUpdated(chatId, event.model)
+                        if (event.isError) {
+                            listener.onError(event.result ?: "Agent returned an error")
+                        } else if (!event.result.isNullOrBlank()) {
+                            listener.onResultFallback(event.result)
+                        }
+                    }
+
+                    is StreamEvent.Unknown -> {
+                        LOG.debug("Unknown stream event: ${event.type}")
+                    }
                 }
             }
         }
@@ -125,12 +137,12 @@ class AgentProcessService(private val project: Project) : Disposable {
             }
 
             override fun processTerminated(event: ProcessEvent) {
-                activeHandler.compareAndSet(handler, null)
                 val errorOutput = stderr.toString().trim()
                 if (event.exitCode != 0 && errorOutput.isNotBlank()) {
-                    listener.onError(errorOutput)
+                    run.emit { it.onError(errorOutput) }
                 }
-                listener.onCompleted(event.exitCode)
+                run.complete(event.exitCode)
+                activeRun.compareAndSet(run, null)
             }
         })
 
@@ -140,6 +152,7 @@ class AgentProcessService(private val project: Project) : Disposable {
     fun currentChatId(): String? = chatId
 
     fun resumeChat(id: String) {
+        killActiveProcess()
         chatId = id
     }
 
@@ -188,7 +201,7 @@ class AgentProcessService(private val project: Project) : Disposable {
     }
 
     fun killActiveProcess() {
-        activeHandler.getAndSet(null)?.destroyProcess()
+        activeRun.getAndSet(null)?.stop()
     }
 
     override fun dispose() {
