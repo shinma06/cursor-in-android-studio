@@ -21,6 +21,7 @@ import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.vfs.newvfs.ManagingFS
 import javax.swing.SwingUtilities
 
 class AgentUiController(
@@ -460,6 +461,9 @@ class AgentUiController(
             ApplicationManager.getApplication().executeOnPooledThread {
                 try {
                     if (!run.isActive) return@executeOnPooledThread
+                    // Rabbit editor saves may still be pending on disk when Git/CLI preparation starts.
+                    ManagingFS.getInstance().flushPendingUpdates()
+                    if (!run.isActive) return@executeOnPooledThread
                     val imagePayload = sentImage?.let { com.cursoragent.ui.composer.image.ValidatedImage(it.bytes(), it.width, it.height) }
                     imagePayload?.thumbnail()?.let { thumbnail ->
                         runOnEdt {
@@ -537,6 +541,8 @@ class AgentUiController(
         composer.setInputEnabled(false)
         ApplicationManager.getApplication().executeOnPooledThread {
             val result = try {
+                // Finish pending editor writes before Git replaces files on disk.
+                ManagingFS.getInstance().flushPendingUpdates()
                 checkpointService.restoreResult(checkpointId)
             } catch (_: Exception) {
                 RestoreResult(RestorePolicy.RESTORE_FAILED)

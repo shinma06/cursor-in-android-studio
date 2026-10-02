@@ -20,6 +20,9 @@ class BrowserRecoveryPanelTest {
             assertEquals(listOf("settings"), actions)
             buttons.last().doClick(0)
             assertEquals(listOf("settings", "help"), actions)
+            panel.dispose()
+            buttons.forEach { it.doClick(0) }
+            assertEquals(listOf("settings", "help"), actions)
         }
     }
 

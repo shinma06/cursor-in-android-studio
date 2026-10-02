@@ -31,7 +31,7 @@ python3 scripts/loop/loop.py prepare 20260906-issue20-r1 --issue 20 --case plugi
 [現行build手順](../../CLAUDE.md#開発検証の入口)に従います。製品GUI QAでは先にソースをcommitし、作業ツリーをcleanにする。新規変更が無関係でcommitできない場合は別のclean checkoutでビルドする。未コミット変更がある試運転は可能だが製品QA完了には使わない。
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
+export JAVA_HOME="$(/usr/libexec/java_home -F -v 25)"
 python3 scripts/loop/loop.py build .loop-runs/20260906-issue20-r1
 ```
 

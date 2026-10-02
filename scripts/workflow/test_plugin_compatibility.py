@@ -12,7 +12,7 @@ import plugin_compatibility as pc
 class CompatibilityTest(unittest.TestCase):
     def test_verification_cannot_pass_incomplete_or_unreviewed_reports(self):
         policy = json.loads(pc.POLICY.read_text())
-        target = policy['targets']['quail1']
+        target = policy['targets']['rabbit1']
         manifest = {'identity': {'plugin.version': '1.0.0', 'classes': 427}}
         log = 'Scheduled verifications (1):\nFinished 1 of 1 verifications'
         with tempfile.TemporaryDirectory() as temp:
@@ -21,7 +21,7 @@ class CompatibilityTest(unittest.TestCase):
             directory.mkdir(parents=True)
             files = {'verification-verdict.txt': 'Compatible.',
                      'telemetry.txt': 'Verified classes in plugin artifact: 427\n',
-                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\n'}
+                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\n+--- com.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n'}
             for name, text in files.items():
                 (directory / name).write_text(text)
             self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verified_classes'], 427)
@@ -36,6 +36,7 @@ class CompatibilityTest(unittest.TestCase):
             for name, text in [('verification-verdict.txt', ''), ('verification-verdict.txt', 'Unavailable'),
                                ('verification-verdict.txt', 'Compatible. Unknown result.'),
                                ('telemetry.txt', 'Verified classes in plugin artifact: 0\n'),
+                               ('dependencies.txt', pc.PLUGIN_ID + ':1.0.0\n'),
                                ('dependencies.txt', 'other-plugin:1.0.0\n'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) missing: not resolved'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) unknown (optional): not resolved')]:
@@ -46,6 +47,7 @@ class CompatibilityTest(unittest.TestCase):
                     (directory / name).write_text(files[name])
             allowed = copy.deepcopy(policy)
             allowed['optional_absences'] = {'known': 'reviewed optional dependency'}
+            allowed['optional_absence_builds'] = [target['build']]
             (directory / 'dependencies.txt').write_text(files['dependencies.txt'] + '+--- (failed) known (optional): not resolved')
             pc.check_reports(reports, log, target, manifest, allowed)
             allowed['optional_absence_builds'] = ['AI-future-build']
@@ -70,7 +72,44 @@ class CompatibilityTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     pc.check_reports(reports, bad_log, target, manifest, policy)
             with self.assertRaises(ValueError):
-                pc.check_reports(reports, log, policy['targets']['quail4'], manifest, policy)
+                pc.check_reports(reports, log, dict(target, build='AI-wrong-build'), manifest, policy)
+            warning = 'reviewed first line\nreviewed second line'
+            allowed = copy.deepcopy(policy)
+            allowed['reviewed_log_warnings'] = {pc.hashlib.sha256(warning.encode()).hexdigest(): 'reviewed'}
+            warning_log = log + '\n2026-10-02T00:00:00 [main] WARN logger - ' + warning
+            pc.check_reports(reports, warning_log, target, manifest, allowed)
+            with self.assertRaisesRegex(ValueError, 'Unreviewed Verifier warning'):
+                pc.check_reports(reports, warning_log + '\nnew unreviewed detail', target, manifest, allowed)
+
+    def test_seal_rejects_old_sdk_target_bytecode_or_metadata(self):
+        policy = json.loads(pc.POLICY.read_text())
+        source = 'a' * 40
+        identity = {'source.commit': source, 'source.state': 'clean',
+                    'sdk.build': policy['targets']['rabbit1']['build'], 'jvm.target': '25',
+                    'classes': 1, 'class.major.versions': [69],
+                    'since.build': '262.9437.185', 'until.build': '262.*'}
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / 'plugin.zip'
+            archive.write_bytes(b'archive')
+            with patch.object(pc, 'plugin_identity', return_value=identity):
+                self.assertEqual(pc.seal(archive, source, policy)['identity'], identity)
+            for key, value in [('sdk.build', 'AI-261.23567.138.2611.15503007'),
+                               ('jvm.target', '21'), ('class.major.versions', [65]),
+                               ('class.major.versions', [65, 69]), ('since.build', '261.23567.138'),
+                               ('until.build', '263.*'), ('source.state', 'dirty')]:
+                with self.subTest(key=key, value=value), patch.object(pc, 'plugin_identity', return_value=dict(identity, **{key: value})):
+                    with self.assertRaises(ValueError):
+                        pc.seal(archive, source, policy)
+
+    def test_cached_dependency_checksum_is_not_bypassed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / 'jcef.zip'
+            archive.write_bytes(b'fixed')
+            target = {'url': 'https://example.invalid/never-fetched', 'sha256': pc.digest(archive)}
+            pc.download_verified(target, archive)
+            archive.write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                pc.download_verified(target, archive)
 
     def test_same_archive_and_identity_are_checked_before_and_after_verification(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(pc, 'plugin_identity', return_value={'source.commit': 'abc'}):
@@ -87,7 +126,7 @@ class CompatibilityTest(unittest.TestCase):
                 pc.check_archive(archive, manifest, manifest['sha256'])
 
     def test_sdk_mismatch_or_missing_bundled_runtime_has_no_fallback(self):
-        target = json.loads(pc.POLICY.read_text())['targets']['quail1']
+        target = json.loads(pc.POLICY.read_text())['targets']['rabbit1']
         with tempfile.TemporaryDirectory() as temp:
             sdk = Path(temp)
             info = {'productCode': 'AI', 'buildNumber': 'wrong', 'version': 'wrong'}

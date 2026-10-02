@@ -1,4 +1,4 @@
 <idea-plugin>
-    <!-- The IDE owns JCEF APIs and native provider discovery. No provider classes or
-         native binaries are bundled here; ManualBrowserPanel checks isSupported(). -->
+    <!-- JCEF owns both APIs and native provider discovery in Rabbit. Keep recovery
+         registered unconditionally; the product ZIP never contains provider binaries. -->
 </idea-plugin>

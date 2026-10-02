@@ -1,6 +1,7 @@
 package com.cursoragent.ui.browser
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -36,10 +37,22 @@ class ManualBrowser : ToolWindowFactory, DumbAware {
         }
 
         private fun addBrowser(project: Project, window: ToolWindow) {
-            val panel = ManualBrowserPanel(project)
-            val content = ContentFactory.getInstance().createContent(panel, "Browser", false)
-            content.setDisposer(panel)
-            content.preferredFocusableComponent = panel.preferredFocusableComponent
+            // Rabbit can omit the JCEF API classes themselves. Catch loading failures
+            // before entering ManualBrowserPanel, whose field/method types reference them.
+            val content = try {
+                val panel = ManualBrowserPanel(project)
+                ContentFactory.getInstance().createContent(panel, "Browser", false).apply {
+                    setDisposer(panel)
+                    preferredFocusableComponent = panel.preferredFocusableComponent
+                }
+            } catch (error: LinkageError) {
+                Logger.getInstance(ManualBrowser::class.java).warn("Manual JCEF browser API unavailable", error)
+                val panel = BrowserRecoveryPanel.forProject(project)
+                ContentFactory.getInstance().createContent(panel, "Browser", false).apply {
+                    setDisposer(panel)
+                    preferredFocusableComponent = panel.settingsButton
+                }
+            }
             window.contentManager.addContent(content)
         }
     }

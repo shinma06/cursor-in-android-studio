@@ -72,4 +72,4 @@ skip時はReleaseやassetを変更せず、古いZIPへ新HEADの名前を付け
 
 GitHubの仕様: [required jobを安全にskipする方法](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions)、[workflowのpath filterとPendingの注意](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpull_requestpull_request_targetpathspaths-ignore)、[比較APIの件数制限](https://docs.github.com/en/rest/commits/commits#compare-two-commits)。
 
-正式RCの`release_candidate.py`もBUILD/TOOLINGに分類し、配布入力/公開判定の変更では既存テスト・両IDE CIを実行する。RCの明示buildは差分skip対象外で、正式公開操作自体は自動push処理へ接続しない。
+正式RCの`release_candidate.py`もBUILD/TOOLINGに分類し、配布入力/公開判定の変更では既存テスト・Rabbit CIを実行する。RCの明示buildは差分skip対象外で、正式公開操作自体は自動push処理へ接続しない。

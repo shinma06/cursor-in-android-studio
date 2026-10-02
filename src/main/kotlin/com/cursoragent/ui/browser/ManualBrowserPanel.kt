@@ -1,10 +1,7 @@
 package com.cursoragent.ui.browser
 
-import com.intellij.ide.BrowserUtil
-import com.intellij.ide.plugins.PluginManagerConfigurable
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBTextArea
@@ -93,18 +90,8 @@ internal class ManualBrowserPanel(private val project: Project) : JPanel(BorderL
         status.text = message
         address.isEnabled = false
         go.isEnabled = false
-        val recovery = BrowserRecoveryPanel(
-            onSettings = {
-                if (!disposed && !project.isDisposed) {
-                    ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginManagerConfigurable::class.java)
-                }
-            },
-            onHelp = {
-                if (!disposed && !project.isDisposed) {
-                    BrowserUtil.browse("https://plugins.jetbrains.com/plugin/31360-web-browser-jcef-")
-                }
-            },
-        )
+        val recovery = BrowserRecoveryPanel.forProject(project)
+        Disposer.register(this, recovery)
         preferredFocusableComponent = recovery.settingsButton
         add(recovery, BorderLayout.CENTER)
     }

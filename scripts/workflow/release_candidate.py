@@ -67,7 +67,7 @@ def build(source, version, directory):
     pc.require(not directory.is_relative_to(ROOT), 'Candidate output must be outside the source checkout')
     java = Path(os.environ['JAVA_HOME']) / 'bin/java'
     runtime = subprocess.check_output([str(java), '-version'], stderr=subprocess.STDOUT, text=True).strip()
-    pc.require(java_version(runtime).startswith('21.'), 'Gradle runtime JDK 21 required')
+    pc.require(java_version(runtime).startswith('25.'), 'Gradle runtime JDK 25 required')
     directory.mkdir(parents=True, exist_ok=False)
     args = build_command(version)
     inputs = {'source': source, 'version': version, 'command': args, 'files': source_inputs(source), 'java_version': java_version(runtime)}
@@ -95,7 +95,7 @@ def candidate(directory, expected_hash):
     source = manifest['identity']['source.commit']
     pc.require(re.fullmatch('[0-9a-f]{40}', source), 'Invalid source')
     pc.require(set(inputs) == {'source', 'version', 'command', 'files', 'java_version', 'libraries'}
-               and re.fullmatch(r'21\.[0-9.+-]+', inputs['java_version'])
+               and re.fullmatch(r'25\.[0-9.+-]+', inputs['java_version'])
                and inputs['command'] == build_command(version), 'Invalid public build inputs')
     pc.require(inputs['source'] == source and inputs['version'] == version, 'Candidate inputs differ')
     pc.require(inputs['files'] == source_inputs(source), 'Build input files differ from fixed source')
@@ -112,6 +112,7 @@ def check_evidence(directory, key, manifest, policy, sealed=False):
     result = read(directory / 'result.json')
     pc.require(result['status'] == 'passed' and result['artifact'] == manifest, 'Compatibility receipt does not match ZIP')
     target = policy['targets'][key]
+    pc.require(result['jcef'] == policy['jcef'][result['target']['platform']], 'Wrong JCEF dependency receipt')
     pc.require(result['verifier_version'] == policy['verifier_version'] and
                result['target']['build'] == target['build'] and result['target']['java_version'] == target['java_version'] and
                result['target']['distribution_version'] == target['version'] and
@@ -127,7 +128,7 @@ def check_evidence(directory, key, manifest, policy, sealed=False):
 
 def bundle(directory, expected_hash, evidence):
     manifest, policy = candidate(directory, expected_hash)
-    pc.require(set(evidence) == {'quail1', 'quail4'}, 'Both IDE reports required')
+    pc.require(set(evidence) == set(policy['targets']), 'All target IDE reports required')
     for key, source in evidence.items():
         check_evidence(source, key, manifest, policy)
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
@@ -162,11 +163,11 @@ def bundle(directory, expected_hash, evidence):
 def validate_bundle(directory, expected_hash):
     manifest, policy = candidate(directory, expected_hash)
     expected = {version_name(manifest['identity']['plugin.version']), 'manifest.json', 'inputs.json',
-                'compatibility-quail1.zip', 'compatibility-quail4.zip'}
+                *(f'compatibility-{key}.zip' for key in policy['targets'])}
     hashes = read(directory / 'bundle.json')
     pc.require(set(hashes) == expected, 'Incomplete or unknown candidate assets')
     pc.require(all(pc.digest(directory / name) == value for name, value in hashes.items()), 'Candidate asset changed')
-    for key in ('quail1', 'quail4'):
+    for key in policy['targets']:
         with tempfile.TemporaryDirectory() as temporary, zipfile.ZipFile(directory / f'compatibility-{key}.zip') as archive:
             for info in archive.infolist():
                 path = Path(temporary) / info.filename
@@ -200,7 +201,7 @@ def fetch(tag, expected_hash, directory):
     directory.mkdir(parents=True, exist_ok=False)
     assets = github.pages(f'releases/{release["id"]}/assets')
     names = [a['name'] for a in assets]
-    pc.require(len(names) == 6 and len(set(names)) == 6, 'Unexpected candidate assets')
+    pc.require(len(names) == 5 and len(set(names)) == 5, 'Unexpected candidate assets')
     for asset in assets:
         pc.require(Path(asset['name']).name == asset['name'] and asset['state'] == 'uploaded', 'Invalid asset')
         download_asset(asset, directory / asset['name'])
@@ -306,12 +307,12 @@ def main():
         else:
             s.add_argument('--sha256', required=True)
         if command == 'bundle':
-            s.add_argument('--quail1', type=Path, required=True); s.add_argument('--quail4', type=Path, required=True)
+            s.add_argument('--rabbit1', type=Path, required=True)
         if command == 'fetch': s.add_argument('--tag', required=True)
         if command == 'publish': s.add_argument('--promotion-pr', type=int, required=True)
     args = p.parse_args()
     if args.command == 'build': build(args.source, args.version, args.directory.resolve())
-    elif args.command == 'bundle': bundle(args.directory, args.sha256, {'quail1': args.quail1, 'quail4': args.quail4})
+    elif args.command == 'bundle': bundle(args.directory, args.sha256, {'rabbit1': args.rabbit1})
     elif args.command == 'store': store(args.directory, args.sha256)
     elif args.command == 'fetch': fetch(args.tag, args.sha256, args.directory)
     else: publish(args.directory, args.sha256, args.promotion_pr)

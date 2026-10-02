@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import io
 import json
+import platform
 from pathlib import Path
 import re
 import subprocess
@@ -42,7 +43,14 @@ def plugin_identity(archive):
                 descriptor = ET.fromstring(jar.read('META-INF/plugin.xml'))
                 require(descriptor.findtext('id') == PLUGIN_ID, 'Unexpected plugin ID')
                 require(descriptor.findtext('version') == identity['plugin.version'], 'Descriptor/version mismatch')
-                identity['classes'] = sum(n.endswith('.class') for n in jar.namelist())
+                classes = [jar.read(n) for n in jar.namelist() if n.endswith('.class')]
+                require(all(c[:4] == b'\xca\xfe\xba\xbe' and len(c) >= 8 for c in classes), 'Invalid product bytecode')
+                identity['classes'] = len(classes)
+                identity['class.major.versions'] = sorted({int.from_bytes(c[6:8], 'big') for c in classes})
+                idea = descriptor.find('idea-version')
+                require(idea is not None, 'Missing IDE compatibility metadata')
+                identity['since.build'] = idea.get('since-build')
+                identity['until.build'] = idea.get('until-build')
                 identities.append(identity)
     require(len(identities) == 1, 'Expected exactly one product build identity')
     return identities[0]
@@ -52,8 +60,10 @@ def seal(archive, source, policy):
     identity = plugin_identity(archive)
     require(re.fullmatch('[0-9a-f]{40}', source), 'Invalid source SHA')
     require(identity['source.commit'] == source and identity['source.state'] == 'clean', 'Source must match a clean build')
-    require(identity['sdk.build'] == policy['targets']['quail1']['build'], 'ZIP was not built with oldest SDK')
-    require(identity['jvm.target'] == '21' and identity['classes'] > 0, 'Expected JVM 21 product classes')
+    require(identity['sdk.build'] == policy['targets']['rabbit1']['build'], 'ZIP was not built with oldest SDK')
+    require(identity['jvm.target'] == '25' and identity['classes'] > 0, 'Expected JVM 25 product classes')
+    require(identity['class.major.versions'] == [69], 'Expected Java 25 bytecode (major 69)')
+    require(identity['since.build'] == '262.9437.185' and identity['until.build'] == '262.*', 'Unexpected IDE compatibility range')
     return {'schema': 1, 'sha256': digest(archive), 'size': archive.stat().st_size, 'identity': identity}
 
 
@@ -77,21 +87,27 @@ def sdk_identity(sdk, target):
     require(release['JAVA_VERSION'] == target['java_version'], 'Bundled JBR version mismatch')
     actual = subprocess.check_output([str(runtime / 'bin/java'), '-version'], stderr=subprocess.STDOUT, text=True)
     require(f'"{target["java_version"]}"' in actual, 'Actual JBR differs from its release file')
-    return runtime, {'distribution_version': target['version'], 'product_version': info['version'],
+    os_name = {'Darwin': 'macOS'}.get(platform.system(), platform.system())
+    arch = {'arm64': 'aarch64', 'x86_64': 'amd64'}.get(platform.machine(), platform.machine())
+    require(any(x['os'] == os_name and x['arch'] == arch for x in info['launch']), 'SDK platform differs from verification host')
+    return runtime, {'platform': f'{os_name}-{arch}', 'distribution_version': target['version'], 'product_version': info['version'],
                      'build': build, 'java_version': release['JAVA_VERSION'], 'java_runtime': actual.strip()}
 
 
-def download_sdk(target, directory):
-    # Fixed official archive/checksum. A corrupt cache is an error, never a fallback SDK.
-    directory.mkdir(parents=True, exist_ok=True)
-    archive = directory / 'sdk.tar.gz'
+def download_verified(target, archive):
+    archive.parent.mkdir(parents=True, exist_ok=True)
     if not archive.exists():
-        temporary = directory / 'sdk.download'
+        temporary = archive.with_suffix('.download')
         subprocess.run(['curl', '-fL', '--retry', '3', '--connect-timeout', '30', '--max-time', '600',
                         '-o', str(temporary), target['url']], check=True)
-        require(digest(temporary) == target['sha256'], 'SDK archive checksum mismatch')
+        require(digest(temporary) == target['sha256'], 'Download checksum mismatch')
         temporary.rename(archive)
-    require(digest(archive) == target['sha256'], 'Cached SDK checksum mismatch')
+    require(digest(archive) == target['sha256'], 'Cached download checksum mismatch')
+
+
+def download_sdk(target, directory):
+    archive = directory / 'sdk.tar.gz'
+    download_verified(target, archive)
     subprocess.run(['tar', '-xzf', str(archive), '-C', str(directory)], check=True)
     return directory / 'android-studio'
 
@@ -110,6 +126,8 @@ def check_reports(reports, log, target, manifest, policy):
     require('Scheduled verifications (1):' in log and 'Finished 1 of 1 verifications' in log, 'Verification did not complete once')
     dependencies = (directory / 'dependencies.txt').read_text()
     require(dependencies.splitlines()[0] == f'{PLUGIN_ID}:{version}', 'Wrong dependency report identity')
+    require(any(f'com.intellij.modules.jcef:{provider["version"]}' in dependencies for provider in policy['jcef'].values()),
+            'Pinned JCEF provider was not resolved')
     failures = [line.strip() for line in dependencies.splitlines() if '(failed)' in line or 'not resolved' in line]
     # Optional absences require an explicit, reviewed policy entry; no blanket optional exemption.
     for line in failures:
@@ -130,11 +148,11 @@ def check_reports(reports, log, target, manifest, policy):
         require(expected and digest(report) == expected['sha256'], 'New/unreviewed report: ' + report.name)
         warning_hashes[report.name] = digest(report)
     # The fixed Verifier is intentionally parsed conservatively; new log warnings/errors need review.
-    for line in log.splitlines():
-        if re.search(r'\bERROR\b', line):
-            raise ValueError('Verifier logged an error')
-        if ' WARN ' in line:
-            require(any(line.endswith(marker) for marker in policy['reviewed_log_warnings']), 'Unreviewed Verifier warning')
+    require(not re.search(r'\bERROR\b', log), 'Verifier logged an error')
+    for block in re.findall(r'(?m)^.* WARN [^\n]*(?:\n(?!\d{4}-\d{2}-\d{2}T)[^\n]+)*', log):
+        message = block.split(' - ', 1)[-1]
+        require(hashlib.sha256(message.encode()).hexdigest() in policy['reviewed_log_warnings'],
+                'Unreviewed Verifier warning')
     return {'verdict': verdict, 'verified_classes': int(count[1]), 'optional_absences': failures,
             'reviewed_api_reports': warning_hashes,
             'reports': {str(p.relative_to(reports)): digest(p) for p in sorted(reports.rglob('*.txt'))}}
@@ -149,7 +167,11 @@ def verify(args, policy):
     output.mkdir(parents=True, exist_ok=False)  # Stale reports cannot make a new invocation pass.
     sdk = args.sdk.resolve() if args.sdk else download_sdk(target, args.sdk_cache.resolve())
     runtime, info = sdk_identity(sdk, target)
-    inputs = {'artifact': manifest, 'target': info, 'verifier_version': policy['verifier_version']}
+    jcef = policy['jcef'][info['platform']]
+    # Verifier 1.410 reads this local repository in offline mode. Do not install
+    # anything into the user's SDK or resolve mutable Marketplace dependencies.
+    download_verified(jcef, output / 'verifier-cache/loaded-plugins/jcef.zip')
+    inputs = {'artifact': manifest, 'target': info, 'verifier_version': policy['verifier_version'], 'jcef': jcef}
     (output / 'input.json').write_text(json.dumps(inputs, indent=2) + '\n')
     reports = output / 'reports'
     command = ['./gradlew', 'verifyPlugin', '--console=plain',
@@ -175,7 +197,7 @@ def main():
     seal_parser.add_argument('--source', required=True)
     seal_parser.add_argument('--directory', type=Path, default=ROOT / 'build/distributions')
     check = sub.add_parser('verify')
-    check.add_argument('--target', required=True, choices=('quail1', 'quail4'))
+    check.add_argument('--target', required=True, choices=('rabbit1',))
     check.add_argument('--archive', type=Path, required=True)
     check.add_argument('--manifest', type=Path, required=True)
     check.add_argument('--sha256', required=True)
