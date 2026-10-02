@@ -63,6 +63,7 @@ class AgentUiController(
         preparationGeneration++
         composer.contextUsage.reset()
         agentService.startNewChat()
+        finishRun()
         timeline.clearTimeline()
         header.setSessionStatus("Ready")
     }
@@ -107,10 +108,15 @@ class AgentUiController(
                     agentService.sendPrompt(fullPrompt, listener)
                 }
             } catch (e: ProcessCanceledException) {
+                runOnEdt {
+                    if (!project.isDisposed && generation == preparationGeneration) finishRun()
+                }
                 throw e
             } catch (e: Exception) {
-                if (!project.isDisposed && generation == preparationGeneration) {
-                    listener.onError("保存内容の確認または送信準備に失敗しました")
+                runOnEdt {
+                    if (!project.isDisposed && generation == preparationGeneration) {
+                        listener.onError("保存内容の確認または送信準備に失敗しました")
+                    }
                 }
             }
         }
