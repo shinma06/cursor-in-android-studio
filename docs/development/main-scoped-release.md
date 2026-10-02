@@ -29,3 +29,11 @@ main受入後は既存 `release_candidate.py publish` が同じvalidatorを実�
 ## main候補の警告policy
 
 #409の開発preflight（正式RC前、製品Kotlinはmainと同一）は171クラスで、両SDKともAPI互換性検査が完走した。任意依存はXPathView/Python/IDEA Community/trainingの4件。mainにないJCEF providerの例外は持ち込まない。両SDKで同一の非推奨8利用（うち削除予定1）・experimental 26利用のレポートhashをpolicyへ固定し、internal API例外は追加しない。API分類と限定許容の判断を示す記録であり、正式RC/GUI合格の証拠には転用しない。正式候補では再検査し、差があれば自動許容せず調査する。
+
+## Rabbit / Java 25のmain反映（#470）
+
+[#470](https://github.com/shinma06/cursor-in-android-studio/issues/470)は上記限定経路を再利用する。事前計画は[issue-470.json](../verification/scopes/issue-470.json)。mainのprint構成を保ち、SDK/JVM/ビルド依存、単一RabbitのCIと保存済みVFSのdisk境界だけを対象にする。ACP、会話本文保存、JCEF Browserをこの候補へ追加しない。
+
+移行準備の#471では既存mainのQuail検査を維持し、同じpolicyに次のRabbit計画を別枠で固定する。ZIPのcompile SDKから一致する計画だけを選び、QuailのAPI警告承認をRabbitへ転用しない。#470統合後、旧二端検査と一時的な選択処理をmain tooling PRで除去する。これは切替え中の順序であり、旧JVMを新しい最低対応として継続する方針ではない。
+
+新候補の必要CaseはRabbit/JBR25・Terminal ON/OFFと非同期保存境界の3件。過去の#409やdevelopの#466での結果は転用しない。正式version・Release公開は今回のmain反映とは別の指示を必要とする。既存のscope=main gate、線形候補、候補後の2 JSONだけの更新、独立レビューと4 checksを維持する。
