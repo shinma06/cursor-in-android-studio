@@ -32,11 +32,72 @@
       "disposition": "#409 main由来のTerminal view/outputとToolWindow bridgeの26利用。開発preflightで両IDE同一/実在を確認。既存optional連携とLinkageError防御を維持。正式候補のGUIは4Caseで別途確認する。"
     }
   },
-  "reviewed_log_warnings": [
-    "Layout component 'intellij.cidr.core' has some nonexistent 'classPath' elements: 'plugins/cidr-debugger/lib/modules/intellij.cidr.core.jar'"
-  ],
+  "reviewed_log_warnings": {
+    "99326298d2fd814e87bc669d7cd039e188d48cd59fa9bcbc3b6b9dd446737e0c": "既存Quail配布物で確認済みのlayout警告。#409の根拠を保持。"
+  },
   "optional_absence_builds": [
     "AI-261.23567.138.2611.15503007",
     "AI-261.26222.65.2614.16379836"
-  ]
+  ],
+  "compile": {
+    "target": "quail1",
+    "jvm_target": "21",
+    "class_major": 65,
+    "since_build": "261.23567.138",
+    "until_build": "261.*"
+  },
+  "next_policy": {
+    "verifier_version": "1.410",
+    "targets": {
+      "rabbit1": {
+        "version": "2026.2.1.8",
+        "build": "AI-262.9437.185.2621.16467767",
+        "java_version": "25.0.3",
+        "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.2.1.8/android-studio-rabbit1-linux.tar.gz",
+        "sha256": "f8775c67cf899d9133712a2d7ee3ef7231e07fb16dbe0544c47e5f5babd5931b"
+      }
+    },
+    "optional_absences": {
+      "XPathView": "Rabbit coreのintellij.xml.langInjection.xpathによる任意依存。#470 main由来171クラスのpreflightで全classを検査し、本製品からの直接利用がないことを確認。",
+      "intellij.platform.ide.newUiOnboarding": "固定JCEF providerのintellij.platform.ide.newUiOnboarding.jcefによる任意のIDE導入案内。Rabbit配布物に存在せず、main製品からは参照しない。",
+      "com.intellij.modules.python": "Rabbit同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。main製品の必要APIではない。",
+      "com.intellij.modules.idea.community": "Rabbit同梱Javaのintellij.java.promoによるIDEA Community向けの任意依存。Android Studio固定配布物で不在を確認。",
+      "training": "Rabbit同梱Javaのintellij.java.featuresTrainerによる任意学習機能。main製品の必要APIではない。"
+    },
+    "reviewed_api_reports": {
+      "deprecated-usages.txt": {
+        "sha256": "8d0f44423ed55962b6d355b01d385ebcf2ca8202da86b61f48fa01e1b2f4d921",
+        "disposition": "#470 main由来171クラスのRabbit preflightで8利用（削除予定1）。ファイル選択・ToolWindow bridge・ProcessAdapterはRabbitに実在。旧Quailと同じ利用群をRabbitで再確認し、SDK更新時に置換を再評価する。"
+      },
+      "experimental-api-usages.txt": {
+        "sha256": "07e7685ba22827138a9fd5c92f16f337d1bdc129aa6bebc050dc3b01ecc1af88",
+        "disposition": "#470 mainのRabbit preflightで28利用。既存Terminal/ToolWindow bridge 26件と、非同期保存完了を待つManagingFS.flushPendingUpdates 2件。Terminal optionalと保存境界を3つのGUI Caseで別途確認する。"
+      }
+    },
+    "reviewed_log_warnings": {
+      "a01f13d011f27bd1402e3d3b7e06cc76e9c8f7694e410c3b6324228870aada5d": "Rabbit product-info contains 48 stale module paths: 44 jars are under lib rather than lib/modules, 3 Gradle tooling jars use gradle-tooling-* names, and Kotlin highlighting.minimal is absent. Verified in the pristine default SDK as well as the installed identical full build. No product reference is unresolved; every product class must still pass. Hash the entire multiline warning so new omissions fail."
+    },
+    "optional_absence_builds": [
+      "AI-262.9437.185.2621.16467767"
+    ],
+    "jcef": {
+      "macOS-aarch64": {
+        "version": "262.9437.22-mac-arm64",
+        "url": "https://plugins.jetbrains.com/files/31360/1115339/jcef-plugin-262.9437.22-mac-arm64.zip",
+        "sha256": "ba3b4ca968e9a332183841d943ce697e7127b2f7daf4a527251940f0f5c30bf8"
+      },
+      "Linux-amd64": {
+        "version": "262.9437.22-linux-x86_64",
+        "url": "https://plugins.jetbrains.com/files/31360/1115332/jcef-plugin-262.9437.22-linux-x86_64.zip",
+        "sha256": "3c007d1ead9f2060b65f25b82de58aa2681b00faeabbf9fb714ce4f3cc122b02"
+      }
+    },
+    "compile": {
+      "target": "rabbit1",
+      "jvm_target": "25",
+      "class_major": 69,
+      "since_build": "262.9437.185",
+      "until_build": "262.*"
+    }
+  }
 }

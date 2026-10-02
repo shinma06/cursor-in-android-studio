@@ -71,6 +71,14 @@ class CompatibilityTest(unittest.TestCase):
                     pc.check_reports(reports, bad_log, target, manifest, policy)
             with self.assertRaises(ValueError):
                 pc.check_reports(reports, log, policy['targets']['quail4'], manifest, policy)
+            warning = 'reviewed first line\nreviewed second line'
+            allowed = copy.deepcopy(policy)
+            allowed['reviewed_log_warnings'] = {pc.hashlib.sha256(warning.encode()).hexdigest(): 'reviewed'}
+            warning_log = log + '\n2026-10-02T00:00:00 [main] WARN logger - ' + warning
+            pc.check_reports(reports, warning_log, target, manifest, allowed)
+            with self.assertRaisesRegex(ValueError, 'Unreviewed Verifier warning'):
+                pc.check_reports(reports, warning_log + '\nnew unreviewed detail', target, manifest, allowed)
+
 
     def test_last_api_category_without_period_still_requires_reviewed_details(self):
         policy = json.loads(pc.POLICY.read_text())
@@ -94,6 +102,26 @@ class CompatibilityTest(unittest.TestCase):
             verdict.write_text('Compatible. Unknown API')
             with self.assertRaisesRegex(ValueError, 'recognized compatible verdict'):
                 pc.check_reports(reports, log, target, manifest, policy)
+
+    def test_sdk_policy_rejects_unknown_or_mixed_product_identity(self):
+        policy = json.loads(pc.POLICY.read_text())
+        source = 'a' * 40
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / 'plugin.zip'; archive.write_bytes(b'archive')
+            for selected in (policy, policy['next_policy']):
+                compile = selected['compile']
+                identity = {'source.commit': source, 'source.state': 'clean',
+                            'sdk.build': selected['targets'][compile['target']]['build'],
+                            'jvm.target': compile['jvm_target'], 'classes': 1,
+                            'class.major.versions': [compile['class_major']],
+                            'since.build': compile['since_build'], 'until.build': compile['until_build']}
+                with patch.object(pc, 'plugin_identity', return_value=identity):
+                    self.assertEqual(pc.seal(archive, source, policy)['identity'], identity)
+                for key, value in [('sdk.build', 'unknown'), ('jvm.target', '17'),
+                                   ('class.major.versions', [65, 69]), ('since.build', 'unknown'),
+                                   ('until.build', '263.*'), ('source.state', 'dirty')]:
+                    with self.subTest(key=key, value=value), patch.object(pc, 'plugin_identity', return_value=dict(identity, **{key: value})):
+                        with self.assertRaises(ValueError): pc.seal(archive, source, policy)
 
     def test_same_archive_and_identity_are_checked_before_and_after_verification(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(pc, 'plugin_identity', return_value={'source.commit': 'abc'}):

@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "issue": 470,
+  "files": {
+    ".githooks/pre-push": "100755",
+    ".github/workflows/ci.yml": "100644",
+    ".github/workflows/branch-zip.yml": "100644",
+    "build.gradle.kts": "100644",
+    "gradle/wrapper/gradle-wrapper.jar": "100644",
+    "gradle/wrapper/gradle-wrapper.properties": "100644",
+    "gradlew.bat": "100644",
+    "src/main/kotlin/com/cursoragent/ui/AgentUiController.kt": "100644",
+    "README.md": "100644",
+    "CLAUDE.md": "100644",
+    "docs/development/plugin-zip-delivery.md": "100644",
+    "docs/development/main-scoped-release.md": "100644"
+  },
+  "acceptance": {
+    "schema": 1,
+    "issue": 470,
+    "gui_required": true,
+    "reason": "mainの機能構成を保つSDK/JVM更新と非同期VFS保存境界の変更。Rabbit/JBR25上のTerminal ON/OFFと保存・復元を同一ZIPで確認する。",
+    "cli_checks": [
+      "mainの既存テスト、必要tooling/CI、標準buildPlugin/構造検証を実行する。",
+      "正しいdefault/local SDKと誤SDK拒否、Java25 bytecode major69、262 metadata、stdlib非同梱とZIPの依存JARを照合する。",
+      "同一ZIPのRabbit/JBR25 Verifierと全class検査・限定警告policy、固定main HEAD/baseと移植元PR #468の選択差分を独立レビューする。"
+    ],
+    "cases": [
+      {
+        "id": "MAIN-RABBIT-TERMINAL-ON",
+        "change": "main機能を維持したRabbit/JBR25の起動・主要操作・保存互換",
+        "preconditions": "独立レビュー済み固定main候補の同一ZIPを使用。Rabbit 1 AI-262.9437.185.2621.16467767/JBR25.0.3、ZIP hashとロードJARを照合。専用profile/使い捨てfixture、GUI lease、認証済みPro/Teams CLI。Terminal=ON。",
+        "steps": [
+          "固定ZIPをInstall Plugin from Diskで導入・再起動し、ToolWindowと設定を開く。ロード失敗/LinkageErrorがなくmainのprint UIが利用できることを確認する。",
+          "ファイルを変更しない短いprint質問を送信し、応答表示・停止・新規会話を確認する。未反映のACPや会話本文保存を期待結果に含めない。",
+          "設定を変更して同じZIPのままIDEを再起動し、設定とmainの履歴metadataが保持されることを確認する。会話本文の再表示/provider resume成功とは区別する。",
+          "Terminal ONでは@terminalの取得が成立し、OFFではTerminalが任意のまま他のチャット操作が使えることを確認する。",
+          "試験用入力・設定と所有processを後始末し、Case別の結果とsource/ZIP/ロード実体・観察者・時刻・証拠を記録する。"
+        ],
+        "expected": "同一Java25 ZIPがRabbit/JBR25で動作し、mainのprint/設定/履歴metadata/Terminal optional互換を維持する。",
+        "provenance": [
+          "https://github.com/shinma06/cursor-in-android-studio/issues/470",
+          "https://github.com/shinma06/cursor-in-android-studio/pull/468"
+        ],
+        "next_action": "CLI/Verifierと固定差分レビュー後、指定GUI担当または人間が同一候補で実施する。",
+        "gpt": {
+          "status": "pending",
+          "reason": "main限定候補の実画面確認は未実施。"
+        },
+        "human": {
+          "status": "pending",
+          "reason": "main限定候補の人間確認は未実施。"
+        },
+        "fix_issue": null,
+        "fix_pr": null,
+        "recheck": "旧Quail/別sourceのpassを転用せず、修正時は新しい固定main候補とZIPで全Caseを再確認する。"
+      },
+      {
+        "id": "MAIN-RABBIT-TERMINAL-OFF",
+        "change": "main機能を維持したRabbit/JBR25の起動・主要操作・保存互換",
+        "preconditions": "独立レビュー済み固定main候補の同一ZIPを使用。Rabbit 1 AI-262.9437.185.2621.16467767/JBR25.0.3、ZIP hashとロードJARを照合。専用profile/使い捨てfixture、GUI lease、認証済みPro/Teams CLI。Terminal=OFF。",
+        "steps": [
+          "固定ZIPをInstall Plugin from Diskで導入・再起動し、ToolWindowと設定を開く。ロード失敗/LinkageErrorがなくmainのprint UIが利用できることを確認する。",
+          "ファイルを変更しない短いprint質問を送信し、応答表示・停止・新規会話を確認する。未反映のACPや会話本文保存を期待結果に含めない。",
+          "設定を変更して同じZIPのままIDEを再起動し、設定とmainの履歴metadataが保持されることを確認する。会話本文の再表示/provider resume成功とは区別する。",
+          "Terminal ONでは@terminalの取得が成立し、OFFではTerminalが任意のまま他のチャット操作が使えることを確認する。",
+          "試験用入力・設定と所有processを後始末し、Case別の結果とsource/ZIP/ロード実体・観察者・時刻・証拠を記録する。"
+        ],
+        "expected": "同一Java25 ZIPがRabbit/JBR25で動作し、mainのprint/設定/履歴metadata/Terminal optional互換を維持する。",
+        "provenance": [
+          "https://github.com/shinma06/cursor-in-android-studio/issues/470",
+          "https://github.com/shinma06/cursor-in-android-studio/pull/468"
+        ],
+        "next_action": "CLI/Verifierと固定差分レビュー後、指定GUI担当または人間が同一候補で実施する。",
+        "gpt": {
+          "status": "pending",
+          "reason": "main限定候補の実画面確認は未実施。"
+        },
+        "human": {
+          "status": "pending",
+          "reason": "main限定候補の人間確認は未実施。"
+        },
+        "fix_issue": null,
+        "fix_pr": null,
+        "recheck": "旧Quail/別sourceのpassを転用せず、修正時は新しい固定main候補とZIPで全Caseを再確認する。"
+      },
+      {
+        "id": "MAIN-RABBIT-VFS-FLUSH",
+        "change": "Rabbit非同期VFS保存後のcheckpoint/CLI読取りと復元",
+        "preconditions": "同じ固定main候補ZIP/Rabbit/JBR25、専用profile/使い捨てGit fixture/GUI lease。追跡済みテキストファイルとmainの既存チェックポイント操作を使う。",
+        "steps": [
+          "IDEで追跡済みfixtureファイルに一意のmarkerを保存し、直後に新規print会話から変更せずmarkerを読むよう送る。保存後は追加入力しない。",
+          "CLIが保存済みmarkerを読み、Git checkpointにも同じ内容があることを照合する。保存待機中にStop/新規会話した場合は、旧準備から送信が開始されないことを確認する。",
+          "CLIの実process終了後、fixtureを別markerへ変更・保存して直ちに元checkpointへの復元を操作する。元markerが復元され、遅延書き込みで別markerへ戻らないことをディスクとIDE再読込みで確認する。",
+          "保存完了待ちとGit処理がEDT/write actionを止めず、復元中に別送信が始まらないことを確認する。安全に失敗を再現できる場合は、flush失敗時に送信/復元が中止されることを確認し、再現不可は未確認として記録する。"
+        ],
+        "expected": "保存済みVFS書込みが完了してからGit/CLIがdiskへアクセスする。Stop/破棄した準備を採用せず、復元中のIDE操作を直列化し、失敗時に処理を中止する。mainの既存保存形式は維持する。",
+        "provenance": [
+          "https://github.com/shinma06/cursor-in-android-studio/issues/470",
+          "https://github.com/shinma06/cursor-in-android-studio/pull/468"
+        ],
+        "next_action": "CLI/Verifierと固定差分レビュー後、指定GUI担当または人間が専用Git fixtureで実施する。",
+        "gpt": {
+          "status": "pending",
+          "reason": "main限定候補の実画面確認は未実施。"
+        },
+        "human": {
+          "status": "pending",
+          "reason": "main限定候補の人間確認は未実施。"
+        },
+        "fix_issue": null,
+        "fix_pr": null,
+        "recheck": "単体テスト・旧候補を実IDE passにせず、新しい同一固定ZIPで再確認する。"
+      }
+    ]
+  }
+}
