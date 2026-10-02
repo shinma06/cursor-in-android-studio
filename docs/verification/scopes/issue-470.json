@@ -10,6 +10,12 @@
     "gradle/wrapper/gradle-wrapper.properties": "100644",
     "gradlew.bat": "100644",
     "src/main/kotlin/com/cursoragent/ui/AgentUiController.kt": "100644",
+    "src/main/kotlin/com/cursoragent/service/AgentRun.kt": "100644",
+    "src/main/kotlin/com/cursoragent/service/AgentProcessService.kt": "100644",
+    "src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt": "100644",
+    "src/main/kotlin/com/cursoragent/ui/AgentToolWindowRootPanel.kt": "100644",
+    "src/main/kotlin/com/cursoragent/toolwindow/CursorAgentToolWindowFactory.kt": "100644",
+    "src/test/kotlin/com/cursoragent/service/AgentRunTest.kt": "100644",
     "README.md": "100644",
     "CLAUDE.md": "100644",
     "docs/development/plugin-zip-delivery.md": "100644",
@@ -92,7 +98,8 @@
           "IDEで追跡済みfixtureファイルに一意のmarkerを保存し、直後に新規print会話から変更せずmarkerを読むよう送る。保存後は追加入力しない。",
           "CLIが保存済みmarkerを読み、Git checkpointにも同じ内容があることを照合する。保存待機中にStop/新規会話した場合は、旧準備から送信が開始されないことを確認する。",
           "CLIの実process終了後、fixtureを別markerへ変更・保存して直ちに元checkpointへの復元を操作する。元markerが復元され、遅延書き込みで別markerへ戻らないことをディスクとIDE再読込みで確認する。",
-          "保存完了待ちとGit処理がEDT/write actionを止めず、復元中に別送信が始まらないことを確認する。安全に失敗を再現できる場合は、flush失敗時に送信/復元が中止されることを確認し、再現不可は未確認として記録する。"
+          "保存待ち中の画面破棄と、Aを停止→Bを送信→Aの遅延終了の順を確認し、閉じた画面からの起動や旧応答・終了通知の混入がないことを確認する。遅れて生成されたprocessが停止対象になることも確認する。",
+          "保存完了待ちとGit処理がEDT/write actionを止めず、準備/実行中は復元を拒否し、復元中に別送信が始まらないことを確認する。安全に失敗を再現できる場合は、flush失敗時に送信/復元が中止されることを確認し、再現不可は未確認として記録する。"
         ],
         "expected": "保存済みVFS書込みが完了してからGit/CLIがdiskへアクセスする。Stop/破棄した準備を採用せず、復元中のIDE操作を直列化し、失敗時に処理を中止する。mainの既存保存形式は維持する。",
         "provenance": [

@@ -58,7 +58,7 @@
       }
     },
     "optional_absences": {
-      "XPathView": "Rabbit coreのintellij.xml.langInjection.xpathによる任意依存。#470 main由来171クラスのpreflightで全classを検査し、本製品からの直接利用がないことを確認。",
+      "XPathView": "Rabbit coreのintellij.xml.langInjection.xpathによる任意依存。#470 main由来173クラスのpreflightで全classを検査し、本製品からの直接利用がないことを確認。",
       "intellij.platform.ide.newUiOnboarding": "固定JCEF providerのintellij.platform.ide.newUiOnboarding.jcefによる任意のIDE導入案内。Rabbit配布物に存在せず、main製品からは参照しない。",
       "com.intellij.modules.python": "Rabbit同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。main製品の必要APIではない。",
       "com.intellij.modules.idea.community": "Rabbit同梱Javaのintellij.java.promoによるIDEA Community向けの任意依存。Android Studio固定配布物で不在を確認。",
@@ -66,11 +66,11 @@
     },
     "reviewed_api_reports": {
       "deprecated-usages.txt": {
-        "sha256": "8d0f44423ed55962b6d355b01d385ebcf2ca8202da86b61f48fa01e1b2f4d921",
-        "disposition": "#470 main由来171クラスのRabbit preflightで8利用（削除予定1）。ファイル選択・ToolWindow bridge・ProcessAdapterはRabbitに実在。旧Quailと同じ利用群をRabbitで再確認し、SDK更新時に置換を再評価する。"
+        "sha256": "05ffbd59e5af7923b9268257f449d7c0d493ad186b9be0cf1f326f8b7e323937",
+        "disposition": "#470 main由来のRabbit preflightで8利用（削除予定1）。ファイル選択・ToolWindow bridge・ProcessAdapterはRabbitに実在。停止処理の移植でProcessAdapterの呼出元名/引数だけが変わり、利用APIは同じ。SDK更新時に置換を再評価する。"
       },
       "experimental-api-usages.txt": {
-        "sha256": "07e7685ba22827138a9fd5c92f16f337d1bdc129aa6bebc050dc3b01ecc1af88",
+        "sha256": "e5117d66f7db4fb6119ca7ca9391e2442c8baf247c74cec0f301547082e0643d",
         "disposition": "#470 mainのRabbit preflightで28利用。既存Terminal/ToolWindow bridge 26件と、非同期保存完了を待つManagingFS.flushPendingUpdates 2件。Terminal optionalと保存境界を3つのGUI Caseで別途確認する。"
       }
     },
