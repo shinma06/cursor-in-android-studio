@@ -269,4 +269,4 @@
 +        name = "Cursor in Android Studio [Verification 313]"
          version = project.version.toString()
          ideaVersion {
-             sinceBuild = "261.23567.138"
+             sinceBuild = "262.9437.185"
