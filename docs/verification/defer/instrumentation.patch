@@ -51,9 +51,9 @@
 +                    val preparationActive = run.isActive
 +                    VerificationDefer.event("guard", "preparation", verificationOwner, sessionTurn.token.turnId, preparationActive.toString())
 +                    if (!preparationActive) return@executeOnPooledThread
-                     val imagePayload = sentImage?.let { com.cursoragent.ui.composer.image.ValidatedImage(it.bytes(), it.width, it.height) }
-                     imagePayload?.thumbnail()?.let { thumbnail ->
-                         runOnEdt {
+                     // Rabbit editor saves may still be pending on disk when Git/CLI preparation starts.
+                     ManagingFS.getInstance().flushPendingUpdates()
+                     if (!run.isActive) return@executeOnPooledThread
 @@ -498,6 +511,8 @@
                      check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
                          "準備中に作業場所が変わったため会話を再開しません。"
