@@ -12,7 +12,7 @@
       "reason": "Terminal ONでprint応答、Stop/New Chat、実Terminal出力の@terminal取得、Ask/通知設定と履歴metadataの再起動保持を実画面で確認。所有processの後始末完了。",
       "actor": "gpt",
       "observer": "codex-session-01a0fc59",
-      "at": "2026-10-02T15:13:52.041393+00:00",
+      "at": "2026-10-02T15:13:52+00:00",
       "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
       "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
       "execution": "computer_use"
@@ -24,7 +24,7 @@
       "reason": "TerminalとIDE指定の依存プラグインを専用profileで無効化・再起動。print応答、Stop/New Chat、設定と履歴metadataの再起動保持、所有processの後始末を確認。",
       "actor": "gpt",
       "observer": "codex-session-01a0fc59",
-      "at": "2026-10-02T15:13:52.041393+00:00",
+      "at": "2026-10-02T15:13:52+00:00",
       "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
       "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
       "execution": "computer_use"
@@ -36,7 +36,7 @@
       "reason": "保存直後の実CLI/実Git読取りと復元、実VFS書込みを待つbackground flush中のStop、新規会話との分離、Stop後に遅延生成された実processの終了、準備/実行中の復元拒否を確認。Stopなしの画面破棄単独と復元中の別送信試行は追加送信枠の承認待ち。flush失敗は安全に再現できず未確認。",
       "actor": "gpt",
       "observer": "codex-session-01a0fc59",
-      "at": "2026-10-02T15:13:52.041393+00:00",
+      "at": "2026-10-02T15:13:52+00:00",
       "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
       "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
       "execution": "computer_use"
