@@ -126,13 +126,13 @@ class AgentUiController(
                 listener.onError("保存内容の確認または送信準備に失敗しました")
                 run.stop()
             } finally {
-                run.finishPreparation()
+                agentService.finishPreparation(run)
             }
         }
     }
 
     private fun requestRollback(checkpointId: String) {
-        if (currentRun?.blocksRestore == true) {
+        if (agentService.isRestoreBlocked()) {
             Messages.showErrorDialog(project, "処理が終了してから復元してください", PluginBrand.NAME)
             return
         }

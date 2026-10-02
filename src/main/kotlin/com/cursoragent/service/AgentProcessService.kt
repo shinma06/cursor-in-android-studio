@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import java.io.File
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 data class ModelOption(val id: String, val label: String)
@@ -39,11 +40,24 @@ interface AgentProcessListener {
 class AgentProcessService(private val project: Project) : Disposable {
     private val LOG = logger<AgentProcessService>()
     private val activeRun = AtomicReference<AgentRun?>(null)
+    private val runs = ConcurrentHashMap.newKeySet<AgentRun>()
     @Volatile
     private var chatId: String? = null
 
     fun prepareRun(listener: AgentProcessListener): AgentRun = AgentRun(listener).also {
+        runs.removeIf { run -> !run.blocksRestore }
+        runs.add(it)
         activeRun.getAndSet(it)?.stop()
+    }
+
+    fun isRestoreBlocked(): Boolean {
+        runs.removeIf { !it.blocksRestore }
+        return runs.isNotEmpty()
+    }
+
+    fun finishPreparation(run: AgentRun) {
+        run.finishPreparation()
+        if (!run.blocksRestore) runs.remove(run)
     }
 
     fun sendPrompt(prompt: String, run: AgentRun) {
@@ -143,6 +157,7 @@ class AgentProcessService(private val project: Project) : Disposable {
                 }
                 run.complete(event.exitCode)
                 activeRun.compareAndSet(run, null)
+                if (!run.blocksRestore) runs.remove(run)
             }
         })
 
@@ -202,10 +217,12 @@ class AgentProcessService(private val project: Project) : Disposable {
 
     fun killActiveProcess() {
         activeRun.getAndSet(null)?.stop()
+        runs.forEach(AgentRun::stop)
     }
 
     override fun dispose() {
         killActiveProcess()
+        runs.clear()
     }
 
     private fun buildCommandLine(

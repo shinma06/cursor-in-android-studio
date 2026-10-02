@@ -1,11 +1,34 @@
 package com.cursoragent.service
 
+import com.intellij.openapi.project.Project
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.lang.reflect.Proxy
 
 class AgentRunTest {
+    @Test
+    fun `completed new run does not allow restore while an older stopped process is alive`() {
+        val project = Proxy.newProxyInstance(Project::class.java.classLoader, arrayOf(Project::class.java)) { _, method, _ ->
+            error("Unexpected project access: ${method.name}")
+        } as Project
+        val service = AgentProcessService(project)
+        val first = service.prepareRun(object : AgentProcessListener {})
+        var exited = false
+        first.attachProcess({}) { exited }
+        service.finishPreparation(first)
+        first.stop()
+        val second = service.prepareRun(object : AgentProcessListener {})
+        second.complete(0)
+        service.finishPreparation(second)
+        assertTrue(service.isRestoreBlocked())
+        exited = true
+        first.complete(0)
+        assertFalse(service.isRestoreBlocked())
+        service.dispose()
+    }
+
     @Test
     fun `stopped preparation rejects a late process and old callbacks cannot finish the next run`() {
         val received = mutableListOf<String>()
