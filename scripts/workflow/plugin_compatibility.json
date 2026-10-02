@@ -23,8 +23,8 @@
       "disposition": "Rabbit 262 contains all 17 reported usages: 5 scheduled for removal (four existing list-renderer overloads and settings file chooser), plus ToolWindowFactory default bridges, ProcessAdapter, ReadAction and file chooser factory. Reevaluate replacements before expanding the SDK range; no missing APIs are waived."
     },
     "experimental-api-usages.txt": {
-      "sha256": "a3869d14d89a05597b32723bce6a80b040df7ae0f6b3a7bdf9622047697e06fc",
-      "disposition": "32 existing Terminal view/output and ToolWindowFactory bridge usages are present in Rabbit. Preserve optional Terminal loading and linkage protection; exercise both enabled and disabled in issue-466 Cases."
+      "sha256": "1639d56d3c0d7f90c5b065a60c95eb5859db916be21bdd70dd692b63274d7dff",
+      "disposition": "34 usages are present in Rabbit: 32 existing Terminal view/output and ToolWindowFactory bridges, plus two ManagingFS.flushPendingUpdates calls required by JetBrains' documented async editor-save contract before external Git/CLI access. Flush runs off EDT/write actions and failure aborts the operation. Preserve optional Terminal loading/linkage protection; issue-466 Cases cover both Terminal states and saved-content/restore ordering. Reevaluate these experimental APIs before expanding the SDK range."
     },
     "internal-api-usages.txt": {
       "sha256": "7eaec9b605e9d87ec7fee57dc40252c70d3dd771d3b2895a87b4dcf3b5971440",
