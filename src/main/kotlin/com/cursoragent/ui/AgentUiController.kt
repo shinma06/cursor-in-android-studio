@@ -9,7 +9,10 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.newvfs.ManagingFS
 import com.intellij.openapi.ui.Messages
 import javax.swing.SwingUtilities
 
@@ -20,6 +23,9 @@ class AgentUiController(
     private val header: AgentHeaderBar,
 ) {
     private val agentService = project.getService(AgentProcessService::class.java)
+    @Volatile
+    private var preparationGeneration = 0L
+
     private val checkpointService = project.getService(CheckpointService::class.java)
     private val chatHistoryState = ChatHistoryState.getInstance(project)
     private val promptContextBuilder = PromptContextBuilder(project, MentionResolver(project))
@@ -54,6 +60,7 @@ class AgentUiController(
     }
 
     fun startNewChat() {
+        preparationGeneration++
         composer.contextUsage.reset()
         agentService.startNewChat()
         timeline.clearTimeline()
@@ -61,7 +68,8 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (userText.isBlank()) return
+        if (userText.isBlank() || project.isDisposed) return
+        val generation = ++preparationGeneration
 
         val usageTicket = composer.contextUsage.beginTurn()
         composer.clearInput()
@@ -74,22 +82,37 @@ class AgentUiController(
         val edtContext = promptContextBuilder.buildEdtContext(userText)
 
         ApplicationManager.getApplication().executeOnPooledThread {
-            val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
-            val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
-            val fullContext = listOfNotNull(edtContext, backgroundContext)
-                .joinToString("\n\n")
-                .takeIf { it.isNotBlank() }
-            val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
+            val listener = turnListenerFactory.create(userText, usageTicket)
+            try {
+                // Rabbit saves VFS bytes asynchronously; Git and the CLI read disk.
+                ManagingFS.getInstance().flushPendingUpdates()
+                if (project.isDisposed || generation != preparationGeneration) return@executeOnPooledThread
+                val checkpointId = checkpointService.createSnapshot(userText, agentService.currentChatId())
+                val backgroundContext = promptContextBuilder.buildBackgroundContext(userText)
+                val fullContext = listOfNotNull(edtContext, backgroundContext)
+                    .joinToString("\n\n")
+                    .takeIf { it.isNotBlank() }
+                val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
 
-            runOnEdt {
-                userBubble.setCheckpointAvailable(checkpointId != null)
-                if (checkpointId != null) {
-                    userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                runOnEdt {
+                    if (project.isDisposed || generation != preparationGeneration) return@runOnEdt
+                    userBubble.setCheckpointAvailable(checkpointId != null)
+                    if (checkpointId != null) {
+                        userBubble.onRollbackRequested = { requestRollback(checkpointId) }
+                    }
+                    header.setSessionStatus("Running...")
                 }
-                header.setSessionStatus("Running...")
-            }
 
-            agentService.sendPrompt(fullPrompt, turnListenerFactory.create(userText, usageTicket))
+                if (!project.isDisposed && generation == preparationGeneration) {
+                    agentService.sendPrompt(fullPrompt, listener)
+                }
+            } catch (e: ProcessCanceledException) {
+                throw e
+            } catch (e: Exception) {
+                if (!project.isDisposed && generation == preparationGeneration) {
+                    listener.onError("保存内容の確認または送信準備に失敗しました")
+                }
+            }
         }
     }
 
@@ -102,7 +125,27 @@ class AgentUiController(
         ) == Messages.YES
         if (!confirmed) return
 
-        if (checkpointService.restore(checkpointId)) {
+        val restored = try {
+            var result = false
+            // Modal execution preserves the existing exclusive restore interaction,
+            // while the disk barrier and Git work run outside EDT/write actions.
+            ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                Runnable {
+                    ManagingFS.getInstance().flushPendingUpdates()
+                    if (!project.isDisposed) result = checkpointService.restore(checkpointId)
+                },
+                "チェックポイントを復元中",
+                false,
+                project,
+            )
+            result
+        } catch (e: ProcessCanceledException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+        if (project.isDisposed) return
+        if (restored) {
             timeline.showStatus("Rolled back to checkpoint")
         } else {
             Messages.showErrorDialog(project, "ロールバックに失敗しました", PluginBrand.NAME)
@@ -110,14 +153,16 @@ class AgentUiController(
     }
 
     fun stopRun() {
+        preparationGeneration++
         composer.contextUsage.reset()
         agentService.killActiveProcess()
+        finishRun()
     }
 
     private fun finishRun() {
         composer.setInputEnabled(true)
         composer.setRunning(false)
-        if (header.sessionLabel.text == "Running...") {
+        if (header.sessionLabel.text in setOf("Preparing…", "Running...")) {
             header.setSessionStatus("Ready")
         }
     }

@@ -75,18 +75,18 @@ The product is intended for Japanese use. When porting Cursor UI, choose languag
 Use [Change Impact](docs/development/change-impact.md) across CI/hooks/coordinator/ZIP generation. Run the shared command before pushing. Knowledge/metadata-only changes may skip heavy code checks; mixed/runtime/build/test/tooling/unknown changes retain necessary validation. Classify new inputs or bundled resources. Independent review, Acceptance and GUI gates remain required.
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 25)"
 python3 scripts/workflow/change_impact.py --run-tests
 ./gradlew test          # Required for affected Kotlin/product changes
 ./gradlew buildPlugin   # Explicit Plugin ZIP build
 ./gradlew runIde        # Requires the GUI lease
 ```
 
-Bootstrap/Gradle set `core.hooksPath .githooks`; pre-push checks branch/dirty/fast-forward and the selected tests. Never bypass hooks, use `--no-verify` or disable protection. There is a real JUnit5 suite under `src/test/kotlin`; old claims of no tests are historical. No lint/static-analysis task is configured; verify the actual build before relying on stale documentation.
+Bootstrap/Gradle set `core.hooksPath .githooks`; pre-push checks branch/dirty/fast-forward and the selected tests. Never bypass hooks, use `--no-verify` or disable protection. There is a real JUnit 6 suite under `src/test/kotlin`; old claims of no tests are historical. No lint/static-analysis task is configured; verify the actual build before relying on stale documentation.
 
-Gradle runtime, Kotlin toolchain and JVM target are 21. `androidStudio("2026.1.1.8")` pins Quail 1 `AI-261.23567.138.2611.15503007` for local/CI/branch ZIP through the standard resolver. Use local SDK only with explicit `-PuseLocalPlatform=true -PplatformPath=...`; reject a full-build mismatch or unverifiable identity. `platformPath` alone must not change the default SDK. Old 2.10.5 URL failures do not justify disabling the current standard resolver; retain the legacy branch-ZIP fallback only for old branches.
+Gradle runtime, Kotlin toolchain and JVM target are 25. `androidStudio("2026.2.1.8")` pins Rabbit 1 `AI-262.9437.185.2621.16467767` for local/CI/branch ZIP through the standard resolver. Use local SDK only with explicit `-PuseLocalPlatform=true -PplatformPath=...`; reject a full-build mismatch or unverifiable identity. `platformPath` alone must not change the default SDK. Old 2.10.5 URL failures do not justify disabling the current standard resolver; retain the legacy branch-ZIP fallback only for old branches.
 
-Preserve [main-scoped release](docs/development/main-scoped-release.md) (#408) and [ZIP delivery](docs/development/plugin-zip-delivery.md): fixed candidate, both IDE/JBRs and the same ZIP. Do not import all unreleased develop features into that main candidate.
+Preserve [main-scoped release](docs/development/main-scoped-release.md) (#408) and [ZIP delivery](docs/development/plugin-zip-delivery.md): fixed candidate, Rabbit/JBR25 and the same ZIP. Historical 0.1.0 evidence retains its Quail/JVM21 scope. Do not import all unreleased develop features into that main candidate.
 
 <a id="current-blocker-check-this-before-picking-a-task"></a>
 
@@ -98,6 +98,7 @@ Use Pro/Teams for development/verification; do not revive the old Free-tier `res
 
 - Preserve layering: ToolWindowFactory → root/view panels → AgentUiController and its listener/context/history coordinators → project AgentProcessService → defensive stream parser. View components expose callbacks and do not own CLI logic; settings remain a separate persisted side channel.
 - Main owns one active OSProcessHandler; starting a prompt replaces the in-flight process. Stop and project/tool-window disposal must terminate it. Catch process construction/start failures and report through the plugin error UI. Resolve the configured executable first, otherwise existing candidates/PATH; retain `--resume` chat ID handling.
+- Rabbit VFS saves can finish after the save API returns. Flush pending writes off EDT/write actions before Git snapshots, CLI disk reads and checkpoint restoration; on failure, stop that operation. Do not promise to save unsaved Documents or freeze later edits.
 - Marshal process callbacks to EDT. Read editor/VFS/Terminal APIs on EDT; run process startup, Git and checkpoints in the background. Preserve the MentionResolver split and avoid moving Terminal `invokeAndWait` into background prompt assembly. Use project.basePath/guessProjectDir, not deprecated baseDir.
 - Malformed/unknown stream types and shapes must be harmless. Keep parser and tool-payload `runCatching` boundaries. AssistantChunkDeduper is a heuristic, not a protocol guarantee: return full text and replace via `setAssistantText`, never append full cumulative text. Keep tests without calling them live proof.
 - Reconcile tool started/completed rows by callId. Revert only if current file content still matches that edit's produced content. Main's checkpoint store uses project.basePath; isolated CLI worktrees need explicit handling and must not be presumed safely restorable. The previously documented ISOLATED/root mismatch is not fixed by this context change.
