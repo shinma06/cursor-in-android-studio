@@ -36,4 +36,4 @@ main受入後は既存 `release_candidate.py publish` が同じvalidatorを実�
 
 移行準備の#471では既存mainのQuail検査を維持し、同じpolicyに次のRabbit計画を別枠で固定する。ZIPのcompile SDKから一致する計画だけを選び、QuailのAPI警告承認をRabbitへ転用しない。#470統合後、旧二端検査と一時的な選択処理をmain tooling PRで除去する。これは切替え中の順序であり、旧JVMを新しい最低対応として継続する方針ではない。
 
-新候補の必要CaseはRabbit/JBR25・Terminal ON/OFFと非同期保存境界の3件。過去の#409やdevelopの#466での結果は転用しない。正式version・Release公開は今回のmain反映とは別の指示を必要とする。既存のscope=main gate、線形候補、候補後の2 JSONだけの更新、独立レビューと4 checksを維持する。
+新候補の必要CaseはRabbit/JBR25・Terminal ON/OFFと非同期保存境界の3件。過去の#409やdevelopの#466での結果は転用しない。#470では`scoped_candidate`で固定mainからの全commitを検査し、標準`buildPlugin`のSNAPSHOT ZIPをsealして、同一ZIPでVerifierとGUIを実施する。上記のversion 0.1.0によるRC生成は#409の履歴であり、#470の前提にしない。正式version・Release公開は今回のmain反映とは別の指示を必要とする。既存のscope=main gate、線形候補、候補後の2 JSONだけの更新、独立レビューと4 checksを維持する。
