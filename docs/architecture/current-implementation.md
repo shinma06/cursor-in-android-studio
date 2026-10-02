@@ -40,6 +40,8 @@ popupが消えた後の画面だけで「一度も開かなかった」と判定
 
 [TurnWorkspace](../../src/main/kotlin/com/cursoragent/service/TurnWorkspace.kt) / [PromptContextBuilder](../../src/main/kotlin/com/cursoragent/ui/PromptContextBuilder.kt) / [MentionResolver](../../src/main/kotlin/com/cursoragent/ui/composer/mention/MentionResolver.kt) を参照。context注入は現行prompt文字列経路。`@Docs`/`@Web`はヒントであり、独自検索やMCP server実装ではない。
 
+Rabbitではeditorの保存後もVFSからdiskへの書き込みが残り得るため、PRINT/ACP共通の送信準備とcheckpoint復元の外部I/O前に、pooled thread（write action外）で`ManagingFS.flushPendingUpdates()`を待つ。失敗時は既存の送信準備/復元エラー経路で中止し、待機中のStopも再確認する。未保存Documentの自動保存や後続の編集を固定する機能ではない。[公式の非同期保存契約](https://blog.jetbrains.com/platform/2026/06/async-vfs-content-writes-what-plugin-authors-need-to-know/)と[AgentUiController](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)が根拠。VFS内だけで読み書きするfile Revertには待機を追加しない。実IDE回帰は[Case #466](../verification/changes/issue-466.json)で追跡する。
+
 ## 停止・タブclose・project終了
 
 Stopはそのタブのrunへ停止要求を出す。通常Stopでは先にtokenを捨てず、`onStopped`だけ停止済みrunからの終端配送を許して表示後に完了する。以降の通常イベントは抑止する。tab closeは状態を無効化して該当controllerのlistenerをdetachし、runを停止。content終了は全tokenを無効化し各controllerをdispose、project service終了は全runを停止する。

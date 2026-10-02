@@ -26,13 +26,14 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "新しい固定ZIPで実施する。旧Quailのpassは転用しない。",
-      "next_action": "指定GUI担当がleaseと固定ZIPを確認して実施。main反映は固定candidate全Caseのgateを別途通す。",
+      "next_action": "QA担当がComputer Useの画面取得を復旧するか、人間向け手順で、新候補の同一ZIPを識別して実施。main反映は固定candidate全Caseのgateを別途通す。",
       "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/466"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466#issuecomment-5952190547"
       ],
       "gpt": {
-        "status": "pending",
-        "reason": "新固定ZIPの実IDE操作は未実施。"
+        "status": "blocked",
+        "reason": "旧候補8ae3b5bのrun gui-466-rabbit-r1で、専用IDE起動後にComputer UseのAX/画面取得が継続timeout。Plugin導入前に中止した環境障害。新候補の実操作は未実施。"
       },
       "human": {
         "status": "pending",
@@ -55,13 +56,14 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "新しい固定ZIPで実施する。旧Quailのpassは転用しない。",
-      "next_action": "指定GUI担当がleaseと固定ZIPを確認して実施。main反映は固定candidate全Caseのgateを別途通す。",
+      "next_action": "QA担当がComputer Useの画面取得を復旧するか、人間向け手順で、新候補の同一ZIPを識別して実施。main反映は固定candidate全Caseのgateを別途通す。",
       "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/466"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466#issuecomment-5952190547"
       ],
       "gpt": {
-        "status": "pending",
-        "reason": "新固定ZIPの実IDE操作は未実施。"
+        "status": "blocked",
+        "reason": "旧候補8ae3b5bのrun gui-466-rabbit-r1で、専用IDE起動後にComputer UseのAX/画面取得が継続timeout。Plugin導入前に中止した環境障害。新候補の実操作は未実施。"
       },
       "human": {
         "status": "pending",
@@ -83,13 +85,43 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "新しい固定ZIPで実施する。旧Quailのpassは転用しない。",
-      "next_action": "指定GUI担当がleaseと固定ZIPを確認して実施。main反映は固定candidate全Caseのgateを別途通す。",
+      "next_action": "QA担当がComputer Useの画面取得を復旧するか、人間向け手順で、新候補の同一ZIPを識別して実施。main反映は固定candidate全Caseのgateを別途通す。",
       "provenance": [
-        "https://github.com/shinma06/cursor-in-android-studio/issues/466"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466#issuecomment-5952190547"
+      ],
+      "gpt": {
+        "status": "blocked",
+        "reason": "旧候補8ae3b5bのrun gui-466-rabbit-r1で、専用IDE起動後にComputer UseのAX/画面取得が継続timeout。Plugin導入前に中止した環境障害。新候補の実操作は未実施。"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "人間の実IDE操作は未実施。"
+      }
+    },
+    {
+      "id": "RABBIT-VFS-FLUSH",
+      "issue": 466,
+      "change": "Rabbitの非同期保存後のGit checkpoint・CLI読取り・復元を確認",
+      "preconditions": "独立レビュー済みclean sourceの固定ZIP/Rabbit/JBR25、専用profile/使い捨てGit fixture/GUI lease、認証済みPro/Teams CLI。追跡済みの小さなテキストファイルを使用し、source/hash/loaded JARとIDE buildを記録。旧候補の結果は転用しない。",
+      "steps": [
+        "fixtureの追跡済みファイルに一意のmarkerを書いてIDEで保存し、直後に新規print会話から、そのファイルを変更せずmarkerを読むよう送信する。保存後に追加編集しない。",
+        "CLIが保存済みmarkerを読むこと、checkpointのtreeにも同じmarkerがあることを確認する。flush待機中にStopした場合は送信されず、他タブのrunへ影響しないことを確認する。",
+        "実process終了後、同じfixtureファイルを別markerへ変更してIDEで保存し、直後にcheckpoint復元を操作する。元markerが復元され、遅延書き込みで再び別markerへ戻らないことを、ディスクの読取りとIDEの再読込みで確認する。",
+        "再現可能な専用環境でflushを失敗させられる場合は、送信・Git復元が実行されず既存の日本語エラーが表示されることを確認する。実施できないfailure injectionは未確認として記録する。"
+      ],
+      "expected": "保存済みVFS書き込みの完了後にGit/CLIが動く。待機はEDT/write action外で、失敗時は処理を中止し、Stopと復元予約の解放を維持する。未保存Documentの自動保存・処理中の後続編集固定を保証しない。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新しい同一固定ZIPで確認。単体テストや旧候補のGUI結果を実IDE passへ転用しない。",
+      "next_action": "QA担当が画面操作環境を確保し、専用fixtureで実施。main反映は固定candidate全Caseのgateを通す。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466",
+        "https://blog.jetbrains.com/platform/2026/06/async-vfs-content-writes-what-plugin-authors-need-to-know/"
       ],
       "gpt": {
         "status": "pending",
-        "reason": "新固定ZIPの実IDE操作は未実施。"
+        "reason": "独立レビューで判明した非同期保存契約への対応。実IDE再現・回帰は未実施。"
       },
       "human": {
         "status": "pending",
