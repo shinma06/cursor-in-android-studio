@@ -33,7 +33,7 @@
     }
   },
   "reviewed_log_warnings": {
-    "99326298d2fd814e87bc669d7cd039e188d48cd59fa9bcbc3b6b9dd446737e0c": "既存Quail配布物で確認済みのlayout警告。#409の根拠を保持。"
+    "beb52faea7ae3e1cefbccce8ace1035ec49ce4804d61d4ca488330cd7832b05d": "#471でQuail1/Quail4のmacOS/Linux配布物から同一の38行を再確認。宣言されたlib/modules内の個別JARと実配置が異なるが、38モジュールすべてのdescriptorが配布物の既存JARに存在する。171製品クラスの検査完走・依存解決・APIレポートを別途必須とし、警告全文のhash変更は拒否する。"
   },
   "optional_absence_builds": [
     "AI-261.23567.138.2611.15503007",
