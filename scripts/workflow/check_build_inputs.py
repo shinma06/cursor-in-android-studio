@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED = 'AI-261.23567.138.2611.15503007'
+EXPECTED = 'AI-262.9437.185.2621.16467767'
 
 
 def gradle(arguments, succeeds, diagnostic):
@@ -23,6 +23,17 @@ def check_legacy_sdk_selection():
     workflow = (ROOT / '.github/workflows/branch-zip.yml').read_text()
     select = textwrap.dedent(workflow.split('        id: sdk\n        run: |\n', 1)[1].split('      - ', 1)[0])
     build = textwrap.dedent(workflow.split('          LEGACY_SDK: ${{ steps.sdk.outputs.legacy }}\n        run: |\n', 1)[1].split('      - ', 1)[0])
+    jdk = textwrap.dedent(workflow.split('        id: jdk\n        run: |\n', 1)[1].split('      - ', 1)[0])
+    for version in ('21', '25', '17', 'unknown'):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'build.gradle.kts').write_text(f'    jvmToolchain({version})\n')
+            output = root / 'output'
+            result = subprocess.run(['bash', '-e', '-c', jdk], cwd=root, capture_output=True,
+                                    env=dict(os.environ, GITHUB_OUTPUT=str(output)))
+            assert (result.returncode == 0) == (version in ('21', '25'))
+            if result.returncode == 0:
+                assert output.read_text().strip() == 'version=' + version
     for properties, legacy in [('platformPath=/old/sdk\n', 'true'),
                                ('  platformPath = /old/sdk\n', 'true'),
                                ('# platformPath=/comment\npluginVersion=0.1.0-SNAPSHOT\n', 'false')]:
@@ -44,7 +55,7 @@ def check_legacy_sdk_selection():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--local-sdk', required=True, help='Verified Quail 1 SDK root')
+    parser.add_argument('--local-sdk', required=True, help='Verified Rabbit 1 SDK root')
     parser.add_argument('--wrong-sdk', required=True, help='Another valid installed SDK root')
     args = parser.parse_args()
     check_legacy_sdk_selection()
@@ -53,7 +64,7 @@ def main():
            True, 'Compile SDK verified: ' + EXPECTED)
     # Even when classes/resources are cached, a newer local SDK must not package.
     gradle(['buildPlugin', '-PuseLocalPlatform=true', '-PplatformPath=' + args.wrong_sdk],
-           False, 'Compile SDK must be Quail 1')
+           False, 'Compile SDK must be Rabbit 1')
     with tempfile.TemporaryDirectory() as absent_sdk:
         gradle(['verifyBuildSdk', '-PplatformPath=' + absent_sdk],
                True, 'Compile SDK verified: ' + EXPECTED)

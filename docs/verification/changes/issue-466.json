@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "issue": 466,
+  "gui_required": true,
+  "reason": "最低SDKとJava targetの引上げ、依存更新、RabbitでのJCEF API分離が起動・設定/会話保存・任意providerに影響するため、同一ZIPの実IDE回帰が必要。旧Quail/21の結果を転用しない。",
+  "cli_checks": [
+    "Java 25でpython3 scripts/workflow/change_impact.py --run-tests、./gradlew test buildPlugin verifyPluginStructure",
+    "scripts/workflow/check_build_inputs.py: default/local Rabbit full build、wrong/unknown SDK拒否、implicit override拒否、version/旧branch JDK選択",
+    "plugin_compatibility.py seal/verify: clean source SHA、major69、262 metadata、ZIP hash、Rabbit/JBR25、固定JCEF、全class Verifier完走と警告レビュー",
+    "依存の公式stable/互換条件と採否、ZIP内JAR/stdlib非同梱、Java例外の再評価、固定HEAD/base独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "RABBIT-TERMINAL-ON",
+      "issue": 466,
+      "change": "Rabbit/JBR25でTerminal ONの起動・主要操作・保存を確認",
+      "preconditions": "独立レビュー済みclean sourceの同一Plugin ZIPを使用。source SHA/hash/loaded JAR、Rabbit AI-262.9437.185.2621.16467767、bundled JBR25.0.3を記録。指定operator/host-wide GUI lease、専用profile/使い捨てfixture、認証済みPro/Teams CLI。TerminalはON。既存ユーザーprofile/失敗会話を使わない。",
+      "steps": [
+        "固定ZIPをInstall Plugin from Diskで導入し、専用IDEを起動する。chat/設定がロードされ、LinkageErrorやプラグイン無効化がないことを確認する。",
+        "設定の送信キー等を変更して適用し、新規print会話にfixtureのファイルを変更しない短い質問を送る。回答/完了/新規タブ/履歴表示を確認する。",
+        "Terminal ONでターミナルcontextの利用可否が一致すること、他の入力・送信が壊れないことを確認する。ACPは新規会話で選択と設定表示を確認し、既知の常駐MCP終了問題を本移行のpassで解消済みにしない。",
+        "同じZIPのままIDEを終了・再起動し、設定とprint会話の本文表示が維持されることを確認する。provider resumeやRevert成功とは区別する。",
+        "変更したfixture/設定と所有processを後始末し、Case結果・同一ZIP/ロード実体・未確認範囲を記録する。"
+      ],
+      "expected": "Rabbit/JBR25でプラグインが利用可能。Terminal ONに応じたoptional連携、設定/会話本文保存、チャット/タブの既存操作が成立する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新しい固定ZIPで実施する。旧Quailのpassは転用しない。",
+      "next_action": "指定GUI担当がleaseと固定ZIPを確認して実施。main反映は固定candidate全Caseのgateを別途通す。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466"
+      ],
+      "gpt": {
+        "status": "pending",
+        "reason": "新固定ZIPの実IDE操作は未実施。"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "人間の実IDE操作は未実施。"
+      }
+    },
+    {
+      "id": "RABBIT-TERMINAL-OFF",
+      "issue": 466,
+      "change": "Rabbit/JBR25でTerminal OFFの起動・主要操作・保存を確認",
+      "preconditions": "独立レビュー済みclean sourceの同一Plugin ZIPを使用。source SHA/hash/loaded JAR、Rabbit AI-262.9437.185.2621.16467767、bundled JBR25.0.3を記録。指定operator/host-wide GUI lease、専用profile/使い捨てfixture、認証済みPro/Teams CLI。TerminalはOFF。既存ユーザーprofile/失敗会話を使わない。",
+      "steps": [
+        "固定ZIPをInstall Plugin from Diskで導入し、専用IDEを起動する。chat/設定がロードされ、LinkageErrorやプラグイン無効化がないことを確認する。",
+        "設定の送信キー等を変更して適用し、新規print会話にfixtureのファイルを変更しない短い質問を送る。回答/完了/新規タブ/履歴表示を確認する。",
+        "Terminal OFFでターミナルcontextの利用可否が一致すること、他の入力・送信が壊れないことを確認する。ACPは新規会話で選択と設定表示を確認し、既知の常駐MCP終了問題を本移行のpassで解消済みにしない。",
+        "同じZIPのままIDEを終了・再起動し、設定とprint会話の本文表示が維持されることを確認する。provider resumeやRevert成功とは区別する。",
+        "変更したfixture/設定と所有processを後始末し、Case結果・同一ZIP/ロード実体・未確認範囲を記録する。"
+      ],
+      "expected": "Rabbit/JBR25でプラグインが利用可能。Terminal OFFに応じたoptional連携、設定/会話本文保存、チャット/タブの既存操作が成立する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新しい固定ZIPで実施する。旧Quailのpassは転用しない。",
+      "next_action": "指定GUI担当がleaseと固定ZIPを確認して実施。main反映は固定candidate全Caseのgateを別途通す。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466"
+      ],
+      "gpt": {
+        "status": "pending",
+        "reason": "新固定ZIPの実IDE操作は未実施。"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "人間の実IDE操作は未実施。"
+      }
+    },
+    {
+      "id": "RABBIT-JCEF-OPTIONAL",
+      "issue": 466,
+      "change": "JCEF API分離後の未導入/有効時のブラウザーと復旧",
+      "preconditions": "同一固定ZIP/Rabbit/JBR25、専用profile/fixture/GUI lease。JCEF未導入と対応provider 262.9437.22導入後を区別し、provider版/OS/CPU/checksumを記録する。",
+      "steps": [
+        "JCEF未導入/無効の専用IDEでチャットを開き、︙からブラウザーを開く。回復画面が表示され、設定ボタンが機能し、未操作で外部ページが開かないことを確認する。",
+        "対応するJetBrains Web Browser (JCEF)を専用profileへ導入/有効化し、再起動する。about:blankから開始し、使い捨てfixtureのHTTPページの移動/戻る/進む/再読込を確認する。",
+        "ブラウザーcontentを閉じて再表示し、projectを閉じた後のcallbackや操作でエラー/外部起動がないことを確認する。",
+        "終了時の所有process/profile/fixture状態、ZIPとproviderの識別、未確認範囲を記録する。"
+      ],
+      "expected": "provider不在でもチャットと日本語の復旧導線が利用でき、有効時は内蔵ページ操作が成立する。URL制約・project分離・dispose後の操作抑止を維持する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "新しい固定ZIPで実施する。旧Quailのpassは転用しない。",
+      "next_action": "指定GUI担当がleaseと固定ZIPを確認して実施。main反映は固定candidate全Caseのgateを別途通す。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/466"
+      ],
+      "gpt": {
+        "status": "pending",
+        "reason": "新固定ZIPの実IDE操作は未実施。"
+      },
+      "human": {
+        "status": "pending",
+        "reason": "人間の実IDE操作は未実施。"
+      }
+    }
+  ]
+}

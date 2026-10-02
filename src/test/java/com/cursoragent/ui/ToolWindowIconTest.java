@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 // Java intentionally accesses the SDK-internal activation flag to restore shared state.
 // Kotlin cannot access it; keep the native rendering check without reflection or visibility suppression.
-// Verified with Quail 1 2026.1.1.8; this tests native rendering, not Java interop as a product requirement.
+// Revalidated with Rabbit 1 2026.2.1.8 / Java 25 (#466); the SDK-internal flag still requires Java.
 // Re-evaluate on SDK changes: prefer Kotlin if public APIs allow the same rendering and state restoration.
 // Evidence: https://github.com/shinma06/cursor-in-android-studio/issues/430
 class ToolWindowIconTest {

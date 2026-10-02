@@ -121,19 +121,22 @@ Kotlinを標準とし、Javaの例外理由・成立条件・再評価条件は�
 
 ## ビルドと実行環境
 
-[build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.1.1.8")` で最古の対応StableであるQuail 1初版を固定取得する。[CI](../../.github/workflows/ci.yml) と [branch ZIP](../../.github/workflows/branch-zip.yml) も新構成のsourceでは同じGradle経路を使う。branch ZIPのschedule/manualが旧構成sourceを扱う場合だけ、tracked gradle.propertiesの有効なplatformPath代入を検出して従来Quail 3 Patch 1の取得・local指定を維持する。Gradle実行・Java/Kotlin toolchain・bytecode targetは21。Gradle 9.7.1 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.3、stdlibはIDEの2.3.20を使ってZIPへ同梱しない。
+[build.gradle.kts](../../build.gradle.kts)は `androidStudio("2026.2.1.8")` で最低対応のRabbit 1 Stableを固定取得する。Gradle実行・Java/Kotlin toolchain・bytecode targetは25。[CI](../../.github/workflows/ci.yml)はRabbit 1 / 同梱JBR 25.0.3だけを対象に同一ZIPを検証する。Gradle 9.8.0 / KGP 2.4.20を使用し、KGP公式の完全サポート上限9.7.0との差は実測結果と区別する。Kotlin language/apiは2.4、stdlibはIDE同梱2.4.0を使ってZIPへ同梱しない。依存の選定根拠は[#466](https://github.com/shinma06/cursor-in-android-studio/issues/466)に記録する。
 
-`verifyBuildSdk` は解決したproduct-infoのproductCode/full buildを `AI-261.23567.138.2611.15503007` と照合し、compile/resources/sandbox/ZIP生成前に不一致・確認不能を失敗にする。通常IDEや利用者共通の `platformPath` propertyは暗黙に使わない。local SDKが必要なときだけ両propertyを指定する（パスは各自の非公開設定に保持）。
+[branch ZIP](../../.github/workflows/branch-zip.yml)のschedule/manualは過去のsourceも扱うため、そのsourceの`jvmToolchain`を読み取ってJDKを選ぶ。旧21指定は旧branchを再生成するためだけに残す。tracked gradle.propertiesに有効なplatformPath代入がある旧sourceだけ、従来Quail 3 Patch 1の取得・local指定を維持する。現在のRabbit成果物にJava 21 / Quail互換処理はない。
+
+RabbitではJCEF APIがIDE本体から分離されたため、対応する公式Web Browser (JCEF) 262.9437.22をGradleのplugin依存としてOS/CPU別に参照する。製品ZIPには同梱しない。Verifierはchecksum固定したprovider ZIPを専用offline cacheから解決し、無条件のAPI除外や旧Quailの例外流用は行わない。provider不在では`ManualBrowser`の生成境界でも`LinkageError`を捕捉してブラウザー非依存の回復画面を表示し、チャットの登録を維持する。Terminalの任意登録・linkage防御は引き続き必要。
+`verifyBuildSdk` は解決したproduct-infoのproductCode/full buildを `AI-262.9437.185.2621.16467767` と照合し、compile/resources/sandbox/ZIP生成前に不一致・確認不能を失敗にする。通常IDEや利用者共通の `platformPath` propertyは暗黙に使わない。local SDKが必要なときだけ両propertyを指定する（パスは各自の非公開設定に保持）。
 
 ```bash
-./gradlew clean test buildPlugin -PuseLocalPlatform=true -PplatformPath="<Quail 1 SDKのルート（macOSはContents）>"
+./gradlew clean test buildPlugin -PuseLocalPlatform=true -PplatformPath="<Rabbit 1 SDKのルート（macOSはContents）>"
 ./gradlew buildPlugin -PpluginVersion=0.2.0-rc.1
-python3 scripts/workflow/check_build_inputs.py --local-sdk "<Quail 1 SDK>" --wrong-sdk "<別版の有効なSDK>"
+python3 scripts/workflow/check_build_inputs.py --local-sdk "<Rabbit 1 SDK>" --wrong-sdk "<別版の有効なSDK>"
 ```
 
-versionの既定は `gradle.properties` の `pluginVersion`。上の版は入力例であり正式版の決定ではない。正式候補はversionをcommit・develop統合してsourceを固定後に生成する。`-PpluginVersion` の明示入力でも内部plugin.xml、元ZIP名と内包identityのplugin.versionを揃える。source.commit/state、sdk.build、jvm.targetもZIP内へ記録し、ローカルパス・hostは含めない。正式RCの不変保存・公開は #391/#393、最終GUI受入は #392で追跡する。
+versionの既定は `gradle.properties` の `pluginVersion`。上の版は入力例であり正式版の決定ではない。正式候補はversionをcommit・develop統合してsourceを固定後に生成する。`-PpluginVersion` の明示入力でも内部plugin.xml、元ZIP名と内包identityのplugin.versionを揃える。source.commit/state、sdk.build、jvm.targetもZIP内へ記録し、ローカルパス・hostは含めない。Rabbitへの移行とその受入は #466で追跡し、過去の#391/#392/#393の結果を新成果物の合格根拠にしない。
 
-標準 `buildPlugin` と配布物の識別は [ZIP配布](../development/plugin-zip-delivery.md) が正本。旧2.10.5の `androidStudio()` URL解決失敗は [固定版のCommands](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#commands) に保全し、新版での結果と混同しない。対象IDE・配布元・checksumと候補選定は [Phase 1記録](../research/modernization-baseline-2026-09-21.md) を参照。
+標準 `buildPlugin` と配布物の識別は [ZIP配布](../development/plugin-zip-delivery.md) が正本。旧2.10.5の `androidStudio()` URL解決失敗は [固定版のCommands](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md#commands) に保全し、新版での結果と混同しない。現在の対象IDE・公式配布元・checksumは [互換検証policy](../../scripts/workflow/plugin_compatibility.json)、旧Quailの選定は履歴の [Phase 1記録](../research/modernization-baseline-2026-09-21.md) を参照。
 
 送信前の設定利用可否と実行境界のvalidation、同一snapshotの捕捉/受け渡しは [設定検証の境界](settings-boundary.md)を参照。設定/準備変更のwriterと独立reviewerが早期拒否位置と通信側防御を照合する。
 

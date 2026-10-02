@@ -27,19 +27,21 @@ Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE 
 ```bash
 git clone https://github.com/shinma06/cursor-in-android-studio.git
 cd cursor-in-android-studio
-export JAVA_HOME="$(/usr/libexec/java_home -v 21)"   # macOS。ほかのOSもJDK 21を使用
+export JAVA_HOME="$(/usr/libexec/java_home -F -v 25)"   # macOS。ほかのOSもJDK 25を使用
 ./gradlew buildPlugin
 ```
 
+macOSでJDK 25を登録していない場合は、Rabbit同梱JBRの`Contents/jbr/Contents/Home`を`JAVA_HOME`へ明示指定できます。
+
 ## 前提
 
-- 正式対応対象はAndroid Studio 2026.1系（Platform 261系）のStable。下限はQuail 1初版 / 2026.1.1.8、最新Stableの検証対象はQuail 4 Patch 1。更新後RCの受入は [#392](https://github.com/shinma06/cursor-in-android-studio/issues/392) で追跡する。
+- このブランチの最低対応版はAndroid Studio Rabbit 1 / 2026.2.1.8（Platform 262系）、Java 25。固定したRabbitの互換性・実IDE受入は [#466](https://github.com/shinma06/cursor-in-android-studio/issues/466) で追跡する。Quail / Java 21は新成果物の対応対象外。262以降すべてのIDEへの互換性を保証しない。
 - `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
-- GradleがQuail 1初版SDKを固定取得する。通常IDEのインストール先設定は不要。明示local SDKとversion指定は [ビルド手順](docs/architecture/current-implementation.md#ビルドと実行環境) を参照。
+- GradleがRabbit 1 SDKを固定取得する。通常IDEのインストール先設定は不要。明示local SDKとversion指定は [ビルド手順](docs/architecture/current-implementation.md#ビルドと実行環境) を参照。
 
 ## 配布版の選択
 
-開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを両IDEと全必要Caseで検証してから公開します。正式RC/GUI/mainの受入は未完了で、Phase 4の仕組みの実装と正式公開済みを区別してください。
+開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを対象Rabbitと全必要Caseで検証してから公開します。Rabbit移行のGUI/main受入と、過去の正式v0.1.0（Quail対応）の公開結果は別です。
 
 ## Android Studio へのインストール
 

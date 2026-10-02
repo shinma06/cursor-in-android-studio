@@ -34,7 +34,7 @@ JetBrainsはAndroid Studio向けに、native JCEFを提供する実験的な **W
 
 `plugin.xml`はJCEFを **optional** として宣言する。provider不在/disabledでplugin全体のロードを止めないのが選択理由。必須依存は導入条件を強められるが、ブラウザー以外のチャットまで利用不可にするため採用しない。任意依存は未導入時の自動installを保証しない。[SDKの任意依存仕様](https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html#optional-plugin-dependencies)
 
-追加descriptor `cursor-agent-jcef.xml`は空で、Browser ToolWindowと回復画面は引き続き主descriptorに登録する。利用APIは既存IDE SDK内にあり、provider固有クラスを直接参照しない。GradleでOS固有providerを強制取得・同梱せず、native発見はIDE標準に任せる。対象SDKの`JBCefApp`にはnative bundle providerの探索経路があることを静的照合した。
+Rabbit / #466ではJCEF API自体がIDE本体から分離された。Gradleは最低対応Rabbitで使える公式provider 262.9437.22をOS/CPU別に参照し、製品ZIPへAPIやnativeを同梱しない。Verifierにも同じ版のchecksum固定ZIPをoffline cacheで渡す。追加descriptor `cursor-agent-jcef.xml`は空のまま、Browser ToolWindowと回復画面は主descriptorに登録する。`ManualBrowser`の生成境界で`LinkageError`を捕捉し、JCEFクラスがない場合でも独立した回復画面を表示する。以下のQuail実測表と既存#164の結果は履歴であり、Rabbitの合格証拠ではない。
 
 実行時の`JBCefApp.isSupported()`確認を維持する。false時と起動例外時はURL入力/移動を無効化し、日本語の回復画面を表示。成功時は従来どおり`about:blank`から開始する。入力URLのHTTP(S)/認証情報/host/port境界、popup制限、project別contentとDisposer、終了後callbackの抑止は維持する。[SDKの対応判定と所有権](https://plugins.jetbrains.com/docs/intellij/embedded-browser-jcef.html)
 

@@ -40,7 +40,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.14.0")
     implementation("org.commonmark:commonmark:0.30.0")
 
-    testImplementation(platform("org.junit:junit-bom:5.14.4"))
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -50,9 +50,18 @@ dependencies {
         if (providers.gradleProperty("useLocalPlatform").orNull == "true") {
             local(providers.gradleProperty("platformPath"))
         } else {
-            androidStudio("2026.1.1.8")
+            androidStudio("2026.2.1.8")
         }
         bundledPlugins("org.jetbrains.plugins.terminal")
+        // Rabbit moved JCEF APIs out of the SDK. Gradle supplies this optional
+        // plugin to compile/test/runIde, never inside our distributable ZIP.
+        val jcefOs = when {
+            System.getProperty("os.name").startsWith("Mac") -> "mac"
+            System.getProperty("os.name").startsWith("Windows") -> "windows"
+            else -> "linux"
+        }
+        val jcefArch = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x86_64"
+        plugin("com.intellij.modules.jcef", "262.9437.22-$jcefOs-$jcefArch")
         testFramework(TestFrameworkType.Bundled) // Exercise the resolved SDK's native Document/Undo behavior.
         pluginVerifier("1.410")
     }
@@ -63,11 +72,11 @@ tasks.withType<Test> {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
-        languageVersion.set(KotlinVersion.KOTLIN_2_3)
-        apiVersion.set(KotlinVersion.KOTLIN_2_3)
+        jvmTarget.set(JvmTarget.JVM_25)
+        languageVersion.set(KotlinVersion.KOTLIN_2_4)
+        apiVersion.set(KotlinVersion.KOTLIN_2_4)
     }
 }
 
@@ -76,8 +85,8 @@ intellijPlatform {
         name = "Cursor in Android Studio"
         version = project.version.toString()
         ideaVersion {
-            sinceBuild = "261.23567.138"
-            untilBuild = "261.*"
+            sinceBuild = "262.9437.185"
+            untilBuild = "262.*"
         }
     }
 }
@@ -99,8 +108,8 @@ val verifyBuildSdk = tasks.register("verifyBuildSdk") {
     description = "Verify the resolved oldest supported Android Studio SDK."
     inputs.property("sdkBuild", sdkBuild)
     doLast {
-        check(sdkBuild.get() == "AI-261.23567.138.2611.15503007") {
-            "Compile SDK must be Quail 1 2026.1.1.8 (AI-261.23567.138.2611.15503007); resolved ${sdkBuild.get()}"
+        check(sdkBuild.get() == "AI-262.9437.185.2621.16467767") {
+            "Compile SDK must be Rabbit 1 2026.2.1.8 (AI-262.9437.185.2621.16467767); resolved ${sdkBuild.get()}"
         }
         logger.lifecycle("Compile SDK verified: ${sdkBuild.get()}")
     }
@@ -132,7 +141,7 @@ val generateBuildIdentity = tasks.register<WriteProperties>("generateBuildIdenti
     })
     property("plugin.version", project.version.toString())
     property("sdk.build", sdkBuild)
-    property("jvm.target", "21")
+    property("jvm.target", "25")
 }
 
 tasks.processResources {

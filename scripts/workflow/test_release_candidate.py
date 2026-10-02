@@ -14,7 +14,7 @@ import branch_zip
 
 
 class ReleaseTest(unittest.TestCase):
-    def test_bundle_binds_source_zip_both_reports_and_excludes_private_log(self):
+    def test_bundle_binds_source_zip_required_reports_and_excludes_private_log(self):
         policy = json.loads(pc.POLICY.read_text())
         source = 'a' * 40
         with tempfile.TemporaryDirectory() as temp:
@@ -22,13 +22,13 @@ class ReleaseTest(unittest.TestCase):
             product = directory / rc.version_name('1.2.3')
             jar = io.BytesIO()
             with zipfile.ZipFile(jar, 'w') as inner:
-                inner.writestr('META-INF/plugin.xml', '<idea-plugin><id>com.cursoragent.plugin</id><version>1.2.3</version></idea-plugin>')
-                inner.writestr('cursor-agent-build.properties', f'plugin.version=1.2.3\nsource.commit={source}\nsource.state=clean\nsdk.build={policy["targets"]["quail1"]["build"]}\njvm.target=21\n')
-                inner.writestr('Example.class', b'bytecode')
+                inner.writestr('META-INF/plugin.xml', '<idea-plugin><id>com.cursoragent.plugin</id><version>1.2.3</version><idea-version since-build="262.9437.185" until-build="262.*"/></idea-plugin>')
+                inner.writestr('cursor-agent-build.properties', f'plugin.version=1.2.3\nsource.commit={source}\nsource.state=clean\nsdk.build={policy["targets"]["rabbit1"]["build"]}\njvm.target=25\n')
+                inner.writestr('Example.class', b'\xca\xfe\xba\xbe\x00\x00\x00\x45')
             with zipfile.ZipFile(product, 'w') as outer: outer.writestr('plugin/lib/plugin.jar', jar.getvalue())
             manifest=pc.seal(product, source, policy)
             rc.write(directory/'manifest.json',manifest)
-            rc.write(directory/'inputs.json',{'source':source,'version':'1.2.3','files':{},'libraries':['plugin.jar'],'command':rc.build_command('1.2.3'),'java_version':'21.0.11'})
+            rc.write(directory/'inputs.json',{'source':source,'version':'1.2.3','files':{},'libraries':['plugin.jar'],'command':rc.build_command('1.2.3'),'java_version':'25.0.3'})
             evidence={}
             for key,target in policy['targets'].items():
                 path=root/key; reports=path/'reports'/target['build']/'plugins'/pc.PLUGIN_ID/'1.2.3'; reports.mkdir(parents=True)
@@ -38,26 +38,29 @@ class ReleaseTest(unittest.TestCase):
                 log='Starting the IntelliJ Plugin Verifier 1.410\nScheduled verifications (1):\nFinished 1 of 1 verifications\nSDK /Users/private-user/sdk\n'
                 (path/'verifier.log').write_text(log)
                 result={'status':'passed','artifact':manifest,'verifier_version':'1.410',
-                        'target':{'build':target['build'],'java_version':target['java_version'], 'distribution_version':target['version'],
-                                  'java_runtime':'Picked up JAVA_TOOL_OPTIONS: -Dsecret=fake-test-value\nopenjdk version "'+target['java_version']+'"\nOpenJDK Runtime Environment (build 21.0.10+-123-b1.1)\nOpenJDK 64-Bit Server VM (build 21.0.10+-123-b1.1, mixed mode)'},
+                        'jcef':policy['jcef']['Linux-amd64'],
+                        'target':{'platform':'Linux-amd64','build':target['build'],'java_version':target['java_version'], 'distribution_version':target['version'],
+                                  'java_runtime':'Picked up JAVA_TOOL_OPTIONS: -Dsecret=fake-test-value\nopenjdk version "'+target['java_version']+'"\nOpenJDK Runtime Environment (build 25.0.3+-123-b1.1)\nOpenJDK 64-Bit Server VM (build 25.0.3+-123-b1.1, mixed mode)'},
                         **pc.check_reports(path/'reports',log,target,manifest,policy)}
                 rc.write(path/'result.json',result); evidence[key]=path
             with patch.object(rc,'source_inputs',return_value={}),patch.object(rc,'git_read',return_value=json.dumps(policy)):
+                with self.assertRaisesRegex(ValueError, 'All target IDE reports'):
+                    rc.bundle(directory,manifest['sha256'],{})
                 rc.bundle(directory,manifest['sha256'],evidence)
                 original = pc.digest(product)
                 rc.bundle(directory,manifest['sha256'],evidence)  # Same reports can safely retry.
-                (directory/'compatibility-quail4.zip').unlink()  # Simulate interrupted copy.
+                (directory/'compatibility-rabbit1.zip').unlink()  # Simulate interrupted copy.
                 (directory/'bundle.json').unlink()
                 rc.bundle(directory,manifest['sha256'],evidence)
                 self.assertEqual(pc.digest(product),original)
                 self.assertEqual(rc.validate_bundle(directory,manifest['sha256']),manifest)
-                with zipfile.ZipFile(directory/'compatibility-quail1.zip') as report:
+                with zipfile.ZipFile(directory/'compatibility-rabbit1.zip') as report:
                     self.assertNotIn('/Users/',report.read('verifier-summary.txt').decode())
                     self.assertNotIn('fake-test-value',report.read('result.json').decode())
-                inputs=rc.read(directory/'inputs.json'); inputs['java_version']='21.0.11\nPicked up JAVA_TOOL_OPTIONS: fake-test-value'
+                inputs=rc.read(directory/'inputs.json'); inputs['java_version']='25.0.3\nPicked up JAVA_TOOL_OPTIONS: fake-test-value'
                 rc.write(directory/'inputs.json',inputs)
                 with self.assertRaisesRegex(ValueError,'public build inputs'):rc.candidate(directory,manifest['sha256'])
-                inputs['java_version']='21.0.11'; rc.write(directory/'inputs.json',inputs)
+                inputs['java_version']='25.0.3'; rc.write(directory/'inputs.json',inputs)
                 with self.assertRaises(ValueError):rc.validate_bundle(directory,'0'*64)
                 product.write_bytes(b'changed')
                 with self.assertRaises(ValueError):rc.validate_bundle(directory,manifest['sha256'])

@@ -1,5 +1,10 @@
 package com.cursoragent.ui.browser
 
+import com.intellij.ide.BrowserUtil
+import com.intellij.ide.plugins.PluginManagerConfigurable
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBUI
@@ -9,8 +14,9 @@ import javax.swing.JButton
 import javax.swing.JPanel
 
 /** Browser-free recovery UI: opening this panel never installs or enables a plugin. */
-internal class BrowserRecoveryPanel(onSettings: () -> Unit, onHelp: () -> Unit) : JPanel(BorderLayout(0, 8)) {
-    val settingsButton = JButton("プラグイン設定を開く").apply { addActionListener { onSettings() } }
+internal class BrowserRecoveryPanel(onSettings: () -> Unit, onHelp: () -> Unit) : JPanel(BorderLayout(0, 8)), Disposable {
+    private var disposed = false
+    val settingsButton = JButton("プラグイン設定を開く").apply { addActionListener { if (!disposed) onSettings() } }
 
     init {
         border = JBUI.Borders.empty(8, 0)
@@ -33,7 +39,24 @@ internal class BrowserRecoveryPanel(onSettings: () -> Unit, onHelp: () -> Unit) 
         }), BorderLayout.CENTER)
         add(JPanel(GridLayout(0, 1, 0, 6)).apply {
             add(settingsButton)
-            add(JButton("公式配布ページを外部ブラウザーで開く").apply { addActionListener { onHelp() } })
+            add(JButton("公式配布ページを外部ブラウザーで開く").apply { addActionListener { if (!disposed) onHelp() } })
         }, BorderLayout.SOUTH)
+    }
+
+    override fun dispose() {
+        disposed = true
+    }
+
+    companion object {
+        fun forProject(project: Project) = BrowserRecoveryPanel(
+            onSettings = {
+                if (!project.isDisposed) {
+                    ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginManagerConfigurable::class.java)
+                }
+            },
+            onHelp = {
+                if (!project.isDisposed) BrowserUtil.browse("https://plugins.jetbrains.com/plugin/31360-web-browser-jcef-")
+            },
+        )
     }
 }

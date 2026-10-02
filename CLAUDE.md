@@ -83,14 +83,14 @@ Use Kotlin by default for JVM code. Java needs a concrete current benefit, appli
 Use [Change Impact](docs/development/change-impact.md), shared by CI/hooks/coordinator/ZIP generation. Before pushing, run `python3 scripts/workflow/change_impact.py --run-tests`. Preserve mixed/unknown validation, explicit builds/GUI checks, independent review and Acceptance gate; never use `--no-verify` or disable protection.
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
+export JAVA_HOME="$(/usr/libexec/java_home -F -v 25)"
 python3 scripts/workflow/change_impact.py --run-tests
 ./gradlew test          # Product/Kotlin test changes
 ./gradlew buildPlugin   # Explicit standard Plugin ZIP build
 ./gradlew runIde        # Requires GUI lease
 ```
 
-Gradle runtime, Kotlin toolchain and JVM target are 21. `androidStudio("2026.1.1.8")` pins the initial Quail 1 SDK for local/CI/branch ZIP. Local SDK requires explicit `-PuseLocalPlatform=true -PplatformPath=...`; full-build mismatch or inability to verify must fail. See [build details](docs/architecture/current-implementation.md#ビルドと実行環境) for SDK resolution and historical workarounds. Bootstrap/Gradle configure `.githooks`; pre-push checks branch/dirty/fast-forward before selected tests.
+Gradle runtime, Kotlin toolchain and JVM target are 25. `androidStudio("2026.2.1.8")` pins the Rabbit 1 SDK for local/CI/branch ZIP. Local SDK requires explicit `-PuseLocalPlatform=true -PplatformPath=...`; full-build mismatch or inability to verify must fail. See [build details](docs/architecture/current-implementation.md#ビルドと実行環境) for SDK resolution and historical workarounds. Bootstrap/Gradle configure `.githooks`; pre-push checks branch/dirty/fast-forward before selected tests.
 
 Use Pro/Teams for development/verification. Do not revive the old Free-tier `resource_exhausted` blocker unless Free is explicitly reintroduced. Manual install is Settings → Plugins → ⚙ → Install Plugin from Disk, select ZIP, restart. Follow [ZIP/build identity](docs/development/plugin-zip-delivery.md) and GUI lease.
 
