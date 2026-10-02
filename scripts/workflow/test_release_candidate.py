@@ -2,6 +2,7 @@
 import copy
 import io
 import json
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
@@ -167,6 +168,9 @@ class ReleaseTest(unittest.TestCase):
     def test_bundle_binds_source_zip_both_reports_and_excludes_private_log(self):
         self.check_bundle(json.loads(pc.POLICY.read_text()))
 
+    def test_legacy_quail_rc_still_validates_and_reaches_notes_only_publication(self):
+        self.check_bundle(json.loads(pc.POLICY.read_text()), legacy=True)
+
     def test_bundle_cli_selects_the_supplied_target(self):
         with patch('sys.argv', ['release_candidate.py', 'bundle', '--directory', 'candidate',
                                '--sha256', 'a' * 64, '--rabbit1', 'report']), patch.object(rc, 'bundle') as bundle:
@@ -176,8 +180,13 @@ class ReleaseTest(unittest.TestCase):
     def test_rabbit_bundle_requires_only_the_rabbit_report(self):
         self.check_bundle(json.loads(pc.POLICY.read_text())['next_policy'])
 
-    def check_bundle(self, policy):
+    def check_bundle(self, policy, legacy=False):
         compile = policy['compile']
+        sealing_policy = copy.deepcopy(policy)
+        if legacy:
+            policy.pop('compile')
+            policy.pop('next_policy', None)
+            policy['reviewed_log_warnings'] = []
         target_keys = list(policy['targets'])
         source = 'a' * 40
         with tempfile.TemporaryDirectory() as temp:
@@ -189,7 +198,10 @@ class ReleaseTest(unittest.TestCase):
                 inner.writestr('cursor-agent-build.properties', f'plugin.version=1.2.3\nsource.commit={source}\nsource.state=clean\nsdk.build={policy["targets"][compile["target"]]["build"]}\njvm.target={compile["jvm_target"]}\n')
                 inner.writestr('Example.class', b'\xca\xfe\xba\xbe\x00\x00' + compile['class_major'].to_bytes(2, 'big'))
             with zipfile.ZipFile(product, 'w') as outer: outer.writestr('plugin/lib/plugin.jar', jar.getvalue())
-            manifest=pc.seal(product, source, policy)
+            manifest=pc.seal(product, source, sealing_policy)
+            if legacy:
+                for key in ('class.major.versions', 'since.build', 'until.build'):
+                    manifest['identity'].pop(key)
             rc.write(directory/'manifest.json',manifest)
             rc.write(directory/'inputs.json',{'source':source,'version':'1.2.3','files':{},'libraries':['plugin.jar'],'command':rc.build_command('1.2.3'),'java_version':compile['jvm_target']+'.0.11'})
             evidence={}
@@ -204,6 +216,9 @@ class ReleaseTest(unittest.TestCase):
                         'target':{'platform':'Linux-amd64','build':target['build'],'java_version':target['java_version'], 'distribution_version':target['version'],
                                   'java_runtime':'Picked up JAVA_TOOL_OPTIONS: -Dsecret=fake-test-value\nopenjdk version "'+target['java_version']+'"\nOpenJDK Runtime Environment (build 21.0.10+-123-b1.1)\nOpenJDK 64-Bit Server VM (build 21.0.10+-123-b1.1, mixed mode)'},
                         **pc.check_reports(path/'reports',log,target,manifest,policy)}
+                if legacy:
+                    result.pop('jcef')
+                    result['target'].pop('platform')
                 rc.write(path/'result.json',result); evidence[key]=path
             with patch.object(rc,'source_inputs',return_value={}),patch.object(rc,'git_read',return_value=json.dumps(policy)):
                 rc.bundle(directory,manifest['sha256'],evidence)
@@ -214,6 +229,23 @@ class ReleaseTest(unittest.TestCase):
                 rc.bundle(directory,manifest['sha256'],evidence)
                 self.assertEqual(pc.digest(product),original)
                 self.assertEqual(rc.validate_bundle(directory,manifest['sha256']),manifest)
+                if legacy:
+                    before = {p.name: pc.digest(p) for p in directory.iterdir()}
+                    notes = self.notes()[1].replace('0.1.0', '1.2.3')
+                    tag = {'ref': 'refs/tags/v1.2.3', 'object': {'type': 'commit', 'sha': 'b' * 40}}
+                    def fetch_saved(name, sha, destination):
+                        shutil.copytree(directory, destination)
+                        return rc.validate_bundle(destination, sha)
+                    with patch.dict(rc.os.environ, {'GITHUB_REPOSITORY': 'shinma06/cursor-in-android-studio'}), \
+                            patch.object(rc, 'publication', return_value=(manifest, 'b' * 40)), \
+                            patch.object(rc, 'release_notes', return_value=notes), \
+                            patch.object(rc, 'fetch', side_effect=fetch_saved), \
+                            patch.object(rc.github, 'api', side_effect=lambda p: [tag] if p.startswith('git/matching-refs/') else tag), \
+                            patch.object(rc, 'preserve') as preserve:
+                        rc.publish(directory, manifest['sha256'], 411, update_notes=True)
+                        self.assertTrue(preserve.call_args.args[-1])
+                        self.assertEqual(rc.formal_record(preserve.call_args.args[5])[0]['candidate'], manifest)
+                    self.assertEqual({p.name: pc.digest(p) for p in directory.iterdir()}, before)
                 with zipfile.ZipFile(directory/f'compatibility-{target_keys[0]}.zip') as report:
                     self.assertNotIn('/Users/',report.read('verifier-summary.txt').decode())
                     self.assertNotIn('fake-test-value',report.read('result.json').decode())

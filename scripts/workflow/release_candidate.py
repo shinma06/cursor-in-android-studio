@@ -155,6 +155,15 @@ def candidate(directory, expected_hash):
     source = manifest['identity']['source.commit']
     pc.require(re.fullmatch('[0-9a-f]{40}', source), 'Invalid source')
     policy = json.loads(git_read('show', f'{source}:scripts/workflow/plugin_compatibility.json'))
+    legacy = 'compile' not in policy
+    if legacy:
+        # Read immutable Quail RCs using their fixed-source policy. Never rewrite
+        # their manifest, or apply this projection to a new Rabbit candidate.
+        pc.require(set(policy['targets']) == {'quail1', 'quail4'} and 'next_policy' not in policy and
+                   policy['targets']['quail1']['build'] == 'AI-261.23567.138.2611.15503007',
+                   'Unknown legacy candidate policy')
+        policy = dict(policy, compile={'target': 'quail1', 'jvm_target': '21', 'class_major': 65,
+                                      'since_build': '261.23567.138', 'until_build': '261.*'})
     policy = pc.policy_for_sdk(policy, manifest['identity']['sdk.build'])
     pc.require(set(inputs) == {'source', 'version', 'command', 'files', 'java_version', 'libraries'}
                and re.fullmatch(re.escape(policy['compile']['jvm_target']) + r'\.[0-9.+-]+', inputs['java_version'])
@@ -162,10 +171,15 @@ def candidate(directory, expected_hash):
     pc.require(inputs['source'] == source and inputs['version'] == version, 'Candidate inputs differ')
     pc.require(inputs['files'] == source_inputs(source), 'Build input files differ from fixed source')
     archive = directory / version_name(version)
-    pc.check_archive(archive, manifest, expected_hash)
+    pc.require(pc.digest(archive) == expected_hash == manifest['sha256'] and
+               archive.stat().st_size == manifest['size'], 'ZIP hash/size mismatch')
     with zipfile.ZipFile(archive) as product:
         pc.require(inputs['libraries'] == sorted(Path(n).name for n in product.namelist() if n.endswith('.jar')), 'Packaged dependencies differ')
-    pc.require(pc.seal(directory / version_name(version), source, policy) == manifest, 'Invalid candidate identity')
+    actual = pc.seal(archive, source, policy)  # Always validate actual bytecode and IDE metadata.
+    added = {'class.major.versions', 'since.build', 'until.build'}
+    if legacy and set(manifest['identity']) == set(actual['identity']) - added:
+        actual['identity'] = {k: v for k, v in actual['identity'].items() if k not in added}
+    pc.require(actual == manifest, 'Invalid candidate identity')
     return manifest, policy
 
 
