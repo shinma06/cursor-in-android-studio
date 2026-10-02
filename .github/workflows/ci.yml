@@ -115,7 +115,11 @@ jobs:
         if: always()
         with:
           name: compatibility-rabbit1
-          path: compatibility-result
+          path: |
+            compatibility-result/input.json
+            compatibility-result/result.json
+            compatibility-result/verifier.log
+            compatibility-result/reports
           if-no-files-found: error
           retention-days: 14
 

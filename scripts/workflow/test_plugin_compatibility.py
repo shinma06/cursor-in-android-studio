@@ -21,7 +21,7 @@ class CompatibilityTest(unittest.TestCase):
             directory.mkdir(parents=True)
             files = {'verification-verdict.txt': 'Compatible.',
                      'telemetry.txt': 'Verified classes in plugin artifact: 427\n',
-                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\n'}
+                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\n+--- com.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n'}
             for name, text in files.items():
                 (directory / name).write_text(text)
             self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verified_classes'], 427)
@@ -36,6 +36,7 @@ class CompatibilityTest(unittest.TestCase):
             for name, text in [('verification-verdict.txt', ''), ('verification-verdict.txt', 'Unavailable'),
                                ('verification-verdict.txt', 'Compatible. Unknown result.'),
                                ('telemetry.txt', 'Verified classes in plugin artifact: 0\n'),
+                               ('dependencies.txt', pc.PLUGIN_ID + ':1.0.0\n'),
                                ('dependencies.txt', 'other-plugin:1.0.0\n'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) missing: not resolved'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) unknown (optional): not resolved')]:
@@ -72,6 +73,13 @@ class CompatibilityTest(unittest.TestCase):
                     pc.check_reports(reports, bad_log, target, manifest, policy)
             with self.assertRaises(ValueError):
                 pc.check_reports(reports, log, dict(target, build='AI-wrong-build'), manifest, policy)
+            warning = 'reviewed first line\nreviewed second line'
+            allowed = copy.deepcopy(policy)
+            allowed['reviewed_log_warnings'] = {pc.hashlib.sha256(warning.encode()).hexdigest(): 'reviewed'}
+            warning_log = log + '\n2026-10-02T00:00:00 [main] WARN logger - ' + warning
+            pc.check_reports(reports, warning_log, target, manifest, allowed)
+            with self.assertRaisesRegex(ValueError, 'Unreviewed Verifier warning'):
+                pc.check_reports(reports, warning_log + '\nnew unreviewed detail', target, manifest, allowed)
 
     def test_seal_rejects_old_sdk_target_bytecode_or_metadata(self):
         policy = json.loads(pc.POLICY.read_text())

@@ -126,6 +126,8 @@ def check_reports(reports, log, target, manifest, policy):
     require('Scheduled verifications (1):' in log and 'Finished 1 of 1 verifications' in log, 'Verification did not complete once')
     dependencies = (directory / 'dependencies.txt').read_text()
     require(dependencies.splitlines()[0] == f'{PLUGIN_ID}:{version}', 'Wrong dependency report identity')
+    require(any(f'com.intellij.modules.jcef:{provider["version"]}' in dependencies for provider in policy['jcef'].values()),
+            'Pinned JCEF provider was not resolved')
     failures = [line.strip() for line in dependencies.splitlines() if '(failed)' in line or 'not resolved' in line]
     # Optional absences require an explicit, reviewed policy entry; no blanket optional exemption.
     for line in failures:
@@ -146,11 +148,11 @@ def check_reports(reports, log, target, manifest, policy):
         require(expected and digest(report) == expected['sha256'], 'New/unreviewed report: ' + report.name)
         warning_hashes[report.name] = digest(report)
     # The fixed Verifier is intentionally parsed conservatively; new log warnings/errors need review.
-    for line in log.splitlines():
-        if re.search(r'\bERROR\b', line):
-            raise ValueError('Verifier logged an error')
-        if ' WARN ' in line:
-            require(any(line.endswith(marker) for marker in policy['reviewed_log_warnings']), 'Unreviewed Verifier warning')
+    require(not re.search(r'\bERROR\b', log), 'Verifier logged an error')
+    for block in re.findall(r'(?m)^.* WARN [^\n]*(?:\n(?!\d{4}-\d{2}-\d{2}T)[^\n]+)*', log):
+        message = block.split(' - ', 1)[-1]
+        require(hashlib.sha256(message.encode()).hexdigest() in policy['reviewed_log_warnings'],
+                'Unreviewed Verifier warning')
     return {'verdict': verdict, 'verified_classes': int(count[1]), 'optional_absences': failures,
             'reviewed_api_reports': warning_hashes,
             'reports': {str(p.relative_to(reports)): digest(p) for p in sorted(reports.rglob('*.txt'))}}

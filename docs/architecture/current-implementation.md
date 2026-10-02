@@ -126,6 +126,9 @@ Kotlinを標準とし、Javaの例外理由・成立条件・再評価条件は�
 [branch ZIP](../../.github/workflows/branch-zip.yml)のschedule/manualは過去のsourceも扱うため、そのsourceの`jvmToolchain`を読み取ってJDKを選ぶ。旧21指定は旧branchを再生成するためだけに残す。tracked gradle.propertiesに有効なplatformPath代入がある旧sourceだけ、従来Quail 3 Patch 1の取得・local指定を維持する。現在のRabbit成果物にJava 21 / Quail互換処理はない。
 
 RabbitではJCEF APIがIDE本体から分離されたため、対応する公式Web Browser (JCEF) 262.9437.22をGradleのplugin依存としてOS/CPU別に参照する。製品ZIPには同梱しない。Verifierはchecksum固定したprovider ZIPを専用offline cacheから解決し、無条件のAPI除外や旧Quailの例外流用は行わない。provider不在では`ManualBrowser`の生成境界でも`LinkageError`を捕捉してブラウザー非依存の回復画面を表示し、チャットの登録を維持する。Terminalの任意登録・linkage防御は引き続き必要。
+
+Verifier 1.410は旧形式`depends`の`com.intellij.modules.jcef`をmodule aliasとして扱うため、公式の依存宣言でも任意依存の未解決表示が残る。固定providerの実解決をdependency graphで別途必須にし、全製品classの検査・API欠落の拒否を維持する。`-ignore-os-arch`はVerifierが実体のないOS/CPU制約moduleを要求する問題に限定し、実行host・SDKのlaunch情報・providerのOS/CPUはwrapperで照合する。[Rabbit用policy](../../scripts/workflow/plugin_compatibility.json)には再評価した任意機能の不在、API report hash、配布物の48件の古いlayout pathを含む警告全文のhashを保存し、未知の警告を拒否する。根拠は[Verifierの公式option](https://github.com/JetBrains/intellij-plugin-verifier#common-options)と[JCEF移行の公式案内](https://platform.jetbrains.com/t/2026-2-is-coming-time-to-check-your-plugin-compatibility/4618)。これらは実IDEのclassloader・native browser動作の合格を代替しない。
+
 `verifyBuildSdk` は解決したproduct-infoのproductCode/full buildを `AI-262.9437.185.2621.16467767` と照合し、compile/resources/sandbox/ZIP生成前に不一致・確認不能を失敗にする。通常IDEや利用者共通の `platformPath` propertyは暗黙に使わない。local SDKが必要なときだけ両propertyを指定する（パスは各自の非公開設定に保持）。
 
 ```bash

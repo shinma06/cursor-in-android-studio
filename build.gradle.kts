@@ -156,6 +156,9 @@ tasks.verifyPlugin {
     runtimeDirectory.set(layout.dir(providers.gradleProperty("verificationRuntime").map { file(it) }))
     useBundledRuntime.set(false) // Explicit per-job bundled JBR; never a JAVA_HOME fallback.
     offline.set(true) // Resolve the target distribution, not mutable Marketplace dependencies.
+    // These are IDE runtime constraints, not class-bearing modules. The wrapper
+    // checks the SDK launch platform and pins the matching JCEF archive first.
+    freeArgs.add("-ignore-os-arch")
     doFirst {
         systemProperty("plugin.verifier.home.dir", verificationReportsDirectory.get().asFile.resolveSibling("verifier-cache"))
     }

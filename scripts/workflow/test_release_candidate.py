@@ -34,7 +34,7 @@ class ReleaseTest(unittest.TestCase):
                 path=root/key; reports=path/'reports'/target['build']/'plugins'/pc.PLUGIN_ID/'1.2.3'; reports.mkdir(parents=True)
                 (reports/'verification-verdict.txt').write_text('Compatible.')
                 (reports/'telemetry.txt').write_text('Verified classes in plugin artifact: 1\n')
-                (reports/'dependencies.txt').write_text(pc.PLUGIN_ID+':1.2.3\n')
+                (reports/'dependencies.txt').write_text(pc.PLUGIN_ID+':1.2.3\n+--- com.intellij.modules.jcef:'+policy['jcef']['Linux-amd64']['version']+'\n')
                 log='Starting the IntelliJ Plugin Verifier 1.410\nScheduled verifications (1):\nFinished 1 of 1 verifications\nSDK /Users/private-user/sdk\n'
                 (path/'verifier.log').write_text(log)
                 result={'status':'passed','artifact':manifest,'verifier_version':'1.410',
