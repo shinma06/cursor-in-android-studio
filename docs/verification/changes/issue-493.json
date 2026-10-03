@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "issue": 493,
+  "gui_required": true,
+  "reason": "Settingsの幅・入力操作とモデルmetadata取得時点を変更する。旧候補の実GUIで再現した問題であり、修正後の固定build/実画面が必要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew test buildPlugin verifyPluginStructure",
+    "DefaultModelSettingsPanelTest/ModelCatalogStatusTest/ModelCatalogLoaderTest: 無操作の無実行、保存ID保持、明示取得、失敗/再試行/破棄後配送",
+    "固定HEAD/base別sessionレビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "SETTINGS-NARROW-PATH",
+      "issue": 493,
+      "change": "長いCLIパスでもSettingsの操作と説明を窓内へ収める",
+      "preconditions": "GUI担当/host lease、#493を含む固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を記録。専用profileと合成project/metadata CLIだけを使う。通常設定や認証を変更しない。",
+      "steps": [
+        "元CLI/通知設定を控え、通信しない合成CLIを用意する。固定ZIP/source/全JAR/実ロードを照合した専用IDEのSettingsを900論理px相当へ狭める。",
+        "空欄と長い絶対パスを表示し、入力欄・browse・自動検出に戻すが見えることを確認する。説明/診断は折り返しと縦scrollで読めることを確認する。",
+        "長い手動パスをApplyして再表示、元の値を保持する。自動検出に戻すを押してCancel→手動値保持、再度押してApply→自動状態/保存値空を確認する。",
+        "通知だけの変更/復元で自動状態を保つ。手動値から空欄Applyでも自動へ戻る。Tab/Space/Enterで主要操作へ到達し、元設定へ復元する。"
+      ],
+      "expected": "長いパスや説明が全体幅を押し広げず、自動検出・Apply/Cancel・診断操作が画面外へ出ない。パスの値/保存と未適用変更の区別を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
+      "next_action": "独立レビュー/CLI検査後、指定GUI担当が元Case28/76/269と本Caseを固定buildで確認し、QAとmain未反映を双方向引継ぎする。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055"
+      ]
+    },
+    {
+      "id": "SETTINGS-EXPLICIT-MODELS",
+      "issue": 493,
+      "change": "Settingsの表示だけではCLIを起動せず、明示取得で一覧を読み込む",
+      "preconditions": "GUI担当/host lease、#493を含む固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を記録。専用profileと合成project/metadata CLIだけを使う。通常設定や認証を変更しない。",
+      "steps": [
+        "起動argvを記録する合成metadata CLIを設定し、保存IDの空/Auto/未知値を各専用profileで用意する。Settings表示/reset/診断更新/コピー/閉じて再表示だけではCLI呼出が増えず、保存IDが保持されることを確認する。",
+        "「モデル一覧を取得」をクリックまたはSpaceで操作する。--list-modelsだけが一度開始し、取得中の再入力で重複しないことを確認する。遅延/失敗/空一覧/再試行/成功を有限fixtureで確認する。",
+        "実ID相当の合成一覧を選んでもApply前はXML不変、Cancel/resetで元へ戻り、Apply/IDE再起動で選択を保持する。CLI path変更後はApplyして開き直し、新pathで明示取得する。",
+        "取得途中で設定を閉じ、遅着が破棄済みviewや保存値へ反映されずpopupが残らないことを確認する。Composerの従来取得とACP server由来モデルを別に観察し、Settingsの未取得状態が混入しないことを確認する。"
+      ],
+      "expected": "Settingsは閲覧だけでCLIを実行しない。取得は明示操作から既存loaderへ入り、失敗/取消/未知ID/Apply境界を維持する。Composer/ACPの動作を変更しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
+      "next_action": "独立レビュー/CLI検査後、指定GUI担当が元Case28/76/269と本Caseを固定buildで確認し、QAとmain未反映を双方向引継ぎする。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055"
+      ]
+    }
+  ]
+}
