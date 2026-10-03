@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 487,
+  "gui_required": false,
+  "reason": "Rabbit受入環境の候補指定・Terminal ON期待文と、移行前候補を判定する運用Pythonだけの修正。製品・SDK・元固定Case・GUI結果は変更しない。実Git両adapterと既存Acceptance gate回帰で検証し、全候補の必須GUIは維持する。",
+  "cli_checks": [
+    "実Gitで移行前/移行後/不正refをCI git_readとcoordinator gitの両adapterから判定。旧コードではcoordinatorの移行前だけRuntimeErrorを再現し、修正後に旧条件へ戻ることを確認する。",
+    "既存test_verification.py: trusted base、元Case hash、環境revision、artifact、Computer Use、全commit/Case範囲、旧build拒否を維持。",
+    "Rabbit改訂10 Case中MODERN 4 CaseのpreconditionsとON 2 Caseのexpected以外は不変。元Case JSONと製品sourceは不変。",
+    "python3 scripts/workflow/change_impact.py --run-tests と git diff --check。",
+    "固定HEAD/baseの独立レビューと4必須checks。"
+  ],
+  "cases": []
+}
