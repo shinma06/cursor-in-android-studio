@@ -57,6 +57,28 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 
 正式Plugin配布を伴う候補では、先に[RC保存手順](../development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)で正式version・source・ZIP hashを固定する。GUIとpromotion.jsonは保存済みRCの同じhashを参照し、main昇格後も再buildしない。RCのAPI検査成功と全CaseのGUI passは別判定。
 
+### Rabbit移行後の旧Caseの適用環境（#479）
+
+#466でQuail/Java21対応を終了したため、[環境改訂JSON](environments/rabbit1.json)は#389の4件、#205・#404各1件、#208の4件だけをRabbit 1へ適用し直します。機械入力の正本であり、全候補のpromotion gateと候補付き一覧生成時に読みます。元の固定merge Caseと観察履歴は変更しません。Case ID・必要集合・artifact・Computer Use要件・操作手順・機能上の期待結果も保持します。旧Q1/Q4というIDは出典の識別に残し、RabbitでのpassをQuailのpass・互換性と表示しません。
+
+改訂はpromotionの固定**base（trusted main）**からだけ読みます。promotion HEAD側の追加・変更では適用できません。候補が#468の移行commitを含み、候補のSDK/JVM policyが改訂のbuild/JBR/JVM/bytecodeと一致する場合に限り適用します。移行前の候補は旧条件を維持し、未知のSDKは拒否します。元PR/merge/Case内容のSHA-256が不一致なら停止します。main限定候補のtrusted scopeはこの改訂の対象外です。
+
+対象10件の新観察には、通常のsource/ZIP/ロードJAR・実施経路・証拠に加え、以下を記録します。`environment_revision`は改訂JSONを`json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':'))`で正規化したUTF-8のSHA-256です。`environment`は**実際にロードした**環境の照合結果を記録し、改訂JSONの同名objectと一致させます。文字列だけの`loaded_identity`や旧結果の転記で代用しません。
+
+```json
+{
+  "environment_revision": "trusted mainの環境改訂JSONの64桁hash",
+  "environment": {
+    "build": "AI-262.9437.185.2621.16467767",
+    "java_version": "25.0.3",
+    "jvm_target": "25",
+    "class_major": 69
+  }
+}
+```
+
+候補付き一覧は固定merge由来の操作・履歴に、新しい前提と環境revisionを表示します。revision未登録・不一致の結果はCase合格になりません。#389の旧Q1/Q4の同一操作をRabbit上で共通実施した証拠は、各Caseの全手順を満たす場合に同じ証拠へリンクできますが、全Caseキーの結果登録は必要です。print/ACP・Markdown・旧fixture/新会話の再起動後の本文/順序/ID/設定、Terminal ON/OFF等を省略しません。旧文面中の過去QA番号・「両IDE」は履歴の文脈であり、今回の担当と対象環境は固定候補のQA引継ぎと本改訂で明示します。
+
 ### promotion.jsonの形式
 
 以下は説明用の値です。SHA/hashや観察は実際の値へ置換し、未実施をpassにしないでください。
