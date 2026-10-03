@@ -25,14 +25,15 @@
       "expected": "長いパスや説明が全体幅を押し広げず、自動検出・Apply/Cancel・診断操作が画面外へ出ない。パスの値/保存と未適用変更の区別を保持する。",
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "855d1d1で900論理pxの操作ボタン/選択値/複数行診断の可読性、長い手動パス、空欄Applyと自動検出Cancel、通知復元、Browse Cancel、診断更新/コピーを確認。Tab/Space/Enterと自動検出ボタンApplyを含む全手順は未完了。",
-        "head": null,
-        "artifact_sha256": null,
-        "observer": null,
-        "at": null,
-        "evidence": null,
-        "loaded_identity": null
+        "status": "pass",
+        "reason": "同一855d1d1/ZIPのr1+r2で全4手順を確認。900論理pxで長いパス・操作ボタン・設定選択値・複数行診断を表示し、Browse/診断更新・コピー、手動/空欄/自動検出のApplyとCancel、通知だけの変更と復元、Tab/Space/Enter、再表示時Apply無効を確認。専用profileを元の手動fixtureパス/既定通知へ復元した。",
+        "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+        "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+        "observer": "pm-settings-fix-01a0fcb3",
+        "at": "2026-10-03T18:43:04+00:00",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972176879",
+        "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; dedicated profiles, all 5 installed/open JARs and embedded source matched fixed ZIP at launch and real restart; owned IDE/fixture processes exited.",
+        "execution": "computer_use"
       },
       "human": {
         "actor": "human",
@@ -105,11 +106,15 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
-      "next_action": "同一製品buildの残部を指定GUI担当が確認する。popupのマウス経路は別windowの観察を含めて切り分け、未確認を製品failまたはpassと断定しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
+      "next_action": "固定HEAD/baseの独立レビューとQA/mainへの双方向引継ぎ。今回の製品build観察を新promotion候補へ転記せず、新候補の全必要Caseを同一buildで確認する。mouse子popupの未観察経路は既存QAで保持する。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/493",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972048236",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972176879",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972261545"
       ]
     },
     {
@@ -126,14 +131,15 @@
       "expected": "Settingsは閲覧だけでCLIを実行しない。取得は明示操作から既存loaderへ入り、失敗/取消/未知ID/Apply境界を維持する。Composer/ACPの動作を変更しない。",
       "gpt": {
         "actor": "gpt",
-        "status": "pending",
-        "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。マウス経路の観察はフォーカス中の親popupだけを取得しており、別windowの子popup表示を確認できないため製品failとは断定しない。開き直してキーボードでは候補一覧/選択に成功。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
-        "head": null,
-        "artifact_sha256": null,
-        "observer": null,
-        "at": null,
-        "evidence": null,
-        "loaded_identity": null
+        "status": "pass",
+        "reason": "同一855d1d1/ZIPのr1〜r3で全4手順を確認。空/Auto/未知IDの閲覧だけでは取得せず、明示取得・取得中無効化と単一argv・失敗/空/遅延取消/再試行、保存前XML不変とCancel/reset、Apply/実IDE再起動、変更後CLIでの取得を実測。print Composerは従来の自動取得、合成ACPはserver候補とSmall選択を保持しSettingsの未取得/保存IDと分離。選択はキーボードで確認。mouse子popupの全表示は観察不能であり、その経路や実Cursor providerの成功、旧Case全体passを示すものではない。",
+        "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+        "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+        "observer": "pm-settings-fix-01a0fcb3",
+        "at": "2026-10-03T18:43:04+00:00",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972261545",
+        "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; dedicated profiles, all 5 installed/open JARs and embedded source matched fixed ZIP at launch and real restart; owned IDE/fixture processes exited.",
+        "execution": "computer_use"
       },
       "human": {
         "actor": "human",
@@ -206,11 +212,15 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
-      "next_action": "同一製品buildの残部を指定GUI担当が確認する。popupのマウス経路は別windowの観察を含めて切り分け、未確認を製品failまたはpassと断定しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
+      "next_action": "固定HEAD/baseの独立レビューとQA/mainへの双方向引継ぎ。今回の製品build観察を新promotion候補へ転記せず、新候補の全必要Caseを同一buildで確認する。mouse子popupの未観察経路は既存QAで保持する。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/493",
-        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055"
+        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972048236",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972176879",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972261545"
       ]
     }
   ]
