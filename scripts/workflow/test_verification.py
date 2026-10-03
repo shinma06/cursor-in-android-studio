@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import agent_loop as al
 from agent_policy import binding, next_action
 from handoff_registry import register, resolve
-from verification import metadata, validate_change, verify_pr, render_queue, ENVIRONMENT, json_hash, environment_cases
+from verification import metadata, validate_change, verify_pr, render_queue, ENVIRONMENT, json_hash, environment_cases, git_read
 from test_agent_loop import pr_data, report, HEAD, BASE, NEW
 import test_agent_loop as tal
 
@@ -143,8 +143,8 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(self.verify()['cases'], 1)
         prior = self.git
         def git(*args):
-            if args == ('merge-base', '--is-ancestor', plan['migration_commit'], NEW):
-                raise subprocess.CalledProcessError(1, args)
+            if args == ('rev-list', '--max-count=1', plan['migration_commit'], '--not', NEW):
+                return plan['migration_commit']
             return prior(*args)
         self.git = git
         self.manifest['results']['36:QA-1'].pop('environment_revision')
@@ -159,6 +159,31 @@ class AcceptanceTests(unittest.TestCase):
         previous = self.git
         self.git = lambda *args: previous(*args).replace('100644', '120000') if args[0] == 'ls-tree' else previous(*args)
         with self.assertRaisesRegex(ValueError, 'regular JSON'): self.verify()
+
+    def test_environment_migration_boundary_with_real_git_adapters(self):
+        plan = self.environment_fixture()
+        previous = self.git
+        with tempfile.TemporaryDirectory() as tmp:
+            git_read('init', '-q', cwd=tmp)
+            def commit(message):
+                git_read('-c', 'user.name=QA', '-c', 'user.email=qa@example.invalid',
+                         'commit', '--allow-empty', '-qm', message, cwd=tmp)
+                return git_read('rev-parse', 'HEAD', cwd=tmp)
+            before = commit('before migration')
+            migration = commit('migration')
+            plan['migration_commit'] = migration
+            self.documents[f'{migration}:scripts/workflow/plugin_compatibility.json'] = (
+                self.documents[f'{NEW}:scripts/workflow/plugin_compatibility.json'])
+            for adapter in (git_read, al.git):
+                with self.subTest(adapter=adapter.__module__):
+                    def git(*args):
+                        if args[0] in ('merge-base', 'rev-list'):
+                            return adapter(*args, cwd=tmp)
+                        return previous(*args)
+                    self.assertEqual(environment_cases(BASE, before, git), {})
+                    self.assertEqual(set(environment_cases(BASE, migration, git)), {'36:QA-1'})
+                    with self.assertRaises((subprocess.CalledProcessError, RuntimeError)):
+                        environment_cases(BASE, '0' * 40, git)
 
     def test_environment_queue_shows_new_conditions_but_preserves_original_steps_history(self):
         self.environment_fixture()
