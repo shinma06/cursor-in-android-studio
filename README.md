@@ -41,7 +41,7 @@ macOSでJDK 25を登録していない場合は、Rabbit同梱JBRの`Contents/jb
 
 ## 配布版の選択
 
-開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを対象Rabbitと全必要Caseで検証してから公開します。Rabbit移行のGUI/main受入と、過去の正式v0.1.0（Quail対応）の公開結果は別です。
+開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを対象Rabbitと全必要Caseで検証してから公開します。Rabbit移行のGUI/main受入と、過去の正式v0.1.0（Quail対応）の公開結果は別です。 [正式v0.1.0のダウンロードと検証結果](docs/releases/0.1.0.md)は固定した旧版の記録を参照してください。
 
 ## Android Studio へのインストール
 

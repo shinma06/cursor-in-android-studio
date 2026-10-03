@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 474,
+  "gui_required": false,
+  "reason": "#470の製品main統合後に現行互換検査のpolicyと手順をRabbit単一対象へ整理する。製品コード・SDK・UI・固定GUI候補は変更しない。",
+  "cli_checks": [
+    "変更影響に応じたworkflow/loopとmain既存JUnitを実行する。",
+    "現行Rabbitだけを選択し、旧/未知SDK、bytecode・metadataの混在、不足/未承認レポート、固定JCEF providerの欠落を拒否する。",
+    "現行Rabbitの単一レポートと、保存済みQuail/移行期Rabbit候補の固定source・bytes・全レポートを検証する。",
+    "#470統合後のmainを基点に独立レビューと4必須checksを確認する。"
+  ],
+  "cases": []
+}

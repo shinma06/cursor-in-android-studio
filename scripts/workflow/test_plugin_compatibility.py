@@ -21,7 +21,7 @@ class CompatibilityTest(unittest.TestCase):
             directory.mkdir(parents=True)
             files = {'verification-verdict.txt': 'Compatible.',
                      'telemetry.txt': 'Verified classes in plugin artifact: 427\n',
-                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\n+--- com.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n'}
+                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\ncom.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n'}
             for name, text in files.items():
                 (directory / name).write_text(text)
             self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verified_classes'], 427)
@@ -36,8 +36,8 @@ class CompatibilityTest(unittest.TestCase):
             for name, text in [('verification-verdict.txt', ''), ('verification-verdict.txt', 'Unavailable'),
                                ('verification-verdict.txt', 'Compatible. Unknown result.'),
                                ('telemetry.txt', 'Verified classes in plugin artifact: 0\n'),
-                               ('dependencies.txt', pc.PLUGIN_ID + ':1.0.0\n'),
                                ('dependencies.txt', 'other-plugin:1.0.0\n'),
+                               ('dependencies.txt', pc.PLUGIN_ID + ':1.0.0\n'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) missing: not resolved'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) unknown (optional): not resolved')]:
                 with self.subTest(name=name, text=text):
@@ -47,7 +47,6 @@ class CompatibilityTest(unittest.TestCase):
                     (directory / name).write_text(files[name])
             allowed = copy.deepcopy(policy)
             allowed['optional_absences'] = {'known': 'reviewed optional dependency'}
-            allowed['optional_absence_builds'] = [target['build']]
             (directory / 'dependencies.txt').write_text(files['dependencies.txt'] + '+--- (failed) known (optional): not resolved')
             pc.check_reports(reports, log, target, manifest, allowed)
             allowed['optional_absence_builds'] = ['AI-future-build']
@@ -72,7 +71,7 @@ class CompatibilityTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     pc.check_reports(reports, bad_log, target, manifest, policy)
             with self.assertRaises(ValueError):
-                pc.check_reports(reports, log, dict(target, build='AI-wrong-build'), manifest, policy)
+                pc.check_reports(reports, log, dict(target, build='AI-other-build'), manifest, policy)
             warning = 'reviewed first line\nreviewed second line'
             allowed = copy.deepcopy(policy)
             allowed['reviewed_log_warnings'] = {pc.hashlib.sha256(warning.encode()).hexdigest(): 'reviewed'}
@@ -81,25 +80,48 @@ class CompatibilityTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Unreviewed Verifier warning'):
                 pc.check_reports(reports, warning_log + '\nnew unreviewed detail', target, manifest, allowed)
 
-    def test_seal_rejects_old_sdk_target_bytecode_or_metadata(self):
+
+    def test_last_api_category_without_period_still_requires_reviewed_details(self):
+        policy = json.loads(pc.POLICY.read_text())
+        target = policy['targets']['rabbit1']
+        with tempfile.TemporaryDirectory() as temp:
+            reports = Path(temp)
+            directory = reports / target['build'] / 'plugins' / pc.PLUGIN_ID / '1.0.0'
+            directory.mkdir(parents=True)
+            (directory / 'telemetry.txt').write_text('Verified classes in plugin artifact: 1\n')
+            (directory / 'dependencies.txt').write_text(pc.PLUGIN_ID + ':1.0.0\ncom.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n')
+            detail = directory / 'experimental-api-usages.txt'; detail.write_text('reviewed API usage')
+            policy['reviewed_api_reports'] = {detail.name: {'sha256': pc.digest(detail)}}
+            verdict = directory / 'verification-verdict.txt'
+            verdict.write_text('Compatible. 26 usages of experimental API')
+            manifest = {'identity': {'plugin.version': '1.0.0', 'classes': 1}}
+            log = 'Scheduled verifications (1):\nFinished 1 of 1 verifications'
+            self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verdict'], verdict.read_text())
+            detail.write_text('unreviewed change')
+            with self.assertRaisesRegex(ValueError, 'New/unreviewed report'):
+                pc.check_reports(reports, log, target, manifest, policy)
+            verdict.write_text('Compatible. Unknown API')
+            with self.assertRaisesRegex(ValueError, 'recognized compatible verdict'):
+                pc.check_reports(reports, log, target, manifest, policy)
+
+    def test_sdk_policy_rejects_unknown_or_mixed_product_identity(self):
         policy = json.loads(pc.POLICY.read_text())
         source = 'a' * 40
-        identity = {'source.commit': source, 'source.state': 'clean',
-                    'sdk.build': policy['targets']['rabbit1']['build'], 'jvm.target': '25',
-                    'classes': 1, 'class.major.versions': [69],
-                    'since.build': '262.9437.185', 'until.build': '262.*'}
         with tempfile.TemporaryDirectory() as temp:
-            archive = Path(temp) / 'plugin.zip'
-            archive.write_bytes(b'archive')
+            archive = Path(temp) / 'plugin.zip'; archive.write_bytes(b'archive')
+            compile = policy['compile']
+            identity = {'source.commit': source, 'source.state': 'clean',
+                        'sdk.build': policy['targets'][compile['target']]['build'],
+                        'jvm.target': compile['jvm_target'], 'classes': 1,
+                        'class.major.versions': [compile['class_major']],
+                        'since.build': compile['since_build'], 'until.build': compile['until_build']}
             with patch.object(pc, 'plugin_identity', return_value=identity):
                 self.assertEqual(pc.seal(archive, source, policy)['identity'], identity)
-            for key, value in [('sdk.build', 'AI-261.23567.138.2611.15503007'),
-                               ('jvm.target', '21'), ('class.major.versions', [65]),
-                               ('class.major.versions', [65, 69]), ('since.build', '261.23567.138'),
+            for key, value in [('sdk.build', 'unknown'), ('sdk.build', 'AI-261.23567.138.2611.15503007'), ('jvm.target', '17'), ('jvm.target', '21'), ('class.major.versions', [65]),
+                               ('class.major.versions', [65, 69]), ('since.build', 'unknown'), ('since.build', '261.23567.138'),
                                ('until.build', '263.*'), ('source.state', 'dirty')]:
                 with self.subTest(key=key, value=value), patch.object(pc, 'plugin_identity', return_value=dict(identity, **{key: value})):
-                    with self.assertRaises(ValueError):
-                        pc.seal(archive, source, policy)
+                    with self.assertRaises(ValueError): pc.seal(archive, source, policy)
 
     def test_cached_dependency_checksum_is_not_bypassed(self):
         with tempfile.TemporaryDirectory() as temp:

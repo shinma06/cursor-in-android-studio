@@ -56,14 +56,20 @@ def plugin_identity(archive):
     return identities[0]
 
 
+def policy_for_sdk(policy, sdk):
+    require(policy['targets'][policy['compile']['target']]['build'] == sdk,
+            'ZIP was not built with a supported compile SDK')
+    return policy
+
+
 def seal(archive, source, policy):
     identity = plugin_identity(archive)
     require(re.fullmatch('[0-9a-f]{40}', source), 'Invalid source SHA')
     require(identity['source.commit'] == source and identity['source.state'] == 'clean', 'Source must match a clean build')
-    require(identity['sdk.build'] == policy['targets']['rabbit1']['build'], 'ZIP was not built with oldest SDK')
-    require(identity['jvm.target'] == '25' and identity['classes'] > 0, 'Expected JVM 25 product classes')
-    require(identity['class.major.versions'] == [69], 'Expected Java 25 bytecode (major 69)')
-    require(identity['since.build'] == '262.9437.185' and identity['until.build'] == '262.*', 'Unexpected IDE compatibility range')
+    compile = policy_for_sdk(policy, identity['sdk.build'])['compile']
+    require(identity['jvm.target'] == compile['jvm_target'] and identity['classes'] > 0, 'Unexpected JVM target')
+    require(identity['class.major.versions'] == [compile['class_major']], 'Unexpected product bytecode')
+    require(identity['since.build'] == compile['since_build'] and identity['until.build'] == compile['until_build'], 'Unexpected IDE compatibility range')
     return {'schema': 1, 'sha256': digest(archive), 'size': archive.stat().st_size, 'identity': identity}
 
 
@@ -118,7 +124,8 @@ def check_reports(reports, log, target, manifest, policy):
     verdicts = list(reports.rglob('verification-verdict.txt'))
     require(verdicts == [directory / 'verification-verdict.txt'], 'Missing, extra or wrong-target verdict')
     verdict = verdicts[0].read_text().strip()
-    require(re.fullmatch(r'Compatible\.(?: \d+ usages? of scheduled for removal API and \d+ usages? of deprecated API\.| \d+ usages? of deprecated API\.| \d+ usages? of experimental API\.| \d+ usages? of internal API\.?)*', verdict),
+    checked_verdict = verdict + ('.' if verdict.endswith(' API') else '')
+    require(re.fullmatch(r'Compatible\.(?: \d+ usages? of scheduled for removal API and \d+ usages? of deprecated API\.| \d+ usages? of deprecated API\.| \d+ usages? of experimental API\.| \d+ usages? of internal API\.?)*', checked_verdict),
             'Verifier did not certify a recognized compatible verdict')
     telemetry = (directory / 'telemetry.txt').read_text()
     count = re.search(r'^Verified classes in plugin artifact: (\d+)$', telemetry, re.M)
@@ -126,8 +133,9 @@ def check_reports(reports, log, target, manifest, policy):
     require('Scheduled verifications (1):' in log and 'Finished 1 of 1 verifications' in log, 'Verification did not complete once')
     dependencies = (directory / 'dependencies.txt').read_text()
     require(dependencies.splitlines()[0] == f'{PLUGIN_ID}:{version}', 'Wrong dependency report identity')
-    require(any(f'com.intellij.modules.jcef:{provider["version"]}' in dependencies for provider in policy['jcef'].values()),
-            'Pinned JCEF provider was not resolved')
+    if policy.get('jcef'):
+        require(any(f'com.intellij.modules.jcef:{provider["version"]}' in dependencies for provider in policy['jcef'].values()),
+                'Pinned JCEF provider was not resolved')
     failures = [line.strip() for line in dependencies.splitlines() if '(failed)' in line or 'not resolved' in line]
     # Optional absences require an explicit, reviewed policy entry; no blanket optional exemption.
     for line in failures:
@@ -159,18 +167,23 @@ def check_reports(reports, log, target, manifest, policy):
 
 
 def verify(args, policy):
-    target = policy['targets'][args.target]
     archive = args.archive.resolve()
     manifest = json.loads(args.manifest.read_text())
+    policy = policy_for_sdk(policy, manifest['identity']['sdk.build'])
+    require(args.target in policy['targets'], 'Target does not match the candidate compile SDK')
+    target = policy['targets'][args.target]
     check_archive(archive, manifest, args.sha256)
+    require(seal(archive, manifest['identity']['source.commit'], policy) == manifest, 'Invalid sealed candidate identity')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)  # Stale reports cannot make a new invocation pass.
     sdk = args.sdk.resolve() if args.sdk else download_sdk(target, args.sdk_cache.resolve())
     runtime, info = sdk_identity(sdk, target)
-    jcef = policy['jcef'][info['platform']]
+    jcef = policy.get('jcef', {}).get(info['platform'])
     # Verifier 1.410 reads this local repository in offline mode. Do not install
     # anything into the user's SDK or resolve mutable Marketplace dependencies.
-    download_verified(jcef, output / 'verifier-cache/loaded-plugins/jcef.zip')
+    if policy.get('jcef'):
+        require(jcef is not None, 'Missing JCEF provider for verification platform')
+        download_verified(jcef, output / 'verifier-cache/loaded-plugins/jcef.zip')
     inputs = {'artifact': manifest, 'target': info, 'verifier_version': policy['verifier_version'], 'jcef': jcef}
     (output / 'input.json').write_text(json.dumps(inputs, indent=2) + '\n')
     reports = output / 'reports'

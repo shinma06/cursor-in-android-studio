@@ -48,5 +48,12 @@
       "url": "https://plugins.jetbrains.com/files/31360/1115332/jcef-plugin-262.9437.22-linux-x86_64.zip",
       "sha256": "3c007d1ead9f2060b65f25b82de58aa2681b00faeabbf9fb714ce4f3cc122b02"
     }
+  },
+  "compile": {
+    "target": "rabbit1",
+    "jvm_target": "25",
+    "class_major": 69,
+    "since_build": "262.9437.185",
+    "until_build": "262.*"
   }
 }
