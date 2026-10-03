@@ -36,10 +36,18 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         setShowPlaceholderWhenFocused(true)
         border = JBUI.Borders.empty(8, 8, 3, 8)
         isOpaque = false
+        // Keep the parent and its embedded editor on the surrounding composer surface.
+        background = AgentUiColors.composerBackground
         preferredSize = JBUI.size(100, 48)
         addComponentListener(object : ComponentAdapter() {
             override fun componentResized(e: ComponentEvent) = scheduleResize()
         })
+    }
+
+    override fun updateUI() {
+        super.updateUI()
+        // The editor can discard an override equal to its old scheme background.
+        background = AgentUiColors.composerBackground
     }
 
     override fun createEditor(): EditorEx = super.createEditor().also { editor ->
@@ -52,7 +60,6 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         }
         ime.reset()
         editor.contentComponent.addInputMethodListener(ime)
-        editor.setBackgroundColor(AgentUiColors.composerBackground)
         editor.settings.apply {
             isUseSoftWraps = true
             isRightMarginShown = false

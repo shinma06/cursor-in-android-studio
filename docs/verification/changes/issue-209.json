@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "issue": 209,
+  "gui_required": true,
+  "reason": "入力欄のテーマ更新処理を変更する。旧報告のhover条件は実GUI未再現のため、SDKテストだけで修正済みと判定しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew buildPlugin verifyPluginStructure",
+    "PromptThemeTest: 実SDKのテーマ更新で背景一致と同一Editor/下書き/caret/選択保持",
+    "固定HEAD/baseの独立レビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "COMPOSER-THEME-REFRESH",
+      "issue": 209,
+      "change": "テーマ切り替え後も入力欄全体の背景をcomposerに揃える",
+      "preconditions": "指定GUI担当/host lease、専用profileと使い捨てproject。#209を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体を照合。元テーマを控える。通信する送信には承認済みfixtureを用い、通常project/認証を変更しない。",
+      "steps": [
+        "空の入力欄でlight→dark→lightを2往復する。pointer内/外と入力focus有/無の4組合せを各々確認し、切り替え直後とpointer出入り後の背景を記録する。",
+        "日本語を含む複数行の下書きと選択範囲を用意して同じ4条件で切り替える。入力欄内と周囲の色、caret/選択、本文保持、IME変換/確定とShift+Enterを確認する。",
+        "12行超の下書きでスクロールし、入力・送信・Stopを制御fixtureで実施する。入力再生成後とtool windowの閉じる/再表示後もlight/darkの背景と操作を確認する。",
+        "元テーマへ戻す。全条件の成否、Case ID、固定build、観察者、日時とprivate証拠の参照を記録する。失敗時は条件を特定してfix Issue/PRへ移譲する。"
+      ],
+      "expected": "pointer/focus状態にかかわらず、再表示を必要とせず入力欄とcomposerの背景が揃い、矩形状の旧色が残らない。下書き・caret・選択範囲、IME/改行、スクロール、送信/Stopを保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "SDK回帰テストは実画面のhover/focus条件の合格を示さない。固定buildのGUI確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "SDK回帰テストは実画面のhover/focus条件の合格を示さない。固定buildのGUI確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗した条件と新fixed buildを明記して再確認。旧buildやSDKテストのpassを転記しない。",
+      "next_action": "GUI担当が固定buildで全条件を確認し、残るCase/main反映をQAへ追跡する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/209"
+      ]
+    }
+  ]
+}
