@@ -57,11 +57,9 @@ def plugin_identity(archive):
 
 
 def policy_for_sdk(policy, sdk):
-    # ponytail: transitional main upgrade; remove next_policy after #470 lands.
-    for candidate in (policy, policy.get('next_policy', {})):
-        if candidate and candidate['targets'][candidate['compile']['target']]['build'] == sdk:
-            return candidate
-    raise ValueError('ZIP was not built with a supported compile SDK')
+    require(policy['targets'][policy['compile']['target']]['build'] == sdk,
+            'ZIP was not built with a supported compile SDK')
+    return policy
 
 
 def seal(archive, source, policy):
@@ -212,7 +210,7 @@ def main():
     seal_parser.add_argument('--source', required=True)
     seal_parser.add_argument('--directory', type=Path, default=ROOT / 'build/distributions')
     check = sub.add_parser('verify')
-    check.add_argument('--target', required=True, choices=('quail1', 'quail4', 'rabbit1'))
+    check.add_argument('--target', required=True, choices=('rabbit1',))
     check.add_argument('--archive', type=Path, required=True)
     check.add_argument('--manifest', type=Path, required=True)
     check.add_argument('--sha256', required=True)

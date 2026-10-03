@@ -91,7 +91,7 @@ python3 scripts/workflow/release_candidate.py build \
   --source "$SOURCE" --version "$VERSION" --directory "$RC"
 ```
 
-処理はversion/source/build引数・設定ファイルhash・実JDKを先に`inputs.json`へ記録し、`clean test buildPlugin verifyPluginStructure`を一度実行する。local SDK overrideを無効にし、最古SDKの実full build、JVM25・class major69・Platform262 metadata、内部version、clean sourceを照合する。Plugin ZIPは再圧縮せずコピーし、manifestにhash/size/内部identity、inputsに同梱JAR一覧を残す。依存の宣言版は固定sourceのbuild/settings/Wrapperとそれらのhashへ対応付ける。既存出力ディレクトリへ再buildする操作は拒否する。
+処理はversion/source/build引数・設定ファイルhash・実JDKを先に`inputs.json`へ記録し、`clean test buildPlugin verifyPluginStructure`を一度実行する。local SDK overrideを無効にし、Rabbit SDKの実full build、JVM25・class major69・Platform262 metadata、内部version、clean sourceを照合する。Plugin ZIPは再圧縮せずコピーし、manifestにhash/size/内部identity、inputsに同梱JAR一覧を残す。依存の宣言版は固定sourceのbuild/settings/Wrapperとそれらのhashへ対応付ける。既存出力ディレクトリへ再buildする操作は拒否する。
 
 ### 2. 同じZIPをRabbitで検証し、RCとして保存する
 
@@ -105,7 +105,7 @@ python3 scripts/workflow/release_candidate.py bundle --directory "$RC" \
   --sha256 "$HASH" --rabbit1 "$RABBIT"
 ```
 
-API検証は固定Rabbit 1 `AI-262.9437.185.2621.16467767` / JBR25.0.3。固定Verifier・providerとmain用の限定optional例外・report判定を使う。失敗、全クラス未完、別hash、詳細欠落を拒否する。公開bundleはZIP・manifest・入力とRabbitの検証レポート。SDKパスを含むraw logはローカルに保持し、公開するログは検査済み完了行の抜粋のみ。GUI結果は既存promotion.jsonが正本で、未実施の結果をRCへ書き込まない。
+API検証は固定Rabbit 1 `AI-262.9437.185.2621.16467767` / JBR 25.0.3。現行policyのVerifier・固定JCEF provider・限定optional例外・report判定を使う。失敗、全クラス未完、別hash、詳細欠落を拒否する。公開bundleはZIP・manifest・入力とRabbitの検証レポート。SDKパスを含むraw logはローカルに保持し、公開するログは検査済み完了行の抜粋のみ。GUI結果は既存promotion.jsonが正本で、未実施の結果をRCへ書き込まない。保存済みQuail RCの読み取りでは当時の固定sourceと両IDEのレポートを照合する。
 
 公開担当は上のbundleを受け取り、レビュー済みtoolingから次を実行する。`GITHUB_REPOSITORY=shinma06/cursor-in-android-studio`と必要なGitHub権限を公開段階だけで設定する。同じ候補の公開操作は担当を1名にし、並行実行しない。
 
@@ -124,7 +124,7 @@ python3 scripts/workflow/release_candidate.py fetch \
   --tag "$RC_TAG" --sha256 "$HASH" --directory "$DOWNLOADED_RC"
 ```
 
-新しいRabbit候補の取得処理は5 assetsと全hash、内部version/source/SDK、Rabbit Verifier結果を照合する。旧RCはその固定sourceの工具と手順を使う。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。Rabbitのmain限定候補は#470の3Caseで確認する。main限定0.1.0の旧Quail両IDE・Terminal有効/無効は#409の4Caseへ記録済みで、Rabbitのpassへ転用しない。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
+取得処理は固定sourceのpolicyが要求する全assets/hash、内部version/source/SDK、Verifier結果を照合する（現行Rabbitは5 assets、旧Quailは6）。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。Rabbitのmain限定候補は#470の3Caseで確認する。main限定0.1.0の旧Quail両IDE・Terminal有効/無効は#409の4Caseへ記録済みで、Rabbitのpassへ転用しない。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
 
 ### 4. main昇格後、同じbytesを正式公開する
 

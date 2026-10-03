@@ -164,6 +164,9 @@ def candidate(directory, expected_hash):
                    'Unknown legacy candidate policy')
         policy = dict(policy, compile={'target': 'quail1', 'jvm_target': '21', 'class_major': 65,
                                       'since_build': '261.23567.138', 'until_build': '261.*'})
+    # Only archived candidates may use the transitional fixed-source policy.
+    if 'next_policy' in policy and manifest['identity']['sdk.build'] == policy['next_policy']['targets'][policy['next_policy']['compile']['target']]['build']:
+        policy = policy['next_policy']
     policy = pc.policy_for_sdk(policy, manifest['identity']['sdk.build'])
     pc.require(set(inputs) == {'source', 'version', 'command', 'files', 'java_version', 'libraries'}
                and re.fullmatch(re.escape(policy['compile']['jvm_target']) + r'\.[0-9.+-]+', inputs['java_version'])
