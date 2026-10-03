@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 271,
+  "gui_required": false,
+  "reason": "AGENTS/Skillsと進行規約の文書整理のみ。製品コード・自動gate・権限・GUI動作は変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "git diff --check; Skill mirrors/frontmatter/relative links and AGENTS symlink verification",
+    "docs/development/instruction-audit-271.mdの代表ケースを固定差分の独立reviewで照合"
+  ],
+  "cases": []
+}

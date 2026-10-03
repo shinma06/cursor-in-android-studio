@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "issue": 287,
+  "gui_required": true,
+  "reason": "usage未提供・print4counter・終端/所有変更時の古いUI更新を既存パネルで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *ContextUsage*Test --tests *TokenUsageTest --tests *AgentTurnDispatchTest",
+    "./gradlew buildPlugin",
+    "固定合流baseとHEADの独立レビューでController/Factory全開始・終端を確認"
+  ],
+  "cases": [
+    {
+      "id": "USAGE-NOT-PROVIDED",
+      "issue": 287,
+      "change": "U01: 未開始・準備/実行中・正常終了後の情報未提供",
+      "preconditions": "指定GUI担当がleaseを取得し、#287と依存#215を含む固定候補のbuild/ZIP hash/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを用いる。",
+      "steps": [
+        "新規会話でトークン数パネルを開き「まだ応答を開始していません」を確認する。ACPの候補一覧取得だけでは応答開始にならないことも確認する。",
+        "ACPの使い捨て会話で応答を開始し、準備中/生成中に「応答を準備・実行中」を確認する。正常終了まで待ち、usage未提供fixtureで「この応答では情報未提供です」へ変わることを確認する。",
+        "送信準備中の例外・起動失敗fixtureをそれぞれ実行し、実行中表示が残らず失敗に確定することを確認する。Stop・ACP不確定終了も確認し、元の本文/終了状態を照合する。"
+      ],
+      "expected": "未開始/実行中/完了未提供/停止失敗を区別し、未提供を0や使用率へ変換しない。準備失敗で実行中のまま残らず、候補取得を応答開始にしない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "状態・描画・遅着の自動テストとは別に、指定担当による固定buildの実IDE受入待ち。未観測usage数値を採用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "状態・描画・遅着の自動テストとは別に、指定担当による固定buildの実IDE受入待ち。未観測usage数値を採用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/287",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/270"
+      ]
+    },
+    {
+      "id": "USAGE-PRINT-COUNTERS",
+      "issue": 287,
+      "change": "U03: print4counter・明示0・モデル・既存表示の保持",
+      "preconditions": "指定GUI担当がleaseを取得し、#287と依存#215を含む固定候補のbuild/ZIP hash/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを用いる。",
+      "steps": [
+        "公開#149 print fixtureの4counterを使い、入力/出力/cacheRead/cacheWriteと明示0を個別表示する。部分欠損/不正fieldは該当行だけ非表示にする。合計・料金・使用率が追加されていないことを確認する。",
+        "途中で値を受け取った応答をStop/失敗させ、取得済み数値が停止/失敗した応答と送信時modelの表示で保持されることを確認する。print実行中に次のmodelを選んでも旧値が新モデルに付け替わらないこと、次送信で旧値が消えることを確認する。",
+        "開閉、キーボード、狭幅、長いmodel名、Light/DarkとCompactで表示を確認する。別タブへ切替/復帰して各タブの正しい応答の値が保持されることを確認する。"
+      ],
+      "expected": "4counterと0/欠損が混ざらず、送信時modelと終端状態を示す。開閉/狭幅/テーマの操作を保ち、別タブの値や次のmodelへ誤って付け替えない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "状態・描画・遅着の自動テストとは別に、指定担当による固定buildの実IDE受入待ち。未観測usage数値を採用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "状態・描画・遅着の自動テストとは別に、指定担当による固定buildの実IDE受入待ち。未観測usage数値を採用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/287",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/270"
+      ]
+    },
+    {
+      "id": "USAGE-LATE-DELIVERY",
+      "issue": 287,
+      "change": "U05: 終端・Stop・所有置換後の遅着",
+      "preconditions": "指定GUI担当がleaseを取得し、#287と依存#215を含む固定候補のbuild/ZIP hash/loaded JARを照合。公開可能な合成fixtureと使い捨てprojectを用いる。",
+      "steps": [
+        "制御fixtureでusage UI callbackをEDT待機状態へ置く。その間にStop/正常終了/失敗を確定し、遅着値で状態や数値が復活しないことを確認する。",
+        "新turn、会話/接続置換、タブclose/disposeの直後に旧usage/旧終端を配送し、新しい応答/未開始表示を上書きしないことを確認する。表示タブの切替だけなら元所有タブの更新を許可する。",
+        "正常/停止/失敗の終端を重複・逆順で配送し、一度だけ確定することを確認する。既存queueの成功終端条件を保ち、エラー/停止/不確定終了で自動再送しないことを照合する。",
+        "由来不明のACP usage通知を合成し、受信時active tokenだけで現在の数値へ採用しないことを確認する。実usage/cost/unstable契約の未達は親#149へ保持する。"
+      ],
+      "expected": "ローカルticket/run/世代を反映直前に照合し旧callbackを拒否。正常値を捏造せず、候補取得と応答開始、表示切替と所有置換を区別する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "状態・描画・遅着の自動テストとは別に、指定担当による固定buildの実IDE受入待ち。未観測usage数値を採用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "状態・描画・遅着の自動テストとは別に、指定担当による固定buildの実IDE受入待ち。未観測usage数値を採用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/287",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/270"
+      ]
+    }
+  ]
+}

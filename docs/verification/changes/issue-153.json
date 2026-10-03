@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "issue": 153,
+  "gui_required": true,
+  "reason": "ToolWindow最上段のnative action/gear menuへチャット操作を移設するため、配置・選択タブ・設定・ライフサイクルを識別buildで確認する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "git diff --check; verification.validate_change(issue-153, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "TOOLWINDOW-HEADER",
+      "issue": 153,
+      "change": "最上段→タブ→会話と標準ToolWindow操作",
+      "preconditions": "PMがGUI leaseを取得し、#153を含む固定候補SHA・ZIP SHA-256・loaded JARを照合。Pro/Teamsと使い捨てGit fixtureを使用し、既存設定/IDE配置を控える。ACP実送信は既存#147/#152の契約・前提に従い、private #146 fixtureを公開しない。",
+      "steps": [
+        "固定buildを導入した使い捨てプロジェクトでToolWindowを開く。最上段の新規チャット・履歴・縦︙、タブ列、会話の順を確認する。",
+        "新規チャットを複数回開き、タブ切替・閉じる・最後のタブを閉じる操作を行う。未送信入力・caret・scroll・mode/modelがそれぞれ保持されることを確認する。",
+        "縦︙から表示モード・移動・サイズ変更などIDE本来の操作を試し、ToolWindowを非表示・再表示する。",
+        "狭い幅/高さと別表示倍率で最上段の操作と設定の末尾まで使えることを確認する。キーボードで操作へfocusしてメニューの上下/左右/Enter/Escapeを試し、アイコンtooltipと選択状態を確認する。"
+      ],
+      "expected": "Agent行・横…はなく、操作は最上段に1組だけある。タブは従来のNew Agentを維持し入力/会話が混ざらない。標準︙のチャット設定とIDE本来の移動/表示/非表示を両方使える。native menuのkeyboard/取消/狭幅の操作ができる。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/55",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "TOOLWINDOW-OPTIONS",
+      "issue": 153,
+      "change": "全設定・接続選択・説明・dialogと保存互換",
+      "preconditions": "PMがGUI leaseを取得し、#153を含む固定候補SHA・ZIP SHA-256・loaded JARを照合。Pro/Teamsと使い捨てGit fixtureを使用し、既存設定/IDE配置を控える。ACP実送信は既存#147/#152の契約・前提に従い、private #146 fixtureを公開しない。",
+      "steps": [
+        "既存のpermission/sandbox/worktree保存値を控え、縦︙を開閉する。開いただけでは値が変わらず、現在の値とチェックが表示されることを確認する。",
+        "操作の確認3択、実行範囲3択、作業場所2択をそれぞれ変更し、メニューを開き直して設定画面の保存値を照合する。標準は追加の自動承認flagなし。終了時は元の値へ戻す。",
+        "新規会話の初回送信前に互換CLI/ACPを選び、別タブへ切り替えて当該タブの接続方法だけに反映されることを確認する。送信済み/履歴再開/実行中では接続方法を変更できない。",
+        "MCPサーバー設定、設定、ファイル編集についてをそれぞれ開く。親メニューが閉じること、日本語説明と即時編集・事後Revertの意味が維持されることを確認する。ダイアログを閉じる。"
+      ],
+      "expected": "権限/sandbox/worktree/MCP/要約/設定に加えてACP接続選択と編集説明が全て残る。保存ID/既定値/CLI flagは不変。標準を事前承認の保証と説明せず、Revertは適用後に元へ戻す操作と説明する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/55",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "TOOLWINDOW-SELECTED-RUN",
+      "issue": 153,
+      "change": "選択タブの履歴・要約と実行中/遅延操作",
+      "preconditions": "PMがGUI leaseを取得し、#153を含む固定候補SHA・ZIP SHA-256・loaded JARを照合。Pro/Teamsと使い捨てGit fixtureを使用し、既存設定/IDE配置を控える。ACP実送信は既存#147/#152の契約・前提に従い、private #146 fixtureを公開しない。",
+      "steps": [
+        "AとBで区別できる会話を作成する。Aで長い応答を実行中にBへ切り替え、縦︙を開く。Aでは要約無効、待機中Bでは有効となることを確認する。",
+        "待機中Bで「このセッションの内容を要約」を実行しBだけへ送信されることを確認する。実行中タブの応答・Stop・準備中/停止/エラー表示が従来どおり対象タブに出ることを確認する。",
+        "履歴を最上段から開き、このプロジェクトの記録だけが表示され、選択した過去の会話がタブとして開くことを確認する。同じ会話を再度選択した場合の既存タブ選択も確認する。",
+        "メニューを開いた後のタブ切替・送信開始・タブcloseで対象が変わる操作を試す。古い有効状態から実行中の要約や送信済み会話の接続変更を実行できないことを確認する。"
+      ],
+      "expected": "実行状態/接続方法/要約は選択タブを操作時に再取得し、別タブを変更しない。履歴本文保存の未実装説明は維持する。タブ切替で既存runを停止せず、応答とエラーは所有タブへ届く。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/55",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    },
+    {
+      "id": "TOOLWINDOW-LIFECYCLE",
+      "issue": 153,
+      "change": "複数プロジェクト・popup非表示・content破棄",
+      "preconditions": "PMがGUI leaseを取得し、#153を含む固定候補SHA・ZIP SHA-256・loaded JARを照合。Pro/Teamsと使い捨てGit fixtureを使用し、既存設定/IDE配置を控える。ACP実送信は既存#147/#152の契約・前提に従い、private #146 fixtureを公開しない。",
+      "steps": [
+        "別の使い捨てプロジェクトを開き、各ToolWindowの新規/履歴/接続選択/要約がそれぞれのプロジェクトの会話へ届くことを確認する。共有のpermission/sandbox/worktreeだけは従来どおりapplication設定である。",
+        "履歴や縦︙を開いたまま、Escape・外側クリック・別アプリへ移動・ToolWindow非表示を試す。戻って再度開けることを確認する。",
+        "実行中の会話を残しToolWindow contentを破棄する（単なる非表示とは分ける）。別の試行でprojectを閉じ、popup/action参照と子processが残らないことを確認する。別project側の操作/実行が継続することを確認する。"
+      ],
+      "expected": "popupは非表示・破棄で閉じ、破棄済み内容から送信や設定変更を実行しない。content破棄時の全run停止/モデル取得取消を維持し、別projectの会話やactionは破棄しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "PMが独立レビュー後に固定buildで実施。未確認はpendingのままdevelop統合可、mainは候補全体の全必要Caseを確認後。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/153",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/55",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/62"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装担当はGUI操作を行わない。PM専任の固定build受入待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

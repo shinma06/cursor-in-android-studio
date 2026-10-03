@@ -5,6 +5,17 @@ import org.junit.jupiter.api.Test
 
 class MentionTokenExtractorTest {
     @Test
+    fun `typed references preserve space paths and deduplicate equivalent legacy tokens`() {
+        val typed = listOf(Mention(MentionKind.FILE, "日本語 file.kt", "日本語 file.kt"),
+            Mention(MentionKind.FILE, "A.kt", "A.kt"), Mention(MentionKind.FILE, "docs", "docs"))
+        val merged = contextMentions("@A.kt @./A.kt @docs", typed)
+        assertEquals(4, merged.size)
+        assertEquals("日本語 file.kt", merged.first().insertToken)
+        assertEquals(1, merged.count { it.kind == MentionKind.FILE && it.insertToken == "A.kt" })
+        assertEquals(setOf(MentionKind.FILE, MentionKind.DOCS), merged.filter { it.insertToken == "docs" }.map { it.kind }.toSet())
+    }
+
+    @Test
     fun `extracts a single file token`() {
         assertEquals(listOf("src/Foo.kt"), MentionTokenExtractor.extractTokens("Please look at @src/Foo.kt for context"))
     }

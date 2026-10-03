@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 142,
+  "gui_required": false,
+  "reason": "mainの決定済みdocs/toolingをdevelopへ通常同期し、Project Contextと必要なKDoc/テスト説明のみ更新。製品動作・保存形式・ID・GUIは変更しない。",
+  "cli_checks": [
+    "git diff --check",
+    "develop基準とのKotlin実行token一致、相対リンク、AGENTS symlink、競合marker、validate_changeを確認",
+    "監査表を使い、別タブ送信・遅いResult/停止・不明resume root・ACP質問・TTY picker失敗を誤って一般化しないことを机上評価",
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "python3 -m unittest discover -s scripts/loop -p 'test_*.py'",
+    "./gradlew test buildPlugin --console=plain"
+  ],
+  "cases": []
+}

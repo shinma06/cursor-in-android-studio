@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 115,
+  "gui_required": false,
+  "reason": "ACP Firstの全機能分類・現行source照合・公開契約調査・移行設計の文書のみ。製品コード、保存形式、設定、GUI、既存QA結果を変更しない。文書内T01〜T18は将来実装Issueへ引き継ぐCase設計であり今回の実行結果ではない。",
+  "cli_checks": [
+    "git diff --check",
+    "./gradlew test --console=plain",
+    "固定developの36 F-ID・旧UX26-01〜67・独自15群・契約K01〜K16・将来Case T01〜T18のcoverageと参照リンクを照合",
+    "ACP固定stable/unstable schemaとCursor公開契約、限定live実測、Plugin実装、GUI未実施を独立照合",
+    "scripts/workflow/verification.py validate_changeで専用JSONを検査"
+  ],
+  "cases": []
+}

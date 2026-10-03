@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "issue": 305,
+  "gui_required": true,
+  "reason": "既存メニューで両復元不可を選択時に読めることと、選択だけで復元保護が変わらないことを確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
+    "ToolWindowChatActionsTest / RestorePolicyTest / TurnWorkspaceTest / WorkspaceOperationGateTest の既存回帰と固定独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "ISOLATED-305-GUIDANCE",
+      "issue": 305,
+      "change": "分離作業コピー選択時に両復元不可を説明",
+      "preconditions": "指定GUI担当がleaseを取得し、#300を含む#305固定HEAD/ZIP SHA256/loaded全JARを照合する。使い捨てproject/公開可能な合成編集だけを使い、#40/#102の旧結果を新候補へ流用しない。",
+      "steps": [
+        "チャット設定の「作業場所 → 分離した作業コピー」をマウス/キーボードで選び、既存説明でこのプラグインのチェックポイント復元とRevertが利用できないことを読めるか確認する。通常入力欄へ常時警告が増えていないことを確認する。",
+        "共有設定の適用範囲/次回送信への適用と、ACPで未対応の組合せに対する既存理由が維持されることを確認する。選択だけで送信・復元・新たなroot推定が実行されないことを確認する。",
+        "既存の隔離合成fixtureでISOLATED由来のチェックポイント/編集カードの復元が拒否されることを確認し、DEFAULTへ戻しても古いISOLATEDカードを復元できないことを確認する。旧#40/#102のpassや通常rootの結果で代替しない。"
+      ],
+      "expected": "選択時の説明と既存の復元拒否が一致する。設定enum/引数/ACP validation/実行・復元gateと#300の説明を維持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI/installed未実施。単体テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用fix Issue/PRと新固定buildで再確認。#261保留を維持し、旧Case passを流用しない。",
+      "next_action": "PMが依存統合後に本Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が固定候補で確認する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/305",
+        "https://github.com/shinma06/cursor-in-android-studio/blob/d7e457aab97c357077808eefcaa245567fc3b6e1/docs/research/issue-301-hooks-workspace-contract.md"
+      ]
+    }
+  ]
+}

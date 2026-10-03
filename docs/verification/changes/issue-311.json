@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 311,
+  "gui_required": false,
+  "reason": "Browser QA用の独立loopback HTTP/TLS fixture・CLIテスト・引継ぎ資材のみ。製品やGUIは変更せず、QA164/182の既存GUI Caseとprovider/native試験は未実施のまま保持する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_browser_fixture.py -v",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "独立レビューでroute/実status/Location・cut・hold/release・loopback・終了/所有cleanup・TLS CA/hostname/IDN/IPv6・専用環境引継ぎを照合"
+  ],
+  "cases": []
+}

@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "issue": 205,
+  "gui_required": true,
+  "reason": "SDKのIDE key dispatcherと選択字下げactionの競合を修正する。単体テストだけでは実IDEのfocus/IME/popup/再生成/通常editorの回帰を保証できない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（選択された製品JUnitを実行）",
+    "./gradlew buildPlugin verifyPluginStructure（最古SDK/JDK21の標準ZIP）",
+    "PromptFocusTraversalTest: IDE local shortcutの両方向、空欄/単行/複数行/選択、本文保持、popup等へのfocus移動後・disabled状態で無操作、既存Swing traversalとEnter非消費",
+    "新しい固定HEAD/baseの独立レビュー。共有ActionManagerテスト補助を再利用した既存headerテストも維持。"
+  ],
+  "cases": [
+    {
+      "change": "選択中でもTab/Shift+Tabが入力本文を変更せずfocusを移動する",
+      "expected": "本文や選択を変えず入力外の次・前の操作へfocusが移る。改行・IME確定・mentionで誤送信しない。候補popupにfocusがある間は入力欄のTab処理を強制しない。再生成後も同じ挙動を保ち、通常エディタの字下げは維持する。",
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "id": "PROMPT-TAB-FIX",
+      "issue": 205,
+      "preconditions": "修正source HEAD・ZIP SHA256・全ロードJARを照合。Quail 1とQuail 4の各同梱JBRを使い、専用profile/使い捨てfixture・host共通GUI leaseで実施。Ask・認証済みPro/Teams、通常送信はIDEごとに1回まで。日本語IMEを使う。",
+      "steps": [
+        "各IDEで選択なし、単行選択、日本語を含む複数行選択、空欄を用意し、TabとShift+Tabをそれぞれ入力欄から実行する。本文と選択、移動先を操作前後で照合する。",
+        "Shift+Enterで改行し、日本語IMEで変換してEnter確定する。確定による誤送信がないことを確認する。",
+        "@候補を開き、候補内でTabを押しても入力欄のfocus移動処理が奪わないこと、候補選択と取消ができることを確認する。",
+        "短いAsk応答を1回完了し、再有効化した入力欄でも選択あり/なしのTabとShift+Tabを再確認する。新規チャットでも同じ操作を試す。",
+        "通常のコードエディターでTab字下げとShift+Tabを確認し、入力欄の修正によってIDE全体の操作が変わっていないことを確認する。"
+      ],
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/205",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/103",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392#issuecomment-5760905315"
+      ],
+      "fix_issue": 404,
+      "fix_pr": null,
+      "next_action": "Tabの主要不一致はQuail4の修正buildで非再現。@自動候補の別不具合を#404で修正後、両IDEの未実施手順を含めて再検証し#103/#392へ引継ぐ。旧RCのfailは保持。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "fail",
+        "reason": "Quail4で空欄/単行/複数行・選択有無のTab/Shift+Tabは本文と選択を保持して移動。Shift+Enterも改行。一方、人間の半角@入力で候補が開かずGPTも確認。追加ボタンの候補内Tab/Escapeは成功。原因修正は#404。Quail1、応答後再生成、新規チャット、通常editor、候補選択は未実施。",
+        "head": "85b0f1e85b5e1d684f8959707e33d47080ab3716",
+        "artifact_sha256": "8765b50f1b892937003082836ecd2db64410af637fb0ba3e932c58373bd43156",
+        "observer": "codex-205-prompt-tab",
+        "at": "2026-09-21T14:09:07.333058+00:00",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/205#issuecomment-5761724196",
+        "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR25.0.3; all5 JARs match fixed ZIP; main JAR d83d9ee94cc097c3b9f00530776f6fba1860e51c88e49f3b6c3a41fd1e3e7723; PID/config/lsof verified privately."
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間はQuail4のIME確定で誤送信なし、その後入力を削除したと報告。人間入力2行はGPT未観察。半角@の実キー入力で候補が開かないと報告。Case全体の手動試験は未完了。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

@@ -59,6 +59,79 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(self.gh.created, 1)
         self.assertIn('cases', self.gh.issue(100)['body'])
         self.assertEqual(len(self.gh.comments(35)), 1)
+    def test_document_link_and_content_are_read_back_and_reused(self):
+        self.transfer()
+        self.transfer()
+        body = self.gh.issue(100)['body']
+        self.assertIn('**試験内容ドキュメント:**', body)
+        self.assertIn('/issues/100#issuecomment-', body)
+        documents = [c for c in self.gh.comments(100) if c['body'].startswith('<!-- qa-human-document:v1 -->')]
+        self.assertEqual(len(documents), 1)
+        self.assertIn('unit tests', documents[0]['body'].split('<details>', 1)[0])
+        for text in ('前提条件', '試験手順', '期待結果', 'main反映', 'unit tests'):
+            self.assertIn(text, documents[0]['body'])
+
+    def test_human_amendment_blocks_retry_without_redirecting_current_guide(self):
+        self.transfer()
+        document = next(c for c in self.gh.comments(100) if c['body'].startswith('<!-- qa-human-document:v1 -->'))
+        self.gh.comment(100, document['body'] + '\nHuman prerequisite: wait for fix #205.', document['id'])
+        body = self.gh.issue(100)['body']
+        comments = copy.deepcopy(self.gh.comments(100))
+        with self.assertRaisesRegex(ValueError, 'human document changed'):
+            self.transfer()
+        self.assertEqual(self.gh.issue(100)['body'], body)
+        self.assertEqual(self.gh.comments(100), comments)
+        self.assertEqual(self.gh.issue(35)['state'], 'open')
+
+    def test_missing_document_readback_blocks_and_retry_recovers(self):
+        original = self.gh.comment
+        self.gh.comment = lambda n, body, comment_id=None: None if n == 100 else original(n, body, comment_id)
+        with self.assertRaisesRegex(ValueError, 'document readback'):
+            self.transfer()
+        self.assertEqual(self.gh.comments(35), [])
+        self.gh.comment = original
+        self.transfer()
+        self.assertEqual(self.gh.created, 1)
+
+    def test_gui_document_keeps_steps_expectation_and_execution(self):
+        from qa_document import render_document
+        case = {'id': 'GUI-1', 'change': '対象', 'preconditions': '条件',
+                'steps': ['最初の操作', '次の操作'], 'expected': '固有の期待結果',
+                'required_execution': 'computer_use', 'next_action': '準備担当', 'recheck': '再確認先'}
+        doc = render_document({'cases': [case]}, 'https://github.com/example/cases')
+        for value in ('GUI-1', '条件', '1. 最初の操作', '2. 次の操作', '固有の期待結果', 'Computer Use', '準備担当', '再確認先'):
+            self.assertIn(value, doc)
+
+    def test_summary_precedes_details_and_preserves_case_text_and_evidence(self):
+        from qa_document import render_document
+        case = {'id': 'GUI-1', 'change': '送信と比較', 'preconditions': 'fixtureを用意',
+                'steps': ['「A|B」と送信する', '画像を保存\nログを照合する'], 'expected': 'A|Bを表示',
+                'required_execution': 'computer_use', 'next_action': 'PMが準備', 'recheck': '新buildで再確認'}
+        doc = render_document({'cases': [case, dict(case, id='GUI-2')]}, 'https://github.com/example/cases')
+        summary, details = doc.split('<details>', 1)
+        for value in ('| 項目 | 手順 | 期待値 |', r'A\|B', '画像を保存<br>ログを照合する',
+                      'fixtureを用意', 'Computer Use必須', '口頭', '一部のOK'):
+            self.assertIn(value, summary)
+        self.assertNotIn('### 開始前の準備', summary)
+        self.assertEqual(summary.count('fixtureを用意'), 1)
+        self.assertIn('| GUI-1 · 手順2', summary)
+        self.assertNotIn('送信する<br>', summary)
+        for value in ('### 開始前の準備', '「A|B」と送信する', '画像を保存\nログを照合する', 'PMが準備', '新buildで再確認'):
+            self.assertIn(value, details)
+        self.assertTrue(doc.endswith('</details>\n'))
+
+    def test_document_link_failure_keeps_origin_open(self):
+        original = self.gh.api
+        def api(path, method='GET', data=None):
+            if method == 'PATCH' and path.endswith('/issues/100'):
+                return self.gh.issue(100)
+            return original(path, method, data)
+        self.gh.api = api
+        with self.assertRaisesRegex(ValueError, 'document link readback'):
+            self.transfer()
+        self.assertEqual(self.gh.issue(35)['state'], 'open')
+        self.assertEqual(self.gh.comments(35), [])
+
     def test_milestone_and_parent_are_preserved_on_retry(self):
         self.gh.issues[35]['milestone'] = {'number': 7}
         self.transfer()
@@ -111,7 +184,7 @@ class HandoffTests(unittest.TestCase):
         self.gh.issues[100]['body'] = '<!-- issue-qa-handoff:v1 origin=35 -->\nPM observations'
         self.transfer()
         self.assertIn('PM observations', self.gh.issue(100)['body'])
-        self.assertEqual(len(self.gh.comments(100)), 1)
+        self.assertEqual(len(self.gh.comments(100)), 2)
     def test_invalid_cases_block_before_creating_qa(self):
         invalid = dict(CHANGE, gui_required=True, cases=[])
         self.pr['body'] = self.pr['body'].replace('GUI: not-required', 'GUI: required')

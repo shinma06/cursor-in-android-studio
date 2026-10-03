@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 333,
+  "gui_required": false,
+  "reason": "両start-workの再開/再割当条件を既存workflowに揃え、代表ケースを追加する文書修正のみ。製品・自動gate・権限・登録状態・GUIは変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base 3c152be4e3829fa6c4d6c9403205e96ff43eec5a --run-tests",
+    "Skill mirror/frontmatter/変更した相対リンク・diff check",
+    "instruction-audit-271.mdの#333追加4ケースを既存workflow中断・再開とPR automationのowner/source保持へ固定独立レビューで照合"
+  ],
+  "cases": []
+}

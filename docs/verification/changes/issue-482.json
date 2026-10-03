@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 482,
+  "gui_required": false,
+  "reason": "main先行の#479受入環境改訂・gate・手順をdevelopへ同期する。製品src/テスト/Gradle/SDK/依存と既存Caseは固定develop 2ac9b29と同一に保持し、実GUIの新観察は既存QAへ残す。squash履歴による再競合は前回同期main 33c51dc以後の増分5ファイルだけを取り込み、既存RC保存手順とdevelop拡張を保持して解消する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "固定developとの差分は#479の5ファイルと本Issue受入JSONだけ。src、製品テスト、Gradle/SDK/依存および既存Caseの不変をGitで照合",
+    "環境revision b36e0e983d0fec2d8e819e7f6de9f918798d362beca5e3284b1dfcd6110d96fe、原Case10件、全必要172Case、Computer Use必須4件とartifactを維持",
+    "同期後のsquash結果を隔離Gitで再現し、最新mainをpromotionへ通常mergeしても製品/工具差分が増えないこと、全commitを元PRへ一意対応できることを確認",
+    "固定HEAD/baseの独立レビューと4必須checks"
+  ],
+  "cases": []
+}

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 297,
+  "gui_required": false,
+  "reason": "Run Mode・allowlist・承認設定の公開契約と既存sourceの有限調査。製品変更・実設定/GUI/provider操作を含まない。",
+  "cli_checks": [
+    "git diff --check",
+    "./gradlew test --tests com.cursoragent.service.AgentSettingsBoundaryTest --tests com.cursoragent.settings.AgentSettingsStateTest --tests com.cursoragent.acp.AcpProtocolTest --tests com.cursoragent.service.AgentRunTest --tests com.cursoragent.service.TurnWorkspaceTest",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公開仕様・基準enum/起動/validation・採否/残証拠の固定独立照合"
+  ],
+  "cases": []
+}

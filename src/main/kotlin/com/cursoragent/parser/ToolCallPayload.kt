@@ -24,4 +24,12 @@ data class ParsedToolCall(
     val summary: String,
     val fileEdit: FileEditDetails? = null,
     val shellResult: ShellResultDetails? = null,
+    val parentSessionId: String? = null,
+    val task: com.cursoragent.service.AgentTool? = null,
 )
+
+/** Task correlation requires an already confirmed parent session; other tool contracts are unchanged. */
+internal fun ParsedToolCall.belongsToPrintSession(sessionId: String?): Boolean =
+    task == null || parentSessionId != null && parentSessionId == sessionId
+
+internal fun ParsedToolCall.taskKey(): String = "${requireNotNull(parentSessionId).length}:$parentSessionId$callId"

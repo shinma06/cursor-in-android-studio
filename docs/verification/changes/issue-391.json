@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 391,
+  "gui_required": false,
+  "reason": "RC保存・取得・正式公開gateのtoolingと手順の変更。製品コードは変更しない。実際の正式version/候補作成と全GUIは#392、main/正式公開は#393で行う。",
+  "cli_checks": [
+    "固定source/version/SDK/入力とZIPの同一性、両Verifier report、失敗/欠落の拒否を検証する",
+    "既存RC/正式assetの上書き拒否、同一bytesの再試行、公開後download hashをAPI fixtureで検証する",
+    "既存promotion validatorの全commit/全Case判定と候補/hashの照合を再利用し、未merge/別ZIP/未確認checkの公開拒否を検証する",
+    "RCと正式Releaseが既存branch cleanupの削除対象外であること、Change Impactと既存テスト/CI・独立reviewを確認する"
+  ],
+  "cases": []
+}

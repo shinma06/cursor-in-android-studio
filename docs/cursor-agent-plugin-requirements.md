@@ -4,7 +4,7 @@
 - **作成日**: 2026-09-03
 - **対象読者**: 実装者(自分)
 - **ビルド設定（#142ソース照合）**: Kotlin 2.3.0 / IntelliJ Platform plugin 2.10.5 / sinceBuild 261。実際の対象IDEは `gradle.properties` / CI設定、CLI検証は各記録の版を参照し、「最新安定版」や過去の想定版で代用しない。
-- **現行実装**: 互換print（方式B）を既定とし、developでは新規会話にACPを明示選択できる（#147）。Swing/JBUIの表示・transport別の実装範囲と未達GUI受入は[developの固定実装記録](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/architecture/current-implementation.md)を参照する。
+- **現行実装**: 互換print（方式B）を既定とし、developでは新規会話にACPを明示選択できる（#147）。Swing/JBUIの表示・transport別の実装範囲と未達GUI受入は[現行実装](architecture/current-implementation.md)を参照する。
 
 **最上位方針（2026-09-09 / #134）**: [Project Mission](project-mission.md)と[ACP First](architecture/cursor-integration.md)を優先する。方式Bは現在の実装記録であり、新規連携はACPを第一級に扱い、IDE API / MCP / 補助CLIを組み合わせる。以下の機能別実装状況や過去検証は、この方針変更だけで実装済み・合格へ変更しない。
 
@@ -53,7 +53,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 | 用語 | 定義 |
 |---|---|
-| Agent | Cursor Agent本体。Pluginは公式interfaceを使うIDE client。mainはprint、developは明示ACP選択も持ち、設計方針はACP First |
+| Agent | Cursor Agent本体。Pluginは公式interfaceを使うIDE client。既定printと明示ACP接続を持ち、設計方針はACP First |
 | ツールウィンドウ | IntelliJ Platformの画面端に配置されるパネル(Terminal, Logcatと同種) |
 | チェックポイント | Agentによる編集前のコード状態スナップショット。ネイティブCursorではロールバック可能 |
 | `@メンション` | チャット入力中に`@`でファイル/フォルダ/コンテキストを注入する記法 |
@@ -76,7 +76,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 ## 4. 前提条件・制約
 
-### 4.1 前提条件
+### 4.1 現行print経路の前提条件
 - `cursor-agent` CLIがローカル環境にインストール・認証済みであること(`agent login` または `CURSOR_API_KEY`)
 - Android Studioのバージョンに対応するIntelliJ Platform Plugin SDKでビルドすること
 - `cursor-agent`の`--output-format stream-json`のJSONスキーマは変更される可能性がある `[仮説]` ため、パーサーは防御的に実装する
@@ -84,7 +84,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 ### 4.2 制約
 - 復元・Browser・音声入力は、現方式BでIDEと同じ入力/出力・UI契約を利用できるかを個別検証する。CLI interactiveの`/rewind`やBrowser subagent等の公開能力と、pluginの復元/画像表示/操作UIを分け、CLI全体に機能が存在しないとは断定しない（§6 機能要件・最新比較参照）。
 - 現プラグインの`@Docs`/`@Web`はMCP利用のヒント文字列を注入する実装。CLI自身のWeb能力やBrowser subagentとは分け、MCP追加だけが唯一の経路とは扱わない（[最新比較](research/cursor-agent-capability-matrix-2026-09-08.md)）。
-- 画像は[公式headless資料](https://cursor.com/docs/cli/headless)にprompt内のファイルパスを読む経路がある。installed helpの`--image`不在だけで非対応と断定しない。#10で識別画像・空白/日本語path・resume/Worktreeのlive検証を行ってからUI受入を決める。
+- 画像は[公式headless資料](https://cursor.com/docs/cli/headless)にprompt内のファイルパスを読む経路がある。installed helpの`--image`不在だけで非対応と断定しない。2026-09-12の[#10有限probe](research/issue-10-image-contract.md)でACP bytes入力と補助printを実測しACPを採用。画像UI・GUI受入は#277へ分離した（2026-09-19索引更新）。
 
 ---
 
@@ -92,37 +92,21 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 目標の基本経路は `User → Android Studio → Agent Panel Plugin → Plugin Orchestration Layer → Cursor ACP Agent`。IDE APIs / Android tooling / MCP / CLIを必要に応じて併用し、調整責務と各integration・UIを分離する。具体的な優先順位、構造化イベントの対応対象、CLI併用条件は[ACP First](architecture/cursor-integration.md)を参照する。
 
-以下の図は **現行方式Bの実装** であり、目標をCLI printに限定しない。
+既定のprint経路に加え、#147で新規会話に明示選択できるACP text接続を追加。要求返答・設定確定・停止の実装範囲と未確認の固定build GUI受入は[現行実装の責務・寿命・安全境界](architecture/current-implementation.md)を参照する。下記のprint経路説明をACPのwire契約へ流用しない。
 
+```text
+AgentToolWindowRootPanel / SessionTabs
+  └─ tabごとのview + AgentUiController
+       ├─ EDT: editor/VFS/Terminal context、token確認、UI更新
+       ├─ background: Git context、CheckpointService、prompt準備
+       └─ project共通 AgentProcessService
+            ├─ 複数AgentRun + 固定TurnWorkspace/TurnSettings
+            ├─ WorkspaceOperationGate（準備/実processと復元の排他）
+            └─ print OSProcessHandler → StreamJsonParser
+                 → AgentTurnListenerFactory → 所有tabのUI（EDT）
 ```
-┌─────────────────────────────────────────────┐
-│ Android Studio (IntelliJ Platform)            │
-│                                                │
-│  ┌──────────────────────────────────────┐    │
-│  │ CursorAgentToolWindow (Swing/JBUI)    │    │
-│  │  - ChatPanel (入力欄, @メンション補完) │    │
-│  │  - MessageListPanel (会話履歴描画)     │    │
-│  │  - DiffPreviewPanel (IDE Diff Viewer)  │    │
-│  │  - CheckpointPanel (ロールバックUI)    │    │
-│  │  - ModelSelector / SessionSelector     │    │
-│  └───────────────┬──────────────────────┘    │
-│                  │                            │
-│  ┌───────────────▼──────────────────────┐    │
-│  │ AgentProcessService                   │    │
-│  │  - GeneralCommandLine起動/管理        │    │
-│  │  - stream-json パーサー               │    │
-│  │  - 環境変数/認証情報の引き継ぎ         │    │
-│  │  - チェックポイント管理(Git連携)      │    │
-│  └───────────────┬──────────────────────┘    │
-└──────────────────┼────────────────────────────┘
-                    │ stdin/stdout (subprocess)
-                    ▼
-          ┌─────────────────────┐
-          │  cursor-agent CLI    │
-          │  -p --output-format  │
-          │     stream-json       │
-          └─────────────────────┘
-```
+
+会話chat ID、plugin tab ID、1要求のrun token、OS processは別の寿命。Resultイベントだけで終了せず、UI停止・process終了・復元予約を照合する。これは将来のACP契約をprintの型へ固定する図ではない。
 
 ---
 
@@ -136,7 +120,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 |---|---|---|---|
 | F-01 | テキストプロンプト送信 | MVP | `agent -p --output-format stream-json "<prompt>"` |
 | F-02 | ストリーミング応答表示(トークン単位) | MVP | `--stream-partial-output`イベントを逐次パースしUI更新 |
-| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。再起動後の本文永続化は #44、検索/exportは #45で未実装 |
+| F-03 | 会話履歴の保持・スクロール表示 | MVP(部分実装) | mainは会話viewと履歴metadata。develop #65はタブ別の本文/draft/caret/scrollをメモリ内保持。develop #44は今後観測した本文を保存・再表示（再起動GUIは別QA）、検索/Markdown出力は #45で接続（固定build GUIは別QA） |
 | F-04 | セッション再開(前回の続きから) | MVP | `--resume [chatId]` |
 | F-05 | 新規チャット開始 | MVP | セッションID未指定で新規起動 |
 | F-06 | コンテキスト圧縮 | P2 | `/summarize`をプロンプト経由で送信 |
@@ -147,7 +131,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 |---|---|---|---|
 | F-10 | `@ファイル名`補完UI | MVP | Android Studioのプロジェクトツリー/開いているファイル一覧からJList/JPopupMenuで候補表示 → 選択時にプロンプト文字列へ`@path`を埋め込み |
 | F-11 | `@フォルダ`指定 | P2 | 同上、ディレクトリ選択対応 |
-| F-12 | `@Git diff`(未コミット差分) | P2 | プラグイン側で`git diff`を実行し結果をプロンプトに埋め込み(CLI自動対応なし) |
+| F-12 | `@Git diff`(未コミット差分) | P2 | プラグイン側で`git diff`を実行し結果をプロンプトに埋め込み（現行pluginのcontext注入経路） |
 | F-13 | `@Terminals`(ターミナル出力) | P3(**実装済み 2026-09**) | Reworked Terminal API経由(`TerminalToolWindowTabsManager`/`TerminalView.outputModels.regular`)。開いているTerminalタブの末尾8KBを`@terminal`送信時に埋め込み。タブ未オープン時はプレースホルダー |
 | F-14 | `@Docs` / `@Web` | P3(部分実装) | 現プラグインはMCP利用hintの注入のみ。CLIのWeb検索/取得能力・設定と独自Docs管理UIは別途 #25で実証し、MCP必須や独自検索実装済みとは表示しない |
 | F-15 | 現在開いているファイル/選択範囲の自動コンテキスト化 | MVP | エディタの`FileEditorManager`/`SelectionModel`から取得し、送信時に自動付与(ネイティブCursorの「Active file and selection」相当) |
@@ -174,9 +158,9 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
 | F-30 | 差分プレビュー(IDE純正Diff Viewerで表示) | MVP(**実装済み 2026-09**) | `ToolCallPayloadParser`が完了した`editToolCall`イベントから`FileEditDetails`(before/after/diff)を抽出、`ui/timeline/FileEditCard.kt`の View Diff から`DiffManager`/`DiffContentFactory`で表示 |
-| F-31 | Apply / Reject ボタン | MVP(**実装済み 2026-09、事後Revertモデルに変更**) | Teams プランでの実CLI検証により、ヘッドレスモードではforce有無に関わらずCLIが即座にファイルへ書き込むことが確定(分岐B)。現方式Bでは書込み前の介入契約を確認できないため、`FileEditCard`のRevertボタン(`DiffViewerHelper.revertFileContent`)による事後取り消しとして実装。現在のファイル内容がそのeditの`afterFullFileContent`と一致する場合のみ復元を実行し、それ以降に変更されていれば拒否する |
+| F-31 | Apply / Reject ボタン | MVP(**実装済み 2026-09、事後Revertモデルに変更**) | Teams プランでの実CLI検証により、ヘッドレスモードではforce有無に関わらずCLIが即座にファイルへ書き込むことが確定(分岐B)。現方式Bでは書込み前の介入契約を確認できないため、`FileEditCard`のRevertボタン(`DiffViewerHelper.revertFileContentResult`)による事後取り消しとして実装。現在のファイル内容がそのeditの`afterFullFileContent`と一致する場合のみ復元を実行し、それ以降に変更されていれば拒否する |
 | F-32 | Shell実行結果の表示 | MVP(**実装済み 2026-09**) | stream-jsonの`tool_call`(`started`/`completed`)イベントを`ToolCallPayloadParser`で解析、`ui/timeline/ToolCallBubble.kt`でコンソール風に整形表示(stdout/stderr/interleavedOutput) |
-| F-33 | エラーと停止の表示 | MVP(基本実装済み) | timelineのエラーとIDE通知を提供。develop #46は意図停止を「停止しました」とし異常137を区別（QA #104）。経過時間・詳細折畳み・一般通知抑制は #98 |
+| F-33 | エラーと停止の表示 | MVP(基本実装済み) | timelineのエラーとIDE通知を提供。develop #46は意図停止を「停止しました」とし異常137を区別（QA #104）。候補 #98 は実イベント別状態/ターン全体経過時間・tool詳細折畳み・背景開始通知の集約と会話への導線を実装。GUI/mainは[Case追跡](verification/changes/issue-98.json)でpending |
 
 > `[2026-09追加]` ネイティブCursor CLIには`/changes`(Ctrl+R)という、そのセッションでの全編集を集約した統合レビューUIが存在する模様(CLI changelogで言及)。非対話モードでの相当コマンドの有無は未確認。F-30/F-31の設計を確定させるM0検証と合わせて調査し、単純なdiffカードの羅列ではなく統合ビューにすべきか再検討する。
 
@@ -198,7 +182,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-50 | 過去チャット一覧 | P2(部分実装) | pluginがchatId/冒頭prompt/更新時刻を保存し、選択後の次turnを`--resume`する。developでは同IDの既存タブを再選択。本文は未保存でその旨を表示し、再起動後本文復元は #44。CLIの履歴存在と非TTY取得API、plugin本文復元を区別する |
+| F-50 | 過去チャット一覧 | P2(部分実装) | pluginがchatId/冒頭prompt/更新時刻を保存し、選択後の次turnを`--resume`する。developでは同IDの既存タブを再選択。develop #44は新規本文を保存・再表示。旧metadataは本文なし、来歴不明とACP保存本文は閲覧のみ。CLIの履歴存在と非TTY取得API、plugin本文復元を区別する |
 | F-51 | チャットのプロジェクト単位分離 | MVP(実装済み) | `--workspace <path>`と起動cwdをプロジェクトルートへ揃える。mainは`AgentProcessService`、developは`TurnWorkspace.arguments()`がworkspace引数を生成する |
 | F-52 | Worktree分離実行 | P3(基本実装済み) | 上部チャット設定から`-w`を選択。`--worktree-base`/`--skip-worktree-setup`のUIは未実装。develop #39は実rootを追跡できないISOLATEDの復元を安全拒否（QA #102）。分離rootで復元可能になったとは扱わない |
 
@@ -206,7 +190,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 | ID | 機能 | 優先度 | 実現方式 |
 |---|---|---|---|
-| F-60 | 画像添付 | P3(公開経路あり・live未検証) | [headless資料](https://cursor.com/docs/cli/headless)はprompt内の画像path読取を説明。CLI `2026.09.02-c22c1a3`のhelpに`--image`はないが非対応の証明にはならない。#10で非TTY実証後、添付/paste/D&D/preview/remove/失敗UIを設計する |
+| F-60 | 画像添付 | P2(ACP接続実装・GUI未完了) | [#10の9/12有限probe](research/issue-10-image-contract.md)でACP bytes/補助printを実測しACPを採用。#277の[画像1枚入力](development/image-attachment.md)はPNG/JPEG D&D・clipboard、preview/remove、画像のみ送信、予約snapshot/失敗保持を実装。literal image=trueのACPのみで自動print fallbackなし。P7のroot外アクセスと全モデル対応は未判定。I1–I8/QA/mainは未完了（2026-09-19統合） |
 | F-61 | 音声入力 | P3(未検証) | 専用録音/送信UIは未実装。#99でOS標準音声入力がEditorTextFieldへ文字入力できるか検証する。音声ファイル解析とdictationを別機能にする |
 | F-62 | ブラウザ視覚検証 | P3(未実装・調査) | [Browser](https://cursor.com/docs/agent/tools/browser)と[Subagents](https://cursor.com/docs/subagents)の公開経路を調査する。MCP利用も候補だが汎用tool summaryだけでは画像描画/視覚検証は成立しない。方式Bでのevent・表示・操作契約は #25で確認 |
 
@@ -225,7 +209,7 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 |---|---|---|
 | Subagents / Multitask | [Subagents](https://cursor.com/docs/subagents)とCLI changelogにheadless対応の公開記載。IDEの複数モデル実行と子agentを区別する | 公開対応。方式Bの親子event/終了/停止/usageのlive fixtureとネイティブ表示は未実装 |
 | Skills / Custom Modes | [Skills](https://cursor.com/docs/skills)に1turn呼出しとsession持続modeの説明 | headless `/skill-name`は公開対応。発見/補完UIは未実装。持続modeのprint呼出し間の契約は別途検証し、`--mode`値を推測しない |
-| デスクトップ通知 | ターン完了時・承認待ち発生時のOSネイティブ通知 | **実装済み 2026-09** — IntelliJ `Notification` API。ターン完了/ツール呼び出し開始時に通知(設定でOFF可) |
+| デスクトップ通知 | ターン完了・失敗・停止と背景tool開始のIDE通知 | **実装済み 2026-09** — IntelliJ `Notification` API。候補 #98 は終端を日本語で通知、背景tool開始は各turn一度・project最新1件へ集約（設定でOFF可）。承認待ちを推測しない。GUI/main確認は別 |
 | `permissions.json` | チーム管理者向けのターミナル/MCP許可リスト宣言ファイル。IDEとCLIで設定共有 | F-22/F-23再設計時の参考として調査対象。個人利用が主眼の本プラグインでは優先度低 |
 | CLI Hooks(session start/end, stop, pre-compaction等) | チーム管理向け自動化フック | 独立した管理基盤の再現は対象外。IDE内panelの体験に必要な範囲があるかを最上位ミッションに従って判断する |
 | クラウドエージェント / バックグラウンドPR自動生成 | 常時稼働のクラウドエージェント、Slack連携等 | 独立したCloud/Agents Window作業環境の再現は対象外。IDE内panelに必要かを§1.3で判断し、現CLI実装だけを根拠に将来の可否を断定しない |
@@ -279,14 +263,14 @@ placeholderはCursorの外観を尊重して維持する。一律の全日本語
 
 ## 9. 外部インターフェース仕様
 
-### 9.1 CLI呼び出しコマンド例
+### 9.1 現行print/補助CLIの呼び出し例（ACP契約ではない）
 
 ```bash
 # 通常のプロンプト送信(ストリーミング)
-agent -p --output-format stream-json --stream-partial-output "<prompt>" --workspace <projectRoot>
+agent -p --output-format stream-json --stream-partial-output --trust "<prompt>" --workspace <projectRoot>
 
 # セッション再開
-agent -p --output-format stream-json --resume <chatId> "<prompt>"
+agent -p --output-format stream-json --stream-partial-output --trust --workspace <projectRoot> --resume <chatId> "<prompt>"
 
 # モデル一覧取得
 agent --list-models
@@ -302,17 +286,20 @@ agent mcp list
 ### 9.3 stream-jsonイベントの扱い(パーサー設計方針)
 - JSON Lines形式で1行1イベントを受信する想定
 - 未知の`type`フィールドを持つイベントは無視してクラッシュしない
-- 最終的な結果オブジェクト(`result`, `chatId`, `model`を含む)を受信したらセッション状態を更新する
+- init/resultから得たsession ID、usage、fallback等をrun経由で配送する。Result自体をprocess終了と同一視せず、EDTでrun tokenを照合する。stdout以外の停止/終了/復元状態は[現行実装](architecture/current-implementation.md)を参照する
 
 ---
 
-## 10. データ設計(概略)
+## 10. 現行データ設計（#142ソース照合）
 
-| データ | 保存先 | 内容 |
+| データ | 保存先 | 現在の内容・制約 |
 |---|---|---|
-| チャット履歴 | プラグイン内部ストレージ(IntelliJ `PersistentStateComponent`) | メッセージ本文、ロール、タイムスタンプ、対応chatId |
-| チェックポイント | プラグイン内部ストレージ or `.git`とは別領域 | 対象ファイルパス、変更前スナップショット、紐づくプロンプトID |
-| 設定(モデル、force設定等) | `PersistentStateComponent`(Application/Project Settings) | ユーザー選択の永続化 |
+| 会話metadata | project `cursor-agent-chat-history.xml` | chatId、firstPromptPreview、lastUpdatedMs。本文は保存しない |
+| 開いたタブ | `SessionTabs` とtab別viewのメモリ | draft/mode/model/title、本文・caret・scroll。本文は#44のproject単位JSON、draftは未保存 |
+| checkpoint | project `cursor-agent-checkpoints.xml` とGitオブジェクト | SHA、prompt preview、chatId、root/mode、untracked名一覧。未追跡本文の完全保存ではない |
+| 設定 | application `cursor-agent-settings.xml` | モデル・mode・permission・sandbox・worktree・実行path・通知等。既存enum/IDと既定permissionを維持 |
+
+ACP session IDと保存済みprint chat IDの互換性や復元は #115で検証する。未知のrootやID互換性を推測して補完しない。
 
 ---
 
@@ -322,7 +309,7 @@ agent mcp list
 2. **チェックポイント機構の複雑性**:Gitのステージング状態と自前スナップショットが衝突するケースの設計が甘いと、ユーザーの実コミット履歴を壊すリスクがある
 3. **認証情報の引き継ぎ失敗**:サブプロセスの環境変数継承がOSによって異なり、認証エラーが頻発する可能性
 4. **UIスレッドブロッキング**:ストリーミング処理をEDTで直接処理すると、Android Studio全体がカクつくリスク
-5. **画像添付・音声入力のCLI対応状況不明**:機能要件確定前に公式ドキュメントでの検証が必須
+5. **画像添付の製品受入・音声入力**: 2026-09-19更新: 画像入力は[#10の有限probe](research/issue-10-image-contract.md)を完了。製品UI・GUI受入は#277、音声は#99で別途検証する。
 
 ---
 
@@ -341,17 +328,17 @@ agent mcp list
 
 ## 13. 未確定事項(要検証リスト)
 
-- [ ] `[公開経路あり・要実測 2026-09-08]` CLI画像path読取 — helpの画像flag不在による旧非対応判定を訂正。#10で識別画像を非TTY送信し、正答/失敗とUI要件を確認する(F-60)
+- [x] `[有限probe完了 2026-09-12 / 索引更新 2026-09-19]` [#10画像入力](research/issue-10-image-contract.md) — 固定CLI/modelのACP bytes/print path読取、正答/欠損等の失敗を確認し、ACP採用とUXを定義。P7の正しい絶対pathによるroot外アクセスは未判定。製品添付UIの実装は#277（F-60参照）、GUI受入は未完了。
 - [x] `[検証済 2026-09]` 認証情報(`CURSOR_API_KEY`/ブラウザログイン状態)のサブプロセスへの引き継ぎ可否 — `GeneralCommandLine.withEnvironment(System.getenv())`で`agent status`相当のログイン状態が引き継がれることを確認済み
 - [x] `[検証済 2026-09-04]` stream-jsonのイベントスキーマ(実機) — `system/init`, `user`, `connection`, `retry`, `assistant`(累積/差分混在), `tool_call`(started/completed、`readToolCall`/`editToolCall`/`shellToolCall`)。`editToolCall` completed に `beforeFullFileContent`/`afterFullFileContent`/`diffString` を確認。fixture: `src/test/resources/stream-json-fixtures/`
 - [ ] `[仮説]` チェックポイントの保持期間・上限件数の妥当な設計値 — デフォルト15日で実装済みだが、ユーザーが変更できる設定UIは未実装
 - [x] `[検証済・方針決定 2026-09]` IntelliJ Platform側で`@`補完UIをどのコンポーネントで実現するのが最も自然か → `EditorTextField`+自作補完コントリビューターで実装済み。ただし`runIde`での実機QA(Enter送信/Shift+Enter改行、ポップアップのフォーカス挙動)は未実施
 - [x] `[検証済 2026-09]` 新規ワークスペースでは`--trust`/`--yolo`/`-f`なしだと「Workspace Trust Required」で即失敗することが判明。プラグインは常に`--trust`を付与するよう修正済み(IDEでプロジェクトを開いている時点がユーザーの信頼判断そのものであるため)
-- [x] `[検証済 2026-09]` `agent ls`/`agent resume`(過去セッション選択)は生TTY必須のInkベースTUIで、`OSProcessHandler`等の非TTYサブプロセスからは`Raw mode is not supported`で失敗する。過去チャット一覧(F-50)はCLIのセッション一覧機能に頼らず、プラグイン側で`chatId`を自前で永続化する設計とする(実装済み)
+- [x] `[検証済 2026-09]` `agent ls`/`agent resume`(過去セッション選択)は生TTY必須のInkベースTUIで、`OSProcessHandler`等の非TTYサブプロセスからは`Raw mode is not supported`で失敗する。現print経路の過去チャット一覧(F-50)はプラグイン側で`chatId`のmetadataを永続化する(実装済み)。このpicker実測はACP session APIの不可判定には使わない
 - [x] `[検証済 2026-09]` `agent mcp`には`list`/`list-tools <id>`/`enable <id>`/`disable <id>`/`login <id>`サブコマンドが存在する。F-71(MCP有効/無効切替)は`.cursor/mcp.json`相当を直接編集せず、これらのサブコマンドを呼び出す実装で十分(実装済み)
 - [x] `[検証済 2026-09]` `--list-models`と`agent mcp list`/`enable`/`disable`はローカルのメタデータ操作でチャットのクォータを消費しないことが判明。F-21/F-70/F-71はこの発見によりM0のクォータブロッカーを回避して実装済み
 - [x] `[検証済 2026-09-04]` force ON/OFFでのファイル書き込みタイミングとtool_call結果 — Teamsプラン実機: `permissionMode: default`でもヘッドレス subprocess では**即書き込み**。F-30/F-31は事後 diff/revert モデルで実装済み(PR #18)
-- [x] `[検証済 2026-09-04]` `AssistantChunkDeduper`のストリーミング重複排除 — Teams実機で `--stream-partial-output` が増分断片と累積再送を混在させることを確認。heuristic を更新し `AssistantChunkDeduperTest` で固定
+- [x] `[検証済 2026-09-04]` `AssistantChunkDeduper`のストリーミング重複排除 — Teams実機で `--stream-partial-output` が増分断片と累積再送を混在させることを確認。heuristic を更新し `AssistantChunkDeduperTest` で固定。混在観測はheuristic全体の正しさやACPへの流用を保証しない
 - [ ] `[公開対応と未実測を分離 2026-09-08]` headless Skills/Subagentsは公開対応。子event/UI・sticky Custom Mode・Multitaskとの境界をlive fixtureで確認する(§6.9/最新マトリクス参照)
 - [x] `[検証済 2026-09-04]` `agent mcp list`の出力形式(`id: status`行)を実配置環境で確認。`McpListParser`+整列表示に置き換え済み
 
@@ -376,11 +363,9 @@ agent mcp list
 ## 次のアクション
 
 `[2026-09-05訂正]` M0の即時書込み検証、F-30〜32、sandbox基本選択、通知は PR #18 までに完了している。
-旧来のブロッカー記述を次の作業選択に使わない。既存の残作業はGitHubの現行Issue一覧で管理する。#10は画像path、#99はOS音声入力、製品変更後のQAは #102〜#108へ分離済み。
+旧来のブロッカー記述を次の作業選択に使わない。既存の残作業はGitHubの現行Issue一覧で管理する。2026-09-19更新: #10の有限画像調査は[結果](research/issue-10-image-contract.md)を参照し、画像UI・GUI受入は#277、#99はOS音声入力、製品変更後のQAは #102〜#108へ分離済み。
 
-UI差分の新規取り込みは [計画書](plans/cursor-agent-ui-gap-plan.md) の UX-01（権限・sandbox表示とWorktree復元整合性）から進める。
-以降は入力操作、本文履歴、状態/レビュー/キュー、コンテキスト導線の順とする。
-Debug/Multitask/権限個別制御などは CLI 検証ゲートを通す。計画作成は機能実装・実行検証の完了を意味しない。
+現在の順序は [#141](https://github.com/shinma06/cursor-in-android-studio/issues/141)、機能別ACP契約・互換性は #115へ進む。[旧計画書](plans/cursor-agent-ui-gap-plan.md)のCLI限定ゲートや当時の順序を新規設計へ転用しない。構造化イベント、IDE API/MCP、補助CLIの境界を検証してから実装を分割する。計画作成は機能実装・実行検証の完了ではない。
 
 実機UIの限定確認（設定・パネル表示）と追加観点は [Android Studio実機追補](research/android-studio-ui-followup-2026-09-05.md) を参照。UX-08（P1、モデル名・多数候補）とUX-09（P2、ビルド/CLI診断）を計画に追加した。入力・送信・設定保存のQA完了を意味しない。
 
@@ -389,3 +374,5 @@ Debug/Multitask/権限個別制御などは CLI 検証ゲートを通す。計�
 同じモデルのThinking/Fast/Context/Effort違いをモデル系列にまとめ、利用可能なオプションだけを表示する。選択値は実際の `agent --list-models` のIDへ解決して既存の `--model` に渡す。モデルや容量の固定カタログは持たず、不明な派生は独立項目として残す。既存IDの設定はそのまま復元する。
 
 取得した一覧でContext容量が1種類しか分からない場合はContextを隠す。CLIヘルプには `model[context=1m,effort=high,fast=false]` 形式の説明があるが、対応値一覧は得られないため、未検証の容量を生成しない。Cursorの画像はUI参考であり、このCLIアカウントでの対応値を保証しない。
+
+#44の保存形式version/ID・上限・秘密情報・削除・再開条件は[会話保存契約](architecture/conversation-persistence.md)。実IDE再起動Caseは[issue-44.json](verification/changes/issue-44.json)で追跡する。

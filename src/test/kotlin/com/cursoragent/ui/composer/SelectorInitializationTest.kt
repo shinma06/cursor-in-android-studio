@@ -10,6 +10,22 @@ import javax.swing.SwingUtilities
 
 class SelectorInitializationTest {
     @Test
+    fun `late model loading in one tab cannot change another tabs mode or model`() = SwingUtilities.invokeAndWait {
+        val a = AgentSettingsState().apply { mode = AgentMode.ASK; selectedModel = "a" }
+        val b = AgentSettingsState().apply { mode = AgentMode.PLAN; selectedModel = "b" }
+        val modelA = ModelSelector(a)
+        val modelB = ModelSelector(b)
+        ModeSelector(b).selectMode(AgentMode.AGENT)
+        modelB.setModels(listOf(ModelOption("b", "B")))
+        modelA.setModels(listOf(ModelOption("a", "A")))
+        assertEquals("a", a.selectedModel)
+        assertEquals(AgentMode.ASK, a.mode)
+        assertEquals("b", b.selectedModel)
+        assertEquals(AgentMode.AGENT, b.mode)
+        assertEquals("B — b", modelB.toolTipText)
+    }
+
+    @Test
     fun `mode initializes its accessible name without crashing the tool window`() = SwingUtilities.invokeAndWait {
         val settings = AgentSettingsState().apply { mode = AgentMode.AGENT }
         val selector = ModeSelector(settings)

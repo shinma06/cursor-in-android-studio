@@ -1,6 +1,12 @@
 # 区切りごとの動作確認
 
-まず [今回の確認一覧](current.md) を開き、上から順に試してください。初期一覧は PR #72/#74/#75/#77/#81/#82 の7ケースと、親#73に残るCUA操作成立の2ケースです。#39の接続未実装は先に解消します。#80はprobe調査記録の整合を確認します。CUA全面操作は親#73の別Caseで、人間が直接ボタンを押せてもCUA受入passにはなりません。
+人間はまず [QA — 人間向け試験](https://github.com/users/shinma06/projects/2/views/6) から対象QAを選び、本文の **試験内容ドキュメント** を開いてください。全open `type:qa` に個別手順書リンクを必須とします。[内容・作成/更新の規約](human-qa.md)に従います。
+
+試験内容の冒頭にある短い前提と **項目・手順・期待値** の表から進め、Case IDと実施した項目を添えて結果を伝えてください。送信文と画像/ログ/Computer Useの指定は各案内に従います。詳細なbuild識別・管理・記録は下段から開けます。既存のOKや待ち条件は保持し、一部のOKを全Caseの合格にはしません。
+
+[今回の確認一覧](current.md) は初期バッチの閲覧用です。初期一覧は PR #72/#74/#75/#77/#81/#82 の7ケースと、親#73に残るCUA操作成立の2ケースです。初期作成時の#39接続待ちはdevelopで解消済みです。現行の復元接続は[接続契約](../development/restore-target-integration.md)を参照し、固定候補のGUI受入は別に判断します。#80はprobe調査記録の整合を確認します。CUA全面操作は親#73の別Caseで、人間が直接ボタンを押せてもCUA受入passにはなりません。
+
+停止・配送・復元・要求返信の変更では [6条件とテストの証明範囲](lifecycle-contracts.md) の該当行をwriter/独立reviewerが確認します。
 
 ## 正本と結果の入力
 
@@ -48,6 +54,8 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 - 各PRに割り当てたcommit集合と検証済みDAG範囲が完全一致しなければ拒否します。製品PRを同期PRへ付け替えられません。全PRのCase JSONはそのPRの固定merge SHAから読み、後のCase削除では必要集合を縮めません。
 
 #226の履歴では外側mergeと内部3commitを#226へ、他の製品/tooling commitをそれぞれのmerged PRへ対応付けます。実候補のGUI結果を登録しない診断はCase/証拠不足で拒否されることが正しく、履歴照合成功だけでpromotion合格にはしません。#250統合後、#249でmainをdevelopへ同期してから候補/全Caseを再収集します。
+
+正式Plugin配布を伴う候補では、先に[RC保存手順](../development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)で正式version・source・ZIP hashを固定する。GUIとpromotion.jsonは保存済みRCの同じhashを参照し、main昇格後も再buildしない。RCのAPI検査成功と全CaseのGUI passは別判定。
 
 ### Rabbit移行後の旧Caseの適用環境（#479）
 

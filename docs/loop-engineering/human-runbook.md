@@ -7,7 +7,7 @@
 1. 選んだ開発クライアントでリポジトリを開き、編集・検証に必要なtoolと権限を確認します。すべてのproviderへのログインは不要です。
 2. GUI試験をする場合だけ、実画面を操作・観察できる環境と必要なOS権限を確認します。対応toolがなければ対応可能な担当または人間へ引き継ぎます。Computer Use必須Caseは人間の直接操作だけでは合格にできません。
 3. 製品のCursor IDE/CLIへ送信するCaseでは、製品試験用のPro/Teams認証を確認します。IDEのログインだけでCLIも使えるとは仮定しません。認証やOS許可の不足は人間へ引き継ぎます。
-4. buildする場合は[現行の開発・検証手順](../../CLAUDE.md#commands)と[ZIP識別手順](../development/plugin-zip-delivery.md)に従います。JDK 21と固定SDKが標準です。`platformPath`の指定やSDK変更は通常準備に含めず、ローカルSDKを明示使用する場合だけ現行手順を確認します。
+4. buildする場合は[現行の開発・検証手順](../../CLAUDE.md#開発検証の入口)と[ZIP識別手順](../development/plugin-zip-delivery.md)に従います。JDK 25と固定SDKが標準です。`platformPath`の指定やSDK変更は通常準備に含めず、ローカルSDKを明示使用する場合だけ現行手順を確認します。
 
 GUI試験の編集先は[生成したfixture](evidence.md)の`.loop-runs/<run-id>/cursor`と`plugin`です。同内容から始まる独立Gitリポジトリで、OS sandboxではありません。製品の試験入力はfixtureに限定し、プラグイン本体の修正は実装担当のIssue worktreeで行います。
 

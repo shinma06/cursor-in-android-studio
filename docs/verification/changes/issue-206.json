@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 206,
+  "gui_required": false,
+  "reason": "QA手順書・GitHub Project View・引継ぎtoolingのみ。製品GUI/保存状態に変更なし。実QAの結果は変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "QA手順生成・リンクreadback失敗で元Issueをcloseしない・再試行/既存本文保持を検証",
+    "open type:qa全35件の手順書と本文リンク・Project登録・QA専用View条件のreadback",
+    "git diff --check; 指示の作成/引継ぎ/既存QA更新/GUI不要Caseを机上照合",
+    "trusted-main進行役への適用はmain反映後。developだけの導入を全面適用済みとしない"
+  ],
+  "cases": []
+}

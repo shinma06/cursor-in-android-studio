@@ -62,6 +62,8 @@ skip時はReleaseやassetを変更せず、古いZIPへ新HEADの名前を付け
 
 新workflowを含むbranchのCI/hook/push配布から適用される。既定branchのscheduleとtrusted-main coordinatorはmain上のコードを使うため、develop統合だけでは全経路の切替完了ではない。main反映と旧branchでのsafe fallbackはQAへ明記する。旧branchにclassifierがないhookでは従来の全テストを行い、存在しない検証をskip成功としない。既存enrollment/owner/PAUSED heartbeatを自動変更しない。
 
+新しい入口/import/依存や分類対象を追加する際は、[4実行経路の副作用・配置境界](tooling-boundaries.md)も既存PRレビューで確認する。
+
 ## Governance Auditと検証
 
 [Git Governance Audit](git-governance-audit.md)では実tree/消費側に対するallowlist、古いpath、新runtime resource、条件の重複、不要な重い実行、required checkとskipの一致を確認する。今回の導入はHigh Impactとして#198で7領域への影響を照合する。skip率や待ち時間の削減率は実測するまで断定しない。
@@ -69,3 +71,5 @@ skip時はReleaseやassetを変更せず、古いZIPへ新HEADの名前を付け
 `test_change_impact.py`の必須8例とGit差分境界、`test_pre_push.py`の実push、`test_agent_loop.py`、`test_branch_zip.py`で、混在・unknown・rename/delete/mode・初回/手動・旧ZIP保全/復旧を検証する。GitHub Actions構文は[actionlint](https://github.com/rhysd/actionlint)で検証する。
 
 GitHubの仕様: [required jobを安全にskipする方法](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions)、[workflowのpath filterとPendingの注意](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpull_requestpull_request_targetpathspaths-ignore)、[比較APIの件数制限](https://docs.github.com/en/rest/commits/commits#compare-two-commits)。
+
+正式RCの`release_candidate.py`もBUILD/TOOLINGに分類し、配布入力/公開判定の変更では既存テスト・Rabbit CIを実行する。RCの明示buildは差分skip対象外で、正式公開操作自体は自動push処理へ接続しない。

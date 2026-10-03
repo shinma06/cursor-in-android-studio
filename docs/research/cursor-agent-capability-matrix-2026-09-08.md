@@ -4,6 +4,10 @@
 
 更新: **2026-09-08 / Issue #114**。Cursor IDE Agentサイドパネルを中心に、別surfaceの機能を分けて比較する。これは調査と次の実装判断の資料であり、新機能の実装・GUI合格・方式変更の承認ではない。
 
+> **2026-09-19 画像調査の追補（#10 / #275）**: 以下の画像欄は[2026-09-12の有限probe](issue-10-image-contract.md)を反映する。固定CLI/modelでACP画像bytes入力とprint path読取の成功を確認し、ACPを採用した。製品添付UIはこの調査PRでは未実装、実装とGUI受入は [#277](https://github.com/shinma06/cursor-in-android-studio/issues/277)。他行と9/8の観測条件は当時の記録を維持する。
+
+> **2026-09-19 画像UI実装の追補（#277 / PR #323）**: UX26-07のdevelop欄は[ACP画像1枚入力](../development/image-attachment.md)のコード上の状態へ更新する。main未反映、[I1–I8](../verification/changes/issue-277.json)は全てGPT/人間pending。上記#275の「この調査PRでは未実装」は研究時点の記録であり、この実装やGUI合格を示すものではない。
+
 ## 読み方
 
 - 主対象 **IDE** はclassic Agent sidepane。**共通**は公式Agent一般の記述で、全build/契約での実測を意味しない。**AW**はAgents Window、**Cloud/Web**は別環境。AW限定機能をIDEの必須不足にしない。
@@ -14,7 +18,7 @@
 
 ## 今回の訂正と着手順
 
-画像は[headless資料](https://cursor.com/docs/cli/headless)にprompt内path読取経路がある。helpに`--image`がないだけでは非対応と断定できない。まず #10 の識別画像spike、Skills #117 / Subagents #118 / streaming #116 は公開経路と取得eventを実証する。名前取得 #66 は方式Bの機械可読取得契約が未確認で、ACPのsession/listはproject限定で応答を確認したが対象履歴0件でtitle実値を得ていない。ユーザー指定のNew Agent維持/保留を続ける。
+画像は[headless資料](https://cursor.com/docs/cli/headless)にprompt内path読取経路がある。helpに`--image`がないだけでは非対応と断定できない。#10の識別画像spikeは9/12に実施済み（上記追補）。画像UIは#277へ進む。Skills #117 / Subagents #118 / streaming #116 は公開経路と取得eventを実証する。名前取得 #66 は方式Bの機械可読取得契約が未確認で、ACPのsession/listはproject限定で応答を確認したが対象履歴0件でtitle実値を得ていない。ユーザー指定のNew Agent維持/保留を続ける。
 
 既存の即時編集実測は維持する。公式[headless](https://cursor.com/docs/cli/headless)のforce説明と[Using CLI](https://cursor.com/docs/cli/using)・[Permissions](https://cursor.com/docs/cli/reference/permissions)・installed helpのwrite説明には不整合がある。今回の資料比較だけで事前承認を保証せず、事後Diff/Revertを維持する。
 
@@ -33,7 +37,7 @@
 | UX26-04 IDE: Debug再現ループ | 仮説→計測コード→再現手順→ログ解析→修正→検証・計測除去。Cursor extensionにdebug server | mode表示だけでは不足。再現待ち/ログ所在/cleanup/失敗時復旧を調査 | 未実装／同左 | interactive /debug公開、print未実測 | [#25](https://github.com/shinma06/cursor-in-android-studio/issues/25)で再現/計測/除去を分離 | [Debug Mode](https://cursor.com/docs/agent/debug-mode) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/ModeSelector.kt#L29) |
 | UX26-05 共通: ファイル/フォルダmention | @検索候補、folder選択後の/で下位へ | 候補loading/空/決定/削除、対象範囲preview | @文字token／同左 | 自前context UI可 | [#24](https://github.com/shinma06/cursor-in-android-studio/issues/24)・QA [#5](https://github.com/shinma06/cursor-in-android-studio/issues/5) | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/mention/MentionPopupController.kt#L23) |
 | UX26-06 共通: Terminal/Git/Chat/Browser context | @Terminals、@Commit、@Branch、@Chats、@Browser | 自前hint注入と本物のcontextを区別。ChatとBrowserは別能力 | Terminal/Git/Branchとhint／同左 | 自前注入可、Chat/Browser契約別 | [#24](https://github.com/shinma06/cursor-in-android-studio/issues/24)・[#25](https://github.com/shinma06/cursor-in-android-studio/issues/25)・[#44](https://github.com/shinma06/cursor-in-android-studio/issues/44) | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/mention/MentionResolver.kt#L27) |
-| UX26-07 共通: 画像添付 | 入力へ画像drag/dropまたはclipboard paste | thumbnail、削除、送信失敗、画像byteをモデルへ渡す経路 | 添付UIなし／同左 | 公開:画像path読取、live未確認 | [#10](https://github.com/shinma06/cursor-in-android-studio/issues/10)で識別画像spike | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/ComposerPanel.kt#L74) |
+| UX26-07 共通: 画像添付 | 入力へ画像drag/dropまたはclipboard paste | thumbnail、削除、送信失敗、画像byteをモデルへ渡す経路 | main:添付UIなし／develop:ACP画像1枚、paste/D&D・preview/remove・失敗保持を実装（#277、GUI pending） | 9/12有限実測: ACP bytes/print path成功、詳細は[#10結果](issue-10-image-contract.md) | [#277](https://github.com/shinma06/cursor-in-android-studio/issues/277)で添付UI・GUI受入（pending） | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/ComposerPanel.kt#L74) |
 | UX26-08 共通: 音声入力 | mic→dictation→transcription確認→送信 | OS音声入力の代替と専用録音UXを区別 | 専用音声UIなし／同左 | OS dictationは別検証 | [#99](https://github.com/shinma06/cursor-in-android-studio/issues/99)でOS入力を確認 | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/GrowingPromptField.kt#L19) |
 | UX26-09 共通: モデル切替 | composerのpicker、Cmd/Ctrl+/、会話途中の変更と設定のdefault | CLI exact ID、選択可能条件、default/当該会話の境界 | pickerあり／タブ別selectionはdevelop | 公開:model exact ID | [#43](https://github.com/shinma06/cursor-in-android-studio/issues/43)・QA [#27](https://github.com/shinma06/cursor-in-android-studio/issues/27)/[#105](https://github.com/shinma06/cursor-in-android-studio/issues/105); default候補[#26](https://github.com/shinma06/cursor-in-android-studio/issues/26) | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/ModelSelector.kt#L51) |
 | UX26-10 共通: Context可視化/圧縮 | ring→内訳tray、category hoverで対応highlight。長い会話を圧縮 | 未取得値を0扱いしない。CLI実測/推計/不明を分離 | 直近token値と要約／同左＋階層 | usage公開、category/ring内訳未取得 | [#25](https://github.com/shinma06/cursor-in-android-studio/issues/25)で能力確認・QA [#106](https://github.com/shinma06/cursor-in-android-studio/issues/106) | [Prompting](https://cursor.com/docs/agent/prompting) / [実装](https://github.com/shinma06/cursor-in-android-studio/blob/5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe/src/main/kotlin/com/cursoragent/ui/composer/context/ContextUsageView.kt#L30) |
@@ -127,7 +131,7 @@
 | 領域 | 公開経路・本調査の判定 | 検証とUIの境界 |
 |---|---|---|
 | mode/model/stream | installed helpのplan/ask、model、stream-json/partial。[Output format](https://cursor.com/docs/cli/reference/output-format)にtimestamp_ms/model_call_id等 | #116でincremental/flush/訂正のfixtureを取り、既存deduperを根拠なく削除しない。Thinkingの時間は推測しない |
-| 画像・media | prompt内ファイルpathの読取は[headless](https://cursor.com/docs/cli/headless)に公開 | stdinへbytesを渡す契約とは別。#10で内容を推測できない識別画像、空白/日本語path、欠損、resume/Worktree到達性を実証。音声ファイル解析とOS dictation #99を分ける |
+| 画像・media | prompt内ファイルpathの読取は[headless](https://cursor.com/docs/cli/headless)に公開 | 9/12の[#10結果](issue-10-image-contract.md)でACP標準image blockと補助printを実測。ACPは3枚18マス識別、printは日本語/空白pathとresume・tracked ISOLATEDで成功。欠損/未追跡ISOLATEDは失敗、P7の正しい絶対pathによるroot外アクセスは未判定。ACPを採用しprint自動fallbackはしない。音声ファイル解析とOS dictation #99を分ける |
 | Skills / 子agent | [CLI changelog](https://cursor.com/docs/cli/changelog)にheadless対応、[Skills](https://cursor.com/docs/skills) / [Subagents](https://cursor.com/docs/subagents)に利用形態 | #117は発見・slash添付・実ロード、#118は親子ID/前景背景/完了/停止/usage・本文表示。placeholderだけでは実装ではない |
 | rename/fork/rewind/debug | [slash reference](https://cursor.com/docs/cli/reference/slash-commands)にinteractive command | printの機械可読取得/途中入力契約を別途検証。#66の取得待ちを勝手に解除しない |
 | queue/steer/side question | interactive制御が[CLI changelog](https://cursor.com/docs/cli/changelog)にある | 1回のprint実行へ追加入力する契約は未確認。#48のplugin逐次queueと別。CLI `/btw` overlayとIDE永続Side chatも別 |

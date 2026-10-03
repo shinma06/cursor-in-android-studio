@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "issue": 65,
+  "gui_required": true,
+  "reason": "水平タブを実チャットと複数CLIへ接続するため固定buildの操作確認が必要。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "git diff --check、固定HEAD/baseの別session独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "SESSION-TABS-INTEGRATION",
+      "issue": 65,
+      "change": "タブ操作と入力・会話・モード・モデル・usageの分離",
+      "preconditions": "#65を含む次の固定develop候補のSHA・ZIP/JAR hash・ロード実体を記録。Pro/Teamsと使い捨てGit fixtureを使用。今回の既存固定候補e3f33a9は変更しない。",
+      "steps": [
+        "最初のNew AgentでAskと利用可能モデルAを選び、長い会話を作って上へスクロールする。入力欄へ未送信の文章を入れ、途中へcaretを移動する。",
+        "＋で新しいNew Agentを開く。Planと別モデルBを選び、別の会話と未送信draftを作る。応答トークン明細を開く。",
+        "二つのタブを往復し、会話・draft・caret・scroll・mode・model・usageを照合する。切替後に文字を入力する。",
+        "タブ領域をfocusして左右/Home/Endと並べ替えキーを試し、D&Dで順序を入れ替える。入力欄にfocusを戻して左右/Delete/Tabを試す。",
+        "非選択タブ・選択タブをそれぞれcloseし、最後の1枚もcloseする。"
+      ],
+      "expected": "状態がタブ間で混ざらず切替でinputへfocusする。D&Dとタブfocus時のキー操作だけがタブを操作し、inputの左右/Delete/Tabは編集・focus移動に使える。非選択closeは選択を保ち、最後のcloseは空のNew Agentを作る。名前は独自生成されない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
+      "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
+    },
+    {
+      "id": "SESSION-TABS-RUNS",
+      "issue": 65,
+      "change": "並行応答・停止・close・送信snapshot・終了時解放",
+      "preconditions": "#65を含む次の固定develop候補のSHA・ZIP/JAR hash・ロード実体を記録。Pro/Teamsと使い捨てGit fixtureを使用。今回の既存固定候補e3f33a9は変更しない。",
+      "steps": [
+        "Aで時間のかかる応答を送信し、準備中または応答中にBへ切り替える。Bでも異なるmode/modelで送信する。",
+        "実行中にmode/modelと共有worktree設定を変更し、開始したCLIの引数と元のタブへの応答・usage配送を確認する。",
+        "Aを停止し、Bが継続することを確認する。Aへ新規送信してからAをcloseし、Bへの遅延イベント混入がないことを確認する。",
+        "モデル一覧取得中に新規タブへ切替・元タブをcloseする。CLI起動失敗と異常終了も別タブで試す。",
+        "準備中/実行中のタブを残してtool-window contentを破棄する（単なる非表示ではない）。別実行ではprojectを閉じ、子CLIの終了を確認する。"
+      ],
+      "expected": "切替で実行を止めない。開始時のmode/model/resume/worktree/policyを維持し、応答・終了・エラー・usageは元タブだけへ届く。個別停止/closeは他タブを止めない。モデル取得完了は閉じたviewを更新しない。content/project終了で全処理を停止しlistenerを解放する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
+      "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
+    },
+    {
+      "id": "SESSION-TABS-HISTORY",
+      "issue": 65,
+      "change": "安定resume IDと履歴metadataの接続",
+      "preconditions": "#65を含む次の固定develop候補のSHA・ZIP/JAR hash・ロード実体を記録。Pro/Teamsと使い捨てGit fixtureを使用。今回の既存固定候補e3f33a9は変更しない。",
+      "steps": [
+        "A/Bそれぞれで1回送信してsession IDを取得する。Past Chatsから開いているAを選択する。",
+        "Aをcloseしてから同じ履歴を選択し、新規タブとして再開する。続きの質問を送りCLIのresume IDを照合する。",
+        "projectを開き直し、過去履歴を選ぶ。初回表示の説明と送信後の応答を確認する。"
+      ],
+      "expected": "開いているsessionは既存タブを選び、閉じたsessionは新規タブで同じIDをresumeする。未保存の過去本文を生成表示せず日本語で制約を示す。履歴のprompt previewからタブ名を生成しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
+      "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
+    },
+    {
+      "id": "SESSION-TABS-RESTORE",
+      "issue": 65,
+      "change": "複数タブと停止後のroot/mode provenance・復元排他",
+      "preconditions": "#65を含む次の固定develop候補のSHA・ZIP/JAR hash・ロード実体を記録。Pro/Teamsと使い捨てGit fixtureを使用。今回の既存固定候補e3f33a9は変更しない。",
+      "steps": [
+        "使い捨てGit fixtureでDEFAULTのAを実行し、checkpointと編集カードを作る。別タブBをISOLATEDで実行する。",
+        "A/Bの準備中・実行中・停止直後・実行中close直後に、残っているAのcheckpoint/Revertを操作する。子CLIが残る間の拒否を確認する。",
+        "全CLI終了後、DEFAULTへ戻してAの正当な新しい復元を試す。古いカード・ISOLATED・不明履歴の復元は拒否されることを確認する。",
+        "A/Bを履歴から再開し、各resume IDとroot/modeの対応を確認する。別タブのrootやISOLATED provenanceがDEFAULTとして使われないことを確認する。",
+        "復元処理中に別タブから送信を試し、処理終了後に再送する。"
+      ],
+      "expected": "準備と実プロセスが1件でも残ればプロジェクト全体の復元を拒否する。停止/close/別タブ完了で早期解除しない。復元中は新規CLIを開始しない。各カード/checkpointとresumeが開始時root/modeを保持し、未知・矛盾は日本語理由で拒否する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回GUIは実行せず、#65を含む次の固定develop候補でまとめ確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRへ紐付け、修正を含む固定候補で再確認する。",
+      "next_action": "develop統合後、指定担当が次の固定候補で本Caseを実施し結果を記録する。",
+      "main_eligible": false,
+      "pr": 95,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/65",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/95"
+      ]
+    }
+  ],
+  "pr": 95
+}

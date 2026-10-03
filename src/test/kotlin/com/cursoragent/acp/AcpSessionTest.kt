@@ -1,0 +1,746 @@
+package com.cursoragent.acp
+
+import com.cursoragent.service.*
+import com.cursoragent.settings.*
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+
+class AcpSessionTest {
+    @TempDir lateinit var temp: Path
+
+    private class Harness(val root: Path, scenario: String, val gate: WorkspaceOperationGate = WorkspaceOperationGate(), privateDiagnostic: ((Long, java.time.Instant?, java.util.UUID?, AcpPrivateDiagnostics.Failure?) -> Unit)? = null) : AutoCloseable {
+        val processes = CopyOnWriteArrayList<Process>()
+        val events = CopyOnWriteArrayList<AgentEvent>()
+        val outcomes = CopyOnWriteArrayList<String>()
+        val diagnostics = CopyOnWriteArrayList<String>()
+        var failDiagnostics = false
+        val commands = CopyOnWriteArrayList<CommandCatalog>()
+        val imageSupport = CopyOnWriteArrayList<Boolean?>()
+        val received = CountDownLatch(1)
+        val session: AcpSession
+        var worker: Thread? = null
+        lateinit var run: AgentRun
+        lateinit var lastTurn: PreparedAgentTurn
+        val bindings = CopyOnWriteArrayList<String?>()
+        val starts = java.util.concurrent.atomic.AtomicInteger()
+
+        init {
+            Files.createDirectories(root)
+            val server = root.resolve("fake.py")
+            Files.writeString(server, AcpSessionTest::class.java.getResource("/acp/fake_agent.py")!!.readText())
+            session = AcpSession({ _, _ -> ProcessBuilder("python3", server.toString(), scenario, root.toString())
+                .directory(root.toFile()).start().also(processes::add) }, gate::markUncertain, 2, { diagnostic ->
+                diagnostics.add(diagnostic)
+                if (failDiagnostics) error("synthetic diagnostic failure")
+            }, privateDiagnostic, isWorkspaceUncertain = { gate.isUncertain })
+            session.observeCommands { commands.add(it) }
+            session.observeImageSupport { imageSupport.add(it) }
+        }
+
+        fun send(model: String = "", mode: AgentMode = AgentMode.AGENT, prompt: String = "synthetic prompt", commandText: String? = null,
+            image: com.cursoragent.ui.composer.image.ValidatedImage? = null,
+            preparation: WorkspaceOperationGate.Preparation = gate.tryPrepare()!!) {
+            run = AgentRun(object : AgentProcessListener {
+                override fun onStarted() { starts.incrementAndGet() }
+                override fun onStructuredEvent(event: AgentEvent) {
+                    events += event
+                    if (event !is AgentEvent.Configuration) received.countDown()
+                }
+                override fun onSessionUpdated(chatId: String?, model: String?) { bindings.add(chatId) }
+                override fun onCompleted(exitCode: Int) { outcomes += "completed:$exitCode" }
+                override fun onTurnOutcome(outcome: AgentTurnOutcome) {
+                    if (outcome == AgentTurnOutcome.COMPLETED) onCompleted(0) else outcomes += "outcome:$outcome"
+                }
+                override fun onStopped() { outcomes += "stopped" }
+                override fun onError(message: String) { outcomes += "error:$message" }
+                override fun onUncertain(message: String) { outcomes += "uncertain" }
+            })
+            val turn = PreparedAgentTurn(run, TurnWorkspace(root.toString(), WorktreeMode.DEFAULT, null), preparation,
+                TurnSettings("synthetic", model, mode, PermissionMode.ASK_EVERY_TIME, SandboxMode.DEFAULT))
+            lastTurn = turn
+            worker = thread { preparation.use { session.send(prompt, turn, commandText, commandText?.substringBefore(' ')?.removePrefix("/"), image) } }
+        }
+
+        fun finish() {
+            worker!!.join(8000)
+            assertFalse(worker!!.isAlive, "turn must finish")
+        }
+
+        fun wire() = Files.readAllLines(root.resolve("wire.jsonl")).map { com.google.gson.JsonParser.parseString(it).asJsonObject }
+
+        override fun close() {
+            session.close()
+            processes.forEach {
+                if (!it.waitFor(5, TimeUnit.SECONDS)) it.destroyForcibly().waitFor(5, TimeUnit.SECONDS)
+            }
+            worker?.join(8000)
+        }
+    }
+
+    @Test
+    fun `only literal advertised true permits image blocks and rejection preserves the connection`() {
+        val image = com.cursoragent.ui.composer.image.ImageInput.clipboard(java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB))
+        for (scenario in listOf("image-true", "image-false", "image-string", "normal")) {
+            Harness(temp.resolve(scenario), scenario).use { h ->
+                h.send(prompt = "", model = "small", image = image)
+                h.finish()
+                val prompts = h.wire().filter { it.string("method") == "session/prompt" }
+                assertEquals(scenario == "image-true", h.imageSupport.last())
+                if (scenario == "image-true") {
+                    val content = prompts.single().getAsJsonObject("params").getAsJsonArray("prompt").single().asJsonObject
+                    assertEquals("image", content.string("type"))
+                    assertEquals("image/png", content.string("mimeType"))
+                    assertFalse(content.has("uri"))
+                    assertArrayEquals(image.bytes(), java.util.Base64.getDecoder().decode(content.string("data")))
+                    assertEquals(listOf("completed:0"), h.outcomes)
+                } else {
+                    assertTrue(prompts.isEmpty())
+                    assertFalse(h.lastTurn.promptDispatched)
+                    assertTrue(h.outcomes.single().startsWith("error:"))
+                    assertFalse(h.gate.isUncertain)
+                }
+                h.send(prompt = "ordinary text")
+                h.finish()
+                assertEquals("completed:0", h.outcomes.last())
+                assertEquals(1, h.processes.size)
+            }
+        }
+    }
+
+    @Test
+    fun `Task reopened before parent end_turn cannot bypass unfinished tool and restore guards`() {
+        Harness(temp, "task-reopened").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertNull(h.gate.tryRestore())
+            assertEquals("in_progress", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
+    fun `late standard Task activity still marks the workspace uncertain and rejects restore`() {
+        Harness(temp, "task-late-standard").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertNull(h.gate.tryRestore())
+            assertEquals("completed", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
+    fun `tool activity after completion blocks new sends without rewriting the completed turn`() {
+        Harness(temp, "task-late-idle").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            h.gate.tryRestore()!!.close()
+            Files.writeString(h.root.resolve("release-late"), "")
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (!h.gate.isUncertain && System.nanoTime() < deadline) Thread.sleep(10)
+            assertTrue(h.gate.isUncertain)
+            assertNull(h.gate.tryPrepare())
+            assertNull(h.gate.tryRestore())
+            assertEquals(listOf("completed:0"), h.outcomes)
+            assertEquals("completed", h.events.filterIsInstance<AgentEvent.Tool>().last().state.status)
+        }
+    }
+
+    @Test
+    fun `task request metadata keeps unsupported reply once and cannot change failed status`() {
+        for (scenario in listOf("task-request", "task-failed")) Harness(temp.resolve(scenario), scenario).use { h ->
+            h.send()
+            h.finish()
+            val tools = h.events.filterIsInstance<AgentEvent.Tool>().map { it.state }
+            assertEquals(4, tools.size)
+            assertEquals("reported-child", tools.last().task!!.reportedAgentId)
+            assertEquals(if (scenario == "task-failed") "failed" else "completed", tools.last().status)
+            assertEquals(1, tools.map { it.id }.distinct().size)
+            val responses = h.wire().filter { !it.has("method") && it["id"]?.asInt == 7001 }
+            assertEquals(1, responses.size)
+            assertEquals(-32601, responses.single().getAsJsonObject("error")["code"].asInt)
+            assertFalse(responses.single().has("result"))
+            assertEquals(listOf("completed:0"), h.outcomes)
+        }
+    }
+
+    @Test
+    fun `task notifications have no reply ignore foreign unknown and terminal metadata and reset on next turn`() {
+        Harness(temp, "task-notify").use { h ->
+            repeat(2) {
+                h.send()
+                h.finish()
+            }
+            val tools = h.events.filterIsInstance<AgentEvent.Tool>().map { it.state }
+            assertEquals(8, tools.size)
+            assertEquals(2, tools.count { it.status == "pending" && it.task!!.reportedAgentId == null })
+            assertTrue(tools.mapNotNull { it.task?.reportedAgentId }.all { it == "reported-child" })
+            assertTrue(h.wire().none { !it.has("method") })
+            assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
+        }
+    }
+
+    @Test
+    fun `task metadata after Stop is not delivered and cancellation keeps actual parent outcome`() {
+        Harness(temp, "task-stop").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            h.run.stop()
+            h.finish()
+            assertTrue(h.events.filterIsInstance<AgentEvent.Tool>().all { it.state.task?.reportedAgentId == null })
+            assertEquals(listOf("stopped"), h.outcomes)
+            h.gate.tryRestore()!!.close()
+        }
+    }
+
+    @Test
+    fun `two turns reuse session and preserve repeated text and confirmed settings while idle allows restore`() {
+        Harness(temp, "normal").use { h ->
+            h.send(mode = AgentMode.ASK)
+            h.finish()
+            assertEquals(listOf("はい", "はい"), h.events.filterIsInstance<AgentEvent.Text>().map { it.text })
+            assertEquals("ask", h.events.filterIsInstance<AgentEvent.Configuration>().last().mode)
+            h.gate.tryRestore()!!.close()
+            assertTrue(h.processes.single().isAlive)
+            h.send(model = "small")
+            h.finish()
+            assertEquals(1, h.processes.size)
+            assertEquals(1, h.wire().count { it.string("method") == "session/new" })
+            assertEquals(2, h.wire().count { it.string("method") == "session/prompt" })
+            assertEquals(2, h.starts.get())
+            assertEquals("small", h.events.filterIsInstance<AgentEvent.Configuration>().last().model)
+            assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
+            assertEquals(2, h.diagnostics.count { "source=turn-quiescent" in it && "outcome=COMPLETED" in it && "liveChildren=0" in it })
+            assertEquals(2, h.diagnostics.map { it.substringAfter("trace=").substringBefore(' ') }.distinct().size)
+        }
+    }
+
+    @Test
+    fun `metadata connection and two turns correlate to the same process without changing failure handling`() {
+        val records = CopyOnWriteArrayList<Triple<Long, java.time.Instant?, java.util.UUID?>>()
+        Harness(temp, "normal") { pid, started, trace, failure ->
+            assertNull(failure)
+            records.add(Triple(pid, started, trace))
+            error("private sink failed")
+        }.use { h ->
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            assertEquals(1, records.size)
+            assertNull(records.single().third)
+            assertEquals(h.processes.single().pid(), records.single().first)
+            assertEquals(h.processes.single().info().startInstant().orElse(null), records.single().second)
+            assertEquals(0, h.wire().count { it.string("method") == "session/prompt" })
+            repeat(2) { h.send(); h.finish() }
+            assertEquals(3, records.size)
+            assertEquals(1, records.map { it.first to it.second }.distinct().size)
+            assertEquals(records.drop(1).map { it.third.toString() },
+                h.diagnostics.map { it.substringAfter("trace=").substringBefore(' ') })
+            assertEquals(listOf("completed:0", "completed:0"), h.outcomes)
+            h.gate.tryRestore()!!.close()
+        }
+    }
+
+    @Test
+    fun `cancel response cannot release restore until observed child exits and another tab stays usable`() {
+        Harness(temp.resolve("a"), "child").use { a ->
+            Harness(temp.resolve("b"), "normal").use { b ->
+                a.send()
+                assertTrue(a.received.await(5, TimeUnit.SECONDS))
+                awaitFile(a.root.resolve("child-ready"))
+                // Synchronize on a sampled child, not elapsed time: the child must be tracked before cancel.
+                val tree = AcpProcessTree(a.processes.single())
+                assertFalse(tree.isQuiet())
+                val observed = tree.diagnosticChildren().single()
+                val childHandle = ProcessHandle.of(observed.pid).orElseThrow()
+                assertEquals(childHandle.info().startInstant().orElse(null), observed.started)
+                assertEquals(a.processes.single().pid(), observed.parentPid)
+                assertEquals(true, observed.alive)
+                a.run.stop()
+                awaitFile(a.root.resolve("cancel-response"))
+                assertNull(a.gate.tryRestore())
+                assertTrue(a.worker!!.isAlive)
+                b.send()
+                b.finish()
+                assertEquals(listOf("completed:0"), b.outcomes)
+                Files.createFile(a.root.resolve("release-child"))
+                a.finish()
+                childHandle.onExit().get(5, TimeUnit.SECONDS)
+                val retained = tree.diagnosticChildren().single()
+                assertEquals(observed.pid, retained.pid)
+                assertEquals(observed.started, retained.started)
+                assertEquals(false, retained.alive)
+                assertNull(retained.parentPid)
+                assertEquals("observedChildren=1 liveChildren=0", tree.diagnosticState())
+                assertEquals(listOf("stopped"), a.outcomes)
+                assertFalse(a.gate.isUncertain)
+                a.gate.tryRestore()!!.close()
+            }
+        }
+    }
+
+    @Test
+    fun `EOF after prompt latches uncertainty rejects same session retry and releases pending once`() {
+        Harness(temp, "eof").use { h ->
+            val retryPreparation = h.gate.tryPrepare()!!
+            h.send()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertTrue(h.gate.isUncertain)
+            assertNull(h.gate.tryRestore())
+            assertNull(h.gate.tryPrepare())
+            h.send(preparation = retryPreparation)
+            h.finish()
+            assertTrue(h.outcomes.last().startsWith("error:"))
+            assertEquals(1, h.processes.size)
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+            assertTrue(h.diagnostics.any { "source=connection-closed" in it && "terminal=false" in it })
+            assertTrue(h.diagnostics.none { h.root.toString() in it || "synthetic prompt" in it || "session-one" in it })
+        }
+    }
+
+    @Test
+    fun `unconfirmed config fails before prompt and permission replies once with exact numeric zero`() {
+        Harness(temp.resolve("config"), "bad-config").use { h ->
+            h.send(mode = AgentMode.PLAN)
+            h.finish()
+            assertTrue(h.outcomes.single().startsWith("error:"))
+            assertEquals(0, h.wire().count { it.string("method") == "session/prompt" })
+            assertFalse(h.gate.isUncertain)
+        }
+        Harness(temp.resolve("permission"), "permission").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            val request = h.events.filterIsInstance<AgentEvent.Input>().single().request
+            assertTrue(request.answer(AgentAnswer.Permission("reject")))
+            assertFalse(request.answer(AgentAnswer.Permission("allow")))
+            h.finish()
+            val reply = h.wire().single { !it.has("method") }
+            assertEquals("0", reply["id"].toString())
+            assertEquals("reject", reply.getAsJsonObject("result").getAsJsonObject("outcome").string("optionId"))
+        }
+    }
+
+    @Test
+    fun `unsupported request returns error and stop resolves outstanding permission`() {
+        Harness(temp.resolve("unknown"), "unknown").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(-32601, h.wire().single { !it.has("method") }.getAsJsonObject("error")["code"].asInt)
+        }
+        Harness(temp.resolve("stop"), "permission").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            val request = h.events.filterIsInstance<AgentEvent.Input>().single().request
+            h.run.stop()
+            h.finish()
+            assertFalse(request.isPending)
+            assertFalse(request.answer(AgentAnswer.Permission("allow")))
+            val reply = h.wire().single { !it.has("method") }
+            assertEquals("cancelled", reply.getAsJsonObject("result").getAsJsonObject("outcome").string("outcome"))
+        }
+    }
+
+    @Test
+    fun `persistent child after cancellation latches uncertainty instead of claiming stopped`() {
+        val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+        Harness(temp, "child") { _, _, _, failure ->
+            if (failure != null) {
+                failures.add(failure)
+                error("synthetic private sink failure")
+            }
+        }.use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            awaitFile(h.root.resolve("child-ready"))
+            val parentStarted = h.processes.single().info().startInstant().orElse(null)
+            h.run.stop()
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertTrue(h.gate.isUncertain)
+            assertNull(h.gate.tryRestore())
+            assertTrue(h.diagnostics.any { "source=turn-failure" in it && "phase=await-child-exit" in it &&
+                "terminal=true" in it && "outcome=CANCELLED" in it && "liveChildren=1" in it })
+            val failure = failures.single()
+            assertEquals(AcpPrivateDiagnostics.Site.CHILD_EXIT, failure.site)
+            assertEquals(AcpPrivateDiagnostics.ResultStage.ACCEPTED, failure.resultStage)
+            assertTrue(failure.terminal)
+            val child = failure.children!!.single()
+            assertEquals(Files.readString(h.root.resolve("child.pid")).toLong(), child.pid)
+            assertTrue(child.alive == true)
+            assertEquals(h.processes.single().pid(), child.parentPid)
+            assertEquals(parentStarted, child.parentStarted)
+            assertFalse(h.processes.single().isAlive)
+        }
+    }
+
+    @Test
+    fun `delayed metadata preparation after uncertainty cannot stop an accepted prompt`() {
+        Harness(temp, "events").use { h ->
+            val delayedMetadata = h.gate.tryPrepare()!!
+            h.send()
+            awaitFile(h.root.resolve("events-ready"))
+            val commands = h.commands.toList()
+            h.gate.markUncertain()
+            delayedMetadata.use { h.session.prepare(h.root.toRealPath().toString(), "synthetic") }
+            assertTrue(h.processes.single().isAlive)
+            assertTrue(h.run.isActive)
+            assertTrue(h.outcomes.isEmpty())
+            assertEquals(commands, h.commands.toList())
+            Files.writeString(h.root.resolve("release-events"), "")
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            assertFalse(h.run.wasStopped)
+            assertTrue(h.processes.single().isAlive)
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+            assertEquals(0, h.wire().count { it.string("method") == "session/cancel" })
+            assertNull(h.gate.tryPrepare())
+            assertNull(h.gate.tryRestore())
+        }
+    }
+
+    @Test
+    fun `completed tool can leave a writer and uncertainty blocks another prepared tab before dispatch`() {
+        val gate = WorkspaceOperationGate()
+        val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+        Harness(temp.resolve("writer"), "post-terminal-writer", gate) { _, _, _, failure ->
+            if (failure != null) failures.add(failure)
+        }.use { a ->
+            Harness(temp.resolve("other"), "commands-delayed", gate).use { b ->
+                // Reserve another turn before uncertainty, then hold its session/new response.
+                b.send()
+                awaitFile(b.root.resolve("new-ready"))
+                a.send()
+                awaitFile(a.root.resolve("prompt-ended"))
+                Files.writeString(a.root.resolve("release-write"), "")
+                awaitFile(a.root.resolve("late-write.txt"))
+                assertEquals("after terminal", Files.readString(a.root.resolve("late-write.txt")))
+                assertNull(gate.tryRestore())
+                a.finish()
+                val failure = failures.single()
+                assertEquals(AcpPrivateDiagnostics.ResultStage.ACCEPTED, failure.resultStage)
+                val child = failure.children!!.single()
+                assertEquals(true, child.alive)
+                ProcessHandle.of(child.pid).ifPresent { it.onExit().get(5, TimeUnit.SECONDS) }
+                assertTrue(a.events.filterIsInstance<AgentEvent.Tool>().any { it.state.status == "completed" })
+                assertEquals(listOf("uncertain"), a.outcomes)
+                assertTrue(gate.isUncertain)
+                assertNull(gate.tryPrepare())
+                Files.writeString(b.root.resolve("release-new"), "")
+                b.finish()
+                assertEquals(0, b.wire().count { it.string("method") == "session/prompt" })
+                assertFalse(b.lastTurn.promptDispatched)
+                assertTrue(b.outcomes.single().startsWith("error:"))
+                assertTrue((a.processes + b.processes).none { it.isAlive })
+                assertNull(gate.tryRestore())
+                // A new tab's metadata preparation must not launch another ACP process either.
+                Harness(temp.resolve("new-tab"), "normal", gate).use { c ->
+                    c.session.prepare(c.root.toRealPath().toString(), "synthetic")
+                    assertTrue(c.processes.isEmpty())
+                    assertEquals(CommandCatalog.Failed, c.commands.last())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `normal prompt end cannot exempt a resident child created before dispatch`() {
+        val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+        Harness(temp, "resident-child") { _, _, _, failure ->
+            if (failure != null) failures.add(failure)
+        }.use { h ->
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            val child = ProcessHandle.of(Files.readString(h.root.resolve("child.pid")).toLong()).orElseThrow()
+            val started = child.info().startInstant().orElseThrow()
+            try {
+                val retryPreparation = h.gate.tryPrepare()!!
+                assertTrue(child.isAlive)
+                assertEquals(0, h.wire().count { it.string("method") == "session/prompt" })
+                h.send()
+                h.finish()
+                assertFalse(h.run.wasStopped)
+                assertEquals(listOf("uncertain"), h.outcomes)
+                assertTrue(h.gate.isUncertain)
+                assertNull(h.gate.tryRestore())
+                val failure = failures.single()
+                assertEquals(AcpPrivateDiagnostics.Site.CHILD_EXIT, failure.site)
+                assertEquals(AcpPrivateDiagnostics.ResultStage.ACCEPTED, failure.resultStage)
+                assertTrue(failure.terminal)
+                assertEquals(child.pid(), failure.children!!.single().pid)
+                assertEquals(started, failure.children.single().started)
+                assertEquals(true, failure.children.single().alive)
+                assertTrue(h.diagnostics.any { "source=turn-failure" in it && "outcome=COMPLETED" in it &&
+                    "connectionClosed=false" in it && "liveChildren=1" in it })
+                child.onExit().get(5, TimeUnit.SECONDS)
+                assertFalse(h.processes.single().isAlive)
+                assertNull(h.gate.tryPrepare())
+                h.send(preparation = retryPreparation)
+                h.finish()
+                assertTrue(h.outcomes.last().startsWith("error:"))
+                assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+                assertEquals(1, h.processes.size)
+                assertNull(h.gate.tryRestore())
+            } finally {
+                if (child.isAlive && child.info().startInstant().orElse(null) == started) child.destroyForcibly()
+            }
+        }
+    }
+
+    @Test
+    fun `first private failure distinguishes absent rejected and accepted results without changing uncertainty`() {
+        for ((scenario, stage) in mapOf(
+            "prompt-error" to AcpPrivateDiagnostics.ResultStage.NOT_RECEIVED,
+            "bad-stop-reason" to AcpPrivateDiagnostics.ResultStage.STOP_REASON,
+            "task-reopened" to AcpPrivateDiagnostics.ResultStage.TOOL_STATE,
+        )) {
+            val failures = CopyOnWriteArrayList<AcpPrivateDiagnostics.Failure>()
+            Harness(temp.resolve(scenario), scenario) { _, _, _, failure ->
+                if (failure != null) failures.add(failure)
+            }.use { h ->
+                h.send()
+                h.finish()
+                val failure = failures.single()
+                assertEquals(AcpPrivateDiagnostics.Site.PROMPT_RESPONSE, failure.site)
+                assertEquals(AcpPrivateDiagnostics.Category.ACP, failure.category)
+                assertEquals(stage, failure.resultStage)
+                assertFalse(failure.terminal)
+                assertEquals(listOf("uncertain"), h.outcomes)
+                assertNull(h.gate.tryRestore())
+                assertFalse(h.processes.single().isAlive)
+                assertTrue(h.diagnostics.none { "synthetic-provider-secret" in it })
+            }
+        }
+    }
+
+    @Test
+    fun `provider error details stay private and broken diagnostics cannot release restoration`() {
+        Harness(temp, "prompt-error").use { h ->
+            h.failDiagnostics = true
+            h.send(prompt = "private synthetic prompt")
+            h.finish()
+            assertEquals(listOf("uncertain"), h.outcomes)
+            assertTrue(h.gate.isUncertain)
+            assertNull(h.gate.tryRestore())
+            assertFalse(h.processes.single().isAlive)
+            assertTrue(h.diagnostics.any { "source=turn-failure" in it && "terminal=false" in it })
+            for (secret in listOf("private synthetic prompt", "synthetic-provider-secret", "session-one", h.root.toString())) {
+                assertTrue(h.diagnostics.none { secret in it })
+            }
+        }
+    }
+
+    @Test
+    fun `provider refusal limits and cancellation retain their actual terminal outcomes`() {
+        for ((reason, expected) in mapOf("refusal" to AgentTurnOutcome.REFUSED, "max_tokens" to AgentTurnOutcome.TOKEN_LIMIT,
+            "max_turn_requests" to AgentTurnOutcome.REQUEST_LIMIT, "cancelled" to AgentTurnOutcome.CANCELLED)) {
+            Harness(temp.resolve(reason), reason).use { h ->
+                h.send()
+                h.finish()
+                assertEquals(listOf("outcome:$expected"), h.outcomes)
+                assertFalse(h.gate.isUncertain)
+            }
+        }
+    }
+
+    @Test
+    fun `noninteger and string protocol versions fail before creating session`() {
+        for (scenario in listOf("version-fraction", "version-string")) {
+            Harness(temp.resolve(scenario), scenario).use { h ->
+                h.send()
+                h.finish()
+                assertTrue(h.outcomes.single().startsWith("error:"))
+                assertEquals(listOf("initialize"), h.wire().map { it.string("method") })
+                assertFalse(h.gate.isUncertain)
+            }
+        }
+    }
+
+    @Test
+    fun `input preparation advertises without prompt and later sends exact command separately from context`() {
+        Harness(temp, "commands").use { h ->
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            awaitCondition { h.commands.any { it.containsCommand("Mixed-日本語") } }
+            assertEquals(listOf("initialize", "session/new"), h.wire().map { it.string("method") })
+            h.gate.tryRestore()!!.close()
+            val exact = commandPrompt("Mixed-日本語", " 東京  alpha beta\n ")
+            h.send(model = "small", mode = AgentMode.ASK, prompt = "Explicit context: synthetic", commandText = exact)
+            h.finish()
+            val blocks = h.wire().single { it.string("method") == "session/prompt" }.getAsJsonObject("params").getAsJsonArray("prompt")
+            assertEquals(listOf(exact, "Explicit context: synthetic"), blocks.map { it.asJsonObject.string("text") })
+            assertEquals("small", h.events.filterIsInstance<AgentEvent.Configuration>().last().model)
+            h.send()
+            h.finish()
+            assertEquals(1, h.processes.size)
+            val next = h.wire().last { it.string("method") == "session/prompt" }.getAsJsonObject("params").getAsJsonArray("prompt")
+            assertEquals(listOf("synthetic prompt"), next.map { it.asJsonObject.string("text") })
+        }
+    }
+
+    @Test
+    fun `idle command updates replace empty invalid and recovered catalogs and reject another session`() {
+        Harness(temp.resolve("a"), "commands").use { a ->
+            Harness(temp.resolve("b"), "commands").use { b ->
+                a.session.prepare(a.root.toRealPath().toString(), "synthetic")
+                b.session.prepare(b.root.toRealPath().toString(), "synthetic")
+                awaitCondition { a.commands.any { it.containsCommand("Mixed-日本語") } && b.commands.any { it.containsCommand("Mixed-日本語") } }
+                Files.createFile(a.root.resolve("replace-commands"))
+                awaitCondition { a.commands.last().containsCommand("replacement") }
+                assertTrue(a.commands.contains(CommandCatalog.Ready(emptyList())))
+                assertTrue(a.commands.contains(CommandCatalog.Invalid))
+                assertFalse(a.commands.any { it.containsCommand("foreign") })
+                assertFalse(a.commands.last().containsCommand("Mixed-日本語"))
+                assertTrue(b.commands.last().containsCommand("Mixed-日本語"))
+                a.session.close()
+                val count = a.commands.size
+                a.session.prepare(a.root.toRealPath().toString(), "synthetic")
+                assertEquals(count, a.commands.size)
+                assertEquals(1, a.processes.size)
+            }
+        }
+    }
+
+    @Test
+    fun `close before preparation cannot launch and failed metadata connection sends no prompt`() {
+        Harness(temp.resolve("closed"), "normal").use { h ->
+            h.session.close()
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            assertTrue(h.processes.isEmpty())
+        }
+        Harness(temp.resolve("failure"), "version-string").use { h ->
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            assertEquals(CommandCatalog.Failed, h.commands.last())
+            assertEquals(listOf("initialize"), h.wire().map { it.string("method") })
+            assertFalse(h.gate.isUncertain)
+        }
+    }
+
+    @Test
+    fun `a concurrent first send waits for metadata handshake without creating a second session`() {
+        Harness(temp, "commands-delayed").use { h ->
+            val preparing = thread { h.session.prepare(h.root.toRealPath().toString(), "synthetic") }
+            awaitCondition { Files.exists(h.root.resolve("wire.jsonl")) && h.wire().any { it.string("method") == "session/new" } }
+            h.send()
+            Files.createFile(h.root.resolve("release-new"))
+            h.finish()
+            preparing.join(5000)
+            assertFalse(preparing.isAlive)
+            assertEquals(1, h.wire().count { it.string("method") == "initialize" })
+            assertEquals(1, h.wire().count { it.string("method") == "session/new" })
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+            assertEquals(listOf("completed:0"), h.outcomes)
+        }
+    }
+
+    @Test
+    fun `close during metadata handshake suppresses late catalog and terminates preparation`() {
+        Harness(temp, "commands-delayed").use { h ->
+            val preparing = thread { h.session.prepare(h.root.toRealPath().toString(), "synthetic") }
+            awaitCondition { Files.exists(h.root.resolve("wire.jsonl")) && h.wire().any { it.string("method") == "session/new" } }
+            h.session.close()
+            val count = h.commands.size
+            preparing.join(5000)
+            assertFalse(preparing.isAlive)
+            assertEquals(count, h.commands.size)
+            assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertEquals(0, h.starts.get())
+        }
+    }
+
+    @Test
+    fun `removed command is rejected at wire boundary without submitting or marking a prompt dispatched`() {
+        Harness(temp, "commands").use { h ->
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            awaitCondition { h.commands.last().containsCommand("Mixed-日本語") }
+            Files.createFile(h.root.resolve("replace-commands"))
+            awaitCondition { h.commands.last().containsCommand("replacement") }
+            h.send(commandText = "/Mixed-日本語 東京")
+            h.finish()
+            assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertEquals(0, h.starts.get())
+            assertTrue(h.outcomes.single().startsWith("error:"))
+            assertFalse(h.gate.isUncertain)
+        }
+    }
+
+    @Test
+    fun `oversized command context is unsent and a smaller prompt reuses the same connection`() {
+        Harness(temp, "commands").use { h ->
+            h.session.prepare(h.root.toRealPath().toString(), "synthetic")
+            awaitCondition { h.commands.last().containsCommand("Mixed-日本語") }
+            h.send(prompt = "x".repeat(AcpJsonRpc.MAX_FRAME_BYTES), commandText = "/Mixed-日本語 東京")
+            h.finish()
+            assertFalse(h.wire().any { it.string("method") == "session/prompt" })
+            assertEquals(0, h.starts.get())
+            assertFalse(h.lastTurn.promptDispatched)
+            assertTrue(h.bindings.isEmpty())
+            assertFalse(h.gate.isUncertain)
+            assertTrue(h.outcomes.single().startsWith("error:"))
+            assertTrue(h.processes.single().isAlive)
+            h.send(prompt = "smaller context", commandText = "/Mixed-日本語 東京")
+            h.finish()
+            assertEquals("completed:0", h.outcomes.last())
+            assertEquals(1, h.processes.size)
+            assertEquals(1, h.wire().count { it.string("method") == "initialize" })
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+        }
+    }
+
+    @Test
+    fun `nontext siblings survive malformed input while foreign terminal and stopped content are gated`() {
+        Harness(temp.resolve("normal"), "content-normal").use { h ->
+            h.send()
+            h.finish()
+            assertEquals(listOf("completed:0"), h.outcomes)
+            assertEquals(listOf("before", "after"), h.events.filterIsInstance<AgentEvent.Text>().map { it.text })
+            val media = h.events.filterIsInstance<AgentEvent.Content>().single().summary
+            assertTrue(media.details.contains("image/png"))
+            assertEquals(2, h.events.filterIsInstance<AgentEvent.Tool>().single().state.content.size)
+            h.gate.tryRestore()!!.close()
+        }
+        Harness(temp.resolve("stop"), "content-stop").use { h ->
+            h.send()
+            assertTrue(h.received.await(5, TimeUnit.SECONDS))
+            h.run.stop()
+            h.finish()
+            assertEquals(listOf("stopped"), h.outcomes)
+            assertTrue(h.events.filterIsInstance<AgentEvent.Content>().none { it.summary.details.contains("after-stop") })
+        }
+    }
+
+    private fun awaitCondition(condition: () -> Boolean) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (!condition() && System.nanoTime() < deadline) Thread.sleep(10)
+        assertTrue(condition())
+    }
+
+    private fun awaitFile(path: Path) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (!Files.exists(path) && System.nanoTime() < deadline) Thread.sleep(10)
+        assertTrue(Files.exists(path))
+    }
+
+    @Test fun `background Tasks block restore after end_turn cancellation and intentional Stop`() {
+        for (scenario in listOf("task-background", "task-background-cancelled", "task-background-stop")) {
+            Harness(temp.resolve(scenario), scenario).use { h ->
+                h.send()
+                if (scenario.endsWith("-stop")) {
+                    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+                    while (h.events.filterIsInstance<AgentEvent.Tool>().none { it.state.task?.isBackground == true } && System.nanoTime() < deadline) Thread.sleep(10)
+                    assertTrue(h.events.filterIsInstance<AgentEvent.Tool>().any { it.state.task?.isBackground == true })
+                    h.run.stop()
+                }
+                h.finish()
+                assertEquals(listOf("uncertain"), h.outcomes, scenario)
+                assertTrue(h.gate.isUncertain)
+                assertNull(h.gate.tryRestore())
+            }
+        }
+    }
+
+}

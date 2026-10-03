@@ -2,6 +2,7 @@
 import json
 import re
 from issue_schema import validate_issue
+from qa_document import ensure_document, render_document
 from verification import metadata, validate_change
 
 
@@ -64,6 +65,8 @@ def handoff(gh, repo, pr, origin, change):
             gh.comment(qa['number'], payload)
         if not any(payload == c['body'] for c in gh.comments(qa['number'])):
             raise ValueError('QA content readback failed')
+    ensure_document(gh, repo, qa['number'], render_document(
+        change, f'https://github.com/{repo}/blob/{pr["merge_commit_sha"]}/{path}'))
     link = f'<!-- issue-qa-link:v1 origin={number} qa={qa["number"]} -->'
     text = link + f'\n実装はPR #{pr["number"]} / {pr["merge_commit_sha"]}でdevelopへ統合。残る試験/main反映は #{qa["number"]}。GUI pass/main反映済みではありません。'
     if not any(c['body'] == text for c in gh.comments(number)):

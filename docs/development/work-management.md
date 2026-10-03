@@ -44,7 +44,7 @@ Projectの`Relationship Status`は`Standalone` / `Has Relationship`の2値で、
 
 ## 引継ぎと終了
 
-QAへの分離もIssue作成として扱う。元Issueから分離した残受入のQAはnative sub-issueとし、同じ到達目標を継承する。既存QAの別Milestone/親を無断で上書きせず、矛盾は担当が照合する。未設定理由を含むMilestone/関係判定、Project登録と両端のRelationship StatusをPMが確認する。
+QAへの分離もIssue作成として扱う。全open `type:qa` は[人間向け試験ドキュメント](../verification/human-qa.md)への本文リンクと、Project #2の「QA — 人間向け試験」への登録・表示readbackを必須とする。元Issueから分離した残受入のQAはnative sub-issueとし、同じ到達目標を継承する。既存QAの別Milestone/親を無断で上書きせず、矛盾は担当が照合する。未設定理由を含むMilestone/関係判定、Project登録と両端のRelationship StatusをPMが確認する。
 
 coordinatorの`--parent`は実在する親があるときだけ指定し、Standaloneは省略する。旧enrollmentの親/owner/sourceを一括書換えしない。Milestoneを全体の完了地点として扱い、子PRや元Issueの実装完了だけでMilestone・親・QAを完了にしない。
 

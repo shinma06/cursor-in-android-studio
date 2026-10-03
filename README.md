@@ -2,18 +2,21 @@
 
 **開発ルール:** Gitへの言及がなくても [Issue → worktree → PR](docs/development/github-workflow.md) を必須とします。main直接commit/pushは禁止。GUIは[ホスト単位の予約](docs/development/gui-coordination.md)で直列化し、実装は並列化します。
 
-Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI をサブプロセスとして起動し、
-`stream-json` 出力をパースして独自のSwing/JBUI製チャットUIに描画する(CLIをブラックボックスとして
-ラップする方式)。
+Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE Agent Client。
+[最上位ミッション](docs/project-mission.md)と[ACP First](docs/architecture/cursor-integration.md)に従い、主要な構造化通信はACPを優先し、IDE API / MCP / 補助CLIを組み合わせる。
+
+現在は互換CLI（`agent -p --output-format stream-json`）を既定とし、新しい会話の「… → 接続方法」でACPを明示選択できる。ACPのtext・ツール状態・要求返答・停止をnative panelへ接続した。実Cursorの固定build GUI受入は未完了で、[実装範囲と制約](docs/architecture/current-implementation.md#acp接続147)を参照する。
 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
 > 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗と担当の一次情報源。個別Issueの受入・所有記録・直近コメントを確認し、[開発手順](docs/development/github-workflow.md)に従って着手する。レビューは実装と独立した担当が行い、GUIは予約を持つ指定担当または人間が操作する。
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗の一次情報源。担当と独立レビューは各Issueのclaimで確認する。[Codex実行規約](docs/development/codex-execution-policy.md)とPonytail fullに従い、GUIは指定担当だけが操作する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
-> **GUI QA（Computer Useと人間による確認）**: [確認マトリクス](docs/verification/README.md)の固定候補・Case JSONを正本とする。人間が確認する場合は[試験手順](https://github.com/shinma06/cursor-in-android-studio/blob/28e9c441e8eb7824cb3e193361221f715b929eb2/docs/verification/human-qa.md)から進む。
+> **GUI QA**: [現在のCase管理と固定候補の手順](docs/verification/README.md)を参照する。[旧手動マトリクス](docs/manual-verification/matrix.md)は履歴・詳細であり、過去buildの結果を最新候補へ転用しない。
+
+責務・正本・変更先は [全体設計の入口](docs/architecture/README.md) から確認してください。製品、知識、テスト、運用、配布の既存資料へ進めます。
 
 ## ループ開発
 
@@ -24,26 +27,26 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 ```bash
 git clone https://github.com/shinma06/cursor-in-android-studio.git
 cd cursor-in-android-studio
-export JAVA_HOME="$(/usr/libexec/java_home -v 25)"   # Gradle・toolchain・JVM targetは25
+export JAVA_HOME="$(/usr/libexec/java_home -F -v 25)"   # macOS。ほかのOSもJDK 25を使用
 ./gradlew buildPlugin
 ```
 
+macOSでJDK 25を登録していない場合は、Rabbit同梱JBRの`Contents/jbr/Contents/Home`を`JAVA_HOME`へ明示指定できます。
+
 ## 前提
 
-- 現行ソースはAndroid Studio Rabbit 1 2026.2.1.8（Platform 262、AI-262.9437.185.2621.16467767）とJava 25を対象にします。既存の正式版0.1.0はQuail向けのJVM21 ZIPで、Rabbit更新版の公開とは別です。
+- このブランチの最低対応版はAndroid Studio Rabbit 1 / 2026.2.1.8（Platform 262系）、Java 25。固定したRabbitの互換性・実IDE受入は [#466](https://github.com/shinma06/cursor-in-android-studio/issues/466) で追跡する。Quail / Java 21は新成果物の対応対象外。262以降すべてのIDEへの互換性を保証しない。
 - `agent` CLI(`~/.local/bin/agent` 等)がインストール・認証済み(`agent login` または `CURSOR_API_KEY`)
-- SDKはGradleが固定取得する。local SDKを使う場合だけ `-PuseLocalPlatform=true -PplatformPath=...` を明示し、固定full buildと不一致なら失敗する。
+- GradleがRabbit 1 SDKを固定取得する。通常IDEのインストール先設定は不要。明示local SDKとversion指定は [ビルド手順](docs/architecture/current-implementation.md#ビルドと実行環境) を参照。
 
-## 配布と受入
+## 配布版の選択
 
-**[正式版0.1.0をダウンロード](https://github.com/shinma06/cursor-in-android-studio/releases/download/v0.1.0/cursor-in-android-studio-0.1.0.zip)** / [Releaseと検証資料](https://github.com/shinma06/cursor-in-android-studio/releases/tag/v0.1.0)。
-
-mainの既存機能を保ち、ビルド構成・SDK・依存と配布経路をモダン化した正式版です。検証済みJVM21 ZIPを再ビルドせず公開し、公開後も同一hashを確認しました。develop未反映のACP等の新機能は含みません。[対応IDE・更新内容・検証結果と既知の制約](docs/releases/0.1.0.md) / [配布手順](docs/development/plugin-zip-delivery.md)。
+開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを対象Rabbitと全必要Caseで検証してから公開します。Rabbit移行のGUI/main受入と、過去の正式v0.1.0（Quail対応）の公開結果は別です。 [正式v0.1.0のダウンロードと検証結果](docs/releases/0.1.0.md)は固定した旧版の記録を参照してください。
 
 ## Android Studio へのインストール
 
 1. **Settings → Plugins → ⚙ → Install Plugin from Disk...**
-2. ダウンロードした `cursor-in-android-studio-0.1.0.zip` を選択（**Source code (zip)** はインストール用ではありません）
+2. `build/distributions/cursor-in-android-studio-<version>.zip` を選択
 3. Restart IDE
 4. **View → Tool Windows → Cursor in Android Studio**
 
@@ -54,7 +57,7 @@ mainの既存機能を保ち、ビルド構成・SDK・依存と配布経路を�
 ## 開発
 
 - UI比較の証跡: [Cursor Agent UI 閲覧調査（2026-09-05）](docs/research/cursor-agent-ui-survey-2026-09-05.md)
-- 次の対応順・優先度・受入条件: [UI差分取り込み計画](docs/plans/cursor-agent-ui-gap-plan.md) / [親 Issue #19](https://github.com/shinma06/cursor-in-android-studio/issues/19)
+- 現在の設計・移行順: [ACP First再評価 #141](https://github.com/shinma06/cursor-in-android-studio/issues/141) / [契約・機能分類 #115](https://github.com/shinma06/cursor-in-android-studio/issues/115)。[旧UI差分計画](docs/plans/cursor-agent-ui-gap-plan.md)と[UI tracking #19](https://github.com/shinma06/cursor-in-android-studio/issues/19)は既存受入・経緯として併用する。
 - ビルド/テストコマンド、アーキテクチャ、既知の制約: [`CLAUDE.md`](CLAUDE.md)
 - 機能要件・優先度・検証済み事項: [要件定義書](docs/cursor-agent-plugin-requirements.md)
 - 進捗・タスク管理: [GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)(`CLAUDE.md`や要件定義書より新しい場合がある — 実装状況の最終的な確認先はここ)

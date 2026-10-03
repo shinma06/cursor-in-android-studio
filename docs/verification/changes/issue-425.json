@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 425,
+  "gui_required": false,
+  "reason": "開発担当の固定職務を現行文書・Agent入口・運用生成文で整理する変更。製品src・製品テスト・build設定・runtime prompt・保存/tool契約は変更せず、過去run/Case観察を保持するため製品GUI不要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "loopのprepare/check生成試験、互換gptキーの表示、既存Computer Use必須・固定build・レビュー/lease検査を確認",
+    "CLAUDE/AGENTS symlink、両Skill同期・rules形式・変更リンク・旧アンカーを照合",
+    "Claude/Cursorの実装担当、同provider別sessionレビュー、自己レビュー拒否、GUI tool欠如/lease競合、互換キーとComputer Use必須の事例を机上評価",
+    "製品src/製品テスト/build/runtime prompt・既存Case JSON・過去run/matrix行の差分ゼロ、残るprovider名の用途を確認"
+  ],
+  "cases": []
+}

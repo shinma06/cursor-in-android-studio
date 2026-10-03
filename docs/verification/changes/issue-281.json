@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 281,
+  "gui_required": false,
+  "reason": "Debugモードの公開契約と計測の寿命の資料調査のみ。製品採用とGUI受入は別Issueへ引き継ぐ。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公式資料・既存help/ACP広告・既存run/Stop/Diff境界の固定独立照合"
+  ],
+  "cases": []
+}

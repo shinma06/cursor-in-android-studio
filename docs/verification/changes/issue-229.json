@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "issue": 229,
+  "gui_required": true,
+  "reason": "UI設定検証をサービスへ委譲し、検証と実行のsettings/workspaceを同一捕捉値へ統一する。",
+  "cli_checks": [
+    "./gradlew test --tests *AgentSettingsBoundaryTest",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin",
+    "全validateSettings/captureWorkspace/prepareTurn/sendの呼出元と型・保存互換、相対リンク/JSON/diff check、固定HEAD/base独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "SETTINGS-BOUNDARY",
+      "issue": 229,
+      "change": "サービス経由の設定拒否と同一snapshot送信",
+      "preconditions": "#229を含む固定候補SHA/ZIP hash/loaded JAR・CLI版を照合。指定GUI lease担当が使い捨てfixtureで実施。ACP liveは#146公開待ちを維持し、既存ACP-SETTINGSの準備を再利用。",
+      "steps": [
+        "新規ACP会話で下書きを入力し、非対応permission/sandbox/worktreeの各設定で送信。日本語の拒否案内と下書き/入力欄の保持、実行が始まらないことを確認する。",
+        "対応設定に戻して正常送信。送信準備中に次回用設定を変更しても開始済みturnは捕捉済み値を使うことを管理fixtureで確認する。準備中Stop後の遅い起動も確認する。",
+        "互換printで従来のpermission/sandbox/worktree、既存会話のtransport固定と旧履歴IDを確認する。"
+      ],
+      "expected": "非対応設定は入力消去/実行開始前に案内。同じsettings/workspaceを検証と送信に使用し、変更後の共有値を再読取しない。停止済みturnを起動せず、print互換/保存enum/復元排他を維持。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が関連ACP-SETTINGS/SESSION-TABS-RUNSと同じ固定候補で実施し、失敗は修正Issue/PRへ、未実施はpendingを維持。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "サービス境界の合成回帰を追加。実IDE/実Cursorの固定build受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "サービス境界の合成回帰を追加。実IDE/実Cursorの固定build受入は未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/229",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152"
+      ]
+    }
+  ]
+}

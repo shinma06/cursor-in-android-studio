@@ -28,7 +28,7 @@ flowchart LR
 3. 1つのUX問題と対象Caseに絞り、[シナリオ](scenarios.md)のMV IDを必要なCaseへ対応付けます。初期状態・期待結果・許可された編集先を固定します。標準予算は**45分、修正3回、試験対象への送信8回**です。保存キー`max_cursor_sends`は維持します。これは運用上の上限で、スクリプトは自動強制しません。ユーザー指定を優先します。
 4. GUI依頼票を登録し、指定担当がleaseを取得してから実行します。操作前に対象アプリ・ウィンドウ・fixtureを確認し、操作後に実画面と利用可能なAX情報を読みます。古い要素番号や推測座標を使い回しません。クリック無反応時は最新AX→スクリーンショット→確認した座標の順で一度試し、取得失敗が続けば停止します。Computer Use必須Caseは手操作で代替しません。
 5. 実装担当が最小修正と必要テストを行い、[独立レビュー依頼](prompts/claude-review.md)を別sessionへ渡します。指摘の採否と理由を記録します。レビュー役は変更・GUI操作をせず、固定HEAD/baseを確認します。
-6. 製品GUIを再確認する場合は[現行build手順](../../CLAUDE.md#commands)に従って`test buildPlugin`を実行し、leaseを持つ担当だけがinstall・再起動します。[実行記録](evidence.md)にSHA・ZIP hash・ロード実体を照合した証拠を残し、同じ操作と影響する隣接Caseを再実行します。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
+6. 製品GUIを再確認する場合は[現行build手順](../../CLAUDE.md#開発検証の入口)に従って`test buildPlugin`を実行し、leaseを持つ担当だけがinstall・再起動します。[実行記録](evidence.md)にSHA・ZIP hash・ロード実体を照合した証拠を残し、同じ操作と影響する隣接Caseを再実行します。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
 7. 実際に観察した範囲だけCase結果へ記録し、[finish-work](../../.agents/skills/finish-work/SKILL.md)へ進みます。developは必要テスト・独立レビュー・全Case追跡があればGUI pending/blocked/failを保ったまま統合できます。main promotionは固定候補全体の全必要Caseが同じbuildでpassした後です。未実装受入・残QA・main反映・次の担当を残します。
 
 ## 停止と再開

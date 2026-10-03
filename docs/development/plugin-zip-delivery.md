@@ -26,6 +26,8 @@ Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選�
 - buildは読取権限のみのrunner、publishは別runner。Actions Artifactは両者間の**1日限りの転送**だけで、配布先ではない。PRイベントではZIPを作らない。
 - `build/` はGit管理対象外。ZIPのコミットやcommit別のReleaseを追加する必要はない。
 
+新構成のsourceはJDK 25でGradleが固定Rabbit 1 SDKを取得する。schedule/manualはcheckoutしたsourceのjvmToolchainを使い、過去branchの21指定だけを維持する。旧構成branchの復旧では、checkoutしたgradle.propertiesに有効なplatformPath代入がある場合だけ従来のQuail 3 Patch 1を取得・指定する。コメント行だけの例は旧構成と判定せず、新構成には旧SDKを渡さない。
+
 ## 既存ブランチと復旧
 
 新workflowを持つすべてのブランチでpushに反応する。ブランチ名の固定フィルターはない。
@@ -124,7 +126,7 @@ python3 scripts/workflow/release_candidate.py fetch \
   --tag "$RC_TAG" --sha256 "$HASH" --directory "$DOWNLOADED_RC"
 ```
 
-取得処理は固定sourceのpolicyが要求する全assets/hash、内部version/source/SDK、Verifier結果を照合する（現行Rabbitは5 assets、旧Quailは6）。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。Rabbitのmain限定候補は#470の3Caseで確認する。main限定0.1.0の旧Quail両IDE・Terminal有効/無効は#409の4Caseへ記録済みで、Rabbitのpassへ転用しない。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
+取得処理は固定sourceのpolicyが要求する全assets/hash、内部version/source/SDK、Verifier結果を照合する（現行Rabbitは5 assets、旧Quailは6）。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。developのRabbit移行は#466のTerminal有効/無効・任意JCEF・VFS保存境界のCaseと全候補の必要Caseで確認する。Rabbitのmain限定候補は#470の3Caseで確認する。main限定0.1.0の旧Quail両IDE・Terminal有効/無効は#409の4Caseへ記録済みで、Rabbitのpassへ転用しない。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
 
 ### 4. main昇格後、同じbytesを正式公開する
 

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "issue": 201,
+  "gui_required": true,
+  "reason": "ToolWindowの選択色修正。SDK headless描画と実IDEの固定build受入を区別する。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "ToolWindowIconTest: native selected foreground, normal colors and unchanged alpha for light/dark x 16/20px",
+    "git diff --check; verification.validate_change(issue-201, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "TOOLWINDOW-ICON-SELECTED-COLOR",
+      "issue": 201,
+      "change": "ToolWindowアイコンの選択色をIDE標準foregroundへ変換する",
+      "preconditions": "#201を含む固定SHA/ZIP hash/loaded JARを識別し、指定GUI lease担当が使い捨てプロジェクトで確認する。",
+      "steps": [
+        "Dark/Light各テーマでCursor AgentとCursor Manual BrowserのToolWindowを選択し、隣接する純正Problems等と選択色を比較する。",
+        "各ToolWindowからフォーカスを外し、未選択/hover時に標準の通常色へ戻ることを確認する。",
+        "Compact Modeと通常モードで同じ操作を繰り返し、形状・線幅・余白・透明部分とクリック操作を確認する。"
+      ],
+      "expected": "選択・フォーカス中はIDEテーマのselectedForeground（標準テーマでは白）、未選択はLight #6C707E / Dark #CED0D6。16/20pxの輪郭・透明部分・線幅と既存ToolWindow登録を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "色不一致は専用修正Issue/PRと新固定buildで再確認する。",
+      "next_action": "固定buildで明暗・通常/compact・両ToolWindowを確認し、QA #179の選択色Caseと照合する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "変更後の実IDE確認は未実施。ユーザー比較画像は変更前の観測でbuild未識別。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "変更後の実IDE確認は未実施。ユーザー比較画像は変更前の観測でbuild未識別。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/201",
+        "https://plugins.jetbrains.com/docs/intellij/icons.html#new-ui-icon-colors"
+      ]
+    }
+  ]
+}

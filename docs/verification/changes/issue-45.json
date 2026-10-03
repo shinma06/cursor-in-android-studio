@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "issue": 45,
+  "gui_required": true,
+  "reason": "保存履歴の明示検索・一致箇所移動とMarkdown出力の保存dialog/取消/失敗を実IDEで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *History*Test --tests *ConversationTranscriptTest --tests *ToolWindowChatActionsTest",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューでsnapshot/ID/原文/取消/失敗境界を照合"
+  ],
+  "cases": [
+    {
+      "id": "HISTORY-SEARCH",
+      "issue": 45,
+      "change": "保存した会話の検索と本文移動",
+      "preconditions": "指定GUI lease、#45を含む同一固定候補build/ZIP hash/loaded JAR、使い捨てproject・保存fixture。実データの秘密を試験材料にしない。",
+      "steps": [
+        "固定build/loaded JAR/CLI版を記録し、print/ACPの保存会話、同じpreview、旧metadataのみ、破損fileを含む使い捨てprojectの履歴を開く。",
+        "検索対象ラベルを読み、空検索/0件、タイトル/本文、大小文字、日本語IME確定、emoji、短文反復で検索。tool専用語は本文検索に含まれないことを確認する。",
+        "結果を選んで一致箇所の抜粋を確認し開く。既存tab/実行中tabと保存再表示で該当messageへ移動し、草稿・caret・未完runが変わらないことを確認。tool/status/ACP境界を含める。",
+        "検索中にquery変更/IME変換/閉じる/別tab・project終了を試す。検索後の全文差替え・削除済みhitは別の行へ移動しない。移動後のスクロールと次送信時の末尾追従を確認する。"
+      ],
+      "expected": "タイトル＝冒頭previewと元入力/応答を検索。0件・本文なし・破損を区別し既存fileを保全。最初の一致messageをIDで開き、旧結果が上書き/別tabへ誤配送しない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同一固定buildで実施。develop統合後にCase/main未反映を専用QAへ双方向link/readbackして元Issueをcloseする。#259保存Caseとの相互影響も確認。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "unit回帰と実IDEのIME/focus/保存dialog/通知Open受入は別。固定buildの指定担当確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "unit回帰と実IDEのIME/focus/保存dialog/通知Open受入は別。固定buildの指定担当確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/45",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/259"
+      ]
+    },
+    {
+      "id": "HISTORY-EXPORT",
+      "issue": 45,
+      "change": "選択snapshotのMarkdown保存・取消・失敗",
+      "preconditions": "指定GUI lease、#45を含む同一固定候補build/ZIP hash/loaded JAR、使い捨てproject・保存fixture。実データの秘密を試験材料にしない。",
+      "steps": [
+        "履歴選択からMarkdown出力、headerから選択会話の書き出しを開始する。本文なし/旧metadataのみの案内を確認。",
+        "元prompt/Markdownコード/日本語/emoji/複数message/tool要約がある会話を選び保存dialogへ進む。実行中に本文が伸びる・tab切替が起きても開始時snapshotだけが出力されることを確認する。",
+        "保存dialog取消ではファイルが作られないこと、明示保存でUTF-8の原文/順序/状態が一致すること、成功通知の開くでIDEに表示できることを確認する。",
+        "使い捨て先の権限不足・atomic replace不可・既存directory/symlinkで失敗を発生させ、旧file保持・一時file後始末・失敗案内を確認。dialog失敗時も成功扱いしない。",
+        "注入context・env・root/provider ID・未送信draft・raw tool outputが追加出力されないことを確認。利用者自身が原文に書いた文字列は原文のまま保持される。"
+      ],
+      "expected": "ユーザーが選択した保存先にだけ選択時snapshotを保存。取消無書込、失敗は旧file保持。表示済み元入力/応答と安全tool状態の原文/順序を維持し、未完を完了と偽らない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同一固定buildで実施。develop統合後にCase/main未反映を専用QAへ双方向link/readbackして元Issueをcloseする。#259保存Caseとの相互影響も確認。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "unit回帰と実IDEのIME/focus/保存dialog/通知Open受入は別。固定buildの指定担当確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "unit回帰と実IDEのIME/focus/保存dialog/通知Open受入は別。固定buildの指定担当確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/45",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/259"
+      ]
+    }
+  ]
+}

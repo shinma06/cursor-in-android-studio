@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 390,
+  "gui_required": false,
+  "reason": "CIと検証入力/判定だけの変更。製品コード/descriptorは変更しない。同一ZIPのAPI/構造検証をCLIで実施し、更新後の実IDE受入は既存QA #397/#392へ残す。",
+  "cli_checks": [
+    "単一標準ZIPをbuildPlugin/verifyPluginStructureで生成し、source/SDK/version/hashを封印",
+    "Verifier 1.410の固定failureLevelと両IDE同梱JBRで同一ZIPの全本体クラスを検証",
+    "欠落/検査0件/未知verdict/未解決依存/新規警告/hash不一致/SDK不一致/JBR欠落を拒否する回帰テスト",
+    "共通Change Impact、JUnit、workflow/loopテスト、Actions構文、実CIの両reportとartifact hash readback",
+    "独立Reviewerの固定HEAD/base判定。正式RC生成/実IDE/main/Release公開は後続Phase 4〜6"
+  ],
+  "cases": []
+}

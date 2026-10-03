@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 154,
+  "gui_required": false,
+  "reason": "Cursor上部メニュー12項目の意味・固定vendor実装と公開仕様・Plugin/IDE責務・段階実装の文書のみ。製品コードや設定、保存形式を変更しない。参考CUAは部分観察と環境blockedを本文に記録し、将来MENU CaseのGUI passや製品受入として扱わない。",
+  "cli_checks": [
+    "git diff --check",
+    "./gradlew test --console=plain",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "12メニュー行M01〜M12・一次資料・実装Issueへの引継ぎ・GUI未確認と観測根拠を照合",
+    "scripts/workflow/verification.py validate_changeで専用JSONを検査"
+  ],
+  "cases": []
+}

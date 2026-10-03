@@ -155,15 +155,17 @@ def candidate(directory, expected_hash):
     source = manifest['identity']['source.commit']
     pc.require(re.fullmatch('[0-9a-f]{40}', source), 'Invalid source')
     policy = json.loads(git_read('show', f'{source}:scripts/workflow/plugin_compatibility.json'))
-    legacy = 'compile' not in policy
-    if legacy:
-        # Read immutable Quail RCs using their fixed-source policy. Never rewrite
-        # their manifest, or apply this projection to a new Rabbit candidate.
-        pc.require(set(policy['targets']) == {'quail1', 'quail4'} and 'next_policy' not in policy and
-                   policy['targets']['quail1']['build'] == 'AI-261.23567.138.2611.15503007',
-                   'Unknown legacy candidate policy')
-        policy = dict(policy, compile={'target': 'quail1', 'jvm_target': '21', 'class_major': 65,
-                                      'since_build': '261.23567.138', 'until_build': '261.*'})
+    legacy = 'compile' not in policy and set(policy['targets']) == {'quail1', 'quail4'}
+    if 'compile' not in policy:
+        # Pre-sync develop Rabbit policies also lack compile metadata. Preserve
+        # their sealed identity; only old Quail manifests omit the three fields below.
+        target, build, jvm, major, since, until = (
+            ('quail1', 'AI-261.23567.138.2611.15503007', '21', 65, '261.23567.138', '261.*') if legacy else
+            ('rabbit1', 'AI-262.9437.185.2621.16467767', '25', 69, '262.9437.185', '262.*'))
+        pc.require((legacy or set(policy['targets']) == {'rabbit1'}) and 'next_policy' not in policy and
+                   policy['targets'][target]['build'] == build, 'Unknown legacy candidate policy')
+        policy = dict(policy, compile={'target': target, 'jvm_target': jvm, 'class_major': major,
+                                      'since_build': since, 'until_build': until})
     # Only archived candidates may use the transitional fixed-source policy.
     if 'next_policy' in policy and manifest['identity']['sdk.build'] == policy['next_policy']['targets'][policy['next_policy']['compile']['target']]['build']:
         policy = policy['next_policy']

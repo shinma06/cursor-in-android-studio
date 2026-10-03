@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "issue": 327,
+  "gui_required": true,
+  "reason": "printの連続全文更新をEDT配送前に集約し、JSONL一行の受信超過を失敗停止する。表示/保存/Stopとtool境界を固定buildで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base 9266408db995233451efc280ae290e7d25038ece --run-tests",
+    "AgentTurnDispatchTest: 1000更新が1本文ticketに集約されtool/終端の前後順を保持し、Stop/dispose/旧世代を配送時に拒否",
+    "PrintChunkTest: 8 Mi UTF-16文字の丁度/+1・一括/分割/EOF/直接parseLine・超過後のevent停止",
+    "PrintRecordingDispatchTestと既存print/ACP回帰: 表示と保存本文、fallbackとACP増分を保持",
+    "./gradlew buildPlugin"
+  ],
+  "cases": [
+    {
+      "id": "PRINT-OUTPUT-BOUNDS",
+      "issue": 327,
+      "change": "printの連続全文更新をEDT配送前に集約し、JSONL一行の受信超過を失敗停止する。表示/保存/Stopとtool境界を固定buildで確認する。",
+      "preconditions": "指定GUI lease、#327を含む固定build/ZIP hash/loaded JAR、使い捨てproject。print実行用の管理された合成CLIでpartial/fulltext、tool、正常exit、改行なしの巨大出力を制御する。8 MiはUTF-16 code unit数でありUTF-8 byte数ではない。",
+      "steps": [
+        "管理CLIから短いpartialを連続1000件以上出し、tool前後と最後の応答を表示/Copy/保存JSONで照合する。UIが追いつかない間の古い全文更新が蓄積せず、tool順序と最後の本文を保持する。",
+        "送信中にStop、別tab選択、tab close/置換を実施し、既存の所有会話へだけ配送し、停止/旧世代への遅着本文を反映しない。ACP増分とmessage境界は従来の関連Caseで確認する。",
+        "合成CLIから一行8,388,608 UTF-16 code unit丁度と+1のJSON、および改行なし継続出力を別々に送る。丁度は通常処理、超過は受信上限の日本語エラーとprocess終了になり、超過後のresult/本文を反映しないことを確認する。",
+        "超過前の受信済み本文を保持し、物理exitが0でも成功通知や次予約配送へ進まないことを確認する。CLIが既に行った編集の保全/来歴を確認し、巨大tool JSONを受信できなかった場合に事後Revertを利用可能と誤認させない。"
+      ],
+      "expected": "連続print本文は最新値のみ配送し、非本文/終端の順序と表示/Copy/保存を保持する。改行待ちの蓄積は8 Mi UTF-16文字までで、超過はそのrunを失敗停止し、以後の出力を捨てる。巨大な有効JSON/tool結果も同じ上限で拒否する。最終応答全体やACP通信の上限を新設する変更ではない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が固定buildと制御入力を準備して本CaseとQA325 PRINT-DELTA-FLUSHを確認する。合成テストを実GUI passへ転記しない。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "fixture・回帰テストと実IDEの表示/copy/再起動受入は別。指定GUI担当の固定build確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "fixture・回帰テストと実IDEの表示/copy/再起動受入は別。指定GUI担当の固定build確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/327",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/264#discussion_r3998421373",
+        "https://github.com/shinma06/cursor-in-android-studio/pull/264#discussion_r3998421375"
+      ]
+    }
+  ]
+}

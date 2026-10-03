@@ -117,11 +117,21 @@ class CompatibilityTest(unittest.TestCase):
                         'since.build': compile['since_build'], 'until.build': compile['until_build']}
             with patch.object(pc, 'plugin_identity', return_value=identity):
                 self.assertEqual(pc.seal(archive, source, policy)['identity'], identity)
-            for key, value in [('sdk.build', 'unknown'), ('sdk.build', 'AI-261.23567.138.2611.15503007'), ('jvm.target', '17'),
-                               ('class.major.versions', [65, 69]), ('since.build', 'unknown'),
+            for key, value in [('sdk.build', 'unknown'), ('sdk.build', 'AI-261.23567.138.2611.15503007'), ('jvm.target', '17'), ('jvm.target', '21'), ('class.major.versions', [65]),
+                               ('class.major.versions', [65, 69]), ('since.build', 'unknown'), ('since.build', '261.23567.138'),
                                ('until.build', '263.*'), ('source.state', 'dirty')]:
                 with self.subTest(key=key, value=value), patch.object(pc, 'plugin_identity', return_value=dict(identity, **{key: value})):
                     with self.assertRaises(ValueError): pc.seal(archive, source, policy)
+
+    def test_cached_dependency_checksum_is_not_bypassed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / 'jcef.zip'
+            archive.write_bytes(b'fixed')
+            target = {'url': 'https://example.invalid/never-fetched', 'sha256': pc.digest(archive)}
+            pc.download_verified(target, archive)
+            archive.write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                pc.download_verified(target, archive)
 
     def test_same_archive_and_identity_are_checked_before_and_after_verification(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(pc, 'plugin_identity', return_value={'source.commit': 'abc'}):
@@ -153,8 +163,6 @@ class CompatibilityTest(unittest.TestCase):
     def test_required_ci_gate_accepts_only_complete_or_safe_skip(self):
         import os
         import subprocess
-        if 'tasks.verifyPlugin' not in (pc.ROOT / 'build.gradle.kts').read_text():
-            self.skipTest('Legacy main build: compatibility CI wiring is part of #409')
         workflow = (pc.ROOT / '.github/workflows/ci.yml').read_text()
         gate = workflow.split('      - name: Enforce complete CI outcome', 1)[1].split('        run: |\n', 1)[1]
         script = '\n'.join(line[10:] for line in gate.splitlines())

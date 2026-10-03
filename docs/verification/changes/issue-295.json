@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "issue": 295,
+  "gui_required": true,
+  "reason": "MARKDOWN-IMAGE-NO-FETCH: 実IDEで画像の文字表示・復元・Copy原文と自動取得なしを確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew test --tests *MarkdownImageSafetyTest --tests *MarkdownRendererTest --tests *AssistantMessageCopyTest --tests *MessageTextPaneTest",
+    "./gradlew buildPlugin",
+    "固定HEAD/baseの独立レビューでImage AST・live/restore・保存/Copy/exportの原文経路を照合"
+  ],
+  "cases": [
+    {
+      "id": "MARKDOWN-IMAGE-NO-FETCH",
+      "issue": 295,
+      "change": "応答画像の自動取得抑止と表示・復元・原文コピー",
+      "preconditions": "指定GUI担当がleaseを取得し、#295を含む固定候補のHEAD/ZIP hash/loaded JARを照合する。使い捨てprojectと公開可能な合成画像fixture、隔離した取得観測先を使用する。外部サービス・個人ファイル・秘密情報は使用しない。",
+      "steps": [
+        "隔離した観測先で明示的な対照アクセスが記録されることを確認し、計数をリセットする。観測手段が用意できなければ通信確認はpendingにする。",
+        "PRINT/ACPの応答にinline/reference画像、日本語、空alt、入れ子書式、引用符付き取得元を含める。取得元へのリンク操作をせず、説明と取得元の文字表示、画像自動取得0件を確認する。",
+        "画像を含む累積更新・訂正・空本文・Stop後の表示を確認する。次の応答や別タブで元応答の取得が始まらないことを確認する。",
+        "HTTP(S)・相対URL・file/data・未知scheme、raw HTMLのimgを含む合成本文を表示し、画像URLが自動取得・実行・自動Openされず、日本語とHTML風文字列を読み取れることを確認する。既存の通常リンク・見出し・箇条書き・コード表示を確認する。",
+        "応答をコピーしてプレーンテキストへ貼り、表示用の代替文ではなくMarkdown原文と完全一致することを確認する。別Markdown viewerのプレビューは開かない。",
+        "会話を保存し再表示・IDE再起動後の復元を行い、同じ説明・取得元表示と自動取得0件を確認する。コピー原文の一致も確認する。#45を含む候補ではMarkdownファイル出力をテキストとして開き、画像構文の原文保持を確認する。",
+        "狭いpanel・日本語・Dark/Lightで取得元と本文を読み取れるか確認し、固定buildと観測結果を記録する。"
+      ],
+      "expected": "画像は説明と取得元の文字表示になり、表示・更新・復元・Copyで画像URLの自動取得は始まらない。通常Markdownとraw HTML escape、保存・Copy・出力の原文を保持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で表示・復元・Copyと隔離した取得観測を実施する。未観測はpending、製品failは修正Issue/PRへ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "文字列と隔離Swing自動テストは実IDEの取得・表示観察を代替しない。固定buildの表示・復元・Copy確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "文字列と隔離Swing自動テストは実IDEの取得・表示観察を代替しない。固定buildの表示・復元・Copy確認待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/295",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/290"
+      ]
+    }
+  ]
+}

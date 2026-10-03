@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "issue": 389,
+  "gui_required": true,
+  "reason": "ビルドSDK・依存・stdlib同梱・descriptorを更新する。両IDE/JBRとTerminal両状態の実IDE互換性は#392の最終RCで追跡する。",
+  "cli_checks": [
+    "Gradle9.7.1標準Wrapper再生成/公式checksum、固定androidStudio version resolution",
+    "最古SDKでclean test buildPlugin verifyPluginStructure、全既存445以上のテスト成功",
+    "誤SDK/確認不能の拒否とversion入力・内包identity/ZIP名、ZIP lib/stdlib除外/class major/descriptor照合",
+    "python3 scripts/workflow/change_impact.py --run-tests、Actions構文、固定HEAD/baseの独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "MODERN-Q1-TERMINAL-ON",
+      "issue": 389,
+      "change": "更新後の単一ZIPをQ1/JBR21・Terminal ONで確認",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE AI-261.23567.138.2611.15503007、同梱JBR 21。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal ONを専用profileで設定し再起動。",
+      "steps": [
+        "正式候補ZIPをInstall Plugin from Diskで入れ、restart後の実IDE build/JBR/loaded plugin version/JAR hashを記録する。起動・チャット表示にlinkage/class loadエラーがないことを確認。",
+        "printとACPの新規会話で短い回答を送受信し、完了表示とMarkdown表示を確認する。旧版由来の保存fixtureと新しい会話を読み、IDE再起動後も本文・順序・ID・設定が保全されることを確認する。",
+        "Terminal有効時はtool window/shell promptと@terminalの文脈取得を確認。無効時はTerminal入口がなくてもPlugin loadとチャットが動作し、optional機能だけが利用不能となることを確認する。",
+        "他の全必要Case（停止、Diff/Revert、保存失敗、タブ境界等）は#392で同じ固定RCに対して実施。baselineや開発ZIPのpassを転記せず、各結果へ実source/hashを記録する。"
+      ],
+      "expected": "Java21の同一ZIPが両同梱JBRでloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "修正後は新候補のsource/version/hashで再実施し、同一RCの必要Caseを揃える。",
+      "next_action": "#392の指定GUI担当が最終固定RCで実施。未観察はpending、製品failは専用修正Issueへ分離。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/389",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392"
+      ],
+      "required_execution": "computer_use"
+    },
+    {
+      "id": "MODERN-Q1-TERMINAL-OFF",
+      "issue": 389,
+      "change": "更新後の単一ZIPをQ1/JBR21・Terminal OFFで確認",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE AI-261.23567.138.2611.15503007、同梱JBR 21。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal OFFを専用profileで設定し再起動。",
+      "steps": [
+        "正式候補ZIPをInstall Plugin from Diskで入れ、restart後の実IDE build/JBR/loaded plugin version/JAR hashを記録する。起動・チャット表示にlinkage/class loadエラーがないことを確認。",
+        "printとACPの新規会話で短い回答を送受信し、完了表示とMarkdown表示を確認する。旧版由来の保存fixtureと新しい会話を読み、IDE再起動後も本文・順序・ID・設定が保全されることを確認する。",
+        "Terminal有効時はtool window/shell promptと@terminalの文脈取得を確認。無効時はTerminal入口がなくてもPlugin loadとチャットが動作し、optional機能だけが利用不能となることを確認する。",
+        "他の全必要Case（停止、Diff/Revert、保存失敗、タブ境界等）は#392で同じ固定RCに対して実施。baselineや開発ZIPのpassを転記せず、各結果へ実source/hashを記録する。"
+      ],
+      "expected": "Java21の同一ZIPが両同梱JBRでloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "修正後は新候補のsource/version/hashで再実施し、同一RCの必要Caseを揃える。",
+      "next_action": "#392の指定GUI担当が最終固定RCで実施。未観察はpending、製品failは専用修正Issueへ分離。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/389",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392"
+      ],
+      "required_execution": "computer_use"
+    },
+    {
+      "id": "MODERN-Q4-TERMINAL-ON",
+      "issue": 389,
+      "change": "更新後の単一ZIPをQ4/JBR25・Terminal ONで確認",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE AI-261.26222.65.2614.16379836、同梱JBR 25。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal ONを専用profileで設定し再起動。",
+      "steps": [
+        "正式候補ZIPをInstall Plugin from Diskで入れ、restart後の実IDE build/JBR/loaded plugin version/JAR hashを記録する。起動・チャット表示にlinkage/class loadエラーがないことを確認。",
+        "printとACPの新規会話で短い回答を送受信し、完了表示とMarkdown表示を確認する。旧版由来の保存fixtureと新しい会話を読み、IDE再起動後も本文・順序・ID・設定が保全されることを確認する。",
+        "Terminal有効時はtool window/shell promptと@terminalの文脈取得を確認。無効時はTerminal入口がなくてもPlugin loadとチャットが動作し、optional機能だけが利用不能となることを確認する。",
+        "他の全必要Case（停止、Diff/Revert、保存失敗、タブ境界等）は#392で同じ固定RCに対して実施。baselineや開発ZIPのpassを転記せず、各結果へ実source/hashを記録する。"
+      ],
+      "expected": "Java21の同一ZIPが両同梱JBRでloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "修正後は新候補のsource/version/hashで再実施し、同一RCの必要Caseを揃える。",
+      "next_action": "#392の指定GUI担当が最終固定RCで実施。未観察はpending、製品failは専用修正Issueへ分離。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/389",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392"
+      ],
+      "required_execution": "computer_use"
+    },
+    {
+      "id": "MODERN-Q4-TERMINAL-OFF",
+      "issue": 389,
+      "change": "更新後の単一ZIPをQ4/JBR25・Terminal OFFで確認",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE AI-261.26222.65.2614.16379836、同梱JBR 25。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal OFFを専用profileで設定し再起動。",
+      "steps": [
+        "正式候補ZIPをInstall Plugin from Diskで入れ、restart後の実IDE build/JBR/loaded plugin version/JAR hashを記録する。起動・チャット表示にlinkage/class loadエラーがないことを確認。",
+        "printとACPの新規会話で短い回答を送受信し、完了表示とMarkdown表示を確認する。旧版由来の保存fixtureと新しい会話を読み、IDE再起動後も本文・順序・ID・設定が保全されることを確認する。",
+        "Terminal有効時はtool window/shell promptと@terminalの文脈取得を確認。無効時はTerminal入口がなくてもPlugin loadとチャットが動作し、optional機能だけが利用不能となることを確認する。",
+        "他の全必要Case（停止、Diff/Revert、保存失敗、タブ境界等）は#392で同じ固定RCに対して実施。baselineや開発ZIPのpassを転記せず、各結果へ実source/hashを記録する。"
+      ],
+      "expected": "Java21の同一ZIPが両同梱JBRでloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "修正後は新候補のsource/version/hashで再実施し、同一RCの必要Caseを揃える。",
+      "next_action": "#392の指定GUI担当が最終固定RCで実施。未観察はpending、製品failは専用修正Issueへ分離。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "更新後の固定RCに対する実IDE受入待ち。Phase 1のbaseline passやJUnit成功は転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/389",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/392"
+      ],
+      "required_execution": "computer_use"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "issue": 230,
+  "gui_required": true,
+  "reason": "factoryの既存本文処理を同ファイル内のstateへ抽出し、print/ACPの分離を維持して表示操作を直接テストする。",
+  "cli_checks": [
+    "./gradlew test --tests *TurnAssistantTextTest --tests *AgentTurnDispatchTest",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin",
+    "6種の入力/正規化/表示/欠損/未知/終端と実全呼出元、相対リンク/JSON/diff check、固定HEAD/base独立レビュー"
+  ],
+  "cases": [
+    {
+      "id": "TEXT-CONTRACTS",
+      "issue": 230,
+      "change": "print全文置換とACP反復・本文境界の保持",
+      "preconditions": "#230を含む固定候補SHA/ZIP hash/loaded JARとCLI版を照合。指定GUI lease担当が使い捨てfixtureで実施。既存ACP-STREAM/SESSION-TABS-RUNSの準備を再利用。ACP実wireは#146公開待ちを保持。",
+      "steps": [
+        "互換printで増分/累積再送、tool前後の本文、本文のないResult補完を管理fixtureで試す。採取済みOK二回＋Resultは一度だけ表示することを確認する。",
+        "ACPで同じ短語の正当な反復、tool/思考/message ID変更を挟む本文を試す。反復を消さず新messageが旧本文と混ざらないことを確認する。",
+        "A応答中にBを選択、AをStop/close、同tab次turnへ移行した後に遅いchunkを管理fixtureで試す。長い日本語の幅変更/scrollも確認する。"
+      ],
+      "expected": "printは既存heuristicの全文で置換、Resultは本文未開始時だけ補完。ACPは反復deltaを順に追加して全文置換し明示境界で新bubbleへ。別tab/旧token/停止後の通常chunkで表示を汚さずtool/要求/終端の固有状態を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用修正Issue/PRと再確認buildを記録する。",
+      "next_action": "指定GUI担当が同じ固定候補で関連Caseと実施し、未確認はpending、failは修正Issue/PRと再確認へ記録する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実parser/protocolと本文stateの表示操作回帰を追加。実IDE/実Cursorの固定build GUIは未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実parser/protocolと本文stateの表示操作回帰を追加。実IDE/実Cursorの固定build GUIは未実施。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/230",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/152",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/116"
+      ]
+    }
+  ]
+}

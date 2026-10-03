@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "issue": 404,
+  "gui_required": true,
+  "reason": "入力Documentの生成をlistener登録より先に行い、従来PSI-backed Documentを維持する。@と/候補選択の本文削除をIDE command内で行う。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew buildPlugin verifyPluginStructure",
+    "実Quail1 SDKの独立再現: Document生成前に登録すると実listener 0、先にDocumentを渡すと1。GUIなしでSDK登録境界を確認。",
+    "独立固定HEAD/baseレビュー。構造テストだけで実IDE popup/IME合格にしない。",
+    "PromptTriggerUndoTest: 実SDKのDocument/UndoManagerで@と/の選択境界、選択後の本文Undo/Redo、別Documentの履歴を確認。GUIの候補表示/操作成功とは別。"
+  ],
+  "cases": [
+    {
+      "change": "入力文書の初期化と候補選択時の編集境界を整える",
+      "expected": "初回入力から@と/で候補が開く。通知が多重登録されず、IME保護、本文/選択、送信/停止と入力再生成を維持する。",
+      "recheck": "固定候補全体の必要Caseを再確認する。製品の不具合を観察したら専用修正Issue/branch/PRへ紐付け、修正を含む新候補で再確認する。",
+      "id": "PROMPT-DOCUMENT-EVENTS",
+      "issue": 404,
+      "preconditions": "修正source HEAD・ZIP SHA256・全ロードJARを照合。Quail 1とQuail 4の各同梱JBRを使い、専用profile/使い捨てfixture・host共通GUI leaseで実施。Ask・認証済みPro/Teams、通常送信はIDEごとに1回まで。日本語IMEを使う。",
+      "steps": [
+        "初回New Agentで半角@を入力し、候補内Tab、検索、選択とEscape取消を確認する。",
+        "/を入力しSkills候補が開くこと、未取得候補を実行しないことと取消を確認する。",
+        "日本語IME変換途中/Enter確定とShift+Enter改行で誤送信しない。複数行入力で入力欄が伸縮する。",
+        "短いAsk応答1回の完了後、再有効化した入力欄で@と/の候補を確認する。新規チャットでも確認する。",
+        "#205修正と統合した候補で、空欄/単行/複数行、選択あり/なしのTabとShift+Tab、通常editor字下げを確認する。",
+        "候補を選んで@または/が消えた直後、UndoはIDE標準の取り消し不可案内となり、triggerだけが復活しないことを確認する。案内を閉じる。続けて本文に文字を追加し、その編集のUndo/Redoは可能なこと、×で添付/コマンドを解除できること、通常editorのUndo履歴が影響を受けないことを確認する。候補選択前の入力履歴へは戻れない。"
+      ],
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/404",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/205#issuecomment-5761724196",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/404#issuecomment-5762029921"
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "next_action": "ユーザー方針によりmain受入はTODO。PR #403/#405を含む新固定候補を用意し、両IDEで初回表示/選択/取消、Undo境界、IME/再生成をQAで確認する。旧#392は再開しない。過去buildのfail/pendingを維持し、正式v0.1.0/封印RCは変更しない。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "cdf69a5の試行buildはQuail1の候補選択でcommand外Document変更例外を観測（Issue終了記録参照）。その結果を受けPSI-backed Document維持とWriteCommandActionへ修正。新しい差分のGUIは未実施、main受入はTODO。旧failをpassへ移さない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間はcdf69a5で入力時の開閉が不安定な可能性を報告。改訂後buildの実GUIはTODO。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

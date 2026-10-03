@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 383,
+  "gui_required": false,
+  "reason": "Browser QAの独立loopback fixtureにある制御再接続とsetup失敗時の資材残存を修正する。製品src/main・GUI/IDE・OS信頼/hosts・providerを変更せず、QA375/164/182の既存GUI状態を保持する。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_browser_fixture.py -v",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "独立レビューで同一socket制御/自動再接続拒否、setup失敗の所有cleanupと未知file保全、正常HTTP/TLS/IPv6/hold/CLI終了を照合"
+  ],
+  "cases": []
+}

@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "issue": 457,
+  "gui_required": true,
+  "reason": "後続比較の共通準備とA/B-C01・A/B/C-C02の実測を追跡する。正式5 Caseはissue-150.jsonを正本とし複製しない。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "verification.validate_changeによるissue-457/150検証、他25 Case・全human/既存観測の不変照合"
+  ],
+  "cases": [
+    {
+      "id": "COMMON-PREPARATION-ACCEPTANCE",
+      "issue": 457,
+      "change": "同一fixture・実行構成・比較条件を後続ownerへ受け渡し、所有5 Caseの未達を追跡する",
+      "preconditions": "固定source/4 APK・製品ZIP/実ロードJAR、専用IDE/profile、D1/D2、GUI queue/host-wide leaseを照合する。通常環境・他ownerのresourceへ広げない。",
+      "steps": [
+        "共通準備文書に従いsource archive18 file、4 APKと2台内8 APK、配置/ロード5 JARを照合する。",
+        "I150 Red/BlueのName/Moduleとvariant、現接続device、同期完了をUIと保存補助証拠から確認する。",
+        "A/B/Cの現在model・toolset/MCP・権限を読み、Bは未送信tabのACP選択を確認する。",
+        "PMと後続ownerが確認済み/未達・復元条件を読み戻し、準備の部分受領を記録する。",
+        "正式5 Caseはissue-150.jsonに従って同条件1組から8組/必要順序反復を実測し、準備と結果を分離する。",
+        "終了時にsource/editor復元、外部IDE作業・owned子孫process停止、lease解放を確認する。"
+      ],
+      "expected": "後続が固定条件と未達を読み戻せ、正式Caseの証拠を重複・水増しせず実測を再開できる。",
+      "recheck": "操作環境blockedは新queue/leaseと指定operatorで再開。別buildや部分準備を正式比較passへ転用しない。",
+      "next_action": "run02のSDK/MCP設定・固定artifactは部分成果としてPM受領済み。新queue/leaseで保持済み専用環境を再照合し、A/B/Cの現在model/MCP/toolset/権限と現接続deviceの比較snapshotを確定して共通準備を受領後、正式5 Caseを再開する。#458–#461の依存とQA #380、ACP #152/#440の未達を維持する。",
+      "fix_issue": null,
+      "fix_pr": null,
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "blocked",
+        "reason": "run01: source18/18・保全APK4/4・端末APK8/8・配置/ロードJAR5/5、規定2構成のmodule対応・両debug・Sync成功を確認。Bの人間ACP選択後status/既定モデルをreadback。人間のD1-only選択後Multiple Devices(1)を確認したが、再表示後はDROPDOWNへ変化。IDE/AVDのSDK根が異なりMissing system imageが残存。専用SDK修復1回後Sync成功でもIDEがlocal.propertiesを元SDKへ再生成した。live selected deviceと現在model/MCP/権限未確定、送信0・Run/Debug0。所有12 processのlive残存0・SDK変更復元・source18一致・lease free。共通準備受領と正式5 Case未完了。 run02: 正規SDK Location→Sync成功→正常再起動で専用root保持・Missing警告解消・Running devicesからD1選択を確認。source18/JAR5/APK8一致。MCP Enable ONはAX/画面、Brave OFFは空枠/人間回答一致、既存native tools/listは27件。PMがSDK・artifact・catalogを部分成果受領し設定保持を指示。A現在UIのみ確認、Bの人間ACP選択依頼は撤回・完了報告なし、C未起動。現在model/MCP/権限比較snapshotと共通準備全受領は未達。Agent/Run/Debug0。通常Quit確認画面を取得できず所有9 processへSIGTERM、過去再起動分も含めlive0、source18一致、SDK設定保持、lease free。正式Case観測は不変。",
+        "observer": "research-457-01a0e21c",
+        "at": "2026-09-27T10:47:01Z",
+        "evidence": "docs/research/issue-457-common-preparation.md",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "人間のACP選択操作は部分準備であり、調査受入/正式Case全体の確認ではない。"
+      },
+      "provenance": [
+        "docs/research/issue-457-common-preparation.md",
+        "docs/verification/changes/issue-150.json",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/380",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5854769408",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/457#issuecomment-5855003632"
+      ]
+    }
+  ]
+}

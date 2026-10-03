@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "issue": 43,
+  "gui_required": true,
+  "reason": "モデル取得状態とretry、保存選択、遅延/破棄/ACP切替の実CLI・GUI確認が必要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPluginとZIP CRC/SHA256",
+    "ModelCatalogLoader/ModelCatalogStatus/ModelListParser/ModelOptionsPopupPanelの回帰",
+    "固定HEAD/base独立レビューとgit diff --check"
+  ],
+  "cases": [
+    {
+      "id": "MODEL-CATALOG-STATES",
+      "issue": 43,
+      "change": "取得中/失敗/空/再試行",
+      "preconditions": "#43を含む固定source/Plugin ZIP SHA256/installed全JAR/起動ロード実体と指定担当のhost leaseを一致。管理CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別結果を記録。",
+      "steps": [
+        "管理fixtureで正常一覧・非0終了・空成功・15秒超の遅延を切り替え、Loading/失敗/空/選択済みを区別する。",
+        "失敗/空からクリックとSpaceで再試行し、Loading中の連打が二重起動にならず、UI入力/Stopを妨げないことを確認。",
+        "Dark/Light × 通常/Compactと狭幅・長名で状態/tooltip/accessibility/フォーカスを判別し、プラン制限やstderrを推測表示しないことを確認。"
+      ],
+      "expected": "4状態を区別して再試行でき、正常一覧へ回復する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "専用fix Issue/PRと新しい固定buildで再確認し、#27の旧passを上書きしない。",
+      "next_action": "PMが固定候補とGUI担当を指定し3Caseを標準QAへ双方向引継ぎ。main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/43"
+      ]
+    },
+    {
+      "id": "MODEL-CATALOG-SELECTION",
+      "issue": 43,
+      "change": "保存ID/Auto/variantと一覧復旧",
+      "preconditions": "#43を含む固定source/Plugin ZIP SHA256/installed全JAR/起動ロード実体と指定担当のhost leaseを一致。管理CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別結果を記録。",
+      "steps": [
+        "Auto・variant・未掲載ID・空IDを用意し、失敗/空/再試行でも保存選択を維持する。別tabに異なる選択を設定し相互影響がないことを確認。",
+        "正常一覧が戻ったら選択IDと系列/option/チェックを確認し、未掲載IDをAutoと誤表示しないことを確認。",
+        "既存検索/Space/Enter/矢印/Escapeとモデル選択を操作し、明示した公開IDだけが次の送信に使われることを確認。"
+      ],
+      "expected": "保存済み選択を維持し、先頭モデルへ勝手に切り替わらない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "専用fix Issue/PRと新しい固定buildで再確認し、#27の旧passを上書きしない。",
+      "next_action": "PMが固定候補とGUI担当を指定し3Caseを標準QAへ双方向引継ぎ。main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/43"
+      ]
+    },
+    {
+      "id": "MODEL-CATALOG-OWNERSHIP",
+      "issue": 43,
+      "change": "遅延/再試行/破棄とACP境界",
+      "preconditions": "#43を含む固定source/Plugin ZIP SHA256/installed全JAR/起動ロード実体と指定担当のhost leaseを一致。管理CLI/ACP fixtureを使用。Dark/Light × 通常/Compactで条件別結果を記録。",
+      "steps": [
+        "旧応答を遅らせた状態でretryまたはprint→ACP→printと切り替え、新しい一覧の後に旧応答を到着させる。",
+        "一覧待機中にtabを選択/closeし、元tabが存在する場合だけ更新され、破棄済みViewや他tabへ結果が漏れないことを確認。",
+        "ACP初回既定とConfigurationを確認し、print一覧がACP表示を上書きしないこと、printへ戻ると元のAuto/variant IDが復元することを確認。"
+      ],
+      "expected": "遅着結果を無視し、ACPとprint、各tabの状態を混同しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "専用fix Issue/PRと新しい固定buildで再確認し、#27の旧passを上書きしない。",
+      "next_action": "PMが固定候補とGUI担当を指定し3Caseを標準QAへ双方向引継ぎ。main未反映を追跡。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/43"
+      ]
+    }
+  ]
+}

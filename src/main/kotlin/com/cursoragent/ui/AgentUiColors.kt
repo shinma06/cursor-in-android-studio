@@ -13,7 +13,8 @@ import javax.swing.border.Border
 
 object AgentUiColors {
     const val CORNER_ARC = 12
-    val panelBackground: Color get() = JBColor(Color(0xFAFAFA), Color(0x181818))
+    val panelBackground: Color get() = JBUI.CurrentTheme.ToolWindow.background()
+    val tabAreaBackground: Color get() = JBColor(Color(0xF0F0F0), Color(0x131313))
     val userBubbleBackground: Color get() = JBColor(Color(0xF0F0F0), Color(0x222222))
     val assistantBubbleBackground: Color get() = panelBackground
     val composerBackground: Color get() = JBColor(Color.WHITE, Color(0x202020))
@@ -21,7 +22,6 @@ object AgentUiColors {
     val mutedText: Color get() = JBColor(Color(0x686868), Color(0x969696))
 
     fun bubbleBorder(padding: Int = 10): Border = javax.swing.border.CompoundBorder(RoundedBorder(), JBUI.Borders.empty(padding))
-    fun sectionPadding(): Border = JBUI.Borders.empty(8, 12)
 
     class RoundedBorder(private val radius: Int = CORNER_ARC) : AbstractBorder() {
         override fun getBorderInsets(c: Component) = JBUI.insets(1)

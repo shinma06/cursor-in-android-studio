@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 284,
+  "gui_required": false,
+  "reason": "Cursor診断用Request IDの公開取得経路と寿命の有限調査のみ。製品コードと実clipboard操作は含まない。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "公式資料・既存公開広告・合成結果の公開投影・固定turn/tab境界の独立照合"
+  ],
+  "cases": []
+}

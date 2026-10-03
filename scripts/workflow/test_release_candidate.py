@@ -180,6 +180,11 @@ class ReleaseTest(unittest.TestCase):
     def test_rabbit_bundle_requires_only_the_rabbit_report(self):
         self.check_bundle(json.loads(pc.POLICY.read_text()))
 
+    def test_pre_sync_develop_rabbit_candidate_retains_its_sealed_identity(self):
+        rabbit = json.loads(pc.POLICY.read_text())
+        saved_policy = {key: value for key, value in rabbit.items() if key != 'compile'}
+        self.check_bundle(rabbit, source_policy=saved_policy)
+
     def test_archived_transitional_rabbit_policy_remains_readable(self):
         rabbit = json.loads(pc.POLICY.read_text())
         self.check_bundle(rabbit, source_policy=dict(self.quail_policy(), next_policy=rabbit))
@@ -235,6 +240,8 @@ class ReleaseTest(unittest.TestCase):
                     result['target'].pop('platform')
                 rc.write(path/'result.json',result); evidence[key]=path
             with patch.object(rc,'source_inputs',return_value={}),patch.object(rc,'git_read',return_value=json.dumps(source_policy or policy)):
+                with self.assertRaisesRegex(ValueError, 'All target IDE reports'):
+                    rc.bundle(directory,manifest['sha256'],{})
                 rc.bundle(directory,manifest['sha256'],evidence)
                 original = pc.digest(product)
                 rc.bundle(directory,manifest['sha256'],evidence)  # Same reports can safely retry.

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "gui_required": false,
+  "reason": "#191の38pxをmock由来の試験前提違いとして訂正する文書変更。製品src/テストコード・過去固定merge・候補結果・GUI観察は変更しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "verification.validate_changeでissue-189/issue-210を検証",
+    "issue-189の差分が寸法手順と根拠リンクのみでありCase ID/結果/履歴/昇格条件が不変であることを照合",
+    "git diff --check; 固定HEAD/baseの独立レビュー"
+  ],
+  "cases": []
+}

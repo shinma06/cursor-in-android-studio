@@ -4,9 +4,8 @@
 
 ## 現段階
 
-`SessionTabs` は未接続の純粋Kotlin基盤。既存の単一セッションUIを変更しない。
-ユーザーのタブ機能全体の完了やGUI passを意味しない。#57 → #61の既存PR統合後、
-#65が最新mainへ状態・タブ部品を接続する。#44の再起動をまたぐ本文保存は別Issue。
+2026-09-09 / #142ソース照合: `SessionTabs` は#65でroot/view/controllerへ接続済みの純粋Kotlin状態。複数タブとtab別runを持つ。これはGUI合格やmain昇格を意味しない。#44の再起動をまたぐ本文保存は別Issue。
+[現行実装](../architecture/current-implementation.md)を参照し、ACP session接続は[ACP First](../architecture/cursor-integration.md)と#115で検証する。
 
 ## 所有と値
 
@@ -19,18 +18,18 @@
 - `move(id, index)`はsourceを除去した後の最終index。未知ID/範囲外/同位置はno-op。
 - active closeは右、右がなければ左へ。inactive closeは選択維持。最後を閉じるとfresh New Agent。
 
-## 実行と終了の接続義務 (#65)
+## 現行の実行と終了の接続 (#65 / #142照合)
 
 1. 入力を`updateComposer`で保存し、`beginTurn`が返すoriginal prompt/mode/model/chat IDのsnapshotを使う。
    同時にpermission/sandbox/worktree/executable/workspaceも別途snapshot化し、background処理中に全体設定を読み直さない。
-2. preparation Futureとprocessをtab ID **およびtoken**で所有する。init、delta、tool、result、error、
+2. 準備を含むAgentRunとprocessをtab ID **およびtoken**で所有し、背景準備の各段階でrun.isActiveを確認する。init、delta、tool、result、error、
    completionを配送する際は対象tokenを保持し、EDT実行時に再度`accepts`を確認する。selectedIdへ配送しない。
-3. close/stopは先に状態側を無効化し、返却tokenが所有するpreparation/processだけ停止する。
+3. closeは状態を無効化してlistenerをdetachし、そのrunだけ停止する。通常Stopは先にtokenを破棄せず、停止通知を表示してfinishTurnする。
    process構築中にcloseされた場合、登録前にtokenを再確認し新processを即破棄する。タブ切替だけでは停止しない。
 4. completionは内容/usage/finalizationを反映した後`finishTurn`する。errorとterminationが重複しても一度だけ終了。
    project/content終了時は`stopAll`で先に全tokenを無効化し、その後すべての所有process/listenerを解放する。
 5. timeline/scroll/composer/context usageはtab IDで別々に保持し、切替時入力へfocus。
-   本基盤はprocess停止、UI本文保持、ディスク保存を実行しない。#65の接続試験が必要。
+   状態基盤自体はprocess停止、UI本文保持、ディスク保存を実行しない。接続先controller/viewが前二者を担当し、実GUI受入は別に追跡する。
 
 ## 名前
 

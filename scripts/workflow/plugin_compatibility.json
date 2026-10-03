@@ -10,20 +10,25 @@
     }
   },
   "optional_absences": {
-    "XPathView": "Rabbit coreのintellij.xml.langInjection.xpathによる任意依存。#470 main由来173クラスのpreflightで全classを検査し、本製品からの直接利用がないことを確認。",
-    "intellij.platform.ide.newUiOnboarding": "固定JCEF providerのintellij.platform.ide.newUiOnboarding.jcefによる任意のIDE導入案内。Rabbit配布物に存在せず、main製品からは参照しない。",
-    "com.intellij.modules.python": "Rabbit同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。main製品の必要APIではない。",
-    "com.intellij.modules.idea.community": "Rabbit同梱Javaのintellij.java.promoによるIDEA Community向けの任意依存。Android Studio固定配布物で不在を確認。",
-    "training": "Rabbit同梱Javaのintellij.java.featuresTrainerによる任意学習機能。main製品の必要APIではない。"
+    "com.intellij.modules.jcef": "Verifier 1.410 interprets the legacy depends ID as a module alias, but Rabbit JCEF declares it as a plugin ID. Keep the officially documented optional depends declaration. Independently require the pinned provider in the resolved dependency graph; all product classes remain checked, with no external-prefix/API exclusions. Runtime loading and absence recovery require issue-466 GUI acceptance.",
+    "XPathView": "Rabbit core intellij.xml.langInjection.xpath optional integration. No product references; rechecked against Rabbit full build and all product classes.",
+    "com.intellij.modules.python": "Rabbit Shell Script intellij.sh.python optional integration. Product only uses Terminal APIs, which are resolved and checked.",
+    "com.intellij.modules.idea.community": "Rabbit Java intellij.java.promo optional IDEA Community integration, absent in Android Studio. No product references.",
+    "intellij.platform.ide.newUiOnboarding": "Pinned JCEF optional onboarding module depends on JetBrains onboarding, absent in Rabbit. Product uses browser APIs, not onboarding; provider classes remain checked.",
+    "training": "Rabbit Java intellij.java.featuresTrainer optional learning integration, absent in Android Studio. No product references."
   },
   "reviewed_api_reports": {
     "deprecated-usages.txt": {
-      "sha256": "05ffbd59e5af7923b9268257f449d7c0d493ad186b9be0cf1f326f8b7e323937",
-      "disposition": "#470 main由来のRabbit preflightで8利用（削除予定1）。ファイル選択・ToolWindow bridge・ProcessAdapterはRabbitに実在。停止処理の移植でProcessAdapterの呼出元名/引数だけが変わり、利用APIは同じ。SDK更新時に置換を再評価する。"
+      "sha256": "bdfcbac6782ea928c7ba4764b82c01d5b76a26e5072e4df13268515fc0499fc1",
+      "disposition": "Rabbit 262 contains all 17 reported usages: 5 scheduled for removal (four existing list-renderer overloads and settings file chooser), plus ToolWindowFactory default bridges, ProcessAdapter, ReadAction and file chooser factory. Reevaluate replacements before expanding the SDK range; no missing APIs are waived."
     },
     "experimental-api-usages.txt": {
-      "sha256": "e5117d66f7db4fb6119ca7ca9391e2442c8baf247c74cec0f301547082e0643d",
-      "disposition": "#470 mainのRabbit preflightで28利用。既存Terminal/ToolWindow bridge 26件と、非同期保存完了を待つManagingFS.flushPendingUpdates 2件。Terminal optionalと保存境界を3つのGUI Caseで別途確認する。"
+      "sha256": "1639d56d3c0d7f90c5b065a60c95eb5859db916be21bdd70dd692b63274d7dff",
+      "disposition": "34 usages are present in Rabbit: 32 existing Terminal view/output and ToolWindowFactory bridges, plus two ManagingFS.flushPendingUpdates calls required by JetBrains' documented async editor-save contract before external Git/CLI access. Flush runs off EDT/write actions and failure aborts the operation. Preserve optional Terminal loading/linkage protection; issue-466 Cases cover both Terminal states and saved-content/restore ordering. Reevaluate these experimental APIs before expanding the SDK range."
+    },
+    "internal-api-usages.txt": {
+      "sha256": "7eaec9b605e9d87ec7fee57dc40252c70d3dd771d3b2895a87b4dcf3b5971440",
+      "disposition": "9 usages are present in Rabbit: ToolWindow header/menu, build diagnostics lookup and browser recovery plugin settings navigation. Preserve existing UI behavior and reevaluate public alternatives before expanding the SDK range."
     }
   },
   "reviewed_log_warnings": {

@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "issue": 269,
+  "gui_required": true,
+  "reason": "既定モデルの設定保存、取得状態/破棄、新規printだけへの適用を固定GUIで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "./gradlew buildPlugin と ZIP SHA256/CRC/7JAR照合",
+    "原作者の固定base43 16165ecとの差分を分離し、現在の実target/baseへ同期した最終候補を独立レビュー（原作者時点のtargetはD997）"
+  ],
+  "cases": [
+    {
+      "id": "DEFAULT-269-SETTINGS",
+      "issue": 269,
+      "change": "既定モデルの選択・Apply/取消・復元",
+      "preconditions": "指定GUI担当がleaseを取得し、#43を含む#269固定候補HEAD/ZIP SHA256/loaded全JARを照合する。使い捨てprojectと合成metadata/ACP serverで確認し、過去のGUI passを流用しない。",
+      "steps": [
+        "設定画面の新規会話の既定モデル（互換CLI）を開き、既存検索/モデル選択部品で実一覧の正確なIDまたはAutoを選ぶ。Apply前に既存の保存値が変わらないことを確認する。",
+        "Cancel/resetで元の選択へ戻し、Apply後の再表示とIDE再起動で同じIDを復元する。旧XMLの空値と未知IDを維持し、Routerの架空ID/変換値を追加しないことを確認する。",
+        "CLI path変更時はApplyして設定を開き直し、適用済みpathの一覧を取り直す。無関係な設定・送信キー・診断導線は実統合候補で維持する。"
+      ],
+      "expected": "設定画面の一時選択はApply時だけ保存し、正確なID/Auto/旧値を維持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "専用fix Issue/PRと新しい固定buildで再確認し、#27の旧passを上書きしない。",
+      "next_action": "PMが統合後に全3Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が固定候補で実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/269",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/43"
+      ]
+    },
+    {
+      "id": "DEFAULT-269-LOAD",
+      "issue": 269,
+      "change": "取得状態・再試行と破棄後の遅着",
+      "preconditions": "指定GUI担当がleaseを取得し、#43を含む#269固定候補HEAD/ZIP SHA256/loaded全JARを照合する。使い捨てprojectと合成metadata/ACP serverで確認し、過去のGUI passを流用しない。",
+      "steps": [
+        "隔離した合成metadata実行ファイルで遅延・非zero終了・空一覧を返し、取得中/失敗/空と再試行の日本語表示を確認する。未知保存IDが消えないことを確認する。",
+        "再試行で実一覧相当の合成候補を返し、キーボード/マウスで選択できることを確認する。取得前の保存済み選択を先頭モデルへ勝手に変えないことを確認する。",
+        "取得途中で設定画面を閉じる/別設定へ移る/再度開く。旧viewへの遅着がUI・保存値を更新せず、popupが残らないことを確認する。実providerの拒否を繰り返す代わりに隔離合成fixtureを使う。"
+      ],
+      "expected": "#43の取得状態と再試行を再利用し、失敗や画面破棄で保存IDを失わない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "専用fix Issue/PRと新しい固定buildで再確認し、#27の旧passを上書きしない。",
+      "next_action": "PMが統合後に全3Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が固定候補で実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/269",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/43"
+      ]
+    },
+    {
+      "id": "DEFAULT-269-SCOPE",
+      "issue": 269,
+      "change": "新規printだけへ適用し既存・復元・ACPを保護",
+      "preconditions": "指定GUI担当がleaseを取得し、#43を含む#269固定候補HEAD/ZIP SHA256/loaded全JARを照合する。使い捨てprojectと合成metadata/ACP serverで確認し、過去のGUI passを流用しない。",
+      "steps": [
+        "異なるモデルを選んだ複数の既存print会話と、制御serverで実行中のturnを用意する。設定で既定モデルをApplyし、既存tab/進行中turnのモデルが変わらず、新規printだけが新しい既定値を使うことを確認する。",
+        "保存から開く会話/legacy履歴を開き、新しいprint既定値を適用しないことを確認する。未保存の過去モデルを推測で復元せず、既存の保存/再開制約を維持する。最後のtabを閉じて作られる新規会話も確認する。",
+        "ACPを選び、初回のCLI選択クリアとserver configのモデル採用を確認する。既定print値をserverへ無検証で送らず、ACP選択変更をglobal既定値へ書き戻さないことを確認する。"
+      ],
+      "expected": "新規printと既存/復元/実行中/ACPの適用境界を保つ。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "GUI/実CLI fixture未実施。自動テストを実機観察のpassにしない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "専用fix Issue/PRと新しい固定buildで再確認し、#27の旧passを上書きしない。",
+      "next_action": "PMが統合後に全3Caseとmain未反映をQAへ双方向link/readbackし、指定GUI担当が固定候補で実施する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/269",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/43"
+      ]
+    }
+  ]
+}

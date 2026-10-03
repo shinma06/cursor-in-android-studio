@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "issue": 192,
+  "gui_required": true,
+  "reason": "右固定4操作のglyph縮小。ボタンと全体幅を維持したまま余白の見え方が変わるため実IDE比較が必要。",
+  "cli_checks": [
+    "./gradlew test buildPlugin",
+    "ToolWindowChatActionsTest: 16-to-14 icons, repeated toolbar/menu update and native ActionButton dimensions at 1.0/1.25/2.0 user scales",
+    "git diff --check; verification.validate_change(issue-192, GUI required)"
+  ],
+  "cases": [
+    {
+      "id": "HEADER-ICON-SCALE",
+      "issue": 192,
+      "change": "固定4アイコンだけを14 logical pxへ縮小して全体幅を維持",
+      "preconditions": "GUI lease下の指定担当が#192の固定SHA・ZIP hash・loaded JARを識別。使い捨てfixtureとGUIから選択可能なIDEを使用。提供画像1はPlugin変更前、2はCursor参考で、今回の固定build受入へ転用しない。",
+      "steps": [
+        "通常4アイコン表示、同じパネル幅/表示倍率でCursor参考画像と比較する。新規/履歴/その他/隠すのglyphだけが約12.5%小さくなり、全体幅108 logical pxとボタン間隔・クリック領域は維持されることを確認する。",
+        "Dark/Lightテーマと通常/拡大DPIで中心配置、線/点/時計/枠の視認性と色を確認する。繰り返しhover/updateでも縮み続けず、その他は横3点、隠すは既存の図形を維持する。",
+        "新規/履歴を固定UIとmenuから使用し、menu内iconのサイズは元のままで、tooltip・表示設定・キーボード操作も維持されることを確認する。",
+        "タブを追加/削除、resize、固定アイコンを非表示/再表示し、背景・接触時隔線・スクロール・パネルを隠す/再表示が維持されることを確認する。"
+      ],
+      "expected": "右固定4アイコンは16→14 logical px相当、全体幅とbutton hit areaは変更前と同じ。メニュー共有Actionのiconは元サイズ。テーマ・DPI・更新・既存操作・背景/隔線に回帰がない。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "不一致は専用修正Issue/PRと修正buildを紐付け、固定候補で再確認する。",
+      "next_action": "GUI選択可能な識別済みIDEで同幅・同倍率比較を行う。直近#183のMainWrapper選択制約を引継ぎ、実SDK headless検証を実GUI passへ置き換えない。#185の幅と#191の隔線も維持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/192",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/185",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/191"
+      ],
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "修正後固定buildの実IDE比較は未実施。SDKでの部品描画比較は通過、実GUI受入とは区別する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "修正後固定buildの実IDE比較は未実施。SDKでの部品描画比較は通過、実GUI受入とは区別する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      }
+    }
+  ]
+}

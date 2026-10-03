@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 10,
+  "gui_required": false,
+  "reason": "合成画像によるACP/print契約probe・fixture・UX設計文書のみ。製品添付UIは別採用IssueでGUI受入を追跡する。",
+  "cli_checks": [
+    "git diff --check",
+    "python3 docs/research/issue-10-check.py",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests",
+    "合成識別画像の実測・有限境界・一次資料とUX採否の独立照合"
+  ],
+  "cases": []
+}
