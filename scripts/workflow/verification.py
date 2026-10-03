@@ -159,12 +159,9 @@ def environment_cases(base, candidate, git=git_read):
     if (plan.get('schema') != 1 or plan.get('issue') != 479 or
             not SHA.fullmatch(plan.get('migration_commit', '')) or not nonempty(plan.get('decision'))):
         raise ValueError('Invalid environment revision provenance')
-    try:
-        git('merge-base', '--is-ancestor', plan['migration_commit'], candidate)
-    except subprocess.CalledProcessError as error:
-        if error.returncode == 1:
-            return {}  # Pre-migration candidates retain their original requirements.
-        raise
+    # Valid non-ancestors produce output, not an adapter-specific command error.
+    if git('rev-list', '--max-count=1', plan['migration_commit'], '--not', candidate):
+        return {}  # Pre-migration candidates retain their original requirements.
     environment = plan.get('environment', {})
     if (set(environment) != {'build', 'java_version', 'jvm_target', 'class_major'} or
             not all(nonempty(environment.get(k)) for k in ('build', 'java_version', 'jvm_target')) or

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 489,
+  "gui_required": false,
+  "reason": "PR #488のmain先行受入tooling 4ファイルと本JSONだけをdevelopへ同期する。固定developと製品source・製品テスト・Gradle/SDK/依存・元固定Caseが同一であることをGitで確認する。候補再固定後の全GUI受入は#485と既存QAで継続する。",
+  "cli_checks": [
+    "通常main mergeの親を保持し、固定developとの差分がPR #488の4ファイル増分と本JSONだけであることを照合する。過去squash同期に由来する競合では既存develop内容を保持する。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests、git diff --check、固定HEAD/baseの独立レビュー、4必須checks。",
+    "統合後の実merge SHAから全commit/元PR/必要Caseを再収集し、172 Case・Computer Use4件・Rabbit環境改訂10件・元Case全履歴を保持する。旧候補の結果は転用しない。",
+    "QAへmain反映と候補再固定を双方向移譲し、人間向け手順・Project・native関係・所有cleanupを読み戻す。"
+  ],
+  "cases": []
+}
