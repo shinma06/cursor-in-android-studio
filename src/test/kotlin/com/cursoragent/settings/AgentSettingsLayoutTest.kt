@@ -1,11 +1,12 @@
 package com.cursoragent.settings
 
+import com.intellij.openapi.options.ex.ConfigurableCardPanel
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.runInEdtAndWait
 import java.awt.Component
 import java.awt.Container
 import javax.swing.JButton
-import javax.swing.JViewport
+import javax.swing.JScrollPane
 import javax.swing.SwingUtilities
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -23,15 +24,11 @@ class AgentSettingsLayoutTest {
                 val configurable = AgentSettingsConfigurable()
                 try {
                     settings.agentExecutablePath = "/disposable/" + "long-directory/".repeat(12) + "agent"
-                    val form = configurable.createComponent()
-                    val viewport = JViewport().apply {
-                        setSize(620, 600)
-                        view = form
-                    }
-                    repeat(4) {
-                        viewport.doLayout()
-                        layoutTree(form)
-                    }
+                    val host = ConfigurableCardPanel.createConfigurableComponent(configurable) as JScrollPane
+                    host.setSize(620, 600)
+                    repeat(4) { layoutTree(host) }
+                    val viewport = host.viewport
+                    val form = viewport.view
                     assertEquals(viewport.width, form.width, "The Settings form must follow its viewport width")
                     val actions = descendants(form).filterIsInstance<JButton>().filter {
                         it.text in setOf("自動検出に戻す", "表示を更新", "表示中の診断情報をコピー")

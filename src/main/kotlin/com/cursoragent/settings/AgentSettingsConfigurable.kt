@@ -11,13 +11,14 @@ import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.FormBuilder
+import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.event.DocumentEvent
 
-class AgentSettingsConfigurable : Configurable {
+class AgentSettingsConfigurable : Configurable, Configurable.NoMargin {
     private var fontSizeBox: javax.swing.JComboBox<String>? = null
     private var wrapCodeBox: JBCheckBox? = null
     private val fontSizes = listOf(0) + (8..36)
@@ -98,7 +99,11 @@ class AgentSettingsConfigurable : Configurable {
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
-        panel = ScrollablePanel(BorderLayout()).apply { add(form, BorderLayout.NORTH) }
+        panel = ScrollablePanel(BorderLayout()).apply {
+            // Keep the standard Settings padding without its non-scrollable margin wrapper.
+            border = JBUI.Borders.empty(11, 16, 16, 16)
+            add(form, BorderLayout.NORTH)
+        }
         return panel!!
     }
 
