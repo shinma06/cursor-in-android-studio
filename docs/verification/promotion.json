@@ -1182,8 +1182,16 @@
       "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
     },
     "80:SWING-PROBE-REPORT-1": {
-      "status": "pending",
-      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+      "status": "pass",
+      "head": "a1e4dd012c5b01fc89b18484a224d3bf917c28e4",
+      "artifact_sha256": "8bf36b6c453b450b78c2d42644a4f792c4da6bfc520b6175cb42c4b41e931042",
+      "actor": "gpt",
+      "observer": "pm-promotion-01a0fcb3",
+      "at": "2026-10-03T15:11:37+00:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5970451267",
+      "loaded_identity": "JBR 21.0.11; plain/app JAR SHA256 matched; screen run candidate-a1e4-p485, source a1e4dd012c5b, JAR 8bf36b6c453b; controlled app boots 65fabdc7 and 98fc7408 matched full-hash BOOT/READY logs. All owned processes exited.",
+      "execution": "computer_use",
+      "reason": "固定probeの資材・手順・実測記録の整合を確認。Dialogと基本操作は今回成功。plain識別とPopup展開取得の制約、IME/D&D未試行を区別し、親73や製品GUIの合格には拡張しない。"
     },
     "39:RESTORE-TARGET-1": {
       "status": "pending",
