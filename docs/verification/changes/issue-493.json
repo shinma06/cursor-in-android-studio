@@ -105,7 +105,7 @@
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
-      "next_action": "同一製品buildの残部を指定GUI担当が確認する。モデルpopupの製品failは専用fix登録の本人承認後に切り分け/修正し、旧Case全体のpassへ代用しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
+      "next_action": "同一製品buildの残部を指定GUI担当が確認する。popupのマウス経路は別windowの観察を含めて切り分け、未確認を製品failまたはpassと断定しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/493",
@@ -127,7 +127,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。Model行マウス操作で候補一覧が開かない現象を2回観察（開き直してキーボードでは成功）。専用fix Issue/Project/依存登録は自動承認レビューに拒否され本人承認待ち。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
+        "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。マウス経路の観察はフォーカス中の親popupだけを取得しており、別windowの子popup表示を確認できないため製品failとは断定しない。開き直してキーボードでは候補一覧/選択に成功。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -193,20 +193,20 @@
         },
         {
           "actor": "gpt",
-          "status": "fail",
+          "status": "pending",
           "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
           "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
           "observer": "pm-settings-fix-01a0fcb3",
           "at": "2026-10-03T18:10:39.636036+00:00",
           "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
-          "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。Model行マウス操作で候補一覧が開かない現象を2回観察（開き直してキーボードでは成功）。専用fix Issue/Project/依存登録は自動承認レビューに拒否され本人承認待ち。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
+          "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。マウス経路の観察はフォーカス中の親popupだけを取得しており、別windowの子popup表示を確認できないため製品failとは断定しない。開き直してキーボードでは候補一覧/選択に成功。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
           "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
         }
       ],
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
-      "next_action": "同一製品buildの残部を指定GUI担当が確認する。モデルpopupの製品failは専用fix登録の本人承認後に切り分け/修正し、旧Case全体のpassへ代用しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
+      "next_action": "同一製品buildの残部を指定GUI担当が確認する。popupのマウス経路は別windowの観察を含めて切り分け、未確認を製品failまたはpassと断定しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/493",
