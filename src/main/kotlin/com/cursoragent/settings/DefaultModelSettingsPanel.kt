@@ -23,7 +23,7 @@ internal class DefaultModelSettingsPanel(
 ) : JPanel(BorderLayout()) {
     internal val draft = AgentSettingsState().apply { selectedModel = saved.selectedModel }
     internal val selector = ModelSelector(draft)
-    private var catalog: ModelCatalogState = ModelCatalogState.Loading
+    private var catalog: ModelCatalogState = ModelCatalogState.NotRequested
     private var disposed = false
     private val loader = ModelCatalogLoader(fetch, execute, dispatch, { !disposed }) {
         catalog = it
@@ -33,7 +33,7 @@ internal class DefaultModelSettingsPanel(
     init {
         add(selector, BorderLayout.WEST)
         selector.onRetry = loader::load
-        loader.load()
+        selector.showCatalog(catalog)
     }
 
     fun isModified(saved: AgentSettingsState): Boolean = !disposed && draft.selectedModel != saved.selectedModel

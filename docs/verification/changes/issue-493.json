@@ -1,0 +1,227 @@
+{
+  "schema": 1,
+  "issue": 493,
+  "gui_required": true,
+  "reason": "Settingsの幅・入力操作とモデルmetadata取得時点を変更する。旧候補の実GUIで再現した問題であり、修正後の固定build/実画面が必要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew test buildPlugin verifyPluginStructure",
+    "DefaultModelSettingsPanelTest/ModelCatalogStatusTest/ModelCatalogLoaderTest: 無操作の無実行、保存ID保持、明示取得、失敗/再試行/破棄後配送",
+    "AgentSettingsLayoutTest: 実Settings生成経路で狭幅へ追従し、操作ボタンと診断の複数行/設定選択値の可読性を保つ",
+    "固定HEAD/base別sessionレビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "SETTINGS-NARROW-PATH",
+      "issue": 493,
+      "change": "長いCLIパスでもSettingsの操作と説明を窓内へ収める",
+      "preconditions": "GUI担当/host lease、#493を含む固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を記録。専用profileと合成project/metadata CLIだけを使う。通常設定や認証を変更しない。",
+      "steps": [
+        "元CLI/通知設定を控え、通信しない合成CLIを用意する。固定ZIP/source/全JAR/実ロードを照合した専用IDEのSettingsを900論理px相当へ狭める。",
+        "空欄と長い絶対パスを表示し、入力欄・browse・自動検出に戻すが見えることを確認する。説明/診断は折り返しと縦scrollで読めることを確認する。",
+        "長い手動パスをApplyして再表示、元の値を保持する。自動検出に戻すを押してCancel→手動値保持、再度押してApply→自動状態/保存値空を確認する。",
+        "通知だけの変更/復元で自動状態を保つ。手動値から空欄Applyでも自動へ戻る。Tab/Space/Enterで主要操作へ到達し、元設定へ復元する。"
+      ],
+      "expected": "長いパスや説明が全体幅を押し広げず、自動検出・Apply/Cancel・診断操作が画面外へ出ない。パスの値/保存と未適用変更の区別を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pass",
+        "reason": "同一855d1d1/ZIPのr1+r2で全4手順を確認。900論理pxで長いパス・操作ボタン・設定選択値・複数行診断を表示し、Browse/診断更新・コピー、手動/空欄/自動検出のApplyとCancel、通知だけの変更と復元、Tab/Space/Enter、再表示時Apply無効を確認。専用profileを元の手動fixtureパス/既定通知へ復元した。",
+        "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+        "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+        "observer": "pm-settings-fix-01a0fcb3",
+        "at": "2026-10-03T18:43:04+00:00",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972176879",
+        "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; dedicated profiles, all 5 installed/open JARs and embedded source matched fixed ZIP at launch and real restart; owned IDE/fixture processes exited.",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "b768d0879de293c15220e4013a1f37e34d3d083f",
+          "artifact_sha256": "b8216b3307234381df5d47af93df5000deec3db31672ef8c2ef1d614ce3b0694",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:17:40.466579+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971568436",
+          "reason": "900論理pxのSettingsで自動検出ボタン/説明が右端で切れた。保存操作前に停止。同じ未統合修正の次HEADで再確認する。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "693fd4bf6bc91a15a49c71c5822d16cf12913d54",
+          "artifact_sha256": "a713461717ccdcc3f96b9381b705c8cc8c9c3a31f610ea5ab622e7ee257c38ff",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:26:14.096960+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971638827",
+          "reason": "ラベル段を変更しても900論理pxでフォームが窓幅を超え、自動検出ボタン/説明が切れた。viewport幅追従を修正して再確認する。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "cc469ae1fded4d06b15cfe72bf08450bf0ba1823",
+          "artifact_sha256": "dac1a814e57ac26e7cb9bdf8b3078ba5415bf076da1a6f5359c9c91d839a5db0",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:35:54.712533+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971718957",
+          "reason": "直接viewportテストは通ったが実Settingsの余白wrapperで幅追従が失われ、900論理pxでボタン/説明が切れた。実IDE生成経路を含めて修正し再確認する。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "f44af572096a645e15f9745b1bacf8542773be12",
+          "artifact_sha256": "736aecbc1ab2515a815992a23e4ccf34805a2544db4182e66ff38180a35c10eb",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:45:54.313351+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971799934",
+          "reason": "900論理pxで自動検出ボタン表示/クリックは回復し、Cancelで元設定保持。ただし診断1行高と設定値の極端な省略が残り、複数行の可読性まで修正し再確認する。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+          "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T18:10:39.635990+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+          "reason": "855d1d1で900論理pxの操作ボタン/選択値/複数行診断の可読性、長い手動パス、空欄Applyと自動検出Cancel、通知復元、Browse Cancel、診断更新/コピーを確認。Tab/Space/Enterと自動検出ボタンApplyを含む全手順は未完了。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
+      "next_action": "固定HEAD/baseの独立レビューとQA/mainへの双方向引継ぎ。今回の製品build観察を新promotion候補へ転記せず、新候補の全必要Caseを同一buildで確認する。mouse子popupの未観察経路は既存QAで保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972048236",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972176879",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972261545"
+      ]
+    },
+    {
+      "id": "SETTINGS-EXPLICIT-MODELS",
+      "issue": 493,
+      "change": "Settingsの表示だけではCLIを起動せず、明示取得で一覧を読み込む",
+      "preconditions": "GUI担当/host lease、#493を含む固定候補source/ZIP SHA256/installed全JAR/起動ロード実体を記録。専用profileと合成project/metadata CLIだけを使う。通常設定や認証を変更しない。",
+      "steps": [
+        "起動argvを記録する合成metadata CLIを設定し、保存IDの空/Auto/未知値を各専用profileで用意する。Settings表示/reset/診断更新/コピー/閉じて再表示だけではCLI呼出が増えず、保存IDが保持されることを確認する。",
+        "「モデル一覧を取得」をクリックまたはSpaceで操作する。--list-modelsだけが一度開始し、取得中の再入力で重複しないことを確認する。遅延/失敗/空一覧/再試行/成功を有限fixtureで確認する。",
+        "実ID相当の合成一覧を選んでもApply前はXML不変、Cancel/resetで元へ戻り、Apply/IDE再起動で選択を保持する。CLI path変更後はApplyして開き直し、新pathで明示取得する。",
+        "取得途中で設定を閉じ、遅着が破棄済みviewや保存値へ反映されずpopupが残らないことを確認する。Composerの従来取得とACP server由来モデルを別に観察し、Settingsの未取得状態が混入しないことを確認する。"
+      ],
+      "expected": "Settingsは閲覧だけでCLIを実行しない。取得は明示操作から既存loaderへ入り、失敗/取消/未知ID/Apply境界を維持する。Composer/ACPの動作を変更しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pass",
+        "reason": "同一855d1d1/ZIPのr1〜r3で全4手順を確認。空/Auto/未知IDの閲覧だけでは取得せず、明示取得・取得中無効化と単一argv・失敗/空/遅延取消/再試行、保存前XML不変とCancel/reset、Apply/実IDE再起動、変更後CLIでの取得を実測。print Composerは従来の自動取得、合成ACPはserver候補とSmall選択を保持しSettingsの未取得/保存IDと分離。選択はキーボードで確認。mouse子popupの全表示は観察不能であり、その経路や実Cursor providerの成功、旧Case全体passを示すものではない。",
+        "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+        "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+        "observer": "pm-settings-fix-01a0fcb3",
+        "at": "2026-10-03T18:43:04+00:00",
+        "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972261545",
+        "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; dedicated profiles, all 5 installed/open JARs and embedded source matched fixed ZIP at launch and real restart; owned IDE/fixture processes exited.",
+        "execution": "computer_use"
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "b768d0879de293c15220e4013a1f37e34d3d083f",
+          "artifact_sha256": "b8216b3307234381df5d47af93df5000deec3db31672ef8c2ef1d614ce3b0694",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:17:40.466579+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971568436",
+          "reason": "Settings表示からCancel/終了までCLI呼出0を確認。明示取得以降は未実施。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "693fd4bf6bc91a15a49c71c5822d16cf12913d54",
+          "artifact_sha256": "a713461717ccdcc3f96b9381b705c8cc8c9c3a31f610ea5ab622e7ee257c38ff",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:26:14.096960+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971638827",
+          "reason": "Settings閲覧/Cancel/終了までCLI呼出0。明示取得以降は未実施。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "cc469ae1fded4d06b15cfe72bf08450bf0ba1823",
+          "artifact_sha256": "dac1a814e57ac26e7cb9bdf8b3078ba5415bf076da1a6f5359c9c91d839a5db0",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:35:54.712533+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971718957",
+          "reason": "Settings閲覧/Cancel/終了までCLI呼出0。明示取得以降は未実施。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "f44af572096a645e15f9745b1bacf8542773be12",
+          "artifact_sha256": "736aecbc1ab2515a815992a23e4ccf34805a2544db4182e66ff38180a35c10eb",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:45:54.313351+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971799934",
+          "reason": "Settings閲覧/自動検出/Cancel/終了までCLI呼出0。明示取得以降は未実施。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+          "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T18:10:39.636036+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+          "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。マウス経路の観察はフォーカス中の親popupだけを取得しており、別windowの子popup表示を確認できないため製品failとは断定しない。開き直してキーボードでは候補一覧/選択に成功。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        }
+      ],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
+      "next_action": "固定HEAD/baseの独立レビューとQA/mainへの双方向引継ぎ。今回の製品build観察を新promotion候補へ転記せず、新候補の全必要Caseを同一buildで確認する。mouse子popupの未観察経路は既存QAで保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972048236",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972176879",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5972261545"
+      ]
+    }
+  ]
+}
