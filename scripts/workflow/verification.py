@@ -1,5 +1,6 @@
 """Acceptance data and fixed-candidate gates. Never execute code from a PR."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -8,6 +9,7 @@ import subprocess
 SHA = re.compile(r'[0-9a-f]{40}')
 HASH = re.compile(r'[0-9a-f]{64}')
 PROMOTION = 'docs/verification/promotion.json'
+ENVIRONMENT = 'docs/verification/environments/rabbit1.json'
 STATUSES = {'pending', 'blocked', 'fail', 'pass'}
 TOOLING = ('docs/', 'scripts/', '.github/', '.githooks/', '.agents/', '.claude/skills/', '.cursor/rules/')
 
@@ -145,6 +147,68 @@ def regular_json(ref, path, git):
     return json.loads(git('show', f'{ref}:{path}'), object_pairs_hook=unique_pairs)
 
 
+def json_hash(data):
+    return hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def environment_cases(base, candidate, git=git_read):
+    """Only fixed trusted-main data may revise a historical Case's environment."""
+    if not git('ls-tree', base, '--', ENVIRONMENT):
+        return {}
+    plan = regular_json(base, ENVIRONMENT, git)
+    if (plan.get('schema') != 1 or plan.get('issue') != 479 or
+            not SHA.fullmatch(plan.get('migration_commit', '')) or not nonempty(plan.get('decision'))):
+        raise ValueError('Invalid environment revision provenance')
+    try:
+        git('merge-base', '--is-ancestor', plan['migration_commit'], candidate)
+    except subprocess.CalledProcessError as error:
+        if error.returncode == 1:
+            return {}  # Pre-migration candidates retain their original requirements.
+        raise
+    environment = plan.get('environment', {})
+    if (set(environment) != {'build', 'java_version', 'jvm_target', 'class_major'} or
+            not all(nonempty(environment.get(k)) for k in ('build', 'java_version', 'jvm_target')) or
+            type(environment.get('class_major')) is not int):
+        raise ValueError('Invalid environment identity')
+    sdk = regular_json(candidate, 'scripts/workflow/plugin_compatibility.json', git)
+    compile = sdk['compile']
+    target = sdk['targets'][compile['target']]
+    if environment != {**{k: target[k] for k in ('build', 'java_version')},
+                       **{k: compile[k] for k in ('jvm_target', 'class_major')}}:
+        raise ValueError('Candidate SDK differs from the reviewed environment revision')
+    entries = plan.get('cases')
+    if not isinstance(entries, dict) or not entries:
+        raise ValueError('Environment revision requires explicit Case identities')
+    revised = {}
+    for key, entry in entries.items():
+        if not re.fullmatch(r'[1-9][0-9]*:[A-Z][A-Z0-9-]+', key) or not isinstance(entry, dict):
+            raise ValueError('Invalid environment Case key')
+        issue, case_id = key.split(':')
+        if (set(entry) - {'source_pr', 'source_merge', 'source_path', 'original_case_sha256', 'preconditions', 'expected'} or
+                type(entry.get('source_pr')) is not int or entry['source_pr'] <= 0 or
+                not SHA.fullmatch(entry.get('source_merge', '')) or
+                entry.get('source_path') != f'docs/verification/changes/issue-{issue}.json' or
+                not HASH.fullmatch(entry.get('original_case_sha256', '')) or
+                not nonempty(entry.get('preconditions')) or ('expected' in entry and not nonempty(entry['expected']))):
+            raise ValueError('Environment revision may change only preconditions and expected environment wording')
+        original = regular_json(entry['source_merge'], entry['source_path'], git)
+        validate_change(original, int(issue), True)
+        matches = [case for case in original['cases'] if case['id'] == case_id]
+        if len(matches) != 1 or json_hash(matches[0]) != entry['original_case_sha256']:
+            raise ValueError('Environment revision original Case hash mismatch: ' + key)
+        case = dict(matches[0], preconditions=entry['preconditions'])
+        if 'expected' in entry:
+            case['expected'] = entry['expected']
+        revised[key] = dict(entry, case=case, original=matches[0], revision=json_hash(plan), environment=environment)
+    return revised
+
+
+def validate_environment(result, revision):
+    if revision and (result.get('environment_revision') != revision['revision'] or
+                     result.get('environment') != revision['environment']):
+        raise ValueError('Case requires a new observation bound to the exact environment revision and runtime')
+
+
 def scoped_history(base, head, allowed, git):
     """Inspect every edge, including changes later reverted; never follow symlinks."""
     previous = base
@@ -215,6 +279,7 @@ def verify_pr(pr, api, git=git_read):
     scope = promotion.get('scope', 'develop')
     if scope not in ('develop', 'main'):
         raise ValueError('Unknown promotion scope')
+    revisions = {} if scope == 'main' else environment_cases(base, candidate, git)
     if scope == 'main':
         if not gui or 'changes' in promotion:
             raise ValueError('Scoped promotion requires GUI and uses trusted plan, not develop changes')
@@ -276,6 +341,11 @@ def verify_pr(pr, api, git=git_read):
             change = validate_change(json.loads(git('show', f'{source["merge_commit_sha"]}:{source_path}')), source_issue, source_gui)
             for case in change['cases']:
                 key = f'{source_issue}:{case["id"]}'
+                revision = revisions.get(key)
+                if revision and (revision['source_pr'] != number or
+                                 revision['source_merge'] != source['merge_commit_sha'] or
+                                 revision['original_case_sha256'] != json_hash(case)):
+                    raise ValueError('Environment revision does not match merged Case provenance: ' + key)
                 requirement = (case.get('required_execution'), case.get('artifact', 'plugin'))
                 if key in required and required[key] != requirement:
                     raise ValueError('Case execution requirement changed across candidate commits')
@@ -296,21 +366,25 @@ def verify_pr(pr, api, git=git_read):
         if not HASH.fullmatch(artifact or ''):
             raise ValueError('Fixed candidate artifact hash is required: ' + artifact_name)
         validate_observation(result, candidate, artifact)
+        validate_environment(result, revisions.get(key))
         if execution and result.get('execution') != execution:
             raise ValueError('Case requires its specified execution method: ' + key)
     return {'mode': mode, 'gui_complete': True, 'cases': len(required), 'candidate': candidate}
 
 
-def render_queue(paths, promotion=None):
+def render_queue(paths, promotion=None, git=git_read):
     """Human view is generated from JSON; it is never a second editable status source."""
     promotion = promotion or {}
     candidate = promotion.get('candidate')
     results = promotion.get('results', {})
+    revisions = (environment_cases(promotion['base'], candidate, git)
+                 if candidate and promotion.get('scope', 'develop') == 'develop' else {})
     rows = []
     for path in paths:
         data = json.loads(Path(path).read_text())
         validate_change(data, data['issue'], data['gui_required'])
-        rows.extend((data, case) for case in data['cases'])
+        rows.extend((data, revisions.get(f'{data["issue"]}:{case["id"]}', {}).get('case', case))
+                    for case in data['cases'])
     lines = ['# 今回の動作確認一覧', '',
              '> 自動生成。結果は正本JSONへ入力して再生成してください。過去buildの結果は参考です。', '',
              '固定候補SHA: ' + (candidate or '未固定'),
@@ -318,7 +392,8 @@ def render_queue(paths, promotion=None):
              '| Case / Issue / PR | 対象 | 候補結果 | main可否（Case単位） | 修正先 |',
              '|---|---|---|---|---|']
     for data, case in rows:
-        result = results.get(f'{data["issue"]}:{case["id"]}', {})
+        key = f'{data["issue"]}:{case["id"]}'
+        result = results.get(key, {})
         passed = False
         try:
             artifacts = dict(promotion.get('artifacts', {}))
@@ -328,6 +403,7 @@ def render_queue(paths, promotion=None):
             if not HASH.fullmatch(artifact or ''):
                 raise ValueError('Candidate artifact not registered')
             validate_observation(result, candidate, artifact)
+            validate_environment(result, revisions.get(key))
             passed = not case.get('required_execution') or result.get('execution') == case['required_execution']
         except ValueError:
             pass
@@ -339,6 +415,12 @@ def render_queue(paths, promotion=None):
                   f'PR: [#{data["pr"]}](https://github.com/shinma06/cursor-in-android-studio/pull/{data["pr"]})' if data.get('pr') else 'PR: 未登録', '', '前提・対象build: ' + case['preconditions'], '']
         if data.get('pr_role') == 'related_evidence_only':
             lines += ['このPRは関連証拠です。親Issueの残条件であり、当該PRのmain受入へ追加しません。', '']
+        revision = revisions.get(f'{data["issue"]}:{case["id"]}')
+        if revision:
+            lines += ['適用環境revision: ' + revision['revision'],
+                      'Rabbit移行後の新しい受入条件です。旧Quailの合格・互換性を示すものではありません。',
+                      '旧固定Caseの前提（履歴）: ' + revision['original']['preconditions'],
+                      '旧固定Caseの期待結果（履歴）: ' + revision['original']['expected'], '']
         lines += [f'{n}. {step}' for n, step in enumerate(case['steps'], 1)]
         lines += ['', '期待結果: ' + case['expected'], '']
         result = results.get(f'{data["issue"]}:{case["id"]}')

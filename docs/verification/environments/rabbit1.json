@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "issue": 479,
+  "decision": "https://github.com/shinma06/cursor-in-android-studio/issues/466",
+  "migration_commit": "bb737e3c0c2fcd75f51f1ff774c008e8a19c17e8",
+  "environment": {
+    "build": "AI-262.9437.185.2621.16467767",
+    "java_version": "25.0.3",
+    "jvm_target": "25",
+    "class_major": 69
+  },
+  "cases": {
+    "205:PROMPT-TAB-FIX": {
+      "source_pr": 403,
+      "source_merge": "14e65392f67b9532b94bf491e56e44548e4d4963",
+      "source_path": "docs/verification/changes/issue-205.json",
+      "original_case_sha256": "ecba4e4e4fb0576eaa0220c96d9d5574935080350f30e7e0786445a4f7edf348",
+      "preconditions": "修正source HEAD・ZIP SHA256・全ロードJARを照合。Rabbit 1 AI-262.9437.185.2621.16467767の同梱JBR 25.0.3を使い、専用profile/使い捨てfixture・host共通GUI leaseで実施。Ask・認証済みPro/Teams、通常送信はIDEごとに1回まで。日本語IMEを使う。"
+    },
+    "208:BROWSER-ENTRY-NAVIGATION": {
+      "source_pr": 260,
+      "source_merge": "4256aa2fa8edb45d58e1facf8a56430b5b8e0a6c",
+      "source_path": "docs/verification/changes/issue-208.json",
+      "original_case_sha256": "d33ddcf64ba49f74d3120f39b4bdfa1a539bf4ab5ba9259a484f1258a8d36e48",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Rabbit 1/build AI-262.9437.185.2621.16467767・bundled JBR 25.0.3・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。"
+    },
+    "208:BROWSER-ERROR-SUPPORT": {
+      "source_pr": 260,
+      "source_merge": "4256aa2fa8edb45d58e1facf8a56430b5b8e0a6c",
+      "source_path": "docs/verification/changes/issue-208.json",
+      "original_case_sha256": "b6a521c7dc099c941a8f6333f02051fccb3c89b04165ed3b4de88be4e98f04b5",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Rabbit 1/build AI-262.9437.185.2621.16467767・bundled JBR 25.0.3・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。"
+    },
+    "208:BROWSER-LIFECYCLE-PROJECT": {
+      "source_pr": 260,
+      "source_merge": "4256aa2fa8edb45d58e1facf8a56430b5b8e0a6c",
+      "source_path": "docs/verification/changes/issue-208.json",
+      "original_case_sha256": "6850ed5031bf6d22217356d8c9a21f6e313b6f2f95a719fdeae2bbe1243dd7f5",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Rabbit 1/build AI-262.9437.185.2621.16467767・bundled JBR 25.0.3・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。"
+    },
+    "208:BROWSER-URL-BOUNDARY": {
+      "source_pr": 260,
+      "source_merge": "4256aa2fa8edb45d58e1facf8a56430b5b8e0a6c",
+      "source_path": "docs/verification/changes/issue-208.json",
+      "original_case_sha256": "f71a250cf395e36d5503a29eb09d8534aa81270cfd7e2f692381640fc2e6fb38",
+      "preconditions": "修正 #208を含むsource SHA・ZIP SHA256・installed全JARと起動ロード実体を一致させる。指定GUI担当のhost lease下で、対象Rabbit 1/build AI-262.9437.185.2621.16467767・bundled JBR 25.0.3・macOS/arm64、provider名/版/有効状態を記録。実行環境の変更は担当の管理下のみ。手順は docs/development/jcef-browser.md。"
+    },
+    "389:MODERN-Q1-TERMINAL-OFF": {
+      "source_pr": 396,
+      "source_merge": "826b53c98ceed05268662aea0050902e2a1c55b1",
+      "source_path": "docs/verification/changes/issue-389.json",
+      "original_case_sha256": "a246642b6581ad15e9c5e8d2364ff4a70fa3923d740c72290d4988a5da0aff26",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE Rabbit 1 AI-262.9437.185.2621.16467767、同梱JBR 25.0.3。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal OFFを専用profileで設定し再起動。",
+      "expected": "Java25の同一ZIPがRabbit 1の同梱JBR25.0.3でloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。"
+    },
+    "389:MODERN-Q1-TERMINAL-ON": {
+      "source_pr": 396,
+      "source_merge": "826b53c98ceed05268662aea0050902e2a1c55b1",
+      "source_path": "docs/verification/changes/issue-389.json",
+      "original_case_sha256": "5abea2cf3f7bf56f439d5287efdc0316665836968aab39abdb3b4e55c68413b6",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE Rabbit 1 AI-262.9437.185.2621.16467767、同梱JBR 25.0.3。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal ONを専用profileで設定し再起動。",
+      "expected": "Java25の同一ZIPがRabbit 1の同梱JBR25.0.3でloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。"
+    },
+    "389:MODERN-Q4-TERMINAL-OFF": {
+      "source_pr": 396,
+      "source_merge": "826b53c98ceed05268662aea0050902e2a1c55b1",
+      "source_path": "docs/verification/changes/issue-389.json",
+      "original_case_sha256": "03c0808e347ec623a386bc64e80e05ce5337439ad90032bceab4b0ee01909f6f",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE Rabbit 1 AI-262.9437.185.2621.16467767、同梱JBR 25.0.3。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal OFFを専用profileで設定し再起動。",
+      "expected": "Java25の同一ZIPがRabbit 1の同梱JBR25.0.3でloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。"
+    },
+    "389:MODERN-Q4-TERMINAL-ON": {
+      "source_pr": 396,
+      "source_merge": "826b53c98ceed05268662aea0050902e2a1c55b1",
+      "source_path": "docs/verification/changes/issue-389.json",
+      "original_case_sha256": "296b99749ee8bfbb477bfd13165585a792c0cd0bf31c1c309275bcf41cd89e13",
+      "preconditions": "#392で確定する同一RCのsource/version/ZIP hashと全配置JARを照合。対象IDE Rabbit 1 AI-262.9437.185.2621.16467767、同梱JBR 25.0.3。指定operatorのGUI lease、専用profile・使い捨てproject・認証済みCursor CLIを使う。Terminal ONを専用profileで設定し再起動。",
+      "expected": "Java25の同一ZIPがRabbit 1の同梱JBR25.0.3でloadし、print/ACP・表示・保存互換が維持される。Terminal無効でもチャットを利用できる。既存Caseの受入は別途全件保持。"
+    },
+    "404:PROMPT-DOCUMENT-EVENTS": {
+      "source_pr": 405,
+      "source_merge": "e938308dd75ca800d8a7a2344554b0f43cb43abc",
+      "source_path": "docs/verification/changes/issue-404.json",
+      "original_case_sha256": "5b7d0ab4b776df2e8941156b80c2f16ef595827c11b3cad62e2a25dcb9e0ebf5",
+      "preconditions": "修正source HEAD・ZIP SHA256・全ロードJARを照合。Rabbit 1 AI-262.9437.185.2621.16467767の同梱JBR 25.0.3を使い、専用profile/使い捨てfixture・host共通GUI leaseで実施。Ask・認証済みPro/Teams、通常送信はIDEごとに1回まで。日本語IMEを使う。"
+    }
+  }
+}
