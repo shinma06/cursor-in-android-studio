@@ -983,11 +983,13 @@
     },
     "28:DIAGNOSTICS-BUILD-IDENTITY": {
       "status": "pending",
-      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+      "reason": "固定build/表示/コピー/Cancelは部分観察済み。レイアウト不具合で停止し全条件は未達。",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055"
     },
     "28:DIAGNOSTICS-CLI-COPY": {
       "status": "pending",
-      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+      "reason": "固定build/表示/コピー/Cancelは部分観察済み。レイアウト不具合で停止し全条件は未達。",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055"
     },
     "254:PRINT-DELTA-FLUSH": {
       "status": "pending",
@@ -1202,8 +1204,17 @@
       "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
     },
     "76:CLI-PATH-1": {
-      "status": "pending",
-      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+      "status": "fail",
+      "head": "74313e643df6b92f91de49178e13a678e14d8c18",
+      "artifact_sha256": "56ceb4853977f8a30f9e7f3f4f3c5ab84e12c8c8c2d4ea06621cdd64f9194ad4",
+      "actor": "gpt",
+      "observer": "pm-promotion-01a0fcb3",
+      "at": "2026-10-03T16:52:40.767476+00:00",
+      "execution": "computer_use",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/485#issuecomment-5971285055",
+      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767/JBR25.0.3; all5 installed/open JAR hashes matched fixed ZIP in both owned IDE processes; Settings source74313e6/version matched. Both processes exited.",
+      "reason": "長いCLIパスで自動検出ボタンが画面外になりクリック不可。横scrollでも回復せず。専用fix #493へ移管し、残手順は未実施。",
+      "fix_issue": 493
     },
     "42:PROMPT-TAB-1": {
       "status": "pending",
