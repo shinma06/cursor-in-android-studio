@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 479,
+  "gui_required": false,
+  "reason": "固定main由来の受入環境改訂とgate/生成一覧だけの変更。製品・SDK・ZIP・GUI操作は変更しない。旧Caseの全手順と必要集合を保持し、実GUI passは各QAで別途取得する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "test_verification: trusted base、固定原Case hash、新観察の環境revision、旧候補、誤SDK、実施経路/artifact、履歴表示の検査",
+    "固定develop候補の全172 Case照合: 対象10件の前提だけを改訂し、172件・Computer Use必須4件・全手順とartifactが不変であることを確認（GUI passではない）"
+  ],
+  "cases": []
+}
