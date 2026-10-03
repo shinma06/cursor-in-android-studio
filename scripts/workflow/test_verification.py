@@ -2,6 +2,7 @@ import copy
 import json
 from pathlib import Path
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import Mock, patch
 from types import SimpleNamespace
@@ -9,7 +10,7 @@ from types import SimpleNamespace
 import agent_loop as al
 from agent_policy import binding, next_action
 from handoff_registry import register, resolve
-from verification import metadata, validate_change, verify_pr, render_queue
+from verification import metadata, validate_change, verify_pr, render_queue, ENVIRONMENT, json_hash, environment_cases
 from test_agent_loop import pr_data, report, HEAD, BASE, NEW
 import test_agent_loop as tal
 
@@ -63,6 +64,8 @@ class AcceptanceTests(unittest.TestCase):
             return args[-1] + ' ' + BASE
         if args[0] == 'rev-list':
             return '' if '--not' in args else '\n'.join(self.range)
+        if args[0] == 'ls-tree':
+            return ''
         if args[0] == 'fetch':
             return ''
         if args[0] == 'merge-base':
@@ -81,6 +84,95 @@ class AcceptanceTests(unittest.TestCase):
         for actor in ('gpt', 'human'):
             self.manifest['results']['36:QA-1']['actor'] = actor
             self.assertEqual(self.verify()['cases'], 1)
+
+    def environment_fixture(self):
+        original = self.documents[f'{NEW}:docs/verification/changes/issue-36.json']['cases'][0]
+        original['required_execution'] = 'computer_use'
+        environment = {'build': 'AI-262.9437.185.2621.16467767', 'java_version': '25.0.3',
+                       'jvm_target': '25', 'class_major': 69}
+        plan = {'schema': 1, 'issue': 479, 'decision': 'https://example.invalid/decision',
+                'migration_commit': 'f' * 40, 'environment': environment,
+                'cases': {'36:QA-1': {'source_pr': 99, 'source_merge': NEW,
+                          'source_path': 'docs/verification/changes/issue-36.json',
+                          'original_case_sha256': json_hash(original), 'preconditions': 'Rabbitの固定候補'}}}
+        self.documents[f'{BASE}:{ENVIRONMENT}'] = plan
+        self.documents[f'{NEW}:scripts/workflow/plugin_compatibility.json'] = {
+            'compile': {'target': 'rabbit1', 'jvm_target': '25', 'class_major': 69},
+            'targets': {'rabbit1': {'build': environment['build'], 'java_version': '25.0.3'}}}
+        previous = self.git
+        def git(*args):
+            if args[0] == 'ls-tree':
+                return '100644 blob ' + 'a' * 40 + '\t' + args[-1] if f'{args[1]}:{args[-1]}' in self.documents else ''
+            return previous(*args)
+        self.git = git
+        self.manifest['results']['36:QA-1'].update(environment_revision=json_hash(plan),
+            environment=copy.deepcopy(environment), execution='computer_use')
+        return plan
+
+    def test_environment_revision_preserves_cases_artifact_execution_and_observation(self):
+        self.environment_fixture()
+        self.assertEqual(self.verify()['cases'], 1)
+        result = self.manifest['results']['36:QA-1']
+        original = copy.deepcopy(result)
+        for mutation in ({'environment_revision': None}, {'environment_revision': 'a' * 64},
+                         {'environment': dict(result['environment'], build='AI-261.1')},
+                         {'environment': dict(result['environment'], java_version='21')},
+                         {'execution': 'manual'}, {'artifact_sha256': 'a' * 64}, {'head': HEAD}):
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                self.manifest['results']['36:QA-1'] = dict(original, **mutation)
+                self.verify()
+        self.manifest['results'] = {}
+        with self.assertRaisesRegex(ValueError, 'ALL'): self.verify()
+
+    def test_environment_revision_binds_original_and_rejects_behavior_fields(self):
+        plan = self.environment_fixture()
+        entry = plan['cases']['36:QA-1']
+        for key, value in [('source_pr', 100), ('original_case_sha256', 'a' * 64),
+                           ('steps', []), ('required_execution', None), ('artifact', 'different'),
+                           ('source_path', '../elsewhere')]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                saved = copy.deepcopy(entry); entry[key] = value
+                self.verify()
+            entry.clear(); entry.update(saved)
+        self.documents[f'{NEW}:docs/verification/changes/issue-36.json']['cases'][0]['steps'] = ['altered']
+        with self.assertRaisesRegex(ValueError, 'hash mismatch'): self.verify()
+
+    def test_environment_revision_ignores_head_policy_and_pre_migration_candidate(self):
+        plan = self.environment_fixture()
+        self.documents[f'{HEAD}:{ENVIRONMENT}'] = {'schema': 'untrusted'}
+        self.assertEqual(self.verify()['cases'], 1)
+        prior = self.git
+        def git(*args):
+            if args == ('merge-base', '--is-ancestor', plan['migration_commit'], NEW):
+                raise subprocess.CalledProcessError(1, args)
+            return prior(*args)
+        self.git = git
+        self.manifest['results']['36:QA-1'].pop('environment_revision')
+        self.assertEqual(self.verify()['cases'], 1)
+
+    def test_environment_revision_rejects_unknown_sdk_and_nonregular_policy(self):
+        self.environment_fixture()
+        sdk = self.documents[f'{NEW}:scripts/workflow/plugin_compatibility.json']
+        sdk['compile']['jvm_target'] = '21'
+        with self.assertRaisesRegex(ValueError, 'SDK differs'): self.verify()
+        sdk['compile']['jvm_target'] = '25'
+        previous = self.git
+        self.git = lambda *args: previous(*args).replace('100644', '120000') if args[0] == 'ls-tree' else previous(*args)
+        with self.assertRaisesRegex(ValueError, 'regular JSON'): self.verify()
+
+    def test_environment_queue_shows_new_conditions_but_preserves_original_steps_history(self):
+        self.environment_fixture()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'case.json'
+            path.write_text(json.dumps(self.documents[f'{NEW}:docs/verification/changes/issue-36.json']))
+            output = render_queue([path], self.manifest, self.git)
+            for expected in ('Case合格', '適用環境revision:', 'Rabbitの固定候補', '1. 設定を開く',
+                             '旧固定Caseの前提（履歴）: 固定候補ZIPをロードする', '旧Quailの合格・互換性を示すものではありません'):
+                self.assertIn(expected, output)
+            del self.manifest['results']['36:QA-1']['environment_revision']
+            output = render_queue([path], self.manifest, self.git)
+            self.assertNotIn('Case合格', output)
+            self.assertIn('固定候補のpass未登録', output)
 
     def test_one_pass_cannot_promote_two_commits(self):
         self.range.append('f' * 40)
@@ -185,7 +277,7 @@ class AcceptanceTests(unittest.TestCase):
     def test_current_candidate_results_render_observer_and_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'case.json'; path.write_text(json.dumps(change(36)))
-            output = render_queue([path], self.manifest)
+            output = render_queue([path], self.manifest, self.git)
             self.assertIn('reviewer-1', output)
             self.assertIn('https://example.invalid/evidence', output)
             self.assertIn('Case合格', output)
