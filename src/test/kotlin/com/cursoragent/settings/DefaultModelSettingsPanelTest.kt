@@ -22,8 +22,28 @@ class DefaultModelSettingsPanelTest {
     }
 
     @Test
+    fun `opening resetting and applying settings never starts metadata before an explicit request`() = SwingUtilities.invokeAndWait {
+        for (id in listOf("", "auto", "saved-unknown-id")) {
+            val f = Fixture(AgentSettingsState().apply { selectedModel = id })
+            assertTrue(f.panel.selector.isEnabled)
+            assertEquals("モデル一覧を取得", f.panel.selector.text)
+            f.panel.reset(f.saved)
+            f.panel.applyTo(f.saved)
+            assertTrue(f.work.isEmpty())
+            assertEquals(id, f.saved.selectedModel)
+            assertFalse(f.panel.isModified(f.saved))
+            f.panel.selector.doClick()
+            assertEquals(1, f.work.size)
+            assertFalse(f.panel.selector.isEnabled)
+            assertEquals(id, f.saved.selectedModel)
+            f.panel.dispose()
+        }
+    }
+
+    @Test
     fun `loading failure empty and retry retain the saved unknown ID until Apply`() = SwingUtilities.invokeAndWait {
         val f = Fixture()
+        f.panel.selector.doClick()
         assertFalse(f.panel.selector.isEnabled)
         assertFalse(f.panel.isModified(f.saved))
         f.complete()
@@ -53,6 +73,7 @@ class DefaultModelSettingsPanelTest {
         f.panel.draft.selectedModel = "auto"
         f.panel.reset(f.saved)
         assertEquals("saved-unknown-id", f.panel.draft.selectedModel)
+        f.panel.selector.doClick()
         f.work.removeAt(0)()
         val text = f.panel.selector.text
         f.panel.dispose()

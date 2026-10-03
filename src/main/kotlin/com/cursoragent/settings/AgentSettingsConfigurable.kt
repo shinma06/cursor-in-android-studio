@@ -5,18 +5,20 @@ import com.cursoragent.ui.ImmediateEditNotice
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.FormBuilder
+import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.event.DocumentEvent
 
-class AgentSettingsConfigurable : Configurable {
+class AgentSettingsConfigurable : Configurable, Configurable.NoMargin {
     private var fontSizeBox: javax.swing.JComboBox<String>? = null
     private var wrapCodeBox: JBCheckBox? = null
     private val fontSizes = listOf(0) + (8..36)
@@ -26,7 +28,7 @@ class AgentSettingsConfigurable : Configurable {
     private var defaultModelPanel: DefaultModelSettingsPanel? = null
     private var agentPathField: TextFieldWithBrowseButton? = null
     private var agentPathSelection: AgentExecutablePathSelection? = null
-    private var agentPathDescription: JBLabel? = null
+    private var agentPathDescription: JBTextArea? = null
     private var updatingAgentPath = false
     private var notifyOnTurnCompleteBox: JBCheckBox? = null
     private var notifyOnApprovalPendingBox: JBCheckBox? = null
@@ -36,9 +38,10 @@ class AgentSettingsConfigurable : Configurable {
     override fun createComponent(): JComponent {
         val settings = AgentSettingsState.getInstance()
         agentPathSelection = AgentExecutablePathSelection().apply { reset(settings.agentExecutablePath) }
-        agentPathDescription = JBLabel()
+        agentPathDescription = wrappingNote("")
 
         agentPathField = TextFieldWithBrowseButton().apply {
+            textField.columns = 24
             addBrowseFolderListener(
                 "cursor-agentの実行ファイルを選択",
                 "agentコマンドの実行ファイルを指定してください",
@@ -78,17 +81,17 @@ class AgentSettingsConfigurable : Configurable {
 
         diagnosticsPanel = PluginDiagnosticsPanel()
 
-        panel = FormBuilder.createFormBuilder()
+        val form = FormBuilder.createFormBuilder()
             .addComponent(ImmediateEditNotice())
-            .addLabeledComponent("CLIの実行ファイル:", agentPathPanel)
+            .addLabeledComponent("CLIの実行ファイル:", agentPathPanel, true)
             .addComponent(agentPathDescription!!)
             .addLabeledComponent("メッセージの送信キー:", sendKeyBox!!)
             .addLabeledComponent("会話本文の文字サイズ:", fontSizeBox!!)
             .addComponent(wrapCodeBox!!)
-            .addComponent(JBLabel("適用すると全会話へ反映します。標準はIDEの表示文字・拡大率に追従します。"))
+            .addComponent(wrappingNote("適用すると全会話へ反映します。標準はIDEの表示文字・拡大率に追従します。"))
             .addLabeledComponent("新規会話の既定モデル（互換CLI）:", defaultModelPanel!!)
-            .addComponent(JBLabel("適用後に作る互換CLI会話だけに使います。既存・復元会話とACPには適用しません。"))
-            .addComponent(JBLabel("一覧は適用済みのCLI設定で取得します。CLIを変更した場合は適用して設定を開き直してください。"))
+            .addComponent(wrappingNote("適用後に作る互換CLI会話だけに使います。既存・復元会話とACPには適用しません。"))
+            .addComponent(wrappingNote("一覧は「モデル一覧を取得」で適用済みのCLIから取得します。CLIを変更した場合は適用して設定を開き直してください。"))
             .addComponent(notifyOnTurnCompleteBox!!)
             .addComponent(notifyOnApprovalPendingBox!!)
             .addSeparator()
@@ -96,7 +99,20 @@ class AgentSettingsConfigurable : Configurable {
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
+        panel = ScrollablePanel(BorderLayout()).apply {
+            // Keep the standard Settings padding without its non-scrollable margin wrapper.
+            border = JBUI.Borders.empty(11, 16, 16, 16)
+            add(form, BorderLayout.NORTH)
+        }
         return panel!!
+    }
+
+    private fun wrappingNote(text: String) = JBTextArea(text).apply {
+        isEditable = false
+        isFocusable = false
+        isOpaque = false
+        lineWrap = true
+        wrapStyleWord = true
     }
 
     override fun isModified(): Boolean {

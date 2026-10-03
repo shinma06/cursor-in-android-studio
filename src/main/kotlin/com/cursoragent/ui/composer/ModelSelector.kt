@@ -22,7 +22,10 @@ class ModelSelector(
         showsChevron = true
         showCatalog(ModelCatalogState.Loading)
         addActionListener {
-            if (!acp && (catalog == ModelCatalogState.Failed || (catalog as? ModelCatalogState.Loaded)?.models?.isEmpty() == true)) {
+            if (!acp && (
+                    catalog == ModelCatalogState.NotRequested || catalog == ModelCatalogState.Failed ||
+                        (catalog as? ModelCatalogState.Loaded)?.models?.isEmpty() == true
+                    )) {
                 onRetry()
                 return@addActionListener
             }
@@ -111,6 +114,7 @@ class ModelSelector(
         catalog = state
         showsChevron = state is ModelCatalogState.Loaded && state.models.isNotEmpty()
         when (state) {
+            ModelCatalogState.NotRequested -> showCatalogStatus("モデル一覧を取得", retry = true)
             ModelCatalogState.Loading -> showCatalogStatus("モデルを取得中…", retry = false)
             ModelCatalogState.Failed -> showCatalogStatus("モデル取得に失敗 · 再試行", retry = true)
             is ModelCatalogState.Loaded -> {
@@ -133,7 +137,7 @@ class ModelSelector(
     private fun showCatalogStatus(label: String, retry: Boolean) {
         text = label
         val saved = settings.selectedModel.ifEmpty { "既定モデル" }
-        toolTipText = "$label。選択を保持: $saved" + if (retry) "。クリックまたはSpaceで再取得します。" else ""
+        toolTipText = "$label。選択を保持: $saved" + if (retry) "。クリックまたはSpaceで取得します。" else ""
         getAccessibleContext().accessibleName = toolTipText
         isEnabled = retry
         revalidate()
