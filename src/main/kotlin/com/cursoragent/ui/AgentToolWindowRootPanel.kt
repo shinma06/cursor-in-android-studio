@@ -4,12 +4,15 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.header.AgentHeaderBar
 import com.cursoragent.ui.header.HeaderOptionsPopup
 import com.cursoragent.ui.timeline.ChatTimelinePanel
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import javax.swing.JPanel
 
-class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
+class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()), Disposable {
+    private val controller: AgentUiController
+
     init {
         border = JBUI.Borders.empty()
         isOpaque = true
@@ -18,7 +21,7 @@ class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
         val timeline = ChatTimelinePanel()
         val composer = ComposerPanel(project)
         val header = AgentHeaderBar()
-        val controller = AgentUiController(project, timeline, composer, header)
+        controller = AgentUiController(project, timeline, composer, header)
 
         composer.onSend = { text -> controller.sendPrompt(text) }
         composer.onStop = { controller.stopRun() }
@@ -30,4 +33,6 @@ class AgentToolWindowRootPanel(project: Project) : JPanel(BorderLayout()) {
         add(timeline, BorderLayout.CENTER)
         add(composer, BorderLayout.SOUTH)
     }
+
+    override fun dispose() = controller.dispose()
 }
