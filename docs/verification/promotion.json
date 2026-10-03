@@ -1,45 +1,1234 @@
 {
   "schema": 1,
-  "scope": "main",
-  "base": "5b0e0052be5e0f8cef6220635199ccf6ff3b7be9",
-  "candidate": "9a34a37288fcb2613031d427026e861267322a39",
-  "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
-  "results": {
-    "470:MAIN-RABBIT-TERMINAL-ON": {
-      "status": "pass",
-      "head": "9a34a37288fcb2613031d427026e861267322a39",
-      "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
-      "reason": "Terminal ONでprint応答、Stop/New Chat、実Terminal出力の@terminal取得、Ask/通知設定と履歴metadataの再起動保持を実画面で確認。所有processの後始末完了。",
-      "actor": "gpt",
-      "observer": "codex-session-01a0fc59",
-      "at": "2026-10-02T15:13:52+00:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
-      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
-      "execution": "computer_use"
+  "base": "fce7f6e99085d1b51b9a1b26ed617de47e56609a",
+  "candidate": "ebac56fe441c08a6c869b8be3b1aa906a887c14e",
+  "changes": [
+    {
+      "commit": "00f2f4397a80ecddcca34ebd16031aec3388484e",
+      "pr": 272
     },
-    "470:MAIN-RABBIT-TERMINAL-OFF": {
-      "status": "pass",
-      "head": "9a34a37288fcb2613031d427026e861267322a39",
-      "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
-      "reason": "TerminalとIDE指定の依存プラグインを専用profileで無効化・再起動。print応答、Stop/New Chat、設定と履歴metadataの再起動保持、所有processの後始末を確認。",
-      "actor": "gpt",
-      "observer": "codex-session-01a0fc59",
-      "at": "2026-10-02T15:13:52+00:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
-      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
-      "execution": "computer_use"
+    {
+      "commit": "01e5b71d92f655767f779a0165dbc2ca7fb8bd1c",
+      "pr": 323
     },
-    "470:MAIN-RABBIT-VFS-FLUSH": {
-      "status": "pass",
-      "head": "9a34a37288fcb2613031d427026e861267322a39",
-      "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
-      "reason": "保存直後の実CLI/Git読取りと復元、実VFS保存待ち中のStop/新規会話とStopを介さない画面破棄、遅延生成processの停止と新runへの非混入を同一ZIPで確認。保存待ち/Gitはbackgroundで実行し、準備/実行中の復元を拒否。復元modal中の送信クリックが正常完了しても別prompt/CLIが始まらず、復元後のdisk/IDE内容がcheckpointと一致することを確認。flush失敗は安全に再現できず未確認。",
-      "actor": "gpt",
-      "observer": "codex-session-01a0fc59",
-      "at": "2026-10-03T00:53:53+00:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5963834082",
-      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
-      "execution": "computer_use"
+    {
+      "commit": "029060104ff8b077fea9868e50dd678445b60827",
+      "pr": 236
+    },
+    {
+      "commit": "039cb74128e14a9ab0a969e227a3334b251041cd",
+      "pr": 265
+    },
+    {
+      "commit": "0562f9bc0dbaaeda9af3780ee30daedfb0c50e9d",
+      "pr": 181
+    },
+    {
+      "commit": "0663203b447f7fecc5bc2fbc9a1266e8d1a001e4",
+      "pr": 439
+    },
+    {
+      "commit": "07d27af5f7571310c211aa32a6995f17c139f68e",
+      "pr": 377
+    },
+    {
+      "commit": "0a70b0dd84816bca851742c93ea0240bacd5b9ee",
+      "pr": 445
+    },
+    {
+      "commit": "0a98b915384f53ad106b356671055765b88074d0",
+      "pr": 318
+    },
+    {
+      "commit": "0b325729aa8cde7fed2129d99365497ff9bf70d7",
+      "pr": 291
+    },
+    {
+      "commit": "138037a81f7a31f06c9fb7501cd87e143853f893",
+      "pr": 193
+    },
+    {
+      "commit": "138c985bae0a81eae99eebff9f8dc3335a0f1d2b",
+      "pr": 262
+    },
+    {
+      "commit": "14e65392f67b9532b94bf491e56e44548e4d4963",
+      "pr": 403
+    },
+    {
+      "commit": "150b5546a40c6c1a9a6127d95a33d65fcbe826f7",
+      "pr": 453
+    },
+    {
+      "commit": "160e07afb1dd0c912dcf9282e521c40820437b5f",
+      "pr": 294
+    },
+    {
+      "commit": "1b23aae102dca582978f6ce52fdd727f2874e70b",
+      "pr": 286
+    },
+    {
+      "commit": "1b8057b31bc103e2ec68992744b6debb629a136a",
+      "pr": 172
+    },
+    {
+      "commit": "1c5d632ff4a72bb2baafcd44be0bcc37288e9f35",
+      "pr": 307
+    },
+    {
+      "commit": "1d205b47a0cd7432fcda01beaacefc0f939583d7",
+      "pr": 315
+    },
+    {
+      "commit": "23807d4bea07d3fd1b390ef4d1c466b9b36f54ca",
+      "pr": 216
+    },
+    {
+      "commit": "2400007f9ecca7a4432dfb4608a40bb63340a128",
+      "pr": 450
+    },
+    {
+      "commit": "28e9c441e8eb7824cb3e193361221f715b929eb2",
+      "pr": 400
+    },
+    {
+      "commit": "2a05e73eb64d296a0496ae38dc5a699872ec6a27",
+      "pr": 314
+    },
+    {
+      "commit": "2ac9b2962fc94157639f53d428a64e4236e5d58f",
+      "pr": 477
+    },
+    {
+      "commit": "2c8eaa46c7a156bf5c38ce216bcf1becf6575ccd",
+      "pr": 319
+    },
+    {
+      "commit": "2e3006f3a52efa7808ac36c19a56d4888550f3d0",
+      "pr": 238
+    },
+    {
+      "commit": "2eb12cb145bb3f8b48a46bf6ea36be8fcbd7663f",
+      "pr": 285
+    },
+    {
+      "commit": "333b1cd65fdd3a87514f8cac315784c2c72797ad",
+      "pr": 304
+    },
+    {
+      "commit": "33f9edcddd84df4032826e17deb87ba2ef92787f",
+      "pr": 240
+    },
+    {
+      "commit": "34235165e4f34b22c5200542bfec758cd0ff256a",
+      "pr": 202
+    },
+    {
+      "commit": "363055046999868de14bcb75247d78718f45ec3b",
+      "pr": 321
+    },
+    {
+      "commit": "364b87cdfea9cea24e4b58029950ae8cc94d8cdd",
+      "pr": 282
+    },
+    {
+      "commit": "3861ea083e353ba19fb642e73653a506f51e6020",
+      "pr": 335
+    },
+    {
+      "commit": "3895cd66f6b1839b289b9e3587651698d84a1678",
+      "pr": 303
+    },
+    {
+      "commit": "39f97b018a08d08c6172f9042d76bcd1572c3805",
+      "pr": 196
+    },
+    {
+      "commit": "3c152be4e3829fa6c4d6c9403205e96ff43eec5a",
+      "pr": 267
+    },
+    {
+      "commit": "3e96384fb126ab23017b74a0fb4ea5f3067a785e",
+      "pr": 330
+    },
+    {
+      "commit": "4256aa2fa8edb45d58e1facf8a56430b5b8e0a6c",
+      "pr": 260
+    },
+    {
+      "commit": "454278b48906c16e3b233eeb703939f9db33cfea",
+      "pr": 421
+    },
+    {
+      "commit": "4ba17ebefc9f340a29cce014f8a43d657144d8e5",
+      "pr": 158
+    },
+    {
+      "commit": "4c1cbebddc22e07200d794066677608f25af9380",
+      "pr": 190
+    },
+    {
+      "commit": "4c83c0e4cf5107dc8bdfd870bc95d2f8262a865e",
+      "pr": 456
+    },
+    {
+      "commit": "4d1514d8fa6c020d41ad9c0205b9ea24268bef57",
+      "pr": 234
+    },
+    {
+      "commit": "4e80a388aad9379b3f45d432407e354c015bf2a2",
+      "pr": 274
+    },
+    {
+      "commit": "4f2bd5337e62078332d5ceba30d79b5a8cf4ea1f",
+      "pr": 273
+    },
+    {
+      "commit": "503e6bc0a1afa85e27e2c9a4bbc067a92f500b36",
+      "pr": 166
+    },
+    {
+      "commit": "51804dff860831136a143426f62409887519f08d",
+      "pr": 264
+    },
+    {
+      "commit": "53813c29053bcbaa75909fd0d10ea18949205bc4",
+      "pr": 226
+    },
+    {
+      "commit": "5444c1c148bdc7a1b7b15fab143fa41826e8b711",
+      "pr": 434
+    },
+    {
+      "commit": "54d2a67c4de76d2282869399683863674fcc7f80",
+      "pr": 226
+    },
+    {
+      "commit": "562942ecc1ef06321434d69c07b18eba9be5da89",
+      "pr": 226
+    },
+    {
+      "commit": "5a51ef6fe3fc6411f93ac7f958619eeb1aafbb3c",
+      "pr": 464
+    },
+    {
+      "commit": "5d8b3ee76eab3ecfb1af776bd044454cf4868364",
+      "pr": 82
+    },
+    {
+      "commit": "5dc2c940b5c004dc10eedbf7737cd3eb06a52541",
+      "pr": 187
+    },
+    {
+      "commit": "5eb6f786eac492b0a7402fc2e547bb02944f0166",
+      "pr": 283
+    },
+    {
+      "commit": "5ee7b27ae9a4d6243b7e7e3c2122b7d7c44f38fe",
+      "pr": 110
+    },
+    {
+      "commit": "647e494020e87059b2c86b63b22aa9ce537234b0",
+      "pr": 449
+    },
+    {
+      "commit": "6c3819056f4dc709f532ca56c4e27edefd763102",
+      "pr": 299
+    },
+    {
+      "commit": "6c6fb5d0b82d2b25ea30e79f9621d787b13ed5eb",
+      "pr": 443
+    },
+    {
+      "commit": "7022fb27c7b977d4627da4ad71e81ab88346dc49",
+      "pr": 276
+    },
+    {
+      "commit": "70e1b1ebe205f707c600b0234371de9e2e1f63f2",
+      "pr": 448
+    },
+    {
+      "commit": "71c316c9eba125f505759fb093edf445168bee48",
+      "pr": 139
+    },
+    {
+      "commit": "731ff8e06fe86207d4bb4fab563cdd641df4cb6b",
+      "pr": 322
+    },
+    {
+      "commit": "73cf5b726f15ea73f2b6fb89f0872fac909b4c6b",
+      "pr": 178
+    },
+    {
+      "commit": "74313e643df6b92f91de49178e13a678e14d8c18",
+      "pr": 490
+    },
+    {
+      "commit": "7459c34a8f833d29ae907c3784fce2384431ac6d",
+      "pr": 433
+    },
+    {
+      "commit": "7675d586606e3eb4184c29c62483c13b0537718d",
+      "pr": 252
+    },
+    {
+      "commit": "7cef8522ddd39bb1a9330abf85f756e49fcd980f",
+      "pr": 292
+    },
+    {
+      "commit": "80d9712f680cd553febe45bf612d9a13b992bd2a",
+      "pr": 261
+    },
+    {
+      "commit": "81ca8efb3e482aa504f76c5061cff09fd3fb21c5",
+      "pr": 261
+    },
+    {
+      "commit": "81e4491a01b8c90f1af5744b8af87380a21ad2ea",
+      "pr": 298
+    },
+    {
+      "commit": "826b53c98ceed05268662aea0050902e2a1c55b1",
+      "pr": 396
+    },
+    {
+      "commit": "84f495d9aa26aa483aa0959db4b6603c3897c428",
+      "pr": 145
+    },
+    {
+      "commit": "8aa71a8fb38edf45fe0f22eaf8b7da3e0194d432",
+      "pr": 143
+    },
+    {
+      "commit": "8b7a2087c3c6c6aa1f7581ee90d1cfba26345267",
+      "pr": 130
+    },
+    {
+      "commit": "8cbdc4ea6ef5a7dfe0c9596e9e48ea09d5ba6e43",
+      "pr": 384
+    },
+    {
+      "commit": "8f9c3be24c50d42a9d8a56724f6cb46eb4b0cc34",
+      "pr": 426
+    },
+    {
+      "commit": "9089e792f8fad10680098df9ce3c36307fb82d96",
+      "pr": 199
+    },
+    {
+      "commit": "91c428005505dda04a56c67601e736ac40dc5f8d",
+      "pr": 243
+    },
+    {
+      "commit": "9266408db995233451efc280ae290e7d25038ece",
+      "pr": 266
+    },
+    {
+      "commit": "93d7f52ffbaac038c471934ab0c7ddc5583fae1a",
+      "pr": 306
+    },
+    {
+      "commit": "97d06820596b7089cf6309557634200f4ed9ba4a",
+      "pr": 151
+    },
+    {
+      "commit": "9979266b4e99e7d4dc46689dac1f61f33f09b88a",
+      "pr": 255
+    },
+    {
+      "commit": "9e3cb85d192831e5a447086abb3345993e647049",
+      "pr": 123
+    },
+    {
+      "commit": "a1348d6d144723d3e04eb384a0d4ce91969fd4bb",
+      "pr": 309
+    },
+    {
+      "commit": "a1e4dd012c5b01fc89b18484a224d3bf917c28e4",
+      "pr": 483
+    },
+    {
+      "commit": "a53b8d257b28d140fb6b086cba3385f74cff9dad",
+      "pr": 293
+    },
+    {
+      "commit": "a55ea6ddd8dffecb27352cf5b3166ca53e72c1a1",
+      "pr": 155
+    },
+    {
+      "commit": "aa99bde190b7e5c30a339e83d87ae32d7ac570ca",
+      "pr": 316
+    },
+    {
+      "commit": "af163162e1a92161760346f9d0912dfb2397aa24",
+      "pr": 261
+    },
+    {
+      "commit": "af75cebe0570947cf250ded91c61c3f598286938",
+      "pr": 398
+    },
+    {
+      "commit": "afa67edefb93317d396c540c24c67f64e27cb018",
+      "pr": 256
+    },
+    {
+      "commit": "b1502d1035ac59cf0bffc623e6a5bb5c3b0b4042",
+      "pr": 275
+    },
+    {
+      "commit": "b23b928b6488374caed60170dac86be0c5bca7ce",
+      "pr": 270
+    },
+    {
+      "commit": "b9df362f4048fba18063face0345034f5d6b9147",
+      "pr": 441
+    },
+    {
+      "commit": "bb737e3c0c2fcd75f51f1ff774c008e8a19c17e8",
+      "pr": 468
+    },
+    {
+      "commit": "be86ff39b6d88227330d277e7f8feb419532fa93",
+      "pr": 77
+    },
+    {
+      "commit": "bee09fd9d45e8c6ebd7b09ebbf09ab51be5711b7",
+      "pr": 159
+    },
+    {
+      "commit": "c0b084959280001402da167866ef468e9a387125",
+      "pr": 72
+    },
+    {
+      "commit": "c178c6faa444886e92864318cde134368c403b79",
+      "pr": 431
+    },
+    {
+      "commit": "c96ce6a8d78e57ec442e82adcbc26f862670dfb2",
+      "pr": 317
+    },
+    {
+      "commit": "cabed1617aa7a99847a825e25dcd296d796aa576",
+      "pr": 94
+    },
+    {
+      "commit": "cfce74acd46b928f1ddde3e92645cae9c7fa36a8",
+      "pr": 344
+    },
+    {
+      "commit": "d83711454c7dcbf8cc23be0d93c20324003dea8d",
+      "pr": 452
+    },
+    {
+      "commit": "da4e5ab94368e64c326261c78df9c1fdaa099ca9",
+      "pr": 320
+    },
+    {
+      "commit": "dbd7a36aa515f4f3fbe7518282de41bcd3be3cf9",
+      "pr": 226
+    },
+    {
+      "commit": "e13c6caa1031eee42e1520193afe505b0808c137",
+      "pr": 95
+    },
+    {
+      "commit": "e3f33a9efc6cd0c08819dc1a232ffc8c321f77fe",
+      "pr": 81
+    },
+    {
+      "commit": "e64e8427f26c40d17ee5737abb711d923ca465c7",
+      "pr": 184
+    },
+    {
+      "commit": "e786d197b3edd44ae4488c7ec536f496b5552440",
+      "pr": 224
+    },
+    {
+      "commit": "e938308dd75ca800d8a7a2344554b0f43cb43abc",
+      "pr": 405
+    },
+    {
+      "commit": "ebac56fe441c08a6c869b8be3b1aa906a887c14e",
+      "pr": 494
+    },
+    {
+      "commit": "ecdf577934645d55ce0282da79b2f6b472552b8a",
+      "pr": 463
+    },
+    {
+      "commit": "ed915db35db46c6e7783d4af3988b75a77188d7a",
+      "pr": 279
+    },
+    {
+      "commit": "ef2ed539ad6a16d38615fada3416afb499d421a8",
+      "pr": 74
+    },
+    {
+      "commit": "efa65e7365062c248b62160046563f900c880172",
+      "pr": 395
+    },
+    {
+      "commit": "efb158e8299797cdd224e3529d729e0097e10a62",
+      "pr": 75
+    },
+    {
+      "commit": "f1d84cbc4006f76805fda22904a91fa1b490c841",
+      "pr": 245
+    },
+    {
+      "commit": "f222d5d1bdea8b0ce1018eaa7c0ce7df332027bc",
+      "pr": 280
+    },
+    {
+      "commit": "f30c2851263fb6484eabcc2a82167ed5e210f791",
+      "pr": 162
+    },
+    {
+      "commit": "f4d9d98fa27fd4aecb62c930ebc30e7631cfa871",
+      "pr": 354
+    },
+    {
+      "commit": "f53d0d8d8ae5d0cc52654f5e3462147f310111cb",
+      "pr": 442
+    },
+    {
+      "commit": "f70e9785e16868f8aa66c5f3602e9f292868c0ff",
+      "pr": 175
+    },
+    {
+      "commit": "f7e2cd7cbc8e2e55683f2cd833c9a2c68a5d01a6",
+      "pr": 336
+    },
+    {
+      "commit": "f86548701326f94cb4ae8d17bc0b69e95b0579cf",
+      "pr": 207
+    },
+    {
+      "commit": "fbba400b9883770bdb64e7f08d5c42e6a4126d1d",
+      "pr": 261
+    },
+    {
+      "commit": "fca27d99a5f1d2f1b953afc15966e06a1b69e64d",
+      "pr": 302
+    },
+    {
+      "commit": "fcbdc6af37c7c10be13cebec581999cf38918c45",
+      "pr": 446
+    },
+    {
+      "commit": "fe756a3b34767f808383977dc29a6e7548018a49",
+      "pr": 444
+    },
+    {
+      "commit": "febc6b24b429faae1d6472dd5a13a2cf6f1030fb",
+      "pr": 437
+    },
+    {
+      "commit": "fefd1d35a0b644a4740549556718e7323ae1a35c",
+      "pr": 169
     }
+  ],
+  "results": {
+    "493:SETTINGS-NARROW-PATH": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "493:SETTINGS-EXPLICIT-MODELS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "466:RABBIT-TERMINAL-ON": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "466:RABBIT-TERMINAL-OFF": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "466:RABBIT-JCEF-OPTIONAL": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "466:RABBIT-VFS-FLUSH": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "457:COMMON-PREPARATION-ACCEPTANCE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "440:ACP-TERMINATION-DIAGNOSTIC": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "440:ACP-PRIVATE-CORRELATION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "440:ACP-PRIVATE-FIRST-FAILURE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "440:ACP-PROJECT-UNCERTAINTY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C01": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C02": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C03": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C04": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C05": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C06": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C07": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C08": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C09": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:A-C10": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C01": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C02": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C03": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C04": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C05": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C06": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C07": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C08": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C09": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:B-C10": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C01": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C02": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C03": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C04": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C05": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C06": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C07": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C08": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C09": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "150:C-C10": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "438:C-RESEARCH-ACCEPTANCE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "447:MCP-PERMISSION-TARGET": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "447:MCP-PERMISSION-REJECT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "404:PROMPT-DOCUMENT-EVENTS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "205:PROMPT-TAB-FIX": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "389:MODERN-Q1-TERMINAL-ON": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "389:MODERN-Q1-TERMINAL-OFF": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "389:MODERN-Q4-TERMINAL-ON": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "389:MODERN-Q4-TERMINAL-OFF": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "343:CTX-343-ATTACHMENTS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "327:PRINT-OUTPUT-BOUNDS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I2": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I3": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I4": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I5": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I6": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I7": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "277:IMAGE-277-I8": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "98:RUN-STATE-TIME": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "98:RUN-TOOL-DETAILS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "98:RUN-NOTICE-OWNERSHIP": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "305:ISOLATED-305-GUIDANCE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "269:DEFAULT-269-SETTINGS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "269:DEFAULT-269-LOAD": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "269:DEFAULT-269-SCOPE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "268:DISPLAY-268-SETTINGS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "268:DISPLAY-268-LAYOUT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "268:DISPLAY-268-STATE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "308:QUEUE-REVIEW-PAUSE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "308:QUEUE-REVERT-GUARDS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "308:QUEUE-CHANGE-TURNS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "289:REQUEST-ID-289-Q1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "289:REQUEST-ID-289-Q2": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "289:REQUEST-ID-289-Q3": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "289:REQUEST-ID-289-Q4": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "289:REQUEST-ID-289-Q5": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "296:ACP-CONTENT-UPDATE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "296:ACP-CONTENT-LIMITS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "296:ACP-CONTENT-RESTORE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "263:TASK-RESULT-CORRELATION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "263:TASK-FAILURE-STOP": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "263:TASK-SAFE-RESTORE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "300:PERM-300-SCOPE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "300:PERM-300-ACP": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "300:PERM-300-REQUEST": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "97:KEYS-97-SETTINGS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "97:KEYS-97-IME": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "97:KEYS-97-DRAFT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "97:KEYS-97-RUNNING": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "295:MARKDOWN-IMAGE-NO-FETCH": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "258:SKILLS-258-CONNECT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "258:SKILLS-258-PICK": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "258:SKILLS-258-SEND": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "258:SKILLS-258-LIFETIME": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "287:USAGE-NOT-PROVIDED": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "287:USAGE-PRINT-COUNTERS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "287:USAGE-LATE-DELIVERY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "41:RESPONSE-RAW-COPY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "24:CTX-24-SELECTION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "24:CTX-24-MENTIONS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "24:CTX-24-SNAPSHOT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "24:CTX-24-LIFETIME": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "48:QUEUE-ORDER": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "48:QUEUE-CANCEL": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "43:MODEL-CATALOG-STATES": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "43:MODEL-CATALOG-SELECTION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "43:MODEL-CATALOG-OWNERSHIP": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "215:FOCUS-MODEL-MODE-OPTIONS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "215:FOCUS-OPTION-TOGGLES": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "215:FOCUS-SEND-STOP-TOKENS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "47:CHANGES-LIST": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "47:CHANGES-REVERT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "45:HISTORY-SEARCH": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "45:HISTORY-EXPORT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "28:DIAGNOSTICS-BUILD-IDENTITY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "28:DIAGNOSTICS-CLI-COPY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "254:PRINT-DELTA-FLUSH": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "208:BROWSER-ENTRY-NAVIGATION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "208:BROWSER-URL-BOUNDARY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "208:BROWSER-ERROR-SUPPORT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "208:BROWSER-LIFECYCLE-PROJECT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "44:HISTORY-RESTART": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "44:HISTORY-INTERRUPT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "44:HISTORY-FAILURE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "230:TEXT-CONTRACTS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "229:SETTINGS-BOUNDARY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "231:LIFECYCLE-EDT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "201:TOOLWINDOW-ICON-SELECTED-COLOR": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "192:HEADER-ICON-SCALE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "189:TAB-HEADER-DIVIDER": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "186:SELECTED-TAB-CHAT-BACKGROUND": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "183:HEADER-ACTION-WIDTH": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "180:COMPACT-HEADER-LAYOUT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "180:COMPACT-HEADER-BACKGROUND": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "180:COMPACT-HEADER-ACTIONS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "180:COMPACT-HEADER-LIFECYCLE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "177:TOOLWINDOW-ICON-NATIVE-STYLE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "174:TOOLWINDOW-ICON-SCALE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "156:CHAT-MENU-OPENED": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "156:CHAT-MENU-CLOSE-ALL": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "156:CHAT-MENU-FEEDBACK": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "156:CHAT-MENU-FILE-EDITOR": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "156:CHAT-MENU-ICONS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "157:BROWSER-ENTRY-NAVIGATION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "157:BROWSER-URL-BOUNDARY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "157:BROWSER-ERROR-SUPPORT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "157:BROWSER-LIFECYCLE-PROJECT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "153:TOOLWINDOW-HEADER": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "153:TOOLWINDOW-OPTIONS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "153:TOOLWINDOW-SELECTED-RUN": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "153:TOOLWINDOW-LIFECYCLE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-START": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-STREAM": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-TOOLS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-REQUESTS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-CANCEL": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-RESTORE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-SETTINGS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "147:ACP-UI": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "128:PONYTAIL-CHAT": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "128:PONYTAIL-CLI": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "65:SESSION-TABS-INTEGRATION": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "65:SESSION-TABS-RUNS": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "65:SESSION-TABS-HISTORY": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "65:SESSION-TABS-RESTORE": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "80:SWING-PROBE-REPORT-1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "39:RESTORE-TARGET-1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "76:CLI-PATH-1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "42:PROMPT-TAB-1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "46:STOP-UX-1-STOP": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "46:STOP-UX-1-ERROR": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    },
+    "71:TOKEN-PANEL-HIERARCHY-1": {
+      "status": "pending",
+      "reason": "新しい固定候補の実観察は未実施。旧結果を転記しない。"
+    }
+  },
+  "artifact_sha256": "c4cc5599f610d32c5eef64755d88cc796bfef7817f32012b89eda79dd20ca0b7",
+  "artifacts": {
+    "plugin": "c4cc5599f610d32c5eef64755d88cc796bfef7817f32012b89eda79dd20ca0b7",
+    "swing_probe": "79a456ba0644aa8e643369382f0f393508376d20816491b8fd415144053038c4"
   }
 }
