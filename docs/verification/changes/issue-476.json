@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "issue": 476,
+  "gui_required": false,
+  "reason": "main先行の配布・固定候補検証工具と履歴文書をdevelopへ同期する。競合した製品src、製品テスト、Gradle/SDK/依存設定はdevelop bb737e3と同一に保持し、実行・停止・復元の契約は既存WorkspaceOperationGate/AgentRun/EDT配送の回帰で照合する。新たな製品GUI挙動は変更しない。旧main候補のpassをdevelopへ転用しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests: 同期全差分の必要workflow/loop/製品テスト",
+    "Java 25で./gradlew buildPlugin verifyPluginStructure: 標準Rabbit SDK・同梱JAR・Plugin ZIPの構造を検証",
+    "Git差分でsrc全体、build.gradle.kts、settings.gradle.kts、gradle.properties、Gradle Wrapperが固定developと同一であることを確認",
+    "plugin_compatibility/release_candidate: 現行Rabbit、同期前Rabbit、旧Quailの固定source/ZIP/receipt読取り、未知SDK/改変bytecode/不完全な検証資料の拒否、日本語Release説明と不変assetの保持",
+    "scoped/develop promotion検査の回帰: trusted main plan・全commit/全Caseと同一候補の必要性、未受入・範囲外変更・不明履歴の拒否を維持",
+    "固定main/developと将来のsquash結果を隔離Gitで照合し、候補後のmain mergeを製品差分なしで構成できることを検証",
+    "独立sessionが固定HEAD/baseと両側の競合解消・製品契約の対応をレビューする"
+  ],
+  "cases": []
+}

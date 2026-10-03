@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 471,
+  "gui_required": false,
+  "reason": "main製品コード/SDK/UIを変更せず、#470のtrusted scope計画と検証工具のみを準備する。実GUIは#470の同一候補Caseとして追跡する。",
+  "cli_checks": [
+    "変更影響に応じたworkflow/loopとmain既存JUnitを実行する。",
+    "現在mainの標準ZIP/構造を検査し、Quail1/Quail4の既存互換性検査を維持する。",
+    "旧/新SDKのbytecode・metadata混在拒否、全対象レポートの不足・改変・未知warning拒否とRabbit単一RCを合成検証する。",
+    "#470計画の具体的ファイルと全3Case、独立レビュー、4必須checksを照合する。"
+  ],
+  "cases": []
+}

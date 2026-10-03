@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 408,
+  "gui_required": false,
+  "reason": "限定候補を検証するtrusted mainのtoolingと計画のみ。製品変更/実IDEは#409で受け入れる。",
+  "cli_checks": [
+    "範囲外path/履歴、symlink/gitlink/mode、plan/Case/Issue差替え、旧hash/候補、main移動とmerge後publishの拒否/受入を検証する",
+    "従来develop promotion/toolingと配布不変性の既存回帰テスト、Change Impactによる必要検証を成功させる",
+    "独立した固定HEAD/baseレビューで自己承認/保護回避を導入していないことを確認する"
+  ],
+  "cases": []
+}

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 428,
+  "gui_required": false,
+  "reason": "#426の開発contextと運用生成文をmainへ限定移植する。製品src/tests/build/runtime prompt/保存/tool契約・過去観察は変更せず、develop専用QA機能を持ち込まないため製品GUI不要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests",
+    "loop prepare/check、互換gpt観察表示と既存独立review/lease/Computer Use/build受入を検証",
+    "AGENTS symlink・両Skill同期・rules・ローカルリンク/anchor・役割事例を照合",
+    "元#426のhunk対応とmain固有README許可/製品説明/検査を照合、製品・過去run/Case/matrix行の差分ゼロ"
+  ],
+  "cases": []
+}
