@@ -26,7 +26,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "初回からf44af57までの観察をhistoryへ保存。診断/設定値の可読性修正後は固定build実GUI未実施。",
+        "reason": "855d1d1で900論理pxの操作ボタン/選択値/複数行診断の可読性、長い手動パス、空欄Applyと自動検出Cancel、通知復元、Browse Cancel、診断更新/コピーを確認。Tab/Space/Enterと自動検出ボタンApplyを含む全手順は未完了。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -89,12 +89,23 @@
           "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971799934",
           "reason": "900論理pxで自動検出ボタン表示/クリックは回復し、Cancelで元設定保持。ただし診断1行高と設定値の極端な省略が残り、複数行の可読性まで修正し再確認する。",
           "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+          "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T18:10:39.635990+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+          "reason": "855d1d1で900論理pxの操作ボタン/選択値/複数行診断の可読性、長い手動パス、空欄Applyと自動検出Cancel、通知復元、Browse Cancel、診断更新/コピーを確認。Tab/Space/Enterと自動検出ボタンApplyを含む全手順は未完了。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
         }
       ],
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
-      "next_action": "独立レビュー/CLI検査後、指定GUI担当が元Case28/76/269と本Caseを固定buildで確認し、QAとmain未反映を双方向引継ぎする。",
+      "next_action": "同一製品buildの残部を指定GUI担当が確認する。モデルpopupの製品failは専用fix登録の本人承認後に切り分け/修正し、旧Case全体のpassへ代用しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/493",
@@ -116,7 +127,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "初回からf44af57までの観察をhistoryへ保存。診断/設定値の可読性修正後は固定build実GUI未実施。",
+        "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。Model行マウス操作で候補一覧が開かない現象を2回観察（開き直してキーボードでは成功）。専用fix Issue/Project/依存登録は自動承認レビューに拒否され本人承認待ち。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -179,12 +190,23 @@
           "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971799934",
           "reason": "Settings閲覧/自動検出/Cancel/終了までCLI呼出0。明示取得以降は未実施。",
           "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "855d1d1406a431ed2b9459ba3ea4239032f5e0d3",
+          "artifact_sha256": "e944d41cc126da85389b88d353206340ab9835a3e883f51570a572364de02308",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T18:10:39.636036+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971977909",
+          "reason": "855d1d1で閲覧/診断のみmetadata0、明示取得のみ5回、保存ID、失敗/空/遅延Cancel/再試行を確認。Model行マウス操作で候補一覧が開かない現象を2回観察（開き直してキーボードでは成功）。専用fix Issue/Project/依存登録は自動承認レビューに拒否され本人承認待ち。Auto/未知ID/再起動/変更CLI/Composer/ACP残部は未確認。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
         }
       ],
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
-      "next_action": "独立レビュー/CLI検査後、指定GUI担当が元Case28/76/269と本Caseを固定buildで確認し、QAとmain未反映を双方向引継ぎする。",
+      "next_action": "同一製品buildの残部を指定GUI担当が確認する。モデルpopupの製品failは専用fix登録の本人承認後に切り分け/修正し、旧Case全体のpassへ代用しない。独立レビューとQA/mainの双方向引継ぎを維持する。",
       "main_eligible": false,
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/493",
