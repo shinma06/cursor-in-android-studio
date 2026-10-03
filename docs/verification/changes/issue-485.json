@@ -2,14 +2,14 @@
   "schema": 1,
   "issue": 485,
   "gui_required": false,
-  "reason": "固定develop候補a1e4dd012c5b01fc89b18484a224d3bf917c28e4の全commit/Caseと成果物hash・実観察結果を記録するpromotion metadataのみ。製品と元Caseは変更しない。元PRの必須GUI172件はtrusted main gateで別途検査し、未実施の現在はmainへ統合不可。",
+  "reason": "固定develop候補74313e643df6b92f91de49178e13a678e14d8c18の全commit/Caseと成果物hash・実観察結果を記録するpromotion metadataのみ。製品と元Caseは変更しない。元PRの必須GUI172件はtrusted main gateで別途検査し、未実施の現在はmainへ統合不可。",
   "cli_checks": [
     "固定candidateで ./gradlew test buildPlugin verifyPluginStructure（462 tests成功・構造検査成功）",
     "固定Plugin ZIPのsource/clean/SDK/JVM/class major/全440class・SHA256をsealし、同じbytesのRabbit Plugin Verifier 1.410を実行（既存reviewed警告と依存規則を照合）",
     "同candidateからJDK21/jpackageでswing_probeを生成しplain/app内JAR hash一致とHEAD/base/runを照合",
     "mainの通常merge後もcandidate treeと一致。後続差分は本Issue受入JSONとpromotion.jsonのみ",
     "python3 scripts/workflow/change_impact.py --run-tests",
-    "全129commit/123元PR・必須172Case・Computer Use4件・Rabbit環境revision10件の来歴照合。未観察の現在はAcceptance gateが拒否することを確認",
+    "全130commit/124元PR・必須172Case・Computer Use4件・Rabbit環境revision10件の来歴照合。未観察の現在はAcceptance gateが拒否することを確認",
     "全Case実測後の固定HEAD/base独立レビューと4必須checks"
   ],
   "cases": []
