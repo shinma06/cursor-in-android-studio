@@ -12,7 +12,7 @@ import plugin_compatibility as pc
 class CompatibilityTest(unittest.TestCase):
     def test_verification_cannot_pass_incomplete_or_unreviewed_reports(self):
         policy = json.loads(pc.POLICY.read_text())
-        target = policy['targets']['quail1']
+        target = policy['targets']['rabbit1']
         manifest = {'identity': {'plugin.version': '1.0.0', 'classes': 427}}
         log = 'Scheduled verifications (1):\nFinished 1 of 1 verifications'
         with tempfile.TemporaryDirectory() as temp:
@@ -21,7 +21,7 @@ class CompatibilityTest(unittest.TestCase):
             directory.mkdir(parents=True)
             files = {'verification-verdict.txt': 'Compatible.',
                      'telemetry.txt': 'Verified classes in plugin artifact: 427\n',
-                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\n'}
+                     'dependencies.txt': pc.PLUGIN_ID + ':1.0.0\ncom.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n'}
             for name, text in files.items():
                 (directory / name).write_text(text)
             self.assertEqual(pc.check_reports(reports, log, target, manifest, policy)['verified_classes'], 427)
@@ -37,6 +37,7 @@ class CompatibilityTest(unittest.TestCase):
                                ('verification-verdict.txt', 'Compatible. Unknown result.'),
                                ('telemetry.txt', 'Verified classes in plugin artifact: 0\n'),
                                ('dependencies.txt', 'other-plugin:1.0.0\n'),
+                               ('dependencies.txt', pc.PLUGIN_ID + ':1.0.0\n'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) missing: not resolved'),
                                ('dependencies.txt', files['dependencies.txt'] + '+--- (failed) unknown (optional): not resolved')]:
                 with self.subTest(name=name, text=text):
@@ -70,7 +71,7 @@ class CompatibilityTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     pc.check_reports(reports, bad_log, target, manifest, policy)
             with self.assertRaises(ValueError):
-                pc.check_reports(reports, log, policy['targets']['quail4'], manifest, policy)
+                pc.check_reports(reports, log, dict(target, build='AI-other-build'), manifest, policy)
             warning = 'reviewed first line\nreviewed second line'
             allowed = copy.deepcopy(policy)
             allowed['reviewed_log_warnings'] = {pc.hashlib.sha256(warning.encode()).hexdigest(): 'reviewed'}
@@ -82,13 +83,13 @@ class CompatibilityTest(unittest.TestCase):
 
     def test_last_api_category_without_period_still_requires_reviewed_details(self):
         policy = json.loads(pc.POLICY.read_text())
-        target = policy['targets']['quail1']
+        target = policy['targets']['rabbit1']
         with tempfile.TemporaryDirectory() as temp:
             reports = Path(temp)
             directory = reports / target['build'] / 'plugins' / pc.PLUGIN_ID / '1.0.0'
             directory.mkdir(parents=True)
             (directory / 'telemetry.txt').write_text('Verified classes in plugin artifact: 1\n')
-            (directory / 'dependencies.txt').write_text(pc.PLUGIN_ID + ':1.0.0\n')
+            (directory / 'dependencies.txt').write_text(pc.PLUGIN_ID + ':1.0.0\ncom.intellij.modules.jcef:' + policy['jcef']['Linux-amd64']['version'] + '\n')
             detail = directory / 'experimental-api-usages.txt'; detail.write_text('reviewed API usage')
             policy['reviewed_api_reports'] = {detail.name: {'sha256': pc.digest(detail)}}
             verdict = directory / 'verification-verdict.txt'
@@ -108,20 +109,19 @@ class CompatibilityTest(unittest.TestCase):
         source = 'a' * 40
         with tempfile.TemporaryDirectory() as temp:
             archive = Path(temp) / 'plugin.zip'; archive.write_bytes(b'archive')
-            for selected in (policy, policy['next_policy']):
-                compile = selected['compile']
-                identity = {'source.commit': source, 'source.state': 'clean',
-                            'sdk.build': selected['targets'][compile['target']]['build'],
-                            'jvm.target': compile['jvm_target'], 'classes': 1,
-                            'class.major.versions': [compile['class_major']],
-                            'since.build': compile['since_build'], 'until.build': compile['until_build']}
-                with patch.object(pc, 'plugin_identity', return_value=identity):
-                    self.assertEqual(pc.seal(archive, source, policy)['identity'], identity)
-                for key, value in [('sdk.build', 'unknown'), ('jvm.target', '17'),
-                                   ('class.major.versions', [65, 69]), ('since.build', 'unknown'),
-                                   ('until.build', '263.*'), ('source.state', 'dirty')]:
-                    with self.subTest(key=key, value=value), patch.object(pc, 'plugin_identity', return_value=dict(identity, **{key: value})):
-                        with self.assertRaises(ValueError): pc.seal(archive, source, policy)
+            compile = policy['compile']
+            identity = {'source.commit': source, 'source.state': 'clean',
+                        'sdk.build': policy['targets'][compile['target']]['build'],
+                        'jvm.target': compile['jvm_target'], 'classes': 1,
+                        'class.major.versions': [compile['class_major']],
+                        'since.build': compile['since_build'], 'until.build': compile['until_build']}
+            with patch.object(pc, 'plugin_identity', return_value=identity):
+                self.assertEqual(pc.seal(archive, source, policy)['identity'], identity)
+            for key, value in [('sdk.build', 'unknown'), ('sdk.build', 'AI-261.23567.138.2611.15503007'), ('jvm.target', '17'),
+                               ('class.major.versions', [65, 69]), ('since.build', 'unknown'),
+                               ('until.build', '263.*'), ('source.state', 'dirty')]:
+                with self.subTest(key=key, value=value), patch.object(pc, 'plugin_identity', return_value=dict(identity, **{key: value})):
+                    with self.assertRaises(ValueError): pc.seal(archive, source, policy)
 
     def test_same_archive_and_identity_are_checked_before_and_after_verification(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(pc, 'plugin_identity', return_value={'source.commit': 'abc'}):
@@ -138,7 +138,7 @@ class CompatibilityTest(unittest.TestCase):
                 pc.check_archive(archive, manifest, manifest['sha256'])
 
     def test_sdk_mismatch_or_missing_bundled_runtime_has_no_fallback(self):
-        target = json.loads(pc.POLICY.read_text())['targets']['quail1']
+        target = json.loads(pc.POLICY.read_text())['targets']['rabbit1']
         with tempfile.TemporaryDirectory() as temp:
             sdk = Path(temp)
             info = {'productCode': 'AI', 'buildNumber': 'wrong', 'version': 'wrong'}

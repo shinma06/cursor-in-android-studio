@@ -1,103 +1,54 @@
 {
   "verifier_version": "1.410",
   "targets": {
-    "quail1": {
-      "version": "2026.1.1.8",
-      "build": "AI-261.23567.138.2611.15503007",
-      "java_version": "21.0.10",
-      "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.1.1.8/android-studio-quail1-linux.tar.gz",
-      "sha256": "0c1fa4ba3cfabd07e48a90e00a5fa2ea2a82cd5870833dada5b0290c817d83d3"
-    },
-    "quail4": {
-      "version": "2026.1.4.8",
-      "build": "AI-261.26222.65.2614.16379836",
+    "rabbit1": {
+      "version": "2026.2.1.8",
+      "build": "AI-262.9437.185.2621.16467767",
       "java_version": "25.0.3",
-      "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.1.4.8/android-studio-quail4-patch1-linux.tar.gz",
-      "sha256": "25c97ca6c6b505f2a20bff962dfd28718327f61e25b09a9bc915f1dae7b1e534"
+      "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.2.1.8/android-studio-rabbit1-linux.tar.gz",
+      "sha256": "f8775c67cf899d9133712a2d7ee3ef7231e07fb16dbe0544c47e5f5babd5931b"
     }
   },
   "optional_absences": {
-    "XPathView": "IntelliJ Platformのintellij.xml.langInjection.xpathによる任意依存。本Pluginからの直接参照はなく、両SDKでmain由来の171クラスのAPI検査が完走。 #409の開発preflightで両SDKの不在を再確認。正式候補は別途同一ZIPで検証する。",
-    "com.intellij.modules.python": "同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。本PluginはPython機能を必須にせず、Terminal APIの実在は別途検査済み。 #409の開発preflightで両SDKの不在を再確認。正式候補は別途同一ZIPで検証する。",
-    "com.intellij.modules.idea.community": "同梱Javaのintellij.java.promoによるIDEA Community用の任意依存。固定したAndroid Studio両配布物にはなく、本PluginのAPI参照ではない。 #409の開発preflightで両SDKの不在を再確認。正式候補は別途同一ZIPで検証する。",
-    "training": "同梱Javaのintellij.java.featuresTrainerによる任意学習機能。本Pluginは利用せず、固定両SDKでAPI互換性を確認済み。 #409の開発preflightで両SDKの不在を再確認。正式候補は別途同一ZIPで検証する。"
+    "XPathView": "Rabbit coreのintellij.xml.langInjection.xpathによる任意依存。#470 main由来173クラスのpreflightで全classを検査し、本製品からの直接利用がないことを確認。",
+    "intellij.platform.ide.newUiOnboarding": "固定JCEF providerのintellij.platform.ide.newUiOnboarding.jcefによる任意のIDE導入案内。Rabbit配布物に存在せず、main製品からは参照しない。",
+    "com.intellij.modules.python": "Rabbit同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。main製品の必要APIではない。",
+    "com.intellij.modules.idea.community": "Rabbit同梱Javaのintellij.java.promoによるIDEA Community向けの任意依存。Android Studio固定配布物で不在を確認。",
+    "training": "Rabbit同梱Javaのintellij.java.featuresTrainerによる任意学習機能。main製品の必要APIではない。"
   },
   "reviewed_api_reports": {
     "deprecated-usages.txt": {
-      "sha256": "8d0f44423ed55962b6d355b01d385ebcf2ca8202da86b61f48fa01e1b2f4d921",
-      "disposition": "#409 main由来171クラスの開発preflightで両IDE同一の8利用。ファイル選択/ToolWindow bridge/ProcessAdapterはPlatform261に実在。うちファイル選択1件は将来削除予定。SDK拡張時に置換を再評価し、正式候補でもhashを照合する。"
+      "sha256": "05ffbd59e5af7923b9268257f449d7c0d493ad186b9be0cf1f326f8b7e323937",
+      "disposition": "#470 main由来のRabbit preflightで8利用（削除予定1）。ファイル選択・ToolWindow bridge・ProcessAdapterはRabbitに実在。停止処理の移植でProcessAdapterの呼出元名/引数だけが変わり、利用APIは同じ。SDK更新時に置換を再評価する。"
     },
     "experimental-api-usages.txt": {
-      "sha256": "532dae7d3f4c6ac4e8fae3bb0f6f1511b41e26e12859ed403aba6b51b6434af9",
-      "disposition": "#409 main由来のTerminal view/outputとToolWindow bridgeの26利用。開発preflightで両IDE同一/実在を確認。既存optional連携とLinkageError防御を維持。正式候補のGUIは4Caseで別途確認する。"
+      "sha256": "e5117d66f7db4fb6119ca7ca9391e2442c8baf247c74cec0f301547082e0643d",
+      "disposition": "#470 mainのRabbit preflightで28利用。既存Terminal/ToolWindow bridge 26件と、非同期保存完了を待つManagingFS.flushPendingUpdates 2件。Terminal optionalと保存境界を3つのGUI Caseで別途確認する。"
     }
   },
   "reviewed_log_warnings": {
-    "beb52faea7ae3e1cefbccce8ace1035ec49ce4804d61d4ca488330cd7832b05d": "#471でQuail1/Quail4のmacOS/Linux配布物から同一の38行を再確認。宣言されたlib/modules内の個別JARと実配置が異なるが、38モジュールすべてのdescriptorが配布物の既存JARに存在する。171製品クラスの検査完走・依存解決・APIレポートを別途必須とし、警告全文のhash変更は拒否する。"
+    "a01f13d011f27bd1402e3d3b7e06cc76e9c8f7694e410c3b6324228870aada5d": "Rabbit product-info contains 48 stale module paths: 44 jars are under lib rather than lib/modules, 3 Gradle tooling jars use gradle-tooling-* names, and Kotlin highlighting.minimal is absent. Verified in the pristine default SDK as well as the installed identical full build. No product reference is unresolved; every product class must still pass. Hash the entire multiline warning so new omissions fail."
   },
   "optional_absence_builds": [
-    "AI-261.23567.138.2611.15503007",
-    "AI-261.26222.65.2614.16379836"
+    "AI-262.9437.185.2621.16467767"
   ],
-  "compile": {
-    "target": "quail1",
-    "jvm_target": "21",
-    "class_major": 65,
-    "since_build": "261.23567.138",
-    "until_build": "261.*"
-  },
-  "next_policy": {
-    "verifier_version": "1.410",
-    "targets": {
-      "rabbit1": {
-        "version": "2026.2.1.8",
-        "build": "AI-262.9437.185.2621.16467767",
-        "java_version": "25.0.3",
-        "url": "https://edgedl.me.gvt1.com/android/studio/ide-zips/2026.2.1.8/android-studio-rabbit1-linux.tar.gz",
-        "sha256": "f8775c67cf899d9133712a2d7ee3ef7231e07fb16dbe0544c47e5f5babd5931b"
-      }
+  "jcef": {
+    "macOS-aarch64": {
+      "version": "262.9437.22-mac-arm64",
+      "url": "https://plugins.jetbrains.com/files/31360/1115339/jcef-plugin-262.9437.22-mac-arm64.zip",
+      "sha256": "ba3b4ca968e9a332183841d943ce697e7127b2f7daf4a527251940f0f5c30bf8"
     },
-    "optional_absences": {
-      "XPathView": "Rabbit coreのintellij.xml.langInjection.xpathによる任意依存。#470 main由来173クラスのpreflightで全classを検査し、本製品からの直接利用がないことを確認。",
-      "intellij.platform.ide.newUiOnboarding": "固定JCEF providerのintellij.platform.ide.newUiOnboarding.jcefによる任意のIDE導入案内。Rabbit配布物に存在せず、main製品からは参照しない。",
-      "com.intellij.modules.python": "Rabbit同梱Shell Scriptのintellij.sh.pythonによる任意のPython統合。main製品の必要APIではない。",
-      "com.intellij.modules.idea.community": "Rabbit同梱Javaのintellij.java.promoによるIDEA Community向けの任意依存。Android Studio固定配布物で不在を確認。",
-      "training": "Rabbit同梱Javaのintellij.java.featuresTrainerによる任意学習機能。main製品の必要APIではない。"
-    },
-    "reviewed_api_reports": {
-      "deprecated-usages.txt": {
-        "sha256": "05ffbd59e5af7923b9268257f449d7c0d493ad186b9be0cf1f326f8b7e323937",
-        "disposition": "#470 main由来のRabbit preflightで8利用（削除予定1）。ファイル選択・ToolWindow bridge・ProcessAdapterはRabbitに実在。停止処理の移植でProcessAdapterの呼出元名/引数だけが変わり、利用APIは同じ。SDK更新時に置換を再評価する。"
-      },
-      "experimental-api-usages.txt": {
-        "sha256": "e5117d66f7db4fb6119ca7ca9391e2442c8baf247c74cec0f301547082e0643d",
-        "disposition": "#470 mainのRabbit preflightで28利用。既存Terminal/ToolWindow bridge 26件と、非同期保存完了を待つManagingFS.flushPendingUpdates 2件。Terminal optionalと保存境界を3つのGUI Caseで別途確認する。"
-      }
-    },
-    "reviewed_log_warnings": {
-      "a01f13d011f27bd1402e3d3b7e06cc76e9c8f7694e410c3b6324228870aada5d": "Rabbit product-info contains 48 stale module paths: 44 jars are under lib rather than lib/modules, 3 Gradle tooling jars use gradle-tooling-* names, and Kotlin highlighting.minimal is absent. Verified in the pristine default SDK as well as the installed identical full build. No product reference is unresolved; every product class must still pass. Hash the entire multiline warning so new omissions fail."
-    },
-    "optional_absence_builds": [
-      "AI-262.9437.185.2621.16467767"
-    ],
-    "jcef": {
-      "macOS-aarch64": {
-        "version": "262.9437.22-mac-arm64",
-        "url": "https://plugins.jetbrains.com/files/31360/1115339/jcef-plugin-262.9437.22-mac-arm64.zip",
-        "sha256": "ba3b4ca968e9a332183841d943ce697e7127b2f7daf4a527251940f0f5c30bf8"
-      },
-      "Linux-amd64": {
-        "version": "262.9437.22-linux-x86_64",
-        "url": "https://plugins.jetbrains.com/files/31360/1115332/jcef-plugin-262.9437.22-linux-x86_64.zip",
-        "sha256": "3c007d1ead9f2060b65f25b82de58aa2681b00faeabbf9fb714ce4f3cc122b02"
-      }
-    },
-    "compile": {
-      "target": "rabbit1",
-      "jvm_target": "25",
-      "class_major": 69,
-      "since_build": "262.9437.185",
-      "until_build": "262.*"
+    "Linux-amd64": {
+      "version": "262.9437.22-linux-x86_64",
+      "url": "https://plugins.jetbrains.com/files/31360/1115332/jcef-plugin-262.9437.22-linux-x86_64.zip",
+      "sha256": "3c007d1ead9f2060b65f25b82de58aa2681b00faeabbf9fb714ce4f3cc122b02"
     }
+  },
+  "compile": {
+    "target": "rabbit1",
+    "jvm_target": "25",
+    "class_major": 69,
+    "since_build": "262.9437.185",
+    "until_build": "262.*"
   }
 }

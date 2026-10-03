@@ -166,10 +166,10 @@ class ReleaseTest(unittest.TestCase):
                 self.assertEqual(actual, {'candidate': manifest, 'main_merge': 'a' * 40, 'promotion_pr': 411})
 
     def test_bundle_binds_source_zip_both_reports_and_excludes_private_log(self):
-        self.check_bundle(json.loads(pc.POLICY.read_text()))
+        self.check_bundle(self.quail_policy())
 
     def test_legacy_quail_rc_still_validates_and_reaches_notes_only_publication(self):
-        self.check_bundle(json.loads(pc.POLICY.read_text()), legacy=True)
+        self.check_bundle(self.quail_policy(), legacy=True)
 
     def test_bundle_cli_selects_the_supplied_target(self):
         with patch('sys.argv', ['release_candidate.py', 'bundle', '--directory', 'candidate',
@@ -178,9 +178,23 @@ class ReleaseTest(unittest.TestCase):
             bundle.assert_called_once_with(Path('candidate'), 'a' * 64, {'rabbit1': Path('report')})
 
     def test_rabbit_bundle_requires_only_the_rabbit_report(self):
-        self.check_bundle(json.loads(pc.POLICY.read_text())['next_policy'])
+        self.check_bundle(json.loads(pc.POLICY.read_text()))
 
-    def check_bundle(self, policy, legacy=False):
+    def test_archived_transitional_rabbit_policy_remains_readable(self):
+        rabbit = json.loads(pc.POLICY.read_text())
+        self.check_bundle(rabbit, source_policy=dict(self.quail_policy(), next_policy=rabbit))
+
+    def quail_policy(self):
+        # Fixed historical identities; the active policy no longer selects Quail.
+        return {'verifier_version': '1.410', 'targets': {
+            'quail1': {'version': '2026.1.1.8', 'build': 'AI-261.23567.138.2611.15503007', 'java_version': '21.0.10'},
+            'quail4': {'version': '2026.1.4.8', 'build': 'AI-261.26222.65.2614.16379836', 'java_version': '25.0.3'}},
+            'compile': {'target': 'quail1', 'jvm_target': '21', 'class_major': 65,
+                        'since_build': '261.23567.138', 'until_build': '261.*'},
+            'optional_absences': {}, 'optional_absence_builds': [],
+            'reviewed_api_reports': {}, 'reviewed_log_warnings': {}}
+
+    def check_bundle(self, policy, legacy=False, source_policy=None):
         compile = policy['compile']
         sealing_policy = copy.deepcopy(policy)
         if legacy:
@@ -220,7 +234,7 @@ class ReleaseTest(unittest.TestCase):
                     result.pop('jcef')
                     result['target'].pop('platform')
                 rc.write(path/'result.json',result); evidence[key]=path
-            with patch.object(rc,'source_inputs',return_value={}),patch.object(rc,'git_read',return_value=json.dumps(policy)):
+            with patch.object(rc,'source_inputs',return_value={}),patch.object(rc,'git_read',return_value=json.dumps(source_policy or policy)):
                 rc.bundle(directory,manifest['sha256'],evidence)
                 original = pc.digest(product)
                 rc.bundle(directory,manifest['sha256'],evidence)  # Same reports can safely retry.

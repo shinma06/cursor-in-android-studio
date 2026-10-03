@@ -83,7 +83,7 @@ GitHubのrelease immutabilityはrepository/organization単位で今後のRelease
 
 ### 1. versionとsourceを決め、一度だけ生成する
 
-正式versionはユーザーが決める。以下の変数は実値を担当が設定する（例示の架空versionを採番しない）。通常は必要な実装・文書をdevelopへ統合してからsource SHAを固定する。main起点の限定候補では[限定取り込み](main-scoped-release.md)の事前計画と `--scope-issue` を使う。cleanな専用候補checkoutをそのSHAに置き、JDK 21を指定する。RC作業ディレクトリはcheckoutの外に置く。GitHub公開用のwrite tokenをbuildへ渡さず、通常のbuild権限と公開権限を分ける。
+正式versionはユーザーが決める。以下の変数は実値を担当が設定する（例示の架空versionを採番しない）。通常は必要な実装・文書をdevelopへ統合してからsource SHAを固定する。main起点の限定候補では[限定取り込み](main-scoped-release.md)の事前計画と `--scope-issue` を使う。cleanな専用候補checkoutをそのSHAに置き、JDK 25を指定する。RC作業ディレクトリはcheckoutの外に置く。GitHub公開用のwrite tokenをbuildへ渡さず、通常のbuild権限と公開権限を分ける。
 
 ```bash
 # VERSION=承認済みの正式version、SOURCE=固定developの40桁SHA、RC=未使用の外部ディレクトリ
@@ -91,24 +91,21 @@ python3 scripts/workflow/release_candidate.py build \
   --source "$SOURCE" --version "$VERSION" --directory "$RC"
 ```
 
-処理はversion/source/build引数・設定ファイルhash・実JDKを先に`inputs.json`へ記録し、`clean test buildPlugin verifyPluginStructure`を一度実行する。local SDK overrideを無効にし、最古SDKの実full build、JVM21、内部version、clean sourceを照合する。Plugin ZIPは再圧縮せずコピーし、manifestにhash/size/内部identity、inputsに同梱JAR一覧を残す。依存の宣言版は固定sourceのbuild/settings/Wrapperとそれらのhashへ対応付ける。既存出力ディレクトリへ再buildする操作は拒否する。
+処理はversion/source/build引数・設定ファイルhash・実JDKを先に`inputs.json`へ記録し、`clean test buildPlugin verifyPluginStructure`を一度実行する。local SDK overrideを無効にし、Rabbit SDKの実full build、JVM25、内部version、clean sourceを照合する。Plugin ZIPは再圧縮せずコピーし、manifestにhash/size/内部identity、inputsに同梱JAR一覧を残す。依存の宣言版は固定sourceのbuild/settings/Wrapperとそれらのhashへ対応付ける。既存出力ディレクトリへ再buildする操作は拒否する。
 
-### 2. 同じZIPを両IDEで検証し、RCとして保存する
+### 2. 同じZIPをRabbitで検証し、RCとして保存する
 
-`HASH`には生成時に表示されたSHA256を固定する。`Q1`/`Q4`は未使用の検証出力ディレクトリ、`SDK_CACHE`は公式SDK取得用ディレクトリ。
+`HASH`には生成時に表示されたSHA256を固定する。`RABBIT`は未使用の検証出力ディレクトリ、`SDK_CACHE`は公式SDK取得用ディレクトリ。
 
 ```bash
-python3 scripts/workflow/plugin_compatibility.py verify --target quail1 \
+python3 scripts/workflow/plugin_compatibility.py verify --target rabbit1 \
   --archive "$RC/cursor-in-android-studio-$VERSION.zip" --manifest "$RC/manifest.json" \
-  --sha256 "$HASH" --output "$Q1" --sdk-cache "$SDK_CACHE/quail1"
-python3 scripts/workflow/plugin_compatibility.py verify --target quail4 \
-  --archive "$RC/cursor-in-android-studio-$VERSION.zip" --manifest "$RC/manifest.json" \
-  --sha256 "$HASH" --output "$Q4" --sdk-cache "$SDK_CACHE/quail4"
+  --sha256 "$HASH" --output "$RABBIT" --sdk-cache "$SDK_CACHE/rabbit1"
 python3 scripts/workflow/release_candidate.py bundle --directory "$RC" \
-  --sha256 "$HASH" --quail1 "$Q1" --quail4 "$Q4"
+  --sha256 "$HASH" --rabbit1 "$RABBIT"
 ```
 
-API検証は固定Quail 1 `AI-261.23567.138.2611.15503007` / JBR 21.0.10とQuail 4 `AI-261.26222.65.2614.16379836` / JBR 25.0.3。Phase 3と同じVerifier・限定optional例外・report判定を使う。片方の失敗、全クラス未完、別hash、詳細欠落を拒否する。公開bundleはZIP・manifest・入力と両方の検証レポート。SDKパスを含むraw logはローカルに保持し、公開するログは検査済み完了行の抜粋のみ。GUI結果は既存promotion.jsonが正本で、未実施の結果をRCへ書き込まない。
+API検証は固定Rabbit 1 `AI-262.9437.185.2621.16467767` / JBR 25.0.3。現行policyのVerifier・固定JCEF provider・限定optional例外・report判定を使う。全クラス未完、別hash、詳細欠落を拒否する。公開bundleはZIP・manifest・入力とRabbitの検証レポート。SDKパスを含むraw logはローカルに保持し、公開するログは検査済み完了行の抜粋のみ。GUI結果は既存promotion.jsonが正本で、未実施の結果をRCへ書き込まない。保存済みQuail RCの読み取りでは当時の固定sourceと両IDEのレポートを照合する。
 
 公開担当は上のbundleを受け取り、レビュー済みtoolingから次を実行する。`GITHUB_REPOSITORY=shinma06/cursor-in-android-studio`と必要なGitHub権限を公開段階だけで設定する。同じ候補の公開操作は担当を1名にし、並行実行しない。
 
@@ -127,7 +124,7 @@ python3 scripts/workflow/release_candidate.py fetch \
   --tag "$RC_TAG" --sha256 "$HASH" --directory "$DOWNLOADED_RC"
 ```
 
-取得処理は6 assetsと全hash、内部version/source/SDK、両Verifier結果を照合する。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。main限定0.1.0の両IDE・Terminal有効/無効は#409の4Caseへ記録済み。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
+取得処理は固定sourceのpolicyが要求する全assets/hash、内部version/source/SDK、Verifier結果を照合する（現行Rabbitは5 assets、旧Quailは6）。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。main限定0.1.0の両IDE・Terminal有効/無効は#409の4Caseへ記録済み。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
 
 ### 4. main昇格後、同じbytesを正式公開する
 
