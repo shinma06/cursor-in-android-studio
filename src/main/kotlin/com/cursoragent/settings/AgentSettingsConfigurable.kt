@@ -81,7 +81,7 @@ class AgentSettingsConfigurable : Configurable {
 
         panel = FormBuilder.createFormBuilder()
             .addComponent(ImmediateEditNotice())
-            .addLabeledComponent("CLIの実行ファイル:", agentPathPanel)
+            .addLabeledComponent("CLIの実行ファイル:", agentPathPanel, true)
             .addComponent(agentPathDescription!!)
             .addLabeledComponent("メッセージの送信キー:", sendKeyBox!!)
             .addLabeledComponent("会話本文の文字サイズ:", fontSizeBox!!)

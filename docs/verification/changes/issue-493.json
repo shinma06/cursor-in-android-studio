@@ -25,7 +25,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "reason": "初回b768d08の観察をhistoryへ保存。レイアウト追修正後の固定buildでは未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -44,7 +44,19 @@
         "evidence": null,
         "loaded_identity": null
       },
-      "history": [],
+      "history": [
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "b768d0879de293c15220e4013a1f37e34d3d083f",
+          "artifact_sha256": "b8216b3307234381df5d47af93df5000deec3db31672ef8c2ef1d614ce3b0694",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:17:40.466579+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971568436",
+          "reason": "900論理pxのSettingsで自動検出ボタン/説明が右端で切れた。保存操作前に停止。同じ未統合修正の次HEADで再確認する。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        }
+      ],
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
@@ -70,7 +82,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "固定buildでの実GUIは未実施。旧候補の観察や単体テストをpassへ転記しない。",
+        "reason": "初回b768d08の観察をhistoryへ保存。レイアウト追修正後の固定buildでは未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -89,7 +101,19 @@
         "evidence": null,
         "loaded_identity": null
       },
-      "history": [],
+      "history": [
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "b768d0879de293c15220e4013a1f37e34d3d083f",
+          "artifact_sha256": "b8216b3307234381df5d47af93df5000deec3db31672ef8c2ef1d614ce3b0694",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:17:40.466579+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971568436",
+          "reason": "Settings表示からCancel/終了までCLI呼出0を確認。明示取得以降は未実施。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        }
+      ],
       "fix_issue": null,
       "fix_pr": null,
       "recheck": "製品不具合は専用fixと新固定buildで再確認。旧74313e6のfail/部分観察を保存する。",
