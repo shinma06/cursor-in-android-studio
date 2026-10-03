@@ -17,6 +17,7 @@ internal class PluginDiagnosticsPanel(
         isEditable = false
         lineWrap = true
         wrapStyleWord = true
+        columns = 1
         rows = 9
         accessibleContext.accessibleName = "ビルド・CLI診断情報"
     }
