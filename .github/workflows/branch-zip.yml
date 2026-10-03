@@ -57,10 +57,18 @@ jobs:
         with:
           ref: ${{ matrix.sha }}
           persist-credentials: false
+      # The scheduled workflow also rebuilds unchanged historical branches.
+      # Use their declared toolchain; new Rabbit sources require Java 25 only.
+      - name: Read the checked-out source's JDK
+        id: jdk
+        run: |
+          version=$(sed -nE 's/^[[:space:]]*jvmToolchain\(([0-9]+)\).*$/\1/p' build.gradle.kts)
+          case "$version" in 21|25) ;; *) echo 'Unknown source JDK' >&2; exit 1 ;; esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: ${{ steps.jdk.outputs.version }}
       - uses: gradle/actions/setup-gradle@v4
       # schedule/manual also builds older source SHAs that still require local().
       - name: Select SDK acquisition for the checked-out source

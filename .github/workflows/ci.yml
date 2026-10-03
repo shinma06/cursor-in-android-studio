@@ -37,7 +37,7 @@ jobs:
         if: steps.impact.outputs.gradle_test == 'true'
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
 
       - uses: gradle/actions/setup-gradle@v4
         if: steps.impact.outputs.gradle_test == 'true'
@@ -88,10 +88,6 @@ jobs:
     if: needs.checks.outputs.plugin_zip == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [quail1, quail4]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -99,7 +95,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/download-artifact@v4
         with:
@@ -107,20 +103,23 @@ jobs:
           path: compatibility-input
       - name: Verify identical ZIP with the distribution's bundled JBR
         env:
-          TARGET: ${{ matrix.target }}
           ZIP_SHA256: ${{ needs.checks.outputs.artifact_sha256 }}
         run: |
           archives=(compatibility-input/*.zip)
           test "${#archives[@]}" -eq 1
           python3 scripts/workflow/plugin_compatibility.py verify \
-            --target "$TARGET" --archive "${archives[0]}" \
+            --target rabbit1 --archive "${archives[0]}" \
             --manifest compatibility-input/manifest.json --sha256 "$ZIP_SHA256" \
             --sdk-cache "$RUNNER_TEMP/compatibility-sdk" --output compatibility-result
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: compatibility-${{ matrix.target }}
-          path: compatibility-result
+          name: compatibility-rabbit1
+          path: |
+            compatibility-result/input.json
+            compatibility-result/result.json
+            compatibility-result/verifier.log
+            compatibility-result/reports
           if-no-files-found: error
           retention-days: 14
 

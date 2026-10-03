@@ -1,53 +1,45 @@
 {
   "schema": 1,
   "scope": "main",
-  "base": "31e864b9e34db54244d2eb77e2c2456bcbfa6093",
-  "candidate": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
-  "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
+  "base": "5b0e0052be5e0f8cef6220635199ccf6ff3b7be9",
+  "candidate": "9a34a37288fcb2613031d427026e861267322a39",
+  "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
   "results": {
-    "409:MODERN-Q1-TERMINAL-ON": {
+    "470:MAIN-RABBIT-TERMINAL-ON": {
       "status": "pass",
+      "head": "9a34a37288fcb2613031d427026e861267322a39",
+      "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
+      "reason": "Terminal ONでprint応答、Stop/New Chat、実Terminal出力の@terminal取得、Ask/通知設定と履歴metadataの再起動保持を実画面で確認。所有processの後始末完了。",
       "actor": "gpt",
-      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
-      "at": "2026-09-22T02:57:42Z",
-      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
-      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
-      "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR21.0.10; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
-      "reason": "Terminal有効で@terminalの確認文字列を完全一致で取得。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
+      "observer": "codex-session-01a0fc59",
+      "at": "2026-10-02T15:13:52+00:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
+      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
+      "execution": "computer_use"
     },
-    "409:MODERN-Q1-TERMINAL-OFF": {
+    "470:MAIN-RABBIT-TERMINAL-OFF": {
       "status": "pass",
+      "head": "9a34a37288fcb2613031d427026e861267322a39",
+      "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
+      "reason": "TerminalとIDE指定の依存プラグインを専用profileで無効化・再起動。print応答、Stop/New Chat、設定と履歴metadataの再起動保持、所有processの後始末を確認。",
       "actor": "gpt",
-      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
-      "at": "2026-09-22T02:57:42Z",
-      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
-      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
-      "loaded_identity": "AI-261.23567.138.2611.15503007 / bundled JBR21.0.10; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
-      "reason": "Terminal無効で再起動し、Terminalがなくても応答を実画面で確認。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
+      "observer": "codex-session-01a0fc59",
+      "at": "2026-10-02T15:13:52+00:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
+      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
+      "execution": "computer_use"
     },
-    "409:MODERN-Q4-TERMINAL-ON": {
+    "470:MAIN-RABBIT-VFS-FLUSH": {
       "status": "pass",
+      "head": "9a34a37288fcb2613031d427026e861267322a39",
+      "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
+      "reason": "保存直後の実CLI/Git読取りと復元、実VFS保存待ち中のStop/新規会話とStopを介さない画面破棄、遅延生成processの停止と新runへの非混入を同一ZIPで確認。保存待ち/Gitはbackgroundで実行し、準備/実行中の復元を拒否。復元modal中の送信クリックが正常完了しても別prompt/CLIが始まらず、復元後のdisk/IDE内容がcheckpointと一致することを確認。flush失敗は安全に再現できず未確認。",
       "actor": "gpt",
-      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
-      "at": "2026-09-22T03:13:12Z",
-      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
-      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
-      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR25.0.3; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
-      "reason": "Terminal有効で@terminalの確認文字列を完全一致で取得。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
-    },
-    "409:MODERN-Q4-TERMINAL-OFF": {
-      "status": "pass",
-      "actor": "gpt",
-      "observer": "codex-409-main-modernization（GPTの実画面操作＋人間の設定/履歴確認）",
-      "at": "2026-09-22T03:13:12Z",
-      "head": "48367ffa9fa23ce97a7aba66489a13436f3db0a3",
-      "artifact_sha256": "0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/409#issuecomment-5770690735",
-      "loaded_identity": "AI-261.26222.65.2614.16379836 / bundled JBR25.0.3; run gui-409-main-r1; 専用fixture、ZIP内5 JARと配置済み5 JARのSHA-256一致、実プロセスのロードJAR/同梱JBRを再起動後も照合。",
-      "reason": "Terminal無効で再起動し、Terminalがなくても応答を実画面で確認。GPTが応答表示・Stop後の送信復帰・New Chat→Readyを観察。人間が通知OFF→ONの設定操作と再起動後の通知ON保持・履歴metadata3件表示を確認し、保存XMLも補助照合。ロード/LinkageErrorなし。既存mainの停止時exit137表示と反復数列の表示欠落は証拠に明記し、完全な数列表示やdevelop専用機能の受入へ転用しない。"
+      "observer": "codex-session-01a0fc59",
+      "at": "2026-10-03T00:53:53+00:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5963834082",
+      "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
+      "execution": "computer_use"
     }
   }
 }
