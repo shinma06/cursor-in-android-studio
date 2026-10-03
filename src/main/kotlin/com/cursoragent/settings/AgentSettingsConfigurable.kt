@@ -5,6 +5,7 @@ import com.cursoragent.ui.ImmediateEditNotice
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBCheckBox
@@ -79,7 +80,7 @@ class AgentSettingsConfigurable : Configurable {
 
         diagnosticsPanel = PluginDiagnosticsPanel()
 
-        panel = FormBuilder.createFormBuilder()
+        val form = FormBuilder.createFormBuilder()
             .addComponent(ImmediateEditNotice())
             .addLabeledComponent("CLIの実行ファイル:", agentPathPanel, true)
             .addComponent(agentPathDescription!!)
@@ -97,6 +98,7 @@ class AgentSettingsConfigurable : Configurable {
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
+        panel = ScrollablePanel(BorderLayout()).apply { add(form, BorderLayout.NORTH) }
         return panel!!
     }
 

@@ -7,6 +7,7 @@
     "python3 scripts/workflow/change_impact.py --run-tests",
     "./gradlew test buildPlugin verifyPluginStructure",
     "DefaultModelSettingsPanelTest/ModelCatalogStatusTest/ModelCatalogLoaderTest: 無操作の無実行、保存ID保持、明示取得、失敗/再試行/破棄後配送",
+    "AgentSettingsLayoutTest: 実Configurableが狭幅viewportへ追従し、CLI自動検出と診断の操作ボタンが範囲内に収まる",
     "固定HEAD/base別sessionレビュー、git diff --check"
   ],
   "cases": [
@@ -25,7 +26,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "初回b768d08の観察をhistoryへ保存。レイアウト追修正後の固定buildでは未実施。",
+        "reason": "b768d08/693fd4bの観察をhistoryへ保存。viewport幅追従の修正後は固定build実GUI未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -55,6 +56,17 @@
           "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971568436",
           "reason": "900論理pxのSettingsで自動検出ボタン/説明が右端で切れた。保存操作前に停止。同じ未統合修正の次HEADで再確認する。",
           "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "fail",
+          "head": "693fd4bf6bc91a15a49c71c5822d16cf12913d54",
+          "artifact_sha256": "a713461717ccdcc3f96b9381b705c8cc8c9c3a31f610ea5ab622e7ee257c38ff",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:26:14.096960+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971638827",
+          "reason": "ラベル段を変更しても900論理pxでフォームが窓幅を超え、自動検出ボタン/説明が切れた。viewport幅追従を修正して再確認する。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
         }
       ],
       "fix_issue": null,
@@ -82,7 +94,7 @@
       "gpt": {
         "actor": "gpt",
         "status": "pending",
-        "reason": "初回b768d08の観察をhistoryへ保存。レイアウト追修正後の固定buildでは未実施。",
+        "reason": "b768d08/693fd4bの観察をhistoryへ保存。viewport幅追従の修正後は固定build実GUI未実施。",
         "head": null,
         "artifact_sha256": null,
         "observer": null,
@@ -111,6 +123,17 @@
           "at": "2026-10-03T17:17:40.466579+00:00",
           "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971568436",
           "reason": "Settings表示からCancel/終了までCLI呼出0を確認。明示取得以降は未実施。",
+          "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
+        },
+        {
+          "actor": "gpt",
+          "status": "pending",
+          "head": "693fd4bf6bc91a15a49c71c5822d16cf12913d54",
+          "artifact_sha256": "a713461717ccdcc3f96b9381b705c8cc8c9c3a31f610ea5ab622e7ee257c38ff",
+          "observer": "pm-settings-fix-01a0fcb3",
+          "at": "2026-10-03T17:26:14.096960+00:00",
+          "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/493#issuecomment-5971638827",
+          "reason": "Settings閲覧/Cancel/終了までCLI呼出0。明示取得以降は未実施。",
           "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR25.0.3; all5 installed/open JARs matched ZIP; Settings source matched; dedicated IDE exited."
         }
       ],
