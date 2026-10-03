@@ -30,14 +30,14 @@
       "execution": "computer_use"
     },
     "470:MAIN-RABBIT-VFS-FLUSH": {
-      "status": "blocked",
+      "status": "pass",
       "head": "9a34a37288fcb2613031d427026e861267322a39",
       "artifact_sha256": "24200c400610a233f1904b342b496b2eeaa8097db3037c17bd6ec584509b39a5",
-      "reason": "保存直後の実CLI/実Git読取りと復元、実VFS書込みを待つbackground flush中のStop、新規会話との分離、Stop後に遅延生成された実processの終了、準備/実行中の復元拒否を確認。Stopなしの画面破棄単独と復元中の別送信試行は追加送信枠の承認待ち。flush失敗は安全に再現できず未確認。",
+      "reason": "保存直後の実CLI/Git読取りと復元、実VFS保存待ち中のStop/新規会話とStopを介さない画面破棄、遅延生成processの停止と新runへの非混入を同一ZIPで確認。保存待ち/Gitはbackgroundで実行し、準備/実行中の復元を拒否。復元modal中の送信クリックが正常完了しても別prompt/CLIが始まらず、復元後のdisk/IDE内容がcheckpointと一致することを確認。flush失敗は安全に再現できず未確認。",
       "actor": "gpt",
       "observer": "codex-session-01a0fc59",
-      "at": "2026-10-02T15:13:52+00:00",
-      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5955424484",
+      "at": "2026-10-03T00:53:53+00:00",
+      "evidence": "https://github.com/shinma06/cursor-in-android-studio/issues/470#issuecomment-5963834082",
       "loaded_identity": "Rabbit AI-262.9437.185.2621.16467767 / JBR 25.0.3。専用profileにInstall Plugin from Diskで導入・再起動し、全5配置JARのSHA-256を同一固定ZIPと照合。",
       "execution": "computer_use"
     }
