@@ -204,8 +204,12 @@ internal class AcpConfiguration {
 
     @Synchronized
     fun replace(response: JsonObject) {
-        options = response.array("configOptions").map { it.asJsonObject.deepCopy() }
-        require(options.map { it.requiredString("id") }.toSet().size == options.size)
+        options = emptyList()
+        val replacement = response.array("configOptions")
+        require(replacement.size() <= 128)
+        val parsed = replacement.map { it.asJsonObject.deepCopy() }
+        require(parsed.map { it.requiredString("id").also { id -> require(id.isNotEmpty() && id.length <= 4096) } }.toSet().size == parsed.size)
+        options = parsed
     }
 
     @Synchronized
@@ -220,7 +224,18 @@ internal class AcpConfiguration {
         val model = selection("model")
         val models = values(option("model"))
         require(mode in setOf("agent", "ask", "plan") && accepts("mode", mode) && models.any { it.id == model })
-        return AgentEvent.Configuration(mode, model, models)
+        val parameters = options.filter {
+            it.string("type") == "select" && it.string("id") !in setOf("mode", "model") &&
+                it.string("category") in setOf("thought_level", "model_config")
+        }.map { option ->
+            val values = values(option)
+            val current = option.requiredString("currentValue")
+            require(values.any { it.id == current })
+            val name = option.requiredString("name").also { require(it.isNotEmpty() && it.length <= 16_384) }
+            com.cursoragent.service.ModelParameter(option.requiredString("id"), name,
+                option.requiredString("category"), current, values)
+        }
+        return AgentEvent.Configuration(mode, model, models, parameters)
     }
 
     private fun option(id: String): JsonObject = options.firstOrNull { it.string("id") == id && it.string("type") == "select" }
@@ -231,7 +246,10 @@ internal class AcpConfiguration {
         if (value.has("options")) value.array("options").map { entry ->
             ModelOption(entry.asJsonObject.requiredString("value"), entry.asJsonObject.requiredString("name"))
         } else listOf(ModelOption(value.requiredString("value"), value.requiredString("name")))
-    }.also { values -> require(values.map { it.id }.toSet().size == values.size) }
+    }.also { values ->
+        require(values.size <= 2_000 && values.all { it.id.isNotEmpty() && it.id.length <= 4096 && it.label.length <= 16_384 })
+        require(values.map { it.id }.toSet().size == values.size)
+    }
 }
 
 internal fun JsonObject.requiredString(name: String): String = requireNotNull(string(name))

@@ -87,6 +87,14 @@ class ConversationStore(private val directory: Path) {
         value.turns.forEach { turn ->
             require(UUID.fromString(turn.id).toString() == turn.id && ids.add(turn.id))
             require(turn.state in setOf("running", "completed", "interrupted", "stopped", "failed", "refused", "token_limit", "request_limit", "cancelled"))
+            turn.modelSettings?.let { settings ->
+                require(settings.mode in setOf("agent", "ask", "plan"))
+                require(settings.model.isNotEmpty() && settings.model.length <= 4096)
+                require(settings.parameters.size <= 128 && settings.parameters.all { (id, selection) ->
+                    id.isNotEmpty() && id.length <= 4096 && id !in setOf("mode", "model") &&
+                        selection.isNotEmpty() && selection.length <= 4096
+                })
+            }
             turn.messages.forEach { message ->
                 require(UUID.fromString(message.id).toString() == message.id && ids.add(message.id))
                 require(message.role in setOf("user", "assistant", "tool", "error"))

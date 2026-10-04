@@ -14,6 +14,7 @@ internal data class QueuedPrompt(
     val command: String? = null,
     val image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment? = null,
     val retryUnsentImage: Boolean = false,
+    val modelParameters: Map<String, String> = emptyMap(),
 )
 
 internal data class QueueDispatch(val generation: Long, val revision: Long, val prompt: QueuedPrompt)
@@ -28,11 +29,11 @@ internal class PromptQueue(val conversationId: String,
     val size get() = entries.size
     fun snapshot(): List<QueuedPrompt> = entries.toList()
 
-    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null, command: String? = null, image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment? = null): Boolean {
+    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null, command: String? = null, image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment? = null, modelParameters: Map<String, String> = emptyMap()): Boolean {
         if (text.isBlank() && command == null && image == null) return false
         if (entries.isEmpty()) paused = false
         revision++
-        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context, command = command, image = image))
+        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context, command = command, image = image, modelParameters = modelParameters.toMap()))
         return true
     }
 

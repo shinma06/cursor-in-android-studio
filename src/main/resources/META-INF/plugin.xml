@@ -45,6 +45,14 @@
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
     <actions>
+        <action id="CursorAgent.CycleModelParameter" class="com.cursoragent.actions.CycleModelParameterAction"
+                text="モデルの追加設定を切り替える (Cursor)" description="接続先が広告した先頭のモデル追加設定を順に切り替えます">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift SLASH"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt SLASH"/>
+            <keyboard-shortcut keymap="Default for XWin" first-keystroke="ctrl shift SLASH" replace-all="true"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift SLASH" replace-all="true"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift SLASH" replace-all="true"/>
+        </action>
         <action id="CursorAgent.AddSelectionToChat" class="com.cursoragent.actions.AddSelectionToChatAction"
                 text="Add to Chat (Cursor)" description="選択したコードを現在のチャットへ明示contextとして追加します。">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>

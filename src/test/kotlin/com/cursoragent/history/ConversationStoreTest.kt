@@ -13,6 +13,32 @@ import java.nio.file.Path
 class ConversationStoreTest {
     @TempDir lateinit var directory: Path
 
+    @Test fun `confirmed per turn parameters survive restart and older records stay readable`() {
+        val store = ConversationStore(directory)
+        val recorder = ConversationRecorder(Conversation(transport = AgentTransport.ACP), store::save)
+        recorder.begin(newHistoryId(), "first")
+        val state = com.cursoragent.service.AgentEvent.Configuration("ask", "actual-model", emptyList(), listOf(
+            com.cursoragent.service.ModelParameter("thinking", "Thinking", "thought_level", "high", emptyList()),
+        ))
+        recorder.configuration(state)
+        recorder.finish("completed")
+        recorder.begin(newHistoryId(), "legacy or unconfirmed")
+        recorder.finish("failed")
+        val loaded = store.load().conversations.single()
+        assertEquals(SavedModelSettings("ask", "actual-model", mapOf("thinking" to "high")), loaded.turns.first().modelSettings)
+        assertNull(loaded.turns.last().modelSettings)
+        val file = directory.resolve("${loaded.id}.json")
+        val json = com.google.gson.JsonParser.parseString(Files.readString(file)).asJsonObject
+        json.getAsJsonArray("turns").forEach { it.asJsonObject.remove("modelSettings") }
+        Files.writeString(file, json.toString())
+        assertTrue(store.load().conversations.single().turns.all { it.modelSettings == null })
+        val before = Files.readString(file)
+        assertThrows(IllegalArgumentException::class.java) {
+            store.save(loaded.copy(turns = listOf(loaded.turns.first().copy(modelSettings = SavedModelSettings("ask", "model", mapOf("mode" to "agent"))))))
+        }
+        assertEquals(before, Files.readString(file))
+    }
+
     @Test fun `stable IDs and ordered text survive restart with unfinished turns interrupted`() {
         val store = ConversationStore(directory)
         val recorder = ConversationRecorder(Conversation(transport = AgentTransport.ACP), store::save)

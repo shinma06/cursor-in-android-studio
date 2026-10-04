@@ -22,8 +22,24 @@ sealed interface AgentEvent {
     data class Tool(val state: AgentTool) : AgentEvent
     data class Input(val request: AgentInputRequest) : AgentEvent
     data class Plan(val entries: List<String>) : AgentEvent
-    data class Configuration(val mode: String, val model: String, val models: List<ModelOption>) : AgentEvent
+    data class Configuration(
+        val mode: String,
+        val model: String,
+        val models: List<ModelOption>,
+        val parameters: List<ModelParameter> = emptyList(),
+    ) : AgentEvent {
+        fun parameterValues(): Map<String, String> = parameters.associate { it.id to it.currentValue }
+    }
 }
+
+/** Advertised select values, in provider order. IDs are opaque; labels are plain text. */
+data class ModelParameter(
+    val id: String,
+    val name: String,
+    val category: String,
+    val currentValue: String,
+    val options: List<ModelOption>,
+)
 
 data class AgentTool(
     val id: String,
