@@ -49,5 +49,73 @@
                 text="Add to Chat (Cursor)" description="選択したコードを現在のチャットへ明示contextとして追加します。">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
+        <group id="CursorAgent.PanelActions" text="Cursor in Android Studio">
+            <action id="CursorAgent.NewChat" class="com.cursoragent.actions.AgentPanelAction$NewChat"
+                    text="新規チャット" description="現在のパネルに新しいチャットを開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control T"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control N"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta T" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta N"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta T" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta N"/>
+            </action>
+            <action id="CursorAgent.CloseChat" class="com.cursoragent.actions.AgentPanelAction$CloseChat"
+                    text="チャットを閉じる" description="現在のチャットを確認して閉じます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control W"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta W" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta W" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.PreviousChat" class="com.cursoragent.actions.AgentPanelAction$PreviousChat"
+                    text="前のチャット" description="現在のパネルの前のタブへ移動します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control OPEN_BRACKET"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta OPEN_BRACKET" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta OPEN_BRACKET" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.NextChat" class="com.cursoragent.actions.AgentPanelAction$NextChat"
+                    text="次のチャット" description="現在のパネルの次のタブへ移動します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control CLOSE_BRACKET"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta CLOSE_BRACKET" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta CLOSE_BRACKET" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.Stop" class="com.cursoragent.actions.AgentPanelAction$Stop"
+                    text="応答を停止" description="現在のチャットの実行を停止します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift BACK_SPACE"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift BACK_SPACE" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift BACK_SPACE" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.ModeMenu" class="com.cursoragent.actions.AgentPanelAction$ModeMenu"
+                    text="Modeを選ぶ" description="現在のチャットのMode選択を開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control PERIOD"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta PERIOD" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta PERIOD" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.ModelMenu" class="com.cursoragent.actions.AgentPanelAction$ModelMenu"
+                    text="Modelを選ぶ" description="現在のチャットのModel選択を開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control SLASH"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt SLASH"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta SLASH" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt SLASH"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta SLASH" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt SLASH"/>
+            </action>
+            <action id="CursorAgent.AddContext" class="com.cursoragent.actions.AgentPanelAction$AddContext"
+                    text="Contextを追加" description="現在のチャットのcontext候補を開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt P"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt P" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt P" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.History" class="com.cursoragent.actions.AgentPanelAction$History"
+                    text="チャット履歴" description="保存済みのチャットを探します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt QUOTE"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt QUOTE" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt QUOTE" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.Settings" class="com.cursoragent.actions.AgentPanelAction$Settings"
+                    text="Cursorの設定" description="Cursor in Android Studioの設定を開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift J"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift J" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift J" replace-all="true"/>
+            </action>
+        </group>
     </actions>
 </idea-plugin>

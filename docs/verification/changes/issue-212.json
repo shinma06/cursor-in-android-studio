@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "issue": 212,
+  "gui_required": true,
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。初期10操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
+    "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
+    "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks"
+  ],
+  "cases": [
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-CORE-TABS",
+      "change": "新規・切替・閉鎖・履歴・設定",
+      "steps": [
+        "使い捨てprojectに3会話を開き、本文/下書き/明示context/予約を識別する。対応表のM+T/M+N、M+[/]で新規と表示順の循環を確認する。切替で入力と本文を混ぜない。",
+        "M+Wで未保存確認の取消/承認と最後のtab閉鎖/再表示を確認する。ファイルeditorと別projectは閉じない。",
+        "M+A+'で履歴を開き、既存の予約一時停止・保存会話の選択へ接続する。M+Shift+JでPlugin設定を開く。"
+      ],
+      "expected": "既存操作と同じ対象/確認を通る。最後のtabだけパネル非表示となり、他tab/projectやファイルeditorを破壊しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-COMPOSER-RUN",
+      "change": "選択中runと入力/設定条件",
+      "steps": [
+        "print/ACP合成fixtureでA/Bを同時実行し、選択中BでM+Shift+Backspaceを押す。Bだけ停止し、Aと新規会話へ停止/遅着を混ぜない。停止完了とphysical終了を区別する。",
+        "M+.、M+/、M+A+/、M+A+Pで既存mode/model/context候補を操作する。ACP初期未取得・busy・model空の制約を保持し、printモデル失敗時は既存再取得操作になる。",
+        "日本語IME変換中、@と/候補中、mode/model/履歴popup中で各既定キーを押す。入力確定・選択・取消を奪わず、popupの背後でtab追加/閉鎖/停止が起きない。",
+        "通常入力のEnter/Shift+Enter、設定切替後のM+Enter、Tab/Shift+Tabのfocus移動、Escapeと貼付けが従来どおり動くことを確認する。"
+      ],
+      "expected": "対象runだけ停止し、IME/popupとACPの可否を保持する。現行の未対応Cursor操作を代替動作で成功扱いしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-OS-REMAP",
+      "change": "OS別Keymap・変更・解除・寿命",
+      "steps": [
+        "macOS、Windows/Linuxで使用OSとIDE keymapを記録し、対応表の既定キーを確認する。Macで不要なCtrl版を継承せず、一般editor/別ToolWindowでは既存IDE操作が働くことを確認する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。開いている全panelで変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。",
+        "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
+      ],
+      "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel外でキーを奪わず、dispose済みの対象へ配送しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-FULL-INVENTORY",
+      "change": "全対象と未対応能力の照合",
+      "steps": [
+        "固定したCursor版のKeyboard Shortcuts、入力欄/候補/提案/検索/承認の実操作を対応表と照合し、全キー・OS別条件・focus/mode条件と新たな対象を記録する。独立Agents Window専用操作は区別する。",
+        "対応表の未確定項目と未実装能力を具体Issue/依存へ対応付け、完了した調査を機能実装の合格に置換しない。必要なsub-issueと親の全対象を照合する。",
+        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。初期10操作のpassで未対応を省略しない。"
+      ],
+      "expected": "全対象が根拠付きで確定し、未対応/条件差と次のownerを追跡する。全件未達の間は#212を完了にしない。"
+    }
+  ]
+}

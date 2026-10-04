@@ -1,5 +1,7 @@
 package com.cursoragent.ui
 
+import com.cursoragent.actions.AgentPanelActions
+import com.cursoragent.actions.AgentPanelCommand
 import com.cursoragent.service.AgentTransport
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.TurnSettings
@@ -21,6 +23,9 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
@@ -39,7 +44,7 @@ import javax.swing.JPanel
 class AgentToolWindowRootPanel(
     private val project: Project,
     private val onLastTabClosed: () -> Unit,
-) : JPanel(BorderLayout()), Disposable {
+) : JPanel(BorderLayout()), Disposable, UiDataProvider {
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
@@ -50,6 +55,47 @@ class AgentToolWindowRootPanel(
 
     private val selectedView: TabView?
         get() = if (disposed || project.isDisposed) null else views[sessions.snapshot().selectedId]
+
+    private val panelActions = AgentPanelActions(::shortcutAvailable, ::performShortcut)
+    private val registeredShortcuts = mutableListOf<com.intellij.openapi.actionSystem.AnAction>()
+
+    override fun uiDataSnapshot(sink: DataSink) {
+        if (!disposed && !project.isDisposed) sink[AgentPanelActions.KEY] = panelActions
+    }
+
+    private fun shortcutAvailable(command: AgentPanelCommand): Boolean {
+        val composer = selectedView?.composer ?: return false
+        if (!isShowing || !composer.panelShortcutAvailable || JBPopupFactory.getInstance().isChildPopupFocused(this)) return false
+        return when (command) {
+            AgentPanelCommand.STOP -> composer.isRunning
+            AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled
+            AgentPanelCommand.MODEL_MENU -> composer.modelSelector.isEnabled
+            AgentPanelCommand.ADD_CONTEXT -> composer.inputArea.isEnabled
+            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> sessions.snapshot().tabs.size > 1
+            else -> true
+        }
+    }
+
+    private fun performShortcut(command: AgentPanelCommand, event: AnActionEvent) {
+        if (!shortcutAvailable(command)) return
+        val view = selectedView ?: return
+        when (command) {
+            AgentPanelCommand.NEW_CHAT -> open()
+            AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
+            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> {
+                val snapshot = sessions.snapshot()
+                val offset = if (command == AgentPanelCommand.PREVIOUS_CHAT) -1 else 1
+                val index = Math.floorMod(snapshot.tabs.indexOfFirst { it.id == snapshot.selectedId } + offset, snapshot.tabs.size)
+                if (sessions.select(snapshot.tabs[index].id)) showSelected()
+            }
+            AgentPanelCommand.STOP -> view.controller.stopRun()
+            AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
+            AgentPanelCommand.MODEL_MENU -> view.composer.modelSelector.doClick()
+            AgentPanelCommand.ADD_CONTEXT -> view.composer.promptContext.onAddMention()
+            AgentPanelCommand.HISTORY -> { view.controller.pauseQueue(); history.showPopup(event) }
+            AgentPanelCommand.SETTINGS -> ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java)
+        }
+    }
 
     internal val actions = ToolWindowChatActions(
         settings = AgentSettingsState.getInstance(),
@@ -120,6 +166,12 @@ class AgentToolWindowRootPanel(
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
         showSelected()
+        AgentPanelCommand.entries.forEach { command ->
+            ActionManager.getInstance().getAction(command.actionId)?.let { action ->
+                action.registerCustomShortcutSet(action.shortcutSet, this)
+                registeredShortcuts.add(action)
+            }
+        }
     }
 
     fun selectionContextTarget(): ((com.cursoragent.ui.composer.context.SelectionContext) -> Unit)? {
@@ -247,6 +299,8 @@ class AgentToolWindowRootPanel(
     override fun dispose() {
         if (disposed) return
         disposed = true
+        registeredShortcuts.forEach { it.unregisterCustomShortcutSet(this) }
+        registeredShortcuts.clear()
         openedChatsPopup?.cancel()
         openedChatsPopup = null
         history.dispose()
