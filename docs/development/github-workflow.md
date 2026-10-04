@@ -38,6 +38,20 @@ GUI toolがない担当は実装・CLI検証を進め、GUIだけを対応可能
 役割を兼ねる場合もレビューの別session条件と単一writer/GUI leaseを守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
 モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
 
+## 個人情報・非公開情報の公開前確認
+
+GitHubへpush・投稿・編集・添付・配布する担当は、送信する差分/本文/成果物とそのメタデータに、個人情報や公開してはいけない情報が含まれていないかを送信前に確認する。Issue/PR（MR相当）のtitle/body、コメント・レビュー、画像/動画、Actionsログ/summary/artifact、Release本文/asset、Wiki/Discussions、Project/Milestone等も対象とする。
+
+- **個人情報・環境情報**: 氏名、個人メール、住所、電話番号、顧客/利用者識別子、端末ID、host名、ローカルユーザー名・絶対パス、社内URL/IP等。commit author/committerのname/email、commit message、branch/tag名、画像に映った通知/アカウント、ファイルのメタデータも確認する。
+- **認証情報**: token、API key、password、秘密鍵、署名用keystoreと資格情報、cookie/session、接続文字列、`.env`や認証設定、ログ内のAuthorization header等。テスト/fixtureの値も実資格情報でないことを確認する。
+- **非公開情報**: 顧客・業務データ、私的な会話/実wire/rawログ、未公開仕様・ソース・契約・内部資料、公開承認待ちの証拠や成果物。既存の#146等の公開承認範囲を維持する。
+
+情報の用途・公開承認・対象repository/resourceの閲覧範囲を照合する。private repositoryのソース/投稿/添付にも秘密や不要な個人情報を保存しない。明示的に公開承認された著者情報等や実データを含まない合成値は、根拠を確認して扱い、一律に漏えい扱いしない。ただし本規約が公開記録への記載を禁止するhost/ローカル絶対パス/token/private rawログは維持する。不明なら当該情報の送信を保留し、安全な残作業を進める。
+
+必要な説明は伏字化・合成データ・repository相対パスで置き換え、原本は承認済みの非公開保管先だけに残す。[GitHub noreply email](https://docs.github.com/ja/account-and-profile/reference/email-addresses-reference)等の公開可能なcommit identityを確認する。`.gitignore`だけに依存せず、staged diff、commit metadata、送信内容と生成物を実際に確認する。
+
+既存GitHub上の情報は[定期監査の情報公開確認](git-governance-audit.md#個人情報非公開情報の監査)で点検する。漏えい候補を見つけた場合も同節の報告・対応境界を使い、公開Issue/PRへ問題の値やraw証拠を転載しない。
+
 ## 参照する範囲と進行判断
 
 対象Issue/全コメント、関連PR、Projectの担当範囲と対象Milestone、作業tree/baseは開始・引継ぎ時に確認する。技術資料は下表で選ぶ。既に読んだ同一版は再利用し、baseや対象要件の変更・矛盾・不足がある部分を読み直す。必須の受入/所有/承認照合を省く意味ではない。
