@@ -1,6 +1,7 @@
 package com.cursoragent.ui
 
 import com.cursoragent.actions.AgentWindowCommand
+import com.cursoragent.settings.AgentMode
 
 internal data class ChatEntryTab(
     val id: String,
@@ -36,4 +37,16 @@ internal fun chatEntry(
         }
         else -> error("Not a chat entry command: $command")
     }
+}
+
+internal data class ChatResetTab(val id: String, val empty: Boolean, val hasHistory: Boolean, val hasDraft: Boolean, val mode: AgentMode)
+internal data class ChatReset(val reuseId: String?, val copyDraft: Boolean, val mode: AgentMode)
+
+/** The input's reset reuses an empty view; otherwise it replaces the current view, retaining its owner. */
+internal fun chatReset(tabs: List<ChatResetTab>, selectedId: String): ChatReset {
+    val current = tabs.first { it.id == selectedId }
+    val reusable = current.takeIf { it.empty } ?: tabs.firstOrNull { it.empty }
+    if (reusable != null) return ChatReset(reusable.id, false, reusable.mode)
+    return ChatReset(null, current.hasHistory,
+        if (current.hasHistory && current.hasDraft) current.mode else AgentMode.AGENT)
 }

@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内15操作とglobal入口6操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内16操作とglobal入口6操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
@@ -12,6 +12,7 @@
     "RecentChatsTest: 単一tabの全履歴更新日時順/循環/10件超、本文/legacyの識別、run token/保留作業/手動名の置換拒否",
     "AllChatsTest: 全履歴の検索後200件上限、名前/冒頭文の曖昧検索と一致位置、sidebar更新順、metadata優先/PRINT重複識別、端のhighlightとControl/Meta解放/Keymap",
     "SidebarChatsTest: local日付/DST/7日30日境界、pin優先と6件/More、折畳み候補除外、部分一致とpopup曖昧検索の区別、75件の有効pin上限と型付き保存/不正値",
+    "SessionTabsTest/SessionTabsExecutionTest/ChatEntryTest/ToolWindowChatActionsTest: 表示置換とowner保持、空会話/履歴後draft条件、hidden runの配送/実終了排他、visibleだけの移動/閉鎖、Actionと入力focus/IME/import guard",
     "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks"
   ],
   "cases": [
@@ -142,8 +143,8 @@
       "id": "KEYMAP-OS-REMAP",
       "change": "OS別Keymap・変更・解除・寿命",
       "steps": [
-        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel内15操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
-        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel内15操作とglobal入口6操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
+        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel内16操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel内16操作とglobal入口6操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
         "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
       ],
       "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel内操作は一般editorを奪わず、global入口は明示割当どおりに動く。dispose済みの対象へ配送しない。"
@@ -692,12 +693,61 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/518",
         "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
       ],
+      "id": "KEYMAP-INPUT-RESET",
+      "change": "入力欄から新しい会話へ表示を置き換え、元の実行と下書きを保持する",
+      "steps": [
+        "MacのCmd+R、Windows/LinuxのCtrl+Rを入力欄で実行する。Shift付き、通常editor、timeline/selector/sidebar、別project、入力不可、IME変換/確定直後、候補/子popup、画像import中では切替しない。Keymap変更/解除後の新旧キーとIDE標準Actionの競合も照合する。",
+        "現在の空会話を優先して再利用する。現在が非空なら表示中で最初の空会話へ移る。空会話のmode/contextを保持し、新しい空会話や不要なタブを増やさない。run/queue/command/画像/本文不明の会話を空と誤認しない。",
+        "空候補がない状態で、初回送信前の本文/画像/commandを入力して実行する。新しい表示は空のAgentとなり、元の会話はタブ列から外れる。All Agentsの説明/最近使用一覧から元のIDへ戻ると、本文・caret/選択・mode/model・command/context・画像が残る。名前を自動生成せず、保存履歴の再読込やprovider prompt送信も起こさない。",
+        "本文がある会話の次のdraftで実行する。新しい会話に本文・command・context/自動設定・画像を複製し、入力ありのPlan/Askを保持する。入力がなければAgent。元draftも維持され、片側の編集・画像解除・Undoが他方を壊さない。新規接続/モデルの既定と、command/画像の対応未確認時の拒否・保持を確認する。",
+        "print/ACPの準備中・応答中・終了後・予約編集中に表示を置換する。元の応答/provider title/許可待ちは元ownerへ届き、新しい会話へ混ざらない。元のrunを勝手にStop/再送せず、予約だけは既存の切替方針で一時停止する。元の会話を再表示してStop/予約更新/取消/再開が正しい1件に作用することを確認する。",
+        "複数の非表示ownerを保持して、表示タブの前後移動/ドラッグ順替え/開いているチャット/全閉鎖を実行する。操作対象はvisible集合だけで、非表示のrunは停止しない。最後のvisibleを閉じるとパネルが隠れ、再表示は新しいNew Agent。元ownerの明示closeとroot/project破棄では対象run・画像lease・listenersを解放し、遅いイベントを拒否する。IDE再起動で未保存draftが戻る保証とは扱わない。"
+      ],
+      "expected": "入力局所の有効条件と空会話再利用/履歴後draft引継ぎが一致し、表示置換で元の実行・下書き・予約を失わない。明示closeとroot破棄の所有/遅着拒否、#213の最後visible閉鎖を維持する。native worktree/editor等の未接続分岐は全対象照合に残す。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
+      ],
       "id": "KEYMAP-FULL-INVENTORY",
       "change": "全対象と未対応能力の照合",
       "steps": [
         "固定Cursor 3.23.12のKeyboard Shortcutsと入力欄/各popup/提案/検索/承認を、対応表の43登録行（40静的in-IDE、2所属未確定、1Inline対象外）と17入力群（15静的確認）に逐一照合する。共有部品6群・公式/動的4候補も所属を判定し、未確定から対象を落とさず全キー・OS・focus/mode条件を記録する。",
         "対応表の未確定項目と未実装能力を具体Issue/依存へ対応付け、完了した調査を機能実装の合格に置換しない。必要なsub-issueと親の全対象を照合する。 会話内findはnative子Issue #518（条件切替・一致位置/総数・stream/タブ所有を含む）へ実分解済みで、未実装/GUI未確認として追跡する。Milestone 8の全件受入を子1件の完了に縮めない。",
-        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel内15/global6操作のpassで未対応を省略しない。"
+        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel内16/global6操作のpassで未対応を省略しない。"
       ],
       "expected": "全対象が根拠付きで確定し、未対応/条件差と次のownerを追跡する。全件未達の間は#212を完了にしない。"
     }

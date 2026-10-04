@@ -102,6 +102,7 @@ class AgentToolWindowRootPanel(
         val composer = selectedView?.composer ?: return false
         if (!isShowing || !windowShortcutAvailable) return false
         return when (command) {
+            AgentPanelCommand.RESET_CHAT -> composer.canResetFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.STOP -> composer.isRunning
             AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled
             AgentPanelCommand.MODEL_MENU -> composer.modelSelector.isEnabled
@@ -115,6 +116,7 @@ class AgentToolWindowRootPanel(
         val view = selectedView ?: return
         when (command) {
             AgentPanelCommand.NEW_CHAT -> open()
+            AgentPanelCommand.RESET_CHAT -> resetChat()
             AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
             AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT)
             AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT -> {
@@ -240,7 +242,11 @@ class AgentToolWindowRootPanel(
         val view = views.getValue(tab.id)
         val conversation = view.controller.conversationSnapshot()
         RecentChatEntry(recentChatId(tab, view), tab.title, conversation?.updatedMs ?: 0L, tab.transport, tab.chatId,
-            open = true, running = view.composer.isRunning, description = conversation?.preview.orEmpty())
+            open = tab.visible, running = view.composer.isRunning, description = conversation?.preview.orEmpty().ifBlank {
+                view.composer.inputArea.text.trim().replace('\n', ' ').replace('\r', ' ').take(120).ifBlank {
+                    view.composer.commands.selectedName?.let { "/$it" } ?: if (view.composer.images?.attachment != null) "画像付きの下書き" else ""
+                }
+            })
     }
 
     internal fun toggleAllChats(window: ToolWindow) {
@@ -344,9 +350,10 @@ class AgentToolWindowRootPanel(
 
     private fun navigateChat(reverse: Boolean) {
         val snapshot = sessions.snapshot()
-        if (snapshot.tabs.size > 1) {
-            val index = Math.floorMod(snapshot.tabs.indexOfFirst { it.id == snapshot.selectedId } + if (reverse) -1 else 1, snapshot.tabs.size)
-            if (sessions.select(snapshot.tabs[index].id)) showSelected()
+        val visible = snapshot.visibleTabs
+        if (visible.size > 1) {
+            val index = Math.floorMod(visible.indexOfFirst { it.id == snapshot.selectedId } + if (reverse) -1 else 1, visible.size)
+            if (sessions.select(visible[index].id)) showSelected()
             return
         }
         val owner = selectedView ?: return
@@ -437,14 +444,10 @@ class AgentToolWindowRootPanel(
         val snapshot = sessions.snapshot()
         val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         val focused = isShowing && focus != null && SwingUtilities.isDescendingFrom(focus, this)
-        val tabs = snapshot.tabs.map { tab ->
+        val tabs = snapshot.visibleTabs.map { tab ->
             val view = views.getValue(tab.id)
             // Live composer state is authoritative: SessionTab.draft is only updated on send.
-            val empty = view.composer.selection.mode == AgentMode.AGENT && tab.run == null &&
-                !view.composer.isRunning && !view.controller.hasQueuedPrompts &&
-                view.controller.conversationSnapshot()?.turns?.isEmpty() == true &&
-                view.composer.inputArea.text.isBlank() && view.composer.commands.selectedName == null &&
-                view.composer.images?.hasUnsent != true
+            val empty = view.composer.selection.mode == AgentMode.AGENT && reusableEmptyChat(tab, view)
             ChatEntryTab(tab.id, empty, view.composer.promptContext.draft.snapshot().selections.isNotEmpty(), view.lastShownNanos)
         }
         when (val entry = chatEntry(command, tabs, snapshot.selectedId, focused, window.isVisible, System.nanoTime())) {
@@ -521,7 +524,7 @@ class AgentToolWindowRootPanel(
         }
         if (disposed || project.isDisposed) return
         // Modal confirmation may have opened another tab; decide against the current set.
-        val closesAllTabs = sessions.snapshot().tabs.all { it.id in ids }
+        val closesAllTabs = sessions.snapshot().visibleTabs.all { it.id in ids }
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
                 view.controller.dispose()
@@ -544,6 +547,45 @@ class AgentToolWindowRootPanel(
         if (disposed) return
         sessions.open(chatId)
         showSelected()
+    }
+
+    private fun reusableEmptyChat(tab: SessionTab, view: TabView): Boolean =
+        tab.run == null && !view.composer.isRunning && !view.controller.hasQueuedPrompts &&
+            !view.composer.isQueueEditing && view.controller.conversationSnapshot()?.turns?.isEmpty() == true &&
+            view.composer.inputArea.text.isBlank() && view.composer.commands.selectedName == null &&
+            view.composer.images?.hasUnsent != true
+
+    private fun resetChat() {
+        if (!shortcutAvailable(AgentPanelCommand.RESET_CHAT)) return
+        val owner = selectedView ?: return
+        val snapshot = sessions.snapshot()
+        val reset = chatReset(snapshot.visibleTabs.map { tab ->
+            val view = views.getValue(tab.id)
+            ChatResetTab(tab.id, reusableEmptyChat(tab, view),
+                view.controller.conversationSnapshot()?.turns?.isNotEmpty() == true,
+                view.composer.inputArea.text.isNotBlank() || view.composer.commands.selectedName != null ||
+                    view.composer.images?.attachment != null, view.composer.selection.mode)
+        }, snapshot.selectedId)
+        if (reset.reuseId != null) {
+            if (sessions.select(reset.reuseId)) showSelected()
+            return
+        }
+        val draft = try { if (reset.copyDraft) owner.composer.captureDraft() else null } catch (_: IllegalStateException) {
+            owner.timeline.showStatus("下書きの画像を保持できません。再添付してから新しい会話を開いてください。")
+            return
+        }
+        var transferred = false
+        try {
+            sessions.replaceSelected()
+            showSelected()
+            val next = requireNotNull(selectedView).composer
+            if (draft != null) {
+                transferred = true
+                next.restoreDraft(draft.copy(mode = reset.mode, model = next.selection.selectedModel))
+            } else next.modeSelector.selectMode(reset.mode)
+        } finally {
+            if (!transferred) draft?.image?.let { project.getService(AgentProcessService::class.java).releaseImage(it) }
+        }
     }
 
     private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
@@ -594,7 +636,7 @@ class AgentToolWindowRootPanel(
 
     private fun refreshStrip() {
         val snapshot = sessions.snapshot()
-        strip.setTabs(snapshot.tabs.map { SessionTabPresentation(it.id, it.title) }, snapshot.selectedId)
+        strip.setTabs(snapshot.visibleTabs.map { SessionTabPresentation(it.id, it.title) }, snapshot.selectedId)
         allChatsSidebar?.refreshOpenEntries()
     }
 
@@ -624,7 +666,7 @@ class AgentToolWindowRootPanel(
 
 /** Position distinguishes equal titles without renaming a chat or using an index as identity. */
 internal fun openedChatEntries(snapshot: SessionTabsSnapshot): List<Pair<String, String>> =
-    snapshot.tabs.mapIndexed { index, tab ->
+    snapshot.visibleTabs.mapIndexed { index, tab ->
         tab.id to "${index + 1}. ${tab.title}${if (tab.run != null) "（実行中）" else ""}"
     }
 
@@ -634,6 +676,6 @@ internal fun confirmCloseChats(
     confirm: (count: Int, running: Int) -> Boolean,
     close: (List<String>) -> Unit,
 ) {
-    val ids = snapshot.tabs.map { it.id }
-    if (confirm(ids.size, snapshot.tabs.count { it.run != null })) close(ids)
+    val ids = snapshot.visibleTabs.map { it.id }
+    if (confirm(ids.size, snapshot.visibleTabs.count { it.run != null })) close(ids)
 }

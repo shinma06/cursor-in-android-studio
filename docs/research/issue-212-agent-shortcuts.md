@@ -68,7 +68,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 | 操作群 | キー | 条件・意味 | 所属 / Plugin / 次作業 |
 | --- | --- | --- | --- |
-| INPUT-RESET | M+R | 入力にfocus、Shiftなし。M+R→onReset→新規会話（新tab指定false）の静的経路を確認。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
+| INPUT-RESET | M+R | 入力にfocus、Shiftなし。空会話の再利用、履歴後draftの引継ぎ、元ownerを保持した表示置換へ接続。 | in-IDE静的確認 / 実装済み・GUI pending。native worktree/editor分岐はP06/P07 / A1 |
 | INPUT-LEGACY-NEW | M+N | 入力にfocus、Shiftなし。composer.createNewの現在の既定登録は発見できず、legacy/custom条件付き経路として未確定。 | 未確定 / 既存機能へ接続/差分確認が必要 / A1 |
 | INPUT-MESSAGE-NEXT | Tab | ghost候補位置・mention menuがなくhuman messageを編集中。次のhuman messageまたは末尾入力へ移動。通常の末尾入力ではnative focusへ渡す。 | in-IDE静的確認 / 能力未実装 / P02 |
 | INPUT-MESSAGE-PREVIOUS | Shift+Tab | 同じ候補保護に加えてtool review待ちでない。末尾入力からも前のhuman messageへ移動。公式mode回転・登録mode menuとの優先は未GUI。 | in-IDE静的確認 / 能力未実装 / P02 |
@@ -105,7 +105,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 - M+Lは`aichat.newchataction`（Open Chat）。`composer.cancelChat`への初期抽出の対応は誤り。M+Iと同じ入口を使い、選択やfocusで新規/既存が分岐する。M+Shift+L/Iも単純な既存chatへの選択追加とは異なる。
 - Windowsのmodel menuはCtrl+/だけ。Ctrl+Alt+/とCtrl+Shift+/はparameter変更であり、Mac/Linuxのmodel menu副キーをWindowsへ継承してはいけない。Pluginは標準Windows KeymapをCtrl+/だけにし、Linuxの副キーは`Default for XWin`へ定義した。parameter変更の接続はP10で未達。
-- M+Rは入力部品から新規会話への静的経路を確認した。入力局所の条件を保って接続する。
+- M+Rは入力欄だけで新しい会話へ移る。本文消去や追加tab作成だけに置換せず、後述の再利用/表示置換/下書き条件へ接続する。
 - Shift+Tabは公式概要のmode回転、Action登録のmode menu、入力内の前human message移動という3経路がある。[Plan Mode公式説明](https://cursor.com/docs/agent/plan-mode)との版/focus差も残し、GUI前に一つへ決めつけない。現行の逆focus移動も同等passではない。
 - M+Shift+Enterは初回draft submit、空入力の変更承認/Apply worktree、取消等で意味が分かれる。すべてを「新しいworktreeで開始」としない。
 - 固定版のM+,はCursor Settings、一般IDE設定はM+Shift+,。公式概要のGeneral settingsと異なるため、既存IDEの割当を一括上書きしない。
@@ -135,9 +135,9 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 
 ## Keymap・競合・完了条件
 
-panel内15 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
+panel内16 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
 
-M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。15個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）、MacのControl+Shift+S / Windows・LinuxのCtrl+Shift+/（All Agents）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
+M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。16個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）、MacのControl+Shift+S / Windows・LinuxのCtrl+Shift+/（All Agents）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
 
 表示切替はToolWindowのvisible状態を基準にし、会話・draft・runを生成/終了せずnative show/hideへ接続する。左右移動はnative anchorのLEFT/RIGHTを反転し、TOP/BOTTOMからはLEFTへ移して表示する。ToolWindowのtype・split・他のIDEパネルは変更しない。固定SDKの標準ToolWindow移動もanchorを変更する経路であり、Floating/Windowed時の実配置と、Cursorのunified sidebar/auxiliary/editor全体とのUX差はGUI照合に残す。単一Agent ToolWindowへの対応だけで、Cursorの全配置が同じと主張しない。
 
@@ -171,11 +171,11 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
-3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel内15 Actionとglobal6 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel内16 Actionとglobal6 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
 
 ## 予約一覧のキー操作と残る送信能力
 
-固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内15操作・global6入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
+固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内16操作・global6入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
 
 管理dialogを開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
 
@@ -216,3 +216,13 @@ native入力のdraft切替をUndo境界にし、本文だけを別draftから復
 通常入力の送信キーは、idleなら送信、実行中なら既存の`enqueuePrompt`へ渡す。「予約に追加」ボタンも同じIME/候補popup/画像import/入力可否の入口を使う。本文・commandだけ・画像だけの入力を扱い、登録が拒否されたら下書きを保持する。設定のM+Enterは通常送信キーの変更であり、P04の即時steeringを実装した意味にはしない。キー押下後はEnterの解放まで再実行を拒否し、編集から復元された非空draftを長押しで続けて送らない。解放・focus移動・editor再生成は入力欄に属するlistenerで処理し、IDE全体のキー監視は追加しない。
 
 固定版には保留decision/goal/plugin flow、設定によるstop-and-send/steer、空入力や選択queueのsubmit等もある。これらを通常queue分岐の成功で確認済みにしない。`ComposerSubmissionTest`は実送信Action・実入力欄/IMEと画像状態で通常送信/予約/拒否時保持/Stop/長押しを確認し、`PromptQueueTest`は対象IDの保留、先行予約、明示pause保持、idleの1件配送・古いticket拒否と準備失敗を検証する。実Keymap配送、修飾キー先行解放やIMEのkey release、run終端との競合は固定buildの`KEYMAP-QUEUE-SUBMIT` / `KEYMAP-QUEUE-EDIT`へ残す。
+
+## 入力欄から新しい会話への切替
+
+固定版の入力command `bBs` → `onReset` → `NE` → `agentLayoutService.createNewComposer`を確認した。ShiftなしのM+Rで、新tab指定はfalse。呼出先はまず現在の空会話、次に表示中で最初の空会話を再利用する。なければ現在の表示を新しい会話へ置き換える。`Hxn`の空判定と`createComposerImpl`の`swapComposerView`/表示ID更新まで追い、単なる本文消去や無条件のタブ追加とは区別した。空会話の再利用時はmodeや明示contextを維持する。
+
+Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画像import中でない時だけ有効。実行直前にroot/選択中composerを再取得する。現在の空会話を優先し、次に表示中の空会話を選ぶ。run/予約/command/画像/本文来歴不明を空扱いしない追加条件は既存のデータ保護による。会話本文がある場合に限り、現在の未送信本文・command・context/自動設定・画像を新しい入力へ複製する。新しい入力がある場合はPlan/Askを引き継ぎ、それ以外はAgentとする。まだ一度も送っていないdraftは新しい入力へ複製せず、元ownerで保持する。新しい会話は既存のPRINT既定接続/モデル設定から始まり、元のACP provider IDやモデルIDを流用しない。複製したcommandや画像は新しい接続でも対応確認が必要で、未確認なら送信を拒否して保持する。
+
+`SessionTabs`は同じproject内の会話ownerと表示タブを区別する。置換は旧ownerのvisibleをfalseにするだけで、tab UUID、conversation/provider ID、run token、完全なview/controller、下書き、queue編集と画像leaseを保持する。元の実行の応答は元ownerへ届き、Stopや新しい会話への再送は起こさない。予約は従来の会話切替時と同じく一時停止する。All Agentsや最近使用一覧から同じownerへ戻り、provider再接続や保存履歴の再生で代替しない。本文のないdraftは一覧の説明に短い本文/command/画像表示を出すが、正式な会話名を生成しない（#66維持）。表示タブの前後移動/並替え/開いているチャット/全タブ閉鎖はvisible集合だけを使い、最後のvisibleを閉じた時は#213の空New Agentとパネル非表示を維持する。root破棄では非表示ownerも停止・破棄する。未送信draftのディスク保存や再起動復元は本変更に含まず、既存の保存範囲を変更しない。
+
+[JetBrains AI Chat](https://www.jetbrains.com/help/ai-assistant/ai-chat.html)にもNew Chat、会話履歴、editor表示があり、[Cursor ACP連携](https://cursor.com/docs/integrations/jetbrains)と[IDE MCP Server](https://www.jetbrains.com/help/idea/mcp-server.html)を含む構成を比較対象とする。会話切替は同等UXへの接続であり独自機能とは呼ばない。直接IDE統合では、IDE Keymapと入力focusに限定して会話owner/実行tokenを維持する。配布版の静的経路とSessionTabs/Action/入力guardのテストが根拠で、liveのキー配送・画面・各接続の動作は[Case正本](../verification/changes/issue-212.json)のKEYMAP-INPUT-RESETで未確認として追う。native worktree・spec/project・subagent/editorの分岐は既存P06/P07/全対象照合に残す。

@@ -90,6 +90,12 @@ class AgentPanelActionTest {
                     assertEquals(listOf("meta shift BACK_SPACE", "control C"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
                 }
             }
+            if (command == AgentPanelCommand.RESET_CHAT) {
+                assertEquals(listOf("control R"), byKeymap.getValue("\$default").map { it.getAttribute("first-keystroke") })
+                listOf("Mac OS X", "Mac OS X 10.5+").forEach { keymap ->
+                    assertEquals(listOf("meta R"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
+                }
+            }
             val recent = command in setOf(AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT)
             if (recent) {
                 val expected = if (command == AgentPanelCommand.RECENT_CHAT) "control TAB" else "control shift TAB"
@@ -118,6 +124,7 @@ class AgentPanelActionTest {
 
     private fun actions() = listOf(
         AgentPanelCommand.NEW_CHAT to AgentPanelAction.NewChat(),
+        AgentPanelCommand.RESET_CHAT to AgentPanelAction.ResetChat(),
         AgentPanelCommand.CLOSE_CHAT to AgentPanelAction.CloseChat(),
         AgentPanelCommand.PREVIOUS_CHAT to AgentPanelAction.PreviousChat(),
         AgentPanelCommand.NEXT_CHAT to AgentPanelAction.NextChat(),

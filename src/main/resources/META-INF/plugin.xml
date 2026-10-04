@@ -104,6 +104,12 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta T" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta N"/>
             </action>
+            <action id="CursorAgent.ResetChat" class="com.cursoragent.actions.AgentPanelAction$ResetChat"
+                    text="入力欄から新しい会話へ" description="入力欄から新しい会話へ切り替えます。元の会話と未送信の入力はチャット一覧から戻せます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control R"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta R" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta R" replace-all="true"/>
+            </action>
             <action id="CursorAgent.CloseChat" class="com.cursoragent.actions.AgentPanelAction$CloseChat"
                     text="チャットを閉じる" description="現在のチャットを確認して閉じます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control W"/>

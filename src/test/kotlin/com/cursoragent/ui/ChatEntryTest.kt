@@ -1,10 +1,27 @@
 package com.cursoragent.ui
 
 import com.cursoragent.actions.AgentWindowCommand
+import com.cursoragent.settings.AgentMode
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class ChatEntryTest {
+    @Test
+    fun `input reset prefers current empty chat then first visible empty without changing its mode`() {
+        val current = ChatResetTab("current", false, true, true, AgentMode.PLAN)
+        val other = ChatResetTab("other", true, false, false, AgentMode.ASK)
+        assertEquals(ChatReset("other", false, AgentMode.ASK), chatReset(listOf(other, current), current.id))
+        assertEquals(ChatReset("current", false, AgentMode.PLAN), chatReset(listOf(other, current.copy(empty = true)), current.id))
+    }
+
+    @Test
+    fun `input reset copies a draft only after a conversation and keeps non-Agent mode only with new input`() {
+        for (history in listOf(false, true)) for (draft in listOf(false, true)) for (mode in AgentMode.entries) {
+            val current = ChatResetTab("current", false, history, draft, mode)
+            assertEquals(ChatReset(null, history, if (history && draft) mode else AgentMode.AGENT), chatReset(listOf(current), current.id))
+        }
+    }
+
     private val current = ChatEntryTab("current", false, false, null)
     private val empty = ChatEntryTab("empty", true, false, null)
 

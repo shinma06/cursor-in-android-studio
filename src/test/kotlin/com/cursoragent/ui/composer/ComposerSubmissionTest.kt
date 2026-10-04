@@ -60,10 +60,15 @@ class ComposerSubmissionTest {
                         listener.keyReleased(KeyEvent(editor.contentComponent, KeyEvent.KEY_RELEASED, 2, 0, KeyEvent.VK_ENTER, '\n'))
                     }
                     try {
+                        assertTrue(composer.canResetFrom(editor.contentComponent))
+                        assertFalse(composer.canResetFrom(composer), "reset belongs to the input, not the entire panel")
+                        assertFalse(composer.canResetFrom(JButton()), "another component/project cannot reset this input")
+                        assertFalse(composer.canResetFrom(null))
                         composer.inputArea.text = " idle draft "
                         submit()
                         assertEquals(listOf("idle draft"), sent)
                         composer.setRunning(true)
+                        assertTrue(composer.canResetFrom(editor.contentComponent), "reset may replace a running view without stopping its owner")
                         composer.inputArea.text = " first queue "
                         val heldEnter = KeyEvent(editor.contentComponent, KeyEvent.KEY_PRESSED, 1, 0, KeyEvent.VK_ENTER, '\n')
                         submit(heldEnter)
@@ -79,16 +84,19 @@ class ComposerSubmissionTest {
                         assertEquals(1, queued.size)
                         acceptQueue = true
                         composer.setInputEnabled(false)
+                        assertFalse(composer.canResetFrom(editor.contentComponent))
                         submit()
                         composer.setInputEnabled(true)
                         val ime = editor.contentComponent.inputMethodListeners.filterIsInstance<PromptImeGuard>().single()
                         ime.inputMethodTextChanged(InputMethodEvent(editor.contentComponent, InputMethodEvent.INPUT_METHOD_TEXT_CHANGED,
                             AttributedString("変換中").iterator, 0, null, null))
+                        assertFalse(composer.canResetFrom(editor.contentComponent))
                         submit()
                         assertEquals(1, queued.size)
                         assertEquals("retained", composer.inputArea.text)
                         ime.reset()
                         images.import { error("pending import must not be read by submit") }
+                        assertFalse(composer.canResetFrom(editor.contentComponent))
                         submit()
                         assertEquals(1, queued.size)
                         images.clear()

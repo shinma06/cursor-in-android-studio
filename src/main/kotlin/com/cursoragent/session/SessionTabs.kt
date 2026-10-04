@@ -5,7 +5,7 @@ import com.cursoragent.service.PrintRequestId
 import com.cursoragent.settings.AgentMode
 import java.util.UUID
 
-/** Immutable view of one open tab. IDs belong to the plugin, not to the CLI. */
+/** Immutable conversation owner. A replaced view can be hidden while its run and draft remain live. */
 data class SessionTab(
     val id: String,
     val chatId: String? = null,
@@ -20,6 +20,7 @@ data class SessionTab(
     val transport: AgentTransport = AgentTransport.PRINT,
     val transportLocked: Boolean = false,
     val requestId: PrintRequestId? = null,
+    val visible: Boolean = true,
 ) {
     companion object {
         const val NEW_AGENT_TITLE = "New Agent"
@@ -42,10 +43,11 @@ data class SessionTurn(
 
 data class SessionTabsSnapshot(val tabs: List<SessionTab>, val selectedId: String, val selectionRevision: Long = 0) {
     val selected: SessionTab get() = tabs.first { it.id == selectedId }
+    val visibleTabs: List<SessionTab> get() = tabs.filter { it.visible }
 }
 
 /**
- * Project-local state for open tabs. No Swing, process, filesystem or global settings access.
+ * Project-local conversation owners and visible tabs. No Swing, process, filesystem or global settings access.
  * All mutations are synchronized; returned values are immutable, detached snapshots.
  * The integration layer owns timelines and processes keyed by tab ID, never selectedId.
  */
@@ -68,12 +70,12 @@ class SessionTabs(
     fun open(chatId: String? = null, title: String? = null, conversationId: String? = null, transport: AgentTransport = AgentTransport.PRINT): SessionTab {
         require(chatId == null || chatId.isNotBlank()) { "CLI chat ID must not be blank" }
         if (conversationId != null) {
-            tabs.firstOrNull { it.conversationId == conversationId }?.let { selectedId = it.id; return it }
+            tabs.firstOrNull { it.conversationId == conversationId }?.let { select(it.id); return tabs.first { tab -> tab.id == it.id } }
         }
         if (chatId != null) {
             tabs.firstOrNull { it.chatId == chatId && it.transport == transport }?.let {
-                selectedId = it.id
-                return it
+                select(it.id)
+                return tabs.first { tab -> tab.id == it.id }
             }
         }
         val fresh = newTab()
@@ -86,24 +88,41 @@ class SessionTabs(
 
     @Synchronized
     fun select(id: String): Boolean {
-        if (tabs.none { it.id == id }) return false
+        val tab = tabs.firstOrNull { it.id == id } ?: return false
+        if (!tab.visible) {
+            tabs.remove(tab)
+            tabs.add(tab.copy(visible = true))
+        }
         selectedId = id
         return true
+    }
+
+    /** Swap the visible conversation without closing its owner or invalidating in-flight callbacks. */
+    @Synchronized
+    fun replaceSelected(): SessionTab {
+        val previous = selectedId
+        val next = open()
+        update(previous) { it.copy(visible = false) }
+        return next
     }
 
     /**
      * Invalidates callbacks BEFORE returning. The caller must then cancel preparation and
      * destroy only the returned tab's process (including a process still being created).
-     * Closing an inactive tab preserves the current selection; active close chooses right,
-     * or left at the end. Closing the last tab creates a fresh empty tab.
+     * Closing an inactive owner preserves the current selection; active close chooses the visible
+     * tab to the right, or left at the end. Closing the last visible tab creates a fresh empty tab.
      */
     @Synchronized
     fun close(id: String): SessionTab? {
         val index = tabs.indexOfFirst { it.id == id }
         if (index < 0) return null
+        val visibleIndex = tabs.filter { it.visible }.indexOfFirst { it.id == id }
         val removed = tabs.removeAt(index)
-        if (tabs.isEmpty()) tabs.add(newTab())
-        if (selectedId == id) selectedId = tabs[index.coerceAtMost(tabs.lastIndex)].id
+        if (tabs.none { it.visible }) tabs.add(newTab())
+        if (selectedId == id) {
+            val visible = tabs.filter { it.visible }
+            selectedId = visible[visibleIndex.coerceIn(0, visible.lastIndex)].id
+        }
         return removed
     }
 
@@ -114,9 +133,13 @@ class SessionTabs(
     /** Final zero-based index after removing the source tab. Invalid requests are no-ops. */
     @Synchronized
     fun move(id: String, targetIndex: Int): Boolean {
-        val from = tabs.indexOfFirst { it.id == id }
-        if (from < 0 || targetIndex !in tabs.indices || from == targetIndex) return false
-        tabs.add(targetIndex, tabs.removeAt(from))
+        val visible = tabs.filter { it.visible }
+        val from = visible.indexOfFirst { it.id == id }
+        if (from < 0 || targetIndex !in visible.indices || from == targetIndex) return false
+        val tab = visible[from]
+        tabs.remove(tab)
+        val target = tabs.indexOfFirst { it.id == visible[targetIndex].id }
+        tabs.add(target + if (from < targetIndex) 1 else 0, tab)
         return true
     }
 
