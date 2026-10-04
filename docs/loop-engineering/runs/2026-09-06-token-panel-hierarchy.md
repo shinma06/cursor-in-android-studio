@@ -17,11 +17,11 @@ Case: TOKEN-PANEL-HIERARCHY-1。Owner: gpt-token-panel-20260906。
 全値の通常暗色/狭幅明色、一部値の狭幅暗色、空の狭幅明色を目視し、階層・区切り・値の保持と非重複を確認。
 使用値はユーザー画像と同じ28,791 / 141 / 5,748 / 0を渡した合成データ。実CLI送信ではない。
 描画用フォントとテーマはfixtureで指定したものなので、IDEの実テーマや実機GUI合格とは区別する。
-画像と再現用Java: `/Users/shinma/Dev/Soft/GUI-checks/token-panel-hierarchy/`。
+画像と再現用Javaの保管先は非公開証拠 `ISSUE-514-LOCAL-02` で管理する。
 
 ## 固定buildのGUI依頼（未実施）
 
-Host: local / shinma。対象: Android Studio、使い捨てfixture。
+Host: ローカル検証環境（端末・利用者の識別情報は同じ非公開証拠で管理）。対象: Android Studio、使い捨てfixture。
 Source HEAD/base/ZIP SHA-256はIssue/PRの引継ぎコメントへ記録する。
 操作担当は中央進行役がGUI lease取得後に割り当てる。予算20分、CLI送信0回。
 既存のトークン値または合成CLI fixtureを使用し、合成値ならその旨を証拠へ記録する。

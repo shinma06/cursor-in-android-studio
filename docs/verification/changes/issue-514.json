@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 514,
+  "gui_required": false,
+  "reason": "監査#512で確認した非実行・非同梱の開発記録2件の端末固有パス・利用者識別表記を非公開証拠参照へ置き換える。製品source、設定、build、既存Caseの結果・当時の検証条件は変更しない。Git履歴・旧コメントの清掃とmainへの反映は未完了として別追跡し、GUI合格とは扱わない。",
+  "cli_checks": [
+    "固定baseの原文を非公開保管し、2件の文書hash・旧配置とISSUE-514-LOCAL-01/02を照合する。原証拠や実値を公開文書・ログ・PR本文に転載しない。",
+    "変更行以外が固定baseと同一で、日時、CLI/IDE版、SHA、試験条件、結果、未確認事項、相互リンクが維持されていることを確認する。新規GUI/CLI実測の成功を追加しない。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests、git diff --check、受入JSON schema、固定HEAD/baseの独立レビュー、4必須checks。",
+    "develop統合後、main未反映をQAに双方向移譲し、親#512へ是正範囲と未解決の履歴・配布物等を返す。PR#496の固定候補・174 Caseと監査baselineは変更しない。"
+  ],
+  "cases": []
+}
