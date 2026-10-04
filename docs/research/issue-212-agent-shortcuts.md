@@ -77,11 +77,11 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 | INPUT-ESCAPE | Escape | model nudge、個別Escape処理、preview/review状態の解除後に入力focus解除等へ分岐。popup/IMEを優先する。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
 | INPUT-MOD-ENTER | M+Enter; modifier+Alt+Enter branch requires routing check | repeat抑止、tool review待ちは別処理。質問/decision回答、送信/queue、空入力時のPlan review/変更承認/Apply worktreeへ状態別に分岐。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
 | INPUT-SHIFT-MOD-ENTER | M+Shift+Enter | 空draftで変更reviewがあれば全承認/Apply worktree、実行中選択toolformerなら取消、それ以外は別submit。初回draftのglobal登録と分ける。 | in-IDE静的確認 / 能力未実装 / P08 |
-| QUEUE-NAVIGATION | ArrowUp / ArrowDown | steering機能が有効でqueue list本体にfocus。上下の項目移動、末尾を越えたら入力へ戻る。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| QUEUE-ESCAPE | Escape | 同じqueue listのfocus条件で入力へ戻る。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
+| QUEUE-NAVIGATION | ArrowUp / ArrowDown | steering機能が有効でqueue list本体にfocus。上下の項目移動、末尾を越えたら入力へ戻る。 | in-IDE静的確認 / 予約管理一覧に接続・inline入口は残作業 / A2 |
+| QUEUE-ESCAPE | Escape | 同じqueue listのfocus条件で入力へ戻る。 | in-IDE静的確認 / 予約管理一覧に接続 / A2 |
 | QUEUE-SUBMIT | Enter / M+Enter / M+Alt+Enter | Shiftなし。送信キー設定・主修飾キー・Altで送信とsteer/interruptの動作を分ける。Pluginの次turn予約で同一turn入力を代用しない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| QUEUE-EDIT | ArrowRight / Space | queue listにfocusし項目を選択、機能条件を満たすと編集へ入る。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| QUEUE-REMOVE | macOS Cmd+Backspace; Windows/Linux Ctrl+Delete | 同じqueue条件、他の修飾キーなし。macOSはCmd+Backspace、Windows/LinuxはCtrl+Delete。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
+| QUEUE-EDIT | ArrowRight / Space | queue listにfocusし項目を選択、機能条件を満たすと編集へ入る。 | in-IDE静的確認 / 既存の予約編集へ接続・inline編集は残作業 / A2 |
+| QUEUE-REMOVE | macOS Cmd+Backspace; Windows/Linux Ctrl+Delete | 同じqueue条件、他の修飾キーなし。macOSはCmd+Backspace、Windows/LinuxはCtrl+Delete。 | in-IDE静的確認 / 既存の予約削除へ接続 / A2 |
 | INPUT-TRIGGERS | @ / / | 通常の入力文字とcaret/候補状態で処理する。global Actionに@や/を奪わせない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
 | INPUT-NATIVE-TEXT | Select all / undo / redo / cut / copy / paste / newline / caret keys | 入力editorまたはfocus中native controlの選択・undo/redo・cut/copy/paste・改行・caret。既存部品を再利用し、キー組合せ総数とは数えない。 | in-IDE静的確認 / 既存native部品 / A1 |
 | INPUT-DEFAULT-SUBMIT | Enter / Shift+Enter; submit-on-modifier setting | 公式in-IDE概要と汎用入力dispatchの候補。固定版の全入力実装での分岐は未確定。Pluginの実行中Enter→queueは未接続。 | 未確定 / 既存機能へ接続/差分確認が必要 / A2 |
@@ -172,3 +172,17 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
 3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel内15 Actionとglobal6 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+
+## 予約一覧のキー操作と残る送信能力
+
+固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内15操作・global6入口とは別に、予約一覧のfocus contextだけで有効にし、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
+
+一覧を開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
+
+Cursorのinline queue/編集、入力境界の上下からの入口、送信キー設定に応じた選択1件の送信・steer/interrupt分岐は未接続。既存の「予約送信を再開」は全予約の再開操作であり、QUEUE-SUBMITの代用にしない。そのボタンの既定Enterを外し、一覧でEnterを押しただけでは全件再開しない。再開ボタンの明示操作は残す。固定buildの実配送、IME中の編集、default button、focus復帰、Keymap変更と解除後のnative一覧/標準dialog Escの挙動はGUI Caseで照合する。
+
+## モデル設定循環の接続条件
+
+固定版`cycleHotkeyParameter`は各選択modelのparameter定義から`isCycleableByHotkey === true`かつ複数値を持つ最初の項目を選ぶ。CLIのalias末尾から作る既存`ModelFamilies`のaxis順を、この広告された順序やhotkey許可と同一視しない。現在のPluginのprint catalogにはこの属性がなく、ACP UIも確認済みの`mode` / `model`だけを扱うため、P10は未接続である。
+
+[ACP config options](https://agentclientprotocol.com/protocol/v1/session-config-options)は`thought_level` / `model_config` categoryと広告順をUI/shortcut判断に利用でき、設定応答では全listの置換を求める。[Cursor SDKのmodel catalog](https://cursor.com/docs/sdk/typescript)にもparameter/variantの公開型がある。これらは次の接続候補であり、現在のCursor ACPが対象設定を広告することやCLI aliasへの対応、SDK catalogに同じhotkey許可が含まれることの証拠ではない。[JetBrains AI AssistantのACP対応](https://www.jetbrains.com/help/ai-assistant/acp.html)も比較対象のまま維持し、モデル設定循環の同等性は有限の実測と公開契約の照合後に判定する。

@@ -33,6 +33,8 @@ project内のglobal入口として`AgentWindowAction`のM+A+J（表示切替）�
 
 `AllChats`はMacのControl+Shift+S、Windows/LinuxのCtrl+Shift+/を使う6つ目のglobal入口。project内のチャット一覧と名前/冒頭文の検索popupを表示し、pane focus中で一覧が見える場合は一覧だけを隠す。表示状態をprojectごとに保持する。非表示では同じviewと検索語/追加表示件数/scroll位置を保持し、worker/timerを止めて読込み/検索の旧世代を無効にする。再表示で再読込みし、viewはcontentの寿命に合わせて破棄する。popupは全候補を検索した上で最大200件、空検索は更新日時順、検索時はSDK native matcherの一致順位と強調を使う。sidebarは部分一致検索を使い、区分内の更新日時順を保つ。開いたview・保存本文・旧履歴をmetadataへ統合し、検索を背景処理、確定時に本文を再読込みする。修飾左右は一覧の候補highlightへ分岐して端で止まり、Control/Meta解放またはEnterで確定する。navigation中だけ登録するdispatcherはroot外focus/blur/非表示/破棄で解除し、IME/別popupを奪わない。local一覧はpin/今日/昨日/7日/30日/それ以前の区分と6件単位のMoreを持つ。pinと折り畳みはprojectに保存し、75件の有効pin上限、local calendarと経過日数の境界を保つ。navigationは表示中の会話/Moreだけを使い、見出しと折り畳んだ候補を除く。Moreは表示を増やすだけで会話を開かない。保存不明時の新規pinは無効とし、本文や空会話を生成しない。Archived/復元・Cloud・Find with Agent・transient/editor表示と、popupのnative matcherのscore差は対応表の残作業。GUI合格や全対応とはしない。
 
+予約管理一覧には#212の専用5 Actionで上下移動・Right/Space編集・OS別削除・入力へ戻る操作を接続する。`PromptQueueList`だけがfocus時のAction contextを供給し、実行時にも会話owner/focus/子popupと最新の予約IDを照合する。末尾での下移動/Escapeは一時停止したまま閉じ、現在の会話なら入力へfocusを戻す。Dialogの既定Enterで全件再開しないよう、再開ボタンは明示操作にする。編集・画像解放・送信ticketの取消は既存queueを共有する。Cursorのinline queue、入力境界からの入口、選択1件の送信/steeringは未接続であり、次turn予約や全件再開で代替しない（[Case #212](../verification/changes/issue-212.json)、`PromptQueueListTest`）。
+
 model menuの既定値はWindowsではCtrl+/、LinuxではCtrl+/とCtrl+Alt+/、MacではCmd+/とCmd+Option+/。Linuxの副キーは同梱`Default for XWin`とそれを継承するGNOME/KDEへ定義し、OS判定によるユーザー割当の変更は行わない。OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
 ## 会話タブの折り返し
 

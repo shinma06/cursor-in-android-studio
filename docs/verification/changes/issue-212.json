@@ -505,6 +505,52 @@
       "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE",
+      "change": "予約一覧の選択・編集・削除・入力への復帰",
+      "steps": [
+        "実行中のPRINT/ACP各会話に、異なる本文/mode/model/command/contextと画像を持つ予約を3件登録する。予約一覧を開くと一時停止し、一覧にfocusする。上下キーで移動し、先頭では止まり、末尾の下キーとEscapeでは一時停止を保って同じ会話の入力へ戻る。空一覧からもEscapeで戻れる。",
+        "Right/Spaceで選択した予約を編集し、保存/取消/空入力の拒否、IME確定と改行を確認する。登録時のmode/model/command/context/画像を保持する。編集dialogの上下/Right/SpaceやIME確定を親一覧の操作として処理しない。",
+        "MacのCmd+Backspace、Windows/LinuxのCtrl+Deleteで選択1件だけを削除する。隣接行の選択と画像所有の解放を確認する。他の修飾キーを加えた組合せ、入力欄や他projectでは同じ削除を起こさない。別会話への変更・破棄・子popup中は遅いActionも拒否する。",
+        "予約一覧にfocusしてEnterを押しても全件再開しない。再開ボタンを明示操作すると従来どおり予約を送る。編集/削除/一覧を閉じる操作ではStop・再送・古い送信ticketの復活を起こさない。選択1件の送信/steer/interruptは未実装として記録し、全件再開をQUEUE-SUBMITのpassにしない。",
+        "IDE Keymapで専用5 Actionを変更/解除して再配送を確認する。解除後に残るnative一覧の上下選択と標準dialog Escapeを区別する。dialog破棄でlocal登録を解除する。Cursorのinline queue/編集・入力境界からの入口は未接続として記録する。"
+      ],
+      "expected": "予約一覧に限定したActionが最新ID/会話所有と固定contextを保ち、入力へ戻っても勝手に再開・送信しない。未実装のinline/送信分岐を全対応と扱わない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
         "https://cursor.com/docs/reference/keyboard-shortcuts",
         "https://github.com/shinma06/cursor-in-android-studio/issues/518",
         "https://github.com/shinma06/cursor-in-android-studio/milestone/8"

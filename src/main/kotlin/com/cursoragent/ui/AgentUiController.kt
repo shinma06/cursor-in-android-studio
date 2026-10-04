@@ -124,7 +124,10 @@ class AgentUiController(
         )
         queueDialog = dialog
         dialog.show()
-        if (queueDialog === dialog) queueDialog = null
+        if (queueDialog === dialog) {
+            queueDialog = null
+            if (!disposed && !project.isDisposed && isSelectedConversation()) composer.inputArea.requestFocusInWindow()
+        }
     }
 
     private fun scheduleNextQueuedPrompt() {

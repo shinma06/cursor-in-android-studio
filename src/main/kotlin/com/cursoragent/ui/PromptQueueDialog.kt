@@ -1,19 +1,18 @@
 package com.cursoragent.ui
 
+import com.cursoragent.actions.AgentQueueCommand
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.ui.SimpleListCellRenderer
-import com.intellij.ui.components.JBList
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
-import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.ListSelectionModel
 
 /** Opening management pauses automatic sends. Only the explicit OK action resumes them. */
 internal class PromptQueueDialog(
@@ -23,17 +22,18 @@ internal class PromptQueueDialog(
     private val onChanged: () -> Unit,
     private val onResume: () -> Unit,
 ) : DialogWrapper(project, false) {
-    private val model = DefaultListModel<QueuedPrompt>()
-    private val list = JBList(model).apply {
-        selectionMode = ListSelectionModel.SINGLE_SELECTION
-        cellRenderer = SimpleListCellRenderer.create("") { value: QueuedPrompt ->
-            (if (value.image != null) "[画像あり] " else "") + "${value.mode.name.lowercase().replaceFirstChar { it.titlecase() }} / ${value.model.ifBlank { "既定モデル" }} — ${com.cursoragent.service.commandPrompt(value.command, value.text).replace('\n', ' ').take(100)}"
-        }
-        emptyText.text = "予約した入力はありません"
-    }
+    private val list: PromptQueueList = PromptQueueList(queue,
+        isCurrent = { !isDisposed && isCurrent() },
+        shortcutAvailable = { listHasFocus() },
+        onEdit = ::edit,
+        onChanged = { isOKActionEnabled = queue.size > 0; onChanged() },
+        onReturnToInput = { close(CANCEL_EXIT_CODE) },
+    )
+
+    private fun listHasFocus() = list.isFocusOwner && !JBPopupFactory.getInstance().isChildPopupFocused(list)
     private fun button(text: String, action: (QueuedPrompt) -> Unit) = JButton(text).apply {
         addActionListener {
-            if (isCurrent()) list.selectedValue?.let { action(it); refresh() }
+            list.withSelected(action)
         }
     }
 
@@ -41,19 +41,18 @@ internal class PromptQueueDialog(
         title = "予約した入力（一時停止中）"
         setOKButtonText("予約送信を再開")
         setCancelButtonText("一時停止のまま閉じる")
+        // Enter on a selected queue row must not silently resume every queued prompt.
+        getOKAction().putValue(DEFAULT_ACTION, null)
         init()
-        refresh()
+        AgentQueueCommand.entries.forEach { command ->
+            ActionManager.getInstance().getAction(command.actionId)?.let { action ->
+                action.registerCustomShortcutSet(action.shortcutSet, list, disposable)
+            }
+        }
+        list.refresh()
     }
 
-    private fun refresh() {
-        val selected = list.selectedValue?.id
-        model.clear()
-        queue.snapshot().forEach(model::addElement)
-        val index = queue.snapshot().indexOfFirst { it.id == selected }
-        if (!model.isEmpty) list.selectedIndex = index.coerceAtLeast(0)
-        isOKActionEnabled = queue.size > 0
-        onChanged()
-    }
+    override fun getPreferredFocusedComponent(): JComponent = list
 
     override fun createCenterPanel(): JComponent = JPanel(BorderLayout(JBUI.scale(8), JBUI.scale(8))).apply {
         preferredSize = JBUI.size(640, 440)

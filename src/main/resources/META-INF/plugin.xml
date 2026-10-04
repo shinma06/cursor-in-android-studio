@@ -198,6 +198,29 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift J" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta COMMA"/>
             </action>
+            <action id="CursorAgent.QueuePrevious" class="com.cursoragent.actions.AgentQueueAction$Previous"
+                    text="前の予約入力" description="予約一覧で前の項目を選びます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="UP"/>
+            </action>
+            <action id="CursorAgent.QueueNext" class="com.cursoragent.actions.AgentQueueAction$Next"
+                    text="次の予約入力" description="予約一覧で次の項目を選びます。末尾では入力欄へ戻ります。">
+                <keyboard-shortcut keymap="$default" first-keystroke="DOWN"/>
+            </action>
+            <action id="CursorAgent.QueueEdit" class="com.cursoragent.actions.AgentQueueAction$Edit"
+                    text="予約入力を編集" description="予約一覧で選んだ入力を編集します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="RIGHT"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="SPACE"/>
+            </action>
+            <action id="CursorAgent.QueueRemove" class="com.cursoragent.actions.AgentQueueAction$Remove"
+                    text="予約入力を削除" description="予約一覧で選んだ入力とその添付を取り除きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control DELETE"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta BACK_SPACE" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta BACK_SPACE" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.QueueReturnToInput" class="com.cursoragent.actions.AgentQueueAction$ReturnToInput"
+                    text="予約一覧から入力へ戻る" description="予約を一時停止したまま入力欄へ戻ります。">
+                <keyboard-shortcut keymap="$default" first-keystroke="ESCAPE"/>
+            </action>
         </group>
     </actions>
 </idea-plugin>
