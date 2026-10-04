@@ -101,6 +101,9 @@ class AgentPanelActionTest {
                 val expected = if (command == AgentPanelCommand.RECENT_CHAT) "control TAB" else "control shift TAB"
                 byKeymap.values.forEach { keys -> assertEquals(listOf(expected), keys.map { it.getAttribute("first-keystroke") }) }
             }
+            if (command == AgentPanelCommand.UNFOCUS_INPUT) {
+                byKeymap.values.forEach { keys -> assertEquals(listOf("ESCAPE"), keys.map { it.getAttribute("first-keystroke") }) }
+            }
             if (command in setOf(AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT)) {
                 val key = if (command == AgentPanelCommand.PREVIOUS_AGENT) "LEFT" else "RIGHT"
                 byKeymap.forEach { (keymap, keys) ->
@@ -116,7 +119,8 @@ class AgentPanelActionTest {
                     val macControlStop = command == AgentPanelCommand.STOP && keymap != "\$default" &&
                         key.getAttribute("first-keystroke") == "control C"
                     val modifier = if (keymap == "\$default" || keymap == "Default for XWin" || macControlStop || recent) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
-                    assertTrue(stroke.modifiers and modifier != 0)
+                    if (command == AgentPanelCommand.UNFOCUS_INPUT) assertEquals(0, stroke.modifiers)
+                    else assertTrue(stroke.modifiers and modifier != 0)
                 }
             }
         }
@@ -125,6 +129,7 @@ class AgentPanelActionTest {
     private fun actions() = listOf(
         AgentPanelCommand.NEW_CHAT to AgentPanelAction.NewChat(),
         AgentPanelCommand.RESET_CHAT to AgentPanelAction.ResetChat(),
+        AgentPanelCommand.UNFOCUS_INPUT to AgentPanelAction.UnfocusInput(),
         AgentPanelCommand.CLOSE_CHAT to AgentPanelAction.CloseChat(),
         AgentPanelCommand.PREVIOUS_CHAT to AgentPanelAction.PreviousChat(),
         AgentPanelCommand.NEXT_CHAT to AgentPanelAction.NextChat(),

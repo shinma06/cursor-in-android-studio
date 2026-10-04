@@ -74,6 +74,7 @@ class AgentToolWindowRootPanel(
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
     private var chatFocusGeneration = 0L
+    private val inputFocusReturn = ChatFocusReturn(project)
     private var openedChatsPopup: JBPopup? = null
     private val recentVisits = RecentChatVisits()
     private var recentChatsPopup: RecentChatsPopup? = null
@@ -103,6 +104,7 @@ class AgentToolWindowRootPanel(
         if (!isShowing || !windowShortcutAvailable) return false
         return when (command) {
             AgentPanelCommand.RESET_CHAT -> composer.canResetFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
+            AgentPanelCommand.UNFOCUS_INPUT -> composer.canUnfocusFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.STOP -> composer.isRunning
             AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled
             AgentPanelCommand.MODEL_MENU -> composer.modelSelector.isEnabled
@@ -117,6 +119,7 @@ class AgentToolWindowRootPanel(
         when (command) {
             AgentPanelCommand.NEW_CHAT -> open()
             AgentPanelCommand.RESET_CHAT -> resetChat()
+            AgentPanelCommand.UNFOCUS_INPUT -> { cancelPendingChatFocus(); inputFocusReturn.restore() }
             AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
             AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT)
             AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT -> {
@@ -226,6 +229,7 @@ class AgentToolWindowRootPanel(
         val owner = selectedView ?: return null
         return { selection ->
             if (!disposed && !project.isDisposed && views[id] === owner) {
+                inputFocusReturn.remember(ChatFocusOrigin.EDITOR)
                 owner.composer.promptContext.addSelection(selection)
                 owner.composer.inputArea.requestFocusInWindow()
             }
@@ -249,7 +253,7 @@ class AgentToolWindowRootPanel(
             })
     }
 
-    internal fun toggleAllChats(window: ToolWindow) {
+    internal fun toggleAllChats(window: ToolWindow, focusOrigin: ChatFocusOrigin? = null) {
         if (!windowShortcutAvailable || window.isDisposed || window.project !== project) return
         val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         val focused = isShowing && focus != null && SwingUtilities.isDescendingFrom(focus, this)
@@ -258,6 +262,7 @@ class AgentToolWindowRootPanel(
             selectedView?.composer?.inputArea?.requestFocusInWindow()
             return
         }
+        inputFocusReturn.remember(focusOrigin)
         setAllChatsVisible(true)
         val ticket = ++chatFocusGeneration
         window.activate({
@@ -439,7 +444,7 @@ class AgentToolWindowRootPanel(
         showSelected(conversation, legacyId != null)
     }
 
-    internal fun enterChat(command: AgentWindowCommand, selection: SelectionContext?, window: ToolWindow) {
+    internal fun enterChat(command: AgentWindowCommand, selection: SelectionContext?, window: ToolWindow, focusOrigin: ChatFocusOrigin? = null) {
         if (!windowShortcutAvailable || window.isDisposed || window.project !== project) return
         val snapshot = sessions.snapshot()
         val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
@@ -453,6 +458,7 @@ class AgentToolWindowRootPanel(
         when (val entry = chatEntry(command, tabs, snapshot.selectedId, focused, window.isVisible, System.nanoTime())) {
             ChatEntry.Hide -> { cancelPendingChatFocus(); window.hide(null) }
             is ChatEntry.Focus -> {
+                inputFocusReturn.remember(focusOrigin)
                 if (entry.id == null) {
                     open()
                     selectedView?.composer?.modeSelector?.selectMode(AgentMode.AGENT)

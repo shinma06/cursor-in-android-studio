@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内16操作とglobal入口6操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内17操作とglobal入口6操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
@@ -13,6 +13,7 @@
     "AllChatsTest: 全履歴の検索後200件上限、名前/冒頭文の曖昧検索と一致位置、sidebar更新順、metadata優先/PRINT重複識別、端のhighlightとControl/Meta解放/Keymap",
     "SidebarChatsTest: local日付/DST/7日30日境界、pin優先と6件/More、折畳み候補除外、部分一致とpopup曖昧検索の区別、75件の有効pin上限と型付き保存/不正値",
     "SessionTabsTest/SessionTabsExecutionTest/ChatEntryTest/ToolWindowChatActionsTest: 表示置換とowner保持、空会話/履歴後draft条件、hidden runの配送/実終了排他、visibleだけの移動/閉鎖、Actionと入力focus/IME/import guard",
+    "ChatFocusReturnTest/ComposerSubmissionTest: Terminal/editor originの更新と1回消費、閉鎖/不可/別project/未生成時のfallback、project破棄、再生成後の実EditorでIME/入力focus/予約編集の優先",
     "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks",
     "標準buildPlugin/verifyPluginStructureとRabbit 1のPlugin Verifier: 最近使用/予約一覧の現行renderer API、残る既存16 deprecated usageの完全report、全class・ZIP hash・固定SDK/JBRを照合する"
   ],
@@ -705,6 +706,55 @@
         "複数の非表示ownerを保持して、表示タブの前後移動/ドラッグ順替え/開いているチャット/全閉鎖を実行する。操作対象はvisible集合だけで、非表示のrunは停止しない。最後のvisibleを閉じるとパネルが隠れ、再表示は新しいNew Agent。元ownerの明示closeとroot/project破棄では対象run・画像lease・listenersを解放し、遅いイベントを拒否する。IDE再起動で未保存draftが戻る保証とは扱わない。"
       ],
       "expected": "入力局所の有効条件と空会話再利用/履歴後draft引継ぎが一致し、表示置換で元の実行・下書き・予約を失わない。明示closeとroot破棄の所有/遅着拒否、#213の最後visible閉鎖を維持する。native worktree/editor等の未接続分岐は全対象照合に残す。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://www.jetbrains.com/help/idea/tool-windows.html"
+      ],
+      "id": "KEYMAP-INPUT-ESCAPE",
+      "change": "入力欄のEscapeで会話を保持して作業場所へ戻る",
+      "steps": [
+        "各OSの入力欄でEscapeを押し、本文・複数caret/選択・画像・command/context・mode/model・予約を保持してeditorへ戻る。PRINT/ACPの準備/実行/終了/保留要求中でもStop/送信/許可/閉鎖を起こさない。画像import中も元draftへ結果を届ける。IDEのauto-hide設定による表示とPluginによる明示hideを区別する。",
+        "開いているTerminalからOpenChat/FollowUp/NewAgent/All Agents経由で入力へ入りEscapeを実行する。その時点の選択中Terminalへ1回戻り、Terminalのprocess/入力/caretを作り直さない。editorから入り直した場合はeditorを優先し、チャット内のタブ/一覧移動だけではoriginを置き換えない。明示的な選択コード追加もeditorへ戻す。",
+        "Terminalを閉じる/無効にする/最後のcontentを閉じる、別projectに切り替える、editorのファイルを閉じる等を復帰前に行う。消えたTerminalを再生成せず当該projectのeditorへfallbackし、別projectや破棄済みrootから操作しない。Terminalのeditor表示やマウスから入る条件は固定Cursor版と比較し、未確認を合格へ広げない。",
+        "inline予約編集中のEscapeは先に取消/元draft復元を行い、入力へ留まる。次のEscapeで作業場所へ戻る。mention/command/model/画像等のpopup、IME変換/確定直後では子操作を先に処理し、入力の有効化でEditorが再生成された後も条件を保つ。sidebar/予約一覧/requestカード/timelineや一般editorのEscapeを奪わない。",
+        "IDE KeymapでUnfocusInputと予約取消のキーを変更/解除し、新旧キーとnative Escapeの優先を確認する。遅いwindow activation、tab切替、project/root破棄を近接させ、復帰後に古いchat focus要求で戻されない。保留reviewや過去message編集等の未接続分岐は全対象照合へ残す。"
+      ],
+      "expected": "通常Escapeは会話と実行を保持してnative workspaceへ戻り、Terminal由来は生成済みの同project Terminalだけへ1回復帰する。予約編集取消・IME・popupを優先し、別focus/破棄済みownerを操作せず、Keymap変更とnative競合を記録する。"
     },
     {
       "gpt": {

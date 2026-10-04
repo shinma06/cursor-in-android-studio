@@ -41,15 +41,17 @@ abstract class AgentWindowAction internal constructor(
                 window.show(null)
             }
             AgentWindowCommand.ALL_CHATS -> {
+                val origin = com.cursoragent.ui.chatFocusOrigin(window.project)
                 window.contentManager.contents.firstNotNullOfOrNull { it.component as? AgentToolWindowRootPanel }
-                    ?.toggleAllChats(window)
+                    ?.toggleAllChats(window, origin)
             }
             AgentWindowCommand.OPEN_CHAT, AgentWindowCommand.FOLLOW_UP, AgentWindowCommand.NEW_AGENT -> {
                 // Read the event editor before content creation/activation can move focus.
                 val selection = e.getData(CommonDataKeys.EDITOR)?.takeIf { it.selectionModel.hasSelection() }
                     ?.let { EditorContextReader.read(window.project, it)?.selection }
+                val origin = com.cursoragent.ui.chatFocusOrigin(window.project)
                 window.contentManager.contents.firstNotNullOfOrNull { it.component as? AgentToolWindowRootPanel }
-                    ?.enterChat(command, selection, window)
+                    ?.enterChat(command, selection, window, origin)
             }
         }
     }

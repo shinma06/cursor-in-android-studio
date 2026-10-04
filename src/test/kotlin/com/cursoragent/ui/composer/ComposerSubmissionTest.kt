@@ -41,7 +41,7 @@ class ComposerSubmissionTest {
                     val lifetime = Disposer.newDisposable()
                     val composer = ComposerPanel(fixture.project)
                     composer.inputArea.setDisposedWith(lifetime)
-                    val editor = requireNotNull(composer.inputArea.getEditor(true))
+                    var editor = requireNotNull(composer.inputArea.getEditor(true))
                     val images = ImageDraft(Executor { work.add(it) }, { it() }, { store }, {})
                     composer.installImages(images)
                     val sent = mutableListOf<String>()
@@ -61,6 +61,13 @@ class ComposerSubmissionTest {
                     }
                     try {
                         assertTrue(composer.canResetFrom(editor.contentComponent))
+                        assertTrue(composer.canUnfocusFrom(editor.contentComponent))
+                        assertFalse(composer.canUnfocusFrom(composer))
+                        assertFalse(composer.canUnfocusFrom(JButton()))
+                        assertFalse(composer.canUnfocusFrom(null))
+                        composer.showQueueEdit(true)
+                        assertFalse(composer.canUnfocusFrom(editor.contentComponent), "Escape must cancel queue editing before returning to the workspace")
+                        composer.showQueueEdit(false)
                         assertFalse(composer.canResetFrom(composer), "reset belongs to the input, not the entire panel")
                         assertFalse(composer.canResetFrom(JButton()), "another component/project cannot reset this input")
                         assertFalse(composer.canResetFrom(null))
@@ -69,6 +76,7 @@ class ComposerSubmissionTest {
                         assertEquals(listOf("idle draft"), sent)
                         composer.setRunning(true)
                         assertTrue(composer.canResetFrom(editor.contentComponent), "reset may replace a running view without stopping its owner")
+                        assertTrue(composer.canUnfocusFrom(editor.contentComponent), "focus return does not cancel a running turn")
                         composer.inputArea.text = " first queue "
                         val heldEnter = KeyEvent(editor.contentComponent, KeyEvent.KEY_PRESSED, 1, 0, KeyEvent.VK_ENTER, '\n')
                         submit(heldEnter)
@@ -85,18 +93,25 @@ class ComposerSubmissionTest {
                         acceptQueue = true
                         composer.setInputEnabled(false)
                         assertFalse(composer.canResetFrom(editor.contentComponent))
+                        assertFalse(composer.canUnfocusFrom(editor.contentComponent))
                         submit()
                         composer.setInputEnabled(true)
+                        // EditorTextField replaces its native editor when enabled state changes.
+                        editor = requireNotNull(composer.inputArea.getEditor(true))
+                        assertTrue(composer.canResetFrom(editor.contentComponent))
+                        assertTrue(composer.canUnfocusFrom(editor.contentComponent))
                         val ime = editor.contentComponent.inputMethodListeners.filterIsInstance<PromptImeGuard>().single()
                         ime.inputMethodTextChanged(InputMethodEvent(editor.contentComponent, InputMethodEvent.INPUT_METHOD_TEXT_CHANGED,
                             AttributedString("変換中").iterator, 0, null, null))
                         assertFalse(composer.canResetFrom(editor.contentComponent))
+                        assertFalse(composer.canUnfocusFrom(editor.contentComponent))
                         submit()
                         assertEquals(1, queued.size)
                         assertEquals("retained", composer.inputArea.text)
                         ime.reset()
                         images.import { error("pending import must not be read by submit") }
                         assertFalse(composer.canResetFrom(editor.contentComponent))
+                        assertTrue(composer.canUnfocusFrom(editor.contentComponent), "focus return can leave an import running in its original draft")
                         submit()
                         assertEquals(1, queued.size)
                         images.clear()

@@ -55,9 +55,15 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen
 
     /** The root additionally checks project lifetime, panel visibility and child popups. */
-    internal fun canResetFrom(focus: java.awt.Component?): Boolean =
-        inputArea.isEnabled && panelShortcutAvailable && images?.importing != true && focus != null &&
+    private fun inputShortcutAvailable(focus: java.awt.Component?): Boolean =
+        inputArea.isEnabled && panelShortcutAvailable && focus != null &&
             javax.swing.SwingUtilities.isDescendingFrom(focus, inputArea)
+
+    internal fun canResetFrom(focus: java.awt.Component?): Boolean =
+        inputShortcutAvailable(focus) && images?.importing != true
+
+    internal fun canUnfocusFrom(focus: java.awt.Component?): Boolean =
+        inputShortcutAvailable(focus) && !isQueueEditing
 
     internal val queueEditAvailable: Boolean
         get() = isQueueEditing && inputArea.isEnabled && panelShortcutAvailable &&

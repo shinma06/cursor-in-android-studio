@@ -62,7 +62,7 @@
 | `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 
-panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、panel内は計15 Actionとなる。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
+panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、panel内は計17 Actionとなる。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
 ## 入力部品内の操作
 
@@ -74,7 +74,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 | INPUT-MESSAGE-PREVIOUS | Shift+Tab | 同じ候補保護に加えてtool review待ちでない。末尾入力からも前のhuman messageへ移動。公式mode回転・登録mode menuとの優先は未GUI。 | in-IDE静的確認 / 能力未実装 / P02 |
 | INPUT-UP | ArrowUp | caretが入力境界、Shift/候補menuなし。保留reviewの前option、最新queue編集、過去human message等へ状態別に移る。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / P02 |
 | INPUT-DOWN | ArrowDown | caretが入力境界、Shift/候補menuなし。保留reviewの次option、steering条件下の空末尾入力からqueue focus等へ分岐。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| INPUT-ESCAPE | Escape | model nudge、個別Escape処理、preview/review状態の解除後に入力focus解除等へ分岐。popup/IMEを優先する。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
+| INPUT-ESCAPE | Escape | model nudge、個別Escape処理、編集/review状態の解除後に入力focus解除等へ分岐。popup/IMEを優先する。 | in-IDE静的確認 / 予約編集取消と通常focus復帰を接続・GUI pending。過去入力/review等はP02/A3 / A1 |
 | INPUT-MOD-ENTER | M+Enter; modifier+Alt+Enter branch requires routing check | repeat抑止、tool review待ちは別処理。質問/decision回答、送信/queue、空入力時のPlan review/変更承認/Apply worktreeへ状態別に分岐。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
 | INPUT-SHIFT-MOD-ENTER | M+Shift+Enter | 空draftで変更reviewがあれば全承認/Apply worktree、実行中選択toolformerなら取消、それ以外は別submit。初回draftのglobal登録と分ける。 | in-IDE静的確認 / 能力未実装 / P08 |
 | QUEUE-NAVIGATION | ArrowUp / ArrowDown | steering機能が有効でqueue list本体にfocus。上下の項目移動、末尾を越えたら入力へ戻る。 | in-IDE静的確認 / inline/管理一覧に接続 / A2 |
@@ -98,7 +98,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 | 子popup/各カード | mention、slash、model、mode、branch、history、find、permission、question、Plan、changesの上下左右/Enter/Space/Escape/Tab等を全件照合する。共有handlerの存在だけで対象panelに含めない。 |
 | clipboard（公式） | M+Vのcontext付きpasteとM+Shift+Vのplain paste。固定版のclipboard形式・提供元を確認する。普通のpasteや画像添付だけで同等としない。 |
 | 選択codeの検索（公式） | 選択code側のM+Enterによるcodebase検索付きchat。入力中の送信や一般の選択追加と区別し、固定版の対象handlerと公開検索契約を確定する。 |
-| 入力focus解除（公式） | Escapeの入力callbackは静的確認したが、popup/voice/find/permission/IMEとの優先は未GUI。 |
+| 入力focus解除（公式） | Escapeの通常blur/Terminal復帰と予約編集取消を接続した。popup/voice/find/permission/IMEとの全分岐・優先は未GUI。 |
 | 動的・未割当command | cycleMode/cycleModel/入力転送commandの参照は既定shortcutの証拠ではない。Keyboard Shortcuts全一覧でcustom/未割当と既定キーを分ける。 |
 
 特に次は初期一覧からの訂正で、GUIで差を確認する。
@@ -171,11 +171,21 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
-3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel内16 Actionとglobal6 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel内17 Actionとglobal6 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+
+## 入力欄のEscapeと作業場所への復帰
+
+固定版のin-IDE入力`onEscape`はmodel確認、個別callback、予約/目標編集、用途未確定の別入力分岐を先に処理し、その後で`composerViewsService.blur`へ進む。空の末尾入力では保留reviewのreject入力切替も存在する。`showAndFocus`はTerminalまたはeditorから入ったことを記憶し、`blur`はTerminal由来ならその時点のactive Terminalへ一度戻し、それ以外はeditorへfocusを渡す。この静的経路と[公式のEscape説明](https://cursor.com/docs/reference/keyboard-shortcuts)を根拠とする。model確認、過去入力や保留reviewの全分岐はP02/A3の残作業であり、通常blurの接続で全達成とはしない。
+
+Pluginは入力局所の`CursorAgent.UnfocusInput`へ接続する。予約編集時はこのActionを無効にし、既存の`QueueReturnToInput`による編集取消を優先する。通常時はEDTでselected view、入力focus/有効状態、IMEと候補/子popup、project/rootの生存を再確認し、古いfocus要求の世代を無効にしてから戻す。本文・caret・画像・queue・run/保留要求は変更しない。画像importも同じdraftで継続できる。sidebar、timeline、各requestカードや一般editorのEscapeは対象にしない。
+
+OpenChat/FollowUp/NewAgent/All Agentsのglobal入口ではcontent生成・activation前にoriginを読み、Terminalの選択中content内focus、またはIDEのeditor active状態が確認できた場合だけ更新する。チャット内の操作はoriginを保ち、明示的な選択コード追加ではeditor由来へ更新する。復帰時はproject所属/生存/利用可と生成済みcontentを再確認し、開いているTerminalをnative ToolWindow APIでactivateする。閉じた/無効/未生成のTerminalは新規processを作らずeditorへ戻す。componentやterminal sessionを保存せず、1回復帰したoriginは消費する。既存のnative editor/Terminal内のcaret・scroll・表示はIDEへ委ね、IDEのauto-hide設定を変更しない。
+
+[JetBrainsのToolWindow](https://www.jetbrains.com/help/idea/tool-windows.html)もEscapeによるeditor復帰を既に提供する。[AI Assistant](https://www.jetbrains.com/help/ai-assistant/ai-chat.html)＋[Cursor ACP](https://cursor.com/docs/integrations/jetbrains)と[MCP Server](https://www.jetbrains.com/help/idea/mcp-server.html)を備えた構成に対する独自機能とは扱わない。Pluginでの直接統合は、同じKeymapで会話の編集状態・IMEとnative focus復帰を整合させるために使う。providerへのprompt/ACP/MCP要求を発行しない。IDEの既存Escape割当を削除しないため、Plugin側のキーを変更/解除した場合はIDE側Actionとの競合を含めて確認する。Terminalのeditor表示、マウス経由の入口、各popup・IMEと実focusの一致は固定build GUIで照合する。
 
 ## 予約一覧のキー操作と残る送信能力
 
-固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内16操作・global6入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
+固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内17操作・global6入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
 
 管理dialogを開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
 
