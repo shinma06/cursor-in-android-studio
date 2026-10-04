@@ -73,7 +73,7 @@ class AgentToolWindowRootPanel(
             onMcp = { McpServersDialog(project).show() },
             onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
             onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
-            onOpenedChats = { event -> target()?.let { showOpenedChats(event, it.composer, tabId ?: sessions.snapshot().selectedId) } },
+            onOpenedChats = ::showOpenedChats,
             onCloseAllChats = ::confirmCloseAllChats,
             onFeedback = { BrowserUtil.browse(it) },
             previewEnabled = { UISettings.getInstance().openInPreviewTabIfPossible },
@@ -174,8 +174,13 @@ class AgentToolWindowRootPanel(
         }, BorderLayout.EAST)
     }
 
-    private fun showOpenedChats(event: AnActionEvent, owner: JComponent, ownerId: String) {
-        if (disposed || projectClosing || project.isDisposed || !owner.isShowing) return
+    private fun showOpenedChats(event: AnActionEvent) {
+        if (disposed || projectClosing || project.isDisposed) return
+        val editorOwner = event.getData(com.cursoragent.ui.editor.ChatEditorPresentation.KEY)
+        val ownerId = if (editorOwner == null) sessions.snapshot().selectedId
+            else views.entries.firstOrNull { it.value.presentation === editorOwner }?.key ?: return
+        val owner = views[ownerId]?.composer ?: return
+        if (!owner.isShowing) return
         openedChatsPopup?.takeUnless { it.isDisposed }?.let { it.cancel(); return }
         val snapshot = sessions.snapshot().copy(selectedId = ownerId)
         val fromEditor = views[ownerId]?.presentation?.inEditor == true
