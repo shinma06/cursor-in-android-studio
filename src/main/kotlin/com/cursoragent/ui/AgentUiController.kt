@@ -277,7 +277,7 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
-        timeline.runStatus.dispose()
+        timeline.dispose()
         activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
         sessions.clearRequestId(tabId)
         composer.contextUsage.reset()

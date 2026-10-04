@@ -46,6 +46,9 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     val promptContext = com.cursoragent.ui.composer.context.PromptContextPanel(project)
     private val mentionPopupController = MentionPopupController(project, inputArea, promptContext::addMention)
 
+    internal val panelShortcutAvailable: Boolean
+        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen
+
     private val sendButton = SelectorButton().apply {
         text = "↑"
         horizontalAlignment = javax.swing.SwingConstants.CENTER

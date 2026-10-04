@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "issue": 518,
+  "gui_required": true,
+  "reason": "本文位置の実表示・スクロール、OS別キー/IME/Keymap再割当、streamと複数tab/projectのfocus・破棄を固定buildで受け入れる。headlessテストだけではGUI合格としない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（製品Kotlin/関連tooling）",
+    "ConversationSearchTest: 条件・位置・ゼロ幅・不正/複雑regex・上限・取消",
+    "ConversationFindPanelTest / ConversationFindActionTest: 表示Document・選択/原文維持・復元本文・遅着/IME/dispose・Action対象再取得・XML",
+    "git diff --check、Case schema、固定HEAD/base独立レビュー、必須checks"
+  ],
+  "cases": [
+    {
+      "id": "FIND-TEXT",
+      "issue": 518,
+      "change": "本文内の一致箇所と表示位置",
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile。固定source SHA・ZIP SHA256・ロードJARとRabbit/JBRの識別を照合。必要通信はprint/ACP合成fixture。既存認証・作業・実providerを変更しない。",
+      "steps": [
+        "使い捨てprojectでPRINT/ACPにユーザー本文、複数段落・日本語・長いコード・HTML文字・画像説明を含むAgent応答を用意する。Cmd/Ctrl+Fで検索し、同一message内の複数一致を強調する。現在/総数、前後と端での循環、横スクロールするコードの位置まで確認する。",
+        "本文の一部を選択してから検索・前後移動する。元の選択とMarkdown原文コピー、入力draft、明示contextと予約を維持する。保存本文を復元し、通常本文とACPの表示済み内容情報を検索する。",
+        "tool/Task/permission/question/Plan/error/保存状態だけに存在する語を入力し、本文一致として数えないことを確認する。未取得履歴や画像の中身を検索したと説明しない。未一致と空入力では一致を解除する。"
+      ],
+      "expected": "検索した表示文字列と強調・スクロール位置が一致し、本文/入力/選択/保存を変更しない。対象外領域とCursor側の未確定範囲は明示し、全画面同等としない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新固定buildを識別して同じCaseを再試験する。旧build/部分/合成passは転記しない。",
+      "main_eligible": false,
+      "next_action": "指定担当/lease調整後に全手順を実施し、GUI/main未反映はQAへ双方向移譲する。親#212とMilestone8の全対象受入は別に照合する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/help/ai-features/conversation-search",
+        "https://www.jetbrains.com/help/ai-assistant/ai-keyboard-shortcuts.html"
+      ]
+    },
+    {
+      "id": "FIND-OPTIONS",
+      "issue": 518,
+      "change": "検索条件と負荷・エラー",
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile。固定source SHA・ZIP SHA256・ロードJARとRabbit/JBRの識別を照合。必要通信はprint/ACP合成fixture。既存認証・作業・実providerを変更しない。",
+      "steps": [
+        "Aa（大文字小文字）、単語、.*（正規表現）を切り替え、大小文字・単語途中・underscore・結合文字・日本語・改行・複数messageの一致を比較する。message間を連結しない。",
+        "不正な式、ゼロ幅一致、長いコード、複雑な式を使う。不正/複雑/時間上限で説明が表示され、別の検索へ変更・取消できる。ゼロ幅一致は本文を変えず縦線で示す。",
+        "4,096文字超のquery、10,000件超の一致、時間上限の途中結果を確認する。不足結果は件数の+と説明で区別し、全検索完了と表示しない。"
+      ],
+      "expected": "条件に合う位置と件数を表示する。検索はEDTを正規表現処理で占有せず、エラーや部分結果を正しく伝える。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新固定buildを識別して同じCaseを再試験する。旧build/部分/合成passは転記しない。",
+      "main_eligible": false,
+      "next_action": "指定担当/lease調整後に全手順を実施し、GUI/main未反映はQAへ双方向移譲する。親#212とMilestone8の全対象受入は別に照合する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/help/ai-features/conversation-search",
+        "https://www.jetbrains.com/help/ai-assistant/ai-keyboard-shortcuts.html"
+      ]
+    },
+    {
+      "id": "FIND-LIFETIME",
+      "issue": 518,
+      "change": "stream・複数tab/project・解除と破棄",
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile。固定source SHA・ZIP SHA256・ロードJARとRabbit/JBRの識別を照合。必要通信はprint/ACP合成fixture。既存認証・作業・実providerを変更しない。",
+      "steps": [
+        "A/Bを同時実行しAで検索中にAの本文を更新する。古い強調を即座に解除し、更新後の文字列で検索する。検索中にstreamの末尾へ勝手に飛ばない。",
+        "検索worker実行中にBへ切り替え、Bや別projectを検索する。Aの結果/件数/スクロールをBへ適用せず、Aを再選択したらAの現在本文で更新する。",
+        "worker実行中に検索を閉じる、会話を閉じる、projectをdisposeする。遅着の結果や多重workerで表示を復活させず、他の会話/runを止めない。閉じた検索は同じ会話の入力へfocusを戻す。"
+      ],
+      "expected": "各結果は元のtabと現在本文にだけ属する。取消/世代/破棄を照合し、遅着・focus・runを混ぜない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新固定buildを識別して同じCaseを再試験する。旧build/部分/合成passは転記しない。",
+      "main_eligible": false,
+      "next_action": "指定担当/lease調整後に全手順を実施し、GUI/main未反映はQAへ双方向移譲する。親#212とMilestone8の全対象受入は別に照合する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/help/ai-features/conversation-search",
+        "https://www.jetbrains.com/help/ai-assistant/ai-keyboard-shortcuts.html"
+      ]
+    },
+    {
+      "id": "FIND-KEYMAP",
+      "issue": 518,
+      "change": "実キー・IME/popup・再割当",
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile。固定source SHA・ZIP SHA256・ロードJARとRabbit/JBRの識別を照合。必要通信はprint/ACP合成fixture。既存認証・作業・実providerを変更しない。",
+      "steps": [
+        "Mac/Windows/Linuxの使用OSとKeymap、US/JIS配列を記録し、Cmd/Ctrl+F、F3/Enter、Shift+F3/Shift+Enter、Escapeを検索欄のfocus条件付きで確認する。通常入力の送信キー、一般IDE editorの検索と別ToolWindowの操作を奪わない。",
+        "検索欄と通常入力で日本語IME変換・確定中、@/slash候補・子popup中に各キーを押す。変換/候補を先に扱い、裏で検索移動・閉鎖・送信しない。Tabによる検索条件/前後/閉じるのfocus、アクセシビリティ名称、Dark/Light/高DPI・狭幅で判別できることを確認する。",
+        "IDE Keymapで4つのfind Actionを変更/削除し、すでに開いているpanelでも変更が反映されることを確認する。#212のAction群と二重配送されない。"
+      ],
+      "expected": "設定されたキーとfocus条件で1回だけ動作する。IME/候補とIDE既存操作を保ち、検索欄の全操作へkeyboardで到達できる。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "実装とheadlessテストは実GUIの合格ではない。指定担当とhost leaseで固定buildを確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新固定buildを識別して同じCaseを再試験する。旧build/部分/合成passは転記しない。",
+      "main_eligible": false,
+      "next_action": "指定担当/lease調整後に全手順を実施し、GUI/main未反映はQAへ双方向移譲する。親#212とMilestone8の全対象受入は別に照合する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/help/ai-features/conversation-search",
+        "https://www.jetbrains.com/help/ai-assistant/ai-keyboard-shortcuts.html"
+      ]
+    }
+  ]
+}

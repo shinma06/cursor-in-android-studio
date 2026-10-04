@@ -30,6 +30,38 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     internal val runStatus = RunStatusPanel()
+    private val header = JPanel(BorderLayout()).apply { isOpaque = false; add(runStatus, BorderLayout.NORTH) }
+    internal var findPanel: ConversationFindPanel? = null
+        private set
+    private var disposed = false
+    var onFindClosed: () -> Unit = {}
+
+    fun openFind() {
+        if (disposed || !isActiveTab) return
+        val panel = findPanel ?: ConversationFindPanel(::searchableBodies, { !disposed && isActiveTab }, { onFindClosed() }).also {
+            findPanel = it
+            header.add(it, BorderLayout.CENTER)
+        }
+        panel.open()
+        revalidate()
+    }
+
+    internal fun searchableBodies(): List<javax.swing.text.JTextComponent> = messagesPanel.components.mapNotNull {
+        when (it) {
+            is UserMessageBubble -> it.searchableText
+            is AssistantMessageBubble -> it.searchableText
+            is AssistantContentRow -> it.searchableText
+            else -> null
+        }
+    }
+
+    fun dispose() {
+        if (disposed) return
+        disposed = true
+        findPanel?.dispose()
+        onFindClosed = {}
+        runStatus.dispose()
+    }
 
     private val saveStatus = javax.swing.JLabel().apply { border = JBUI.Borders.empty(2, 12) }
     fun setSaveStatus(text: String) {
@@ -73,6 +105,11 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     }
 
     var isActiveTab: Boolean = true
+        set(value) {
+            if (field == value) return
+            field = value
+            findPanel?.invalidateResults()
+        }
     private var readingHistory = false
 
     private var currentAssistantBubble: AssistantMessageBubble? = null
@@ -88,7 +125,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
     init {
         isOpaque = false
         add(emptyState, BorderLayout.CENTER)
-        add(runStatus, BorderLayout.NORTH)
+        add(header, BorderLayout.NORTH)
     }
 
     fun addUserMessage(text: String): UserMessageBubble {
@@ -115,6 +152,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     fun setAssistantText(text: String) {
         ensureAssistantBubble().setContent(text)
+        findPanel?.invalidateResults()
         scrollToBottom()
     }
 
@@ -262,6 +300,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     private fun addRow(component: Component) {
         messagesPanel.add(component)
+        if (component is UserMessageBubble || component is AssistantMessageBubble || component is AssistantContentRow) findPanel?.invalidateResults()
         revalidate()
         repaint()
         scrollToBottom()
@@ -304,7 +343,7 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
 
     private fun scrollToBottom() {
         SwingUtilities.invokeLater {
-            if (!isActiveTab || readingHistory) return@invokeLater
+            if (disposed || !isActiveTab || readingHistory || findPanel?.isVisible == true) return@invokeLater
             val bar = scrollPane.verticalScrollBar
             bar.value = bar.maximum
         }

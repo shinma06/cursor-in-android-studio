@@ -170,8 +170,9 @@ private fun plainText(value: String) = JTextArea(value).apply {
 
 /** Distinct from Markdown source and tool execution; all received metadata remains literal text. */
 internal class AssistantContentRow(text: String) : JPanel(BorderLayout()) {
+    internal val searchableText = plainText("応答の内容情報\n$text")
     init {
         isOpaque = false
-        add(plainText("応答の内容情報\n$text"), BorderLayout.CENTER)
+        add(searchableText, BorderLayout.CENTER)
     }
 }

@@ -1,5 +1,7 @@
 package com.cursoragent.ui
 
+import com.cursoragent.actions.ConversationFindCommand
+import com.cursoragent.actions.ConversationFindTarget
 import com.cursoragent.service.AgentTransport
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.TurnSettings
@@ -22,6 +24,9 @@ import com.intellij.ide.ui.UISettings
 import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -41,7 +46,7 @@ import javax.swing.JPanel
 class AgentToolWindowRootPanel(
     private val project: Project,
     private val onLastTabClosed: () -> Unit,
-) : JPanel(BorderLayout()), Disposable {
+) : JPanel(BorderLayout()), Disposable, UiDataProvider {
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
@@ -53,6 +58,32 @@ class AgentToolWindowRootPanel(
 
     private val selectedView: TabView?
         get() = if (disposed || project.isDisposed) null else views[sessions.snapshot().selectedId]
+
+    private val findActions = ConversationFindTarget(::findAvailable, ::performFind)
+    private val findShortcuts = mutableListOf<com.intellij.openapi.actionSystem.AnAction>()
+
+    override fun uiDataSnapshot(sink: DataSink) {
+        if (!disposed && !project.isDisposed) sink[ConversationFindTarget.KEY] = findActions
+    }
+
+    private fun findAvailable(command: ConversationFindCommand): Boolean {
+        val view = selectedView ?: return false
+        if (!isShowing || !view.composer.panelShortcutAvailable || JBPopupFactory.getInstance().isChildPopupFocused(this)) return false
+        val find = view.timeline.findPanel
+        return if (command == ConversationFindCommand.OPEN) find?.composing != true && find?.hasSearchFocus() != true
+        else find?.hasSearchFocus() == true
+    }
+
+    private fun performFind(command: ConversationFindCommand) {
+        if (!findAvailable(command)) return
+        val timeline = selectedView?.timeline ?: return
+        when (command) {
+            ConversationFindCommand.OPEN -> timeline.openFind()
+            ConversationFindCommand.NEXT -> timeline.findPanel?.move(1)
+            ConversationFindCommand.PREVIOUS -> timeline.findPanel?.move(-1)
+            ConversationFindCommand.CLOSE -> timeline.findPanel?.closeSearch()
+        }
+    }
 
     internal val actions = ToolWindowChatActions(
         settings = AgentSettingsState.getInstance(),
@@ -127,6 +158,12 @@ class AgentToolWindowRootPanel(
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
         showSelected()
+        ConversationFindCommand.entries.forEach { command ->
+            ActionManager.getInstance().getAction(command.actionId)?.let { action ->
+                action.registerCustomShortcutSet(action.shortcutSet, this)
+                findShortcuts.add(action)
+            }
+        }
     }
 
     fun selectionContextTarget(): ((com.cursoragent.ui.composer.context.SelectionContext) -> Unit)? {
@@ -225,6 +262,7 @@ class AgentToolWindowRootPanel(
             composer.onStop = controller::stopRun
             composer.onEnqueue = controller::enqueuePrompt
             composer.onShowQueue = controller::showQueue
+            timeline.onFindClosed = { if (selectedView?.timeline === timeline) composer.inputArea.requestFocusInWindow() }
             if (saved != null) {
                 timeline.restore(saved)
                 controller.showResumeAvailability()
@@ -257,6 +295,8 @@ class AgentToolWindowRootPanel(
     override fun dispose() {
         if (disposed) return
         disposed = true
+        findShortcuts.forEach { it.unregisterCustomShortcutSet(this) }
+        findShortcuts.clear()
         uiSettingsConnection.disconnect()
         openedChatsPopup?.cancel()
         openedChatsPopup = null

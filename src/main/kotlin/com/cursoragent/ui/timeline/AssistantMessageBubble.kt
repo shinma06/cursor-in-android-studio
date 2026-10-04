@@ -44,6 +44,7 @@ class AssistantMessageBubble(
     private val contentLabel = MessageTextPane().apply {
         border = JBUI.Borders.empty()
     }
+    internal val searchableText: MessageTextPane get() = contentLabel
 
     init {
         isOpaque = false

@@ -9,6 +9,9 @@ import javax.swing.JPanel
 
 class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
     var onRollbackRequested: (() -> Unit)? = null
+    internal val searchableText = MessageTextPane().apply {
+        this.text = "<html><body>${escapeHtml(text).replace("\n", "<br>")}</body></html>"
+    }
 
     private val imageThumbnail = javax.swing.JLabel().apply {
         isVisible = false
@@ -35,9 +38,7 @@ class UserMessageBubble(text: String) : JPanel(BorderLayout()) {
         val bubble = com.cursoragent.ui.RoundedSurface(AgentUiColors.userBubbleBackground).apply {
             border = AgentUiColors.bubbleBorder(8)
             add(imageThumbnail, BorderLayout.NORTH)
-            add(MessageTextPane().apply {
-                this.text = "<html><body>${escapeHtml(text).replace("\n", "<br>")}</body></html>"
-            }.scrollable(), BorderLayout.CENTER)
+            add(searchableText.scrollable(), BorderLayout.CENTER)
             add(rollbackButton.apply {
                 preferredSize = JBUI.size(24, 24)
                 minimumSize = preferredSize

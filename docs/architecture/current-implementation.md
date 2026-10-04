@@ -27,6 +27,16 @@
 
 コンポーネントテストは複数行の配置・幅変更・切替・2行目の操作・行間DnD・背景とAction領域に加え、固定320×500の親で20タブを折り返し、高さ変更後の全行への到達・会話/入力欄の領域・縦ホイール・閉鎖/キー操作を確認する。IDEの設定画面との実連動、Dark/Light・多数タブ・複数projectでの固定build受入は[Case #211](../verification/changes/issue-211.json)へ残す。競合構成でもAI Chatをeditor tabとして開けるため、複数会話やIDEタブ設定自体を独自機能とは扱わない。本件は会話をAgentパネル内に保持したままIDEの表示選択を共有する。[JetBrains公式](https://www.jetbrains.com/help/ai-assistant/customize-ai-chat.html)。
 
+## 会話内の本文検索
+
+#518は現在tabのuser/assistant表示本文を検索する。`ConversationFindAction`をIDE Keymapに登録し、Cmd/Ctrl+Fで検索欄を開く。検索欄にfocusがある場合だけF3/Enter・Shift+F3/Shift+Enterで前後へ循環し、Escapeで閉じて同じ会話の入力へ戻る。本文のcopy/選択/下書き/実行/保存は変更せず、検索中はstreamによる末尾への自動スクロールを抑える。IME、入力候補、子popupを優先し、Action実行直前にも現在tabと可否を照合する。各panelのlocal登録は同じActionのshortcut setを使い、破棄時に解除する。#212はこの4 Actionを再定義しない。
+
+検索位置は既存Swing Documentの表示文字列から求め、Highlighterで全一致と現在の一致を分ける。Markdown記法ではなくレンダリング後のコード・日本語・空白/改行、安全に文字化したHTML/画像説明が対象。PRINT/ACPの通常本文と復元本文は同じ経路で、ACP非text応答は既に表示された内容情報まで検索する。tool/Task/permission/question/Plan/error/保存状態等のカード、未取得の履歴、画像/音声自体は対象外。本文rowには折り畳みがなく、messageをまたぐ一致は扱わない。固定Cursorのuser/assistant表示射影を根拠にし、tool/reasoning/折り畳みや機能条件の一致は#212のGUI未確定範囲に残す。
+
+大文字小文字・単語単位・正規表現を切り替えられる。単語境界はUnicodeの文字・数字・結合文字とconnector（underscore等）の連続を使う。入力は150msまとめてbackgroundで検索し、正規表現の文字読み取り中にも取消と250msの時間上限を照合する。入力は4,096文字、強調は先頭10,000一致まで。上限/複雑すぎる式/不正な式は日本語で表示し、途中結果の件数には`+`と未完了のaccessibility説明を付ける。ゼロ幅一致は文字を選択せず縦線で示す。本文更新・選択tab変更・検索解除・破棄は世代を進めてworkerを取消し、EDT反映直前に可視性・tab・IME・世代・Document所有を再確認する。検索状態はtab内だけで永続化しない。
+
+既存の[保存履歴検索](../verification/changes/issue-45.json)とは別機能。検索自体は[JetBrains AI Assistantにも既存](https://www.jetbrains.com/help/ai-assistant/ai-keyboard-shortcuts.html)で、独自能力とは扱わない。[Cursor公式](https://cursor.com/help/ai-features/conversation-search)の独立Agents Window用履歴検索は追加対象にしない。ローカル表示本文に対する操作なのでACP/MCP/CLI検索要求や永続indexは不要。直接統合の価値はtab/run所有とIDE Keymapへの接続で、同等以上のUXは[Case #518](../verification/changes/issue-518.json)の固定build GUIで確認する。headlessテストは実配送・focus・IME・テーマ等のGUI合格ではない。
+
 ## 入力文書と候補popupの境界
 
 この節は2026-09-24 / [PR #405](https://github.com/shinma06/cursor-in-android-studio/pull/405)で更新。先行Document生成とcommand対応の実装基準は`aa83b8f155cde6affe88a90c20467180246213e9`、Undo境界は同PRのレビュー修正。冒頭の全体照合基準とは別の追加実装であり、PRの固定commitとCaseを根拠とする。
