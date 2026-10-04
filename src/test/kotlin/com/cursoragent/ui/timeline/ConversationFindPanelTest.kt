@@ -9,6 +9,63 @@ import org.junit.jupiter.api.Test
 
 class ConversationFindPanelTest {
     @Test
+    fun `zero width markers paint at text and HTML boundaries and clear without changing selection`() {
+        for ((html, query) in listOf(false to "\\A", false to "(?m)^", false to "\\z", true to "\\A", true to "(?m)^", true to "\\z")) {
+            val jobs = mutableListOf<() -> Unit>()
+            lateinit var pane: javax.swing.text.JTextComponent
+            lateinit var panel: ConversationFindPanel
+            lateinit var before: java.awt.image.BufferedImage
+            lateinit var original: String
+            lateinit var offsets: List<Int>
+            fun render(): java.awt.image.BufferedImage {
+                val image = java.awt.image.BufferedImage(pane.width, pane.height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+                image.createGraphics().let { graphics -> try { pane.paint(graphics) } finally { graphics.dispose() } }
+                return image
+            }
+            onEdt {
+                pane = if (html) AssistantMessageBubble("alpha\n\nbeta").searchableText else javax.swing.JTextArea("ab\ncd").apply { lineWrap = true; wrapStyleWord = true }
+                pane.setSize(300, 120)
+                pane.select(1, 2)
+                render() // Initialize the text views before taking the comparison image.
+                before = render()
+                original = pane.document.getText(0, pane.document.length)
+                offsets = when (query) { "\\z" -> listOf(original.length); "(?m)^" -> if (html) listOf(0, 1, 7) else listOf(0, 3); else -> listOf(0) }
+                panel = ConversationFindPanel({ listOf(pane) }, { true }, {}, { jobs.add(it); CompletableFuture<Unit>() })
+                panel.open()
+                panel.regex.isSelected = true
+                panel.search.text = query
+                panel.searchNow()
+            }
+            jobs.removeFirst().invoke()
+            onEdt {
+                val after = render()
+                assertEquals("1 / ${offsets.size}", panel.count.text)
+                for (offset in offsets) {
+                    val bounds = pane.modelToView2D(offset).bounds
+                    val height = bounds.height.coerceAtLeast(pane.getFontMetrics(pane.font).height)
+                    val changed = (bounds.x until (bounds.x + 3).coerceAtMost(pane.width)).sumOf { x ->
+                        (bounds.y until (bounds.y + height).coerceAtMost(pane.height)).count { y -> before.getRGB(x, y) != after.getRGB(x, y) }
+                    }
+                    assertTrue(changed > 0, "zero-width marker must paint: html=$html query=$query offset=$offset")
+                }
+                if (offsets.size > 1) {
+                    panel.move(-1)
+                    assertEquals("${offsets.size} / ${offsets.size}", panel.count.text)
+                    val moved = render()
+                    assertFalse(after.getRGB(0, 0, pane.width, pane.height, null, 0, pane.width).contentEquals(moved.getRGB(0, 0, pane.width, pane.height, null, 0, pane.width)), "current marker must move independently from all matches")
+                }
+                assertEquals(original, pane.document.getText(0, pane.document.length))
+                assertEquals(1, pane.selectionStart)
+                assertEquals(2, pane.selectionEnd)
+                panel.closeSearch()
+                val cleared = render()
+                assertArrayEquals(before.getRGB(0, 0, pane.width, pane.height, null, 0, pane.width), cleared.getRGB(0, 0, pane.width, pane.height, null, 0, pane.width))
+                panel.dispose()
+            }
+        }
+    }
+
+    @Test
     fun `a match in long code scrolls both the inner horizontal and outer transcript viewport`() {
         val jobs = mutableListOf<() -> Unit>()
         lateinit var panel: ConversationFindPanel

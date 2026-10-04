@@ -64,8 +64,11 @@ internal class ConversationFindPanel(
     private val highlights = mutableListOf<Pair<Highlighter, Any>>()
     private var currentHighlight: Pair<Highlighter, Any>? = null
     private var anchor: Pair<JTextComponent, Int>? = null
-    private val allPainter = matchPainter(JBColor(Color(0xFFF2A8), Color(0x665D20)))
-    private val currentPainter = matchPainter(JBColor(Color(0xFFB85B), Color(0xA66C18)))
+    private val allPainter = DefaultHighlighter.DefaultHighlightPainter(JBColor(Color(0xFFF2A8), Color(0x665D20)))
+    private val currentPainter = DefaultHighlighter.DefaultHighlightPainter(JBColor(Color(0xFFB85B), Color(0xA66C18)))
+
+    private val allZeroPainter = zeroWidthPainter(allPainter.color)
+    private val currentZeroPainter = zeroWidthPainter(currentPainter.color)
 
     init {
         isVisible = false
@@ -173,10 +176,11 @@ internal class ConversationFindPanel(
                 ready = true
                 hits.forEach { hit ->
                     val highlighter = targets[hit.document].highlighter
-                    highlights.add(highlighter to highlighter.addHighlight(hit.start, hit.end, allPainter))
+                    highlights.add(highlighter to highlighter.addHighlight(hit.start, hit.end, if (hit.start == hit.end) allZeroPainter else allPainter))
                 }
                 selected = hits.indexOfFirst { hit -> anchor?.let { it.first === targets[hit.document] && it.second == hit.start } == true }
                 if (selected < 0 && hits.isNotEmpty()) selected = 0
+                targets.forEach { it.repaint() }
                 revealSelected()
             }
         }
@@ -189,13 +193,15 @@ internal class ConversationFindPanel(
     }
 
     private fun revealSelected() {
+        anchor?.first?.repaint()
         currentHighlight?.let { (highlighter, tag) -> highlighter.removeHighlight(tag) }
         currentHighlight = null
         hits.getOrNull(selected)?.let { hit ->
             val component = targets[hit.document]
             anchor = component to hit.start
             val highlighter = component.highlighter
-            currentHighlight = highlighter to highlighter.addHighlight(hit.start, hit.end, currentPainter)
+            currentHighlight = highlighter to highlighter.addHighlight(hit.start, hit.end, if (hit.start == hit.end) currentZeroPainter else currentPainter)
+            component.repaint()
             // Keep the search field focused and preserve the message's native text selection.
             component.modelToView2D(hit.start)?.bounds?.let { bounds ->
                 component.modelToView2D(hit.end)?.bounds?.takeIf { it.y == bounds.y }?.let(bounds::add)
@@ -221,6 +227,7 @@ internal class ConversationFindPanel(
         currentHighlight = null
         highlights.forEach { (highlighter, tag) -> highlighter.removeHighlight(tag) }
         highlights.clear()
+        targets.forEach { it.repaint() }
     }
 
     private fun updateCount() {
@@ -258,14 +265,11 @@ internal class ConversationFindPanel(
     }
 }
 
-/** A zero-width regex match needs a visible marker; it must not select or modify nearby text. */
-private fun matchPainter(color: Color) = object : DefaultHighlighter.DefaultHighlightPainter(color) {
-    override fun paintLayer(g: java.awt.Graphics, p0: Int, p1: Int, bounds: java.awt.Shape, c: JTextComponent, view: javax.swing.text.View): java.awt.Shape? {
-        if (p0 != p1) return super.paintLayer(g, p0, p1, bounds, c, view)
-        val rect = c.modelToView2D(p0)?.bounds ?: return null
-        rect.width = JBUI.scale(2)
-        g.color = color
-        g.fillRect(rect.x, rect.y, rect.width, rect.height)
-        return rect
-    }
+/** Layered highlighters skip zero-width ranges at view boundaries; paint these once per component. */
+private fun zeroWidthPainter(color: Color) = Highlighter.HighlightPainter { graphics, start, _, _, component ->
+    val bounds = component.modelToView2D(start)?.bounds ?: return@HighlightPainter
+    // HTML's structural leading newline has a zero-height caret rectangle.
+    bounds.height = bounds.height.coerceAtLeast(component.getFontMetrics(component.font).height)
+    graphics.color = color
+    graphics.fillRect(bounds.x, bounds.y, JBUI.scale(2), bounds.height)
 }

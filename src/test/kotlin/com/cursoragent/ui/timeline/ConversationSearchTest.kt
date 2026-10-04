@@ -8,6 +8,15 @@ import org.junit.jupiter.api.Test
 
 class ConversationSearchTest {
     @Test
+    fun `whole word keeps all combining mark categories inside the word`() {
+        for (mark in listOf("\u0301", "\u0903", "\u20dd")) for (text in listOf("a$mark a", "${mark}a a")) {
+            val result = findConversationMatches(listOf(text), "a", ConversationFindOptions(wholeWord = true))
+            assertNull(result.notice)
+            assertEquals(listOf(3), result.hits.map { it.start })
+        }
+    }
+
+    @Test
     fun `literal case word and unicode matches keep document offsets and do not cross messages`() {
         val bodies = listOf("Cat cat scatter cat_ cat\n日本語 日本語X", "cat")
         fun find(query: String, case: Boolean = false, word: Boolean = false) =

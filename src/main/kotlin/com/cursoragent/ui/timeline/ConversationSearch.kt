@@ -55,7 +55,7 @@ private fun wordBefore(text: String, offset: Int) = offset > 0 && wordCodePoint(
 private fun wordAfter(text: String, offset: Int) = offset < text.length && wordCodePoint(text.codePointAt(offset))
 private fun wordCodePoint(value: Int) = Character.isLetterOrDigit(value) || value == '_'.code ||
     when (Character.getType(value)) {
-        Character.NON_SPACING_MARK.toInt(), Character.COMBINING_SPACING_MARK.toInt(), Character.CONNECTOR_PUNCTUATION.toInt() -> true
+        Character.NON_SPACING_MARK.toInt(), Character.COMBINING_SPACING_MARK.toInt(), Character.ENCLOSING_MARK.toInt(), Character.CONNECTOR_PUNCTUATION.toInt() -> true
         else -> false
     }
 
