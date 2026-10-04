@@ -102,6 +102,12 @@ class AgentPanelActionTest {
                     assertEquals(listOf("meta R"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
                 }
             }
+            if (command == AgentPanelCommand.SUBMIT_INITIAL) {
+                byKeymap.forEach { (keymap, keys) ->
+                    val modifier = if (keymap == "\$default") "control" else "meta"
+                    assertEquals(listOf("$modifier shift ENTER"), keys.map { it.getAttribute("first-keystroke") })
+                }
+            }
             if (command == AgentPanelCommand.MODE_MENU) {
                 byKeymap.forEach { (keymap, keys) ->
                     val modifier = if (keymap == "\$default") "control" else "meta"
@@ -144,6 +150,7 @@ class AgentPanelActionTest {
     private fun actions() = listOf(
         AgentPanelCommand.NEW_CHAT to AgentPanelAction.NewChat(),
         AgentPanelCommand.RESET_CHAT to AgentPanelAction.ResetChat(),
+        AgentPanelCommand.SUBMIT_INITIAL to AgentPanelAction.SubmitInitialChat(),
         AgentPanelCommand.UNFOCUS_INPUT to AgentPanelAction.UnfocusInput(),
         AgentPanelCommand.CLOSE_CHAT to AgentPanelAction.CloseChat(),
         AgentPanelCommand.PREVIOUS_CHAT to AgentPanelAction.PreviousChat(),

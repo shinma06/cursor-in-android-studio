@@ -18,6 +18,7 @@ internal class AgentPanelActions(
 internal enum class AgentPanelCommand(val actionId: String) {
     NEW_CHAT("CursorAgent.NewChat"),
     RESET_CHAT("CursorAgent.ResetChat"),
+    SUBMIT_INITIAL("CursorAgent.SubmitInitialChat"),
     UNFOCUS_INPUT("CursorAgent.UnfocusInput"),
     CLOSE_CHAT("CursorAgent.CloseChat"),
     PREVIOUS_CHAT("CursorAgent.PreviousChat"),
@@ -49,6 +50,7 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
 
     class NewChat : AgentPanelAction(AgentPanelCommand.NEW_CHAT)
     class ResetChat : AgentPanelAction(AgentPanelCommand.RESET_CHAT)
+    class SubmitInitialChat : AgentPanelAction(AgentPanelCommand.SUBMIT_INITIAL)
     class UnfocusInput : AgentPanelAction(AgentPanelCommand.UNFOCUS_INPUT)
     class CloseChat : AgentPanelAction(AgentPanelCommand.CLOSE_CHAT)
     class PreviousChat : AgentPanelAction(AgentPanelCommand.PREVIOUS_CHAT)

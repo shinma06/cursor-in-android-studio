@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用16操作とglobal入口8操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用17操作とglobal入口8操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
@@ -19,7 +19,8 @@
     "AgentWindowActionTest: Settingsのpanel contextなし実行、event projectの切替、content未生成/非表示維持、失効の拒否と旧Action ID/OS別2キー",
     "RequestShortcutsTest: 実カード/ボタン・timeline・turn listener・SessionTabs tokenによる一意/曖昧/focus対象、返信の一度性、onceだけの選択と質問/Plan、close/token更新/Stop/project破棄/terminal後の拒否、OS/送信設定・キー長押し",
     "PastChatsCoordinatorTest/AgentWindowActionTest: 非表示中の会話別要求、sidebarとheader取消、反復キー、読込み世代、古い選択callback・close/破棄後拒否、実rootでcontent未生成/非表示維持とAction登録/解除",
-    "SelectorInitializationTest/PromptFocusTraversalTest/ComposerSubmissionTest: 最新modeからの循環・別会話/共有設定保持、Shift+Tabと逆focusのKeymap排他、実Editor再生成、本文/選択保持、ACP busyと入力不可"
+    "SelectorInitializationTest/PromptFocusTraversalTest/ComposerSubmissionTest: 最新modeからの循環・別会話/共有設定保持、Shift+Tabと逆focusのKeymap排他、実Editor再生成、本文/選択保持、ACP busyと入力不可",
+    "ComposerSubmissionTest/AgentPanelActionTest: 初回送信のnative Action登録・OS別既定キー・実行時owner再確認、空白/run/予約編集/入力不可/IME拒否、通常送信とEnter長押し共有・解放後再送・破棄時解除"
   ],
   "cases": [
     {
@@ -989,6 +990,52 @@
       "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
       "provenance": [
         "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-INITIAL-SUBMIT",
+      "change": "空会話の初回メッセージをM+Shift+Enterで送信",
+      "steps": [
+        "PRINT/ACPの使い捨て会話に非空の日本語draftを用意し、macOSのCmd+Shift+Enter、Windows/LinuxのCtrl+Shift+Enterで選択中会話だけに1回送る。mode/model・command・明示context/自動context・画像は既存送信と一致し、別会話のdraft/run/provider IDを変更しない。",
+        "空白のみ・本文のある会話・本文来歴不明の旧履歴・準備中/実行中・予約編集中・入力不可では送信も予約も取消も行わない。画像import・IME変換中・@/command候補・子popupでキーを試し、候補操作やdraftを保つ。",
+        "M+Shift+Enterを長押しし、押したままShift/主修飾キーを変えて通常送信キーへ移っても重複送信しない。Enter解放後は新しい空会話の明示送信ができる。失敗後は既存エラー/保存条件を保ち自動再送しない。",
+        "Keymapを変更/解除し、変更したActionが現在の入力欄で動き、通常editor/別projectへ漏れないことを確認する。入力Editor再生成、Action update後の会話変更/開始/close/破棄でも最新のownerと可否で拒否し、古い会話やrunへ送らない。",
+        "固定Cursorの初回submitと照合し、選択済みworkspace/rootで既存送信が行われることを確認する。Action名だけでnamed Git worktreeを作成/変更せず、P06のbranch/setup等とP08の履歴後・空draftのreview/Apply・実行中取消は未達のまま別記する。"
+      ],
+      "expected": "現在の空会話の非空draftだけを既存送信へ一度渡す。入力保護・Keymap・run/会話所有を維持し、特殊送信やnative worktree選択の未実装を初回送信の合格に置き換えない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
         "https://cursor.com/docs/reference/keyboard-shortcuts",
         "https://github.com/shinma06/cursor-in-android-studio/issues/518",
         "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
@@ -998,7 +1045,7 @@
       "steps": [
         "固定Cursor 3.23.12のKeyboard Shortcutsと入力欄/各popup/提案/検索/承認を、対応表の43登録行（40静的in-IDE、2所属未確定、1Inline対象外）と17入力群（15静的確認）に逐一照合する。共有部品6群・公式/動的4候補も所属を判定し、未確定から対象を落とさず全キー・OS・focus/mode条件を記録する。",
         "対応表の未確定項目と未実装能力を具体Issue/依存へ対応付け、完了した調査を機能実装の合格に置換しない。必要なsub-issueと親の全対象を照合する。 会話内findはnative子Issue #518（条件切替・一致位置/総数・stream/タブ所有を含む）へ実分解済みで、未実装/GUI未確認として追跡する。Milestone 8の全件受入を子1件の完了に縮めない。",
-        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel専用17/global7操作のpassで未対応を省略しない。"
+        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel専用17/global8操作のpassで未対応を省略しない。"
       ],
       "expected": "全対象が根拠付きで確定し、未対応/条件差と次のownerを追跡する。全件未達の間は#212を完了にしない。"
     }

@@ -70,13 +70,24 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     internal fun canUnfocusFrom(focus: java.awt.Component?): Boolean =
         inputShortcutAvailable(focus) && !isQueueEditing
 
+    internal val canSubmitInitial: Boolean
+        get() = !isRunning && !isQueueEditing && inputArea.isEnabled && panelShortcutAvailable &&
+            inputArea.text.isNotBlank() && images?.importing != true &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
+
+    /** The root also requires a loaded empty conversation and no preparing/executing turn. */
+    internal fun submitInitial(event: com.intellij.openapi.actionSystem.AnActionEvent) {
+        if (canSubmitInitial) sendShortcut.actionPerformed(event)
+    }
+
     internal fun installInputShortcuts(parent: com.intellij.openapi.Disposable) {
         // The IDE collects local matches from the nearest component before checking availability.
         // Keep both Escape operations here so a disabled queue action cannot hide the parent action.
-        // Pending acceptance also shares this level with the configured send action.
+        // Pending acceptance and initial submit share this level with the configured send action.
         listOf(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId,
             com.cursoragent.actions.AgentPanelCommand.UNFOCUS_INPUT.actionId,
-            com.cursoragent.actions.AgentPanelCommand.ACCEPT_PENDING.actionId).forEach { id ->
+            com.cursoragent.actions.AgentPanelCommand.ACCEPT_PENDING.actionId,
+            com.cursoragent.actions.AgentPanelCommand.SUBMIT_INITIAL.actionId).forEach { id ->
             com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction(id)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, inputArea, parent)
             }

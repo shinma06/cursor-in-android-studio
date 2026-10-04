@@ -110,6 +110,12 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta R" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta R" replace-all="true"/>
             </action>
+            <action id="CursorAgent.SubmitInitialChat" class="com.cursoragent.actions.AgentPanelAction$SubmitInitialChat"
+                    text="最初のメッセージを送信" description="まだ送信していない会話で、入力した最初のメッセージを送信します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift ENTER" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift ENTER" replace-all="true"/>
+            </action>
             <action id="CursorAgent.UnfocusInput" class="com.cursoragent.actions.AgentPanelAction$UnfocusInput"
                     text="入力欄から作業場所へ戻る" description="会話を保持してエディターへ戻ります。Terminalから開いた場合は、開いているTerminalへ戻ります。">
                 <keyboard-shortcut keymap="$default" first-keystroke="ESCAPE"/>

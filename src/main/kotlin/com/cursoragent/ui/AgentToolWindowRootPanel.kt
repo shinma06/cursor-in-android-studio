@@ -107,6 +107,8 @@ class AgentToolWindowRootPanel(
         if (command in setOf(AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP) &&
             (focus == null || !focus.isShowing || !SwingUtilities.isDescendingFrom(focus, this))) return false
         return when (command) {
+            AgentPanelCommand.SUBMIT_INITIAL -> composer.canSubmitInitial && sessions.snapshot().selected.run == null &&
+                selectedView?.controller?.conversationSnapshot()?.turns?.isEmpty() == true
             AgentPanelCommand.RESET_CHAT -> composer.canResetFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.UNFOCUS_INPUT -> composer.canUnfocusFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.ACCEPT_PENDING -> selectedView?.timeline?.pendingInput(focus)?.canRespond(true) == true
@@ -127,6 +129,7 @@ class AgentToolWindowRootPanel(
         when (command) {
             AgentPanelCommand.NEW_CHAT -> open()
             AgentPanelCommand.RESET_CHAT -> resetChat()
+            AgentPanelCommand.SUBMIT_INITIAL -> view.composer.submitInitial(event)
             AgentPanelCommand.UNFOCUS_INPUT -> { cancelPendingChatFocus(); inputFocusReturn.restore() }
             AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
             AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT)

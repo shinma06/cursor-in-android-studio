@@ -40,7 +40,7 @@
 | `composer.skipPendingShellToolDecision` | Escape | Escape | Escape | isGlass=falseかつshell decision用contextが有効。拒否と取消の意味を保ち、一般Escapeを奪わない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
 | `composer.cancelComposerStepInputFocused` | Control+C | Ctrl+Shift+Backspace | Ctrl+Shift+Backspace | panel/view条件で取消可能な実行を止める。名称から入力部品focus限定とは推測しない。macOSだけControl+C。Pluginは既存Stopの副キーとして接続し、選択中runとIME/popup保護を再利用。 | in-IDE静的確認 / 一部接続済み / A3 |
 | `composer.cancelTerminalToolCall` | Shift+Backspace | Shift+Backspace | Shift+Backspace | panel/viewの選択中composer。保留terminal decisionを拒否するかterminal streamだけを取り消す。全run Stopと別。 | in-IDE静的確認 / 能力未実装 / P05 |
-| `composer.triggerCreateWorktreeButton` | Cmd+Shift+Enter | Ctrl+Shift+Enter | Ctrl+Shift+Enter | composerにfocus、空会話かつ非空draft。初回submitを呼ぶ登録であり、named worktree作成を保証しない。 | in-IDE静的確認 / 能力未実装 / P06 |
+| `composer.triggerCreateWorktreeButton` | Cmd+Shift+Enter | Ctrl+Shift+Enter | Ctrl+Shift+Enter | composerにfocus、空会話かつ非空draft。初回submitを呼ぶ登録であり、named worktree作成を保証しない。 | in-IDE静的確認 / 初回送信を接続・GUI pending、branch/native worktree選択は未実装 / P06 |
 | `composer.openModeMenu` | Cmd+. / Cmd+Option+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | composer/view/composer editor/mode menuにfocus、一般editor textとquick inputを除く。名前に反してmodeを循環する。入力のkeydownでは一致したmode ActionをTabの過去message処理より先に扱う。 | in-IDE静的確認 / Pluginの既存3 mode循環へ接続、提案分岐・拡張mode・GUIは未達 / A1 |
 | `composer.toggleChatAsEditor` | Cmd+D | Ctrl+D | Ctrl+D | composerにfocus、一般editor textにfocusなし。同一chatのeditor表示を切り替える。 | in-IDE静的確認 / 能力未実装 / P07 |
 | `composer.previousChatTab` | Cmd+[ | Ctrl+[ | Ctrl+[ | composerにfocus、一般editor textにfocusなし。複数タブは表示順、1タブは全会話の更新日時順で循環する静的経路を確認。実GUIは未確認。 | in-IDE静的確認 / 複数/単一タブ分岐へ接続、未GUI / A2 |
@@ -62,7 +62,7 @@
 | `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 
-panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、AcceptPendingも加えてpanel専用は計16 Action、Settings/Historyは同じIDを保って7/8つ目のglobal Actionへ移す。Settings/Historyは引き続きpanelにもlocal登録する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
+panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、AcceptPendingとSubmitInitialChatも加えてpanel専用は計17 Action、Settings/Historyは同じIDを保って7/8つ目のglobal Actionへ移す。Settings/Historyは引き続きpanelにもlocal登録する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
 ## 入力部品内の操作
 
@@ -135,7 +135,7 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 
 ## Keymap・競合・完了条件
 
-panel内16 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
+panel内17 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
 
 M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。16個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）、MacのControl+Shift+S / Windows・LinuxのCtrl+Shift+/（All Agents）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
 
@@ -171,7 +171,7 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
-3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用16 Actionとglobal8 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用17 Actionとglobal8 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
 
 ## 入力欄のEscapeと作業場所への復帰
 
@@ -271,3 +271,9 @@ Pluginは既存`CursorAgent.ModeMenu` IDとclass・M+. / M+A+.を保ち、Shift+
 入力のnative editorを生成/再生成するたび、同じmode ActionをTab字下げ防止用Actionと同じcomponentへ登録する。IDE KeymapがShift+Tabをmodeへ割り当て、現在のpanelで実行可能な場合はmode Actionを優先する。割当の変更/解除やmode実行不可では従来の逆focus移動を保ち、通常Tab・選択範囲・貼り付け済みtab文字を変更しない。複数strokeの先頭に割り当てた場合もIDE側の解決へ渡す。SDKのlocal登録はcomponentに保持され、IDE全体のkey listenerやeditorを保持する独自registryは追加しない。mode操作が無効な要求card内の移動、IME/候補popup、別project、Keymap再設定の実配送はGUI Caseで照合する。P02の過去message編集/移動はこの接続で完了とはしない。
 
 `SelectorInitializationTest`は循環順・最新選択値・無効状態・別会話・アクセシビリティ表示を確認する。`PromptFocusTraversalTest`は実Actionと現在のshortcut setでmode/逆focusの排他、Keymap変更・複数stroke・失効focusと本文/選択保持を確認する。`ComposerSubmissionTest`は実Editor再生成後の登録、printとACP busyの区別、入力不可と共有設定/draft保持を検証する。比較相手の[JetBrains ACP連携](https://www.jetbrains.com/help/ai-assistant/acp.html)に対するmode/agent選択能力の独自性は主張しない。直接IDE統合では同じKeymapと会話所有、入力保護へ接続し、画面上の同等性は未確認として残す。
+
+## 初回メッセージの送信
+
+`SubmitInitialChat`はM+Shift+Enterを、選択中の読み込み済み・本文なし会話の初回送信へ接続する。固定Cursor版の`composer.triggerCreateWorktreeButton`は空でないdraftと空会話を照合して通常submitを呼ぶため、Action名だけからGit worktreeの新規作成とは解釈しない。Pluginでも既存送信経路と現在の接続・mode/model・command・context・画像を使う。run準備中/実行中、予約編集中、本文がある/本文来歴不明の会話、空白のみ、画像import、IME/候補/子popupでは送らない。入力欄にも同じnative Actionを登録してKeymap変更を尊重し、通常送信ActionとEnter押下状態を共有して修飾キーを変えながらの長押しによる重複送信を防ぐ。
+
+[Cursorのworktree説明](https://cursor.com/docs/configuration/worktrees)はAgents Windowのnative UIとIDEのSkillsを区別している。初回送信の接続はP06のbranch/name/base/setup/cancel/cleanup契約を確定しない。既存のworkspace設定・root所有・復元条件を保持し、履歴後/変更review/実行中のM+Shift+Enter分岐（P08）も残す。`ComposerSubmissionTest`は実native Editorと同じ送信Actionを使う初回送信・拒否条件・長押し共有・登録解除を確認する。実キー配送、全contextの送信と固定Cursorの条件差は`KEYMAP-INITIAL-SUBMIT`のGUI pendingで追う。

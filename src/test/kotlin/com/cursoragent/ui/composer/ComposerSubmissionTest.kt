@@ -30,6 +30,83 @@ class ComposerSubmissionTest {
         if (value is Container) value.components.flatMap(::components) else emptyList()
 
     @Test
+    fun `initial submit shares input guards and held Enter state with ordinary send`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("initial chat submit").fixture
+        fixture.setUp()
+        try {
+            runInEdtAndWait {
+                val lifetime = Disposer.newDisposable()
+                val composer = ComposerPanel(fixture.project)
+                composer.inputArea.setDisposedWith(lifetime)
+                composer.installInputShortcuts(lifetime)
+                val action = ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.SUBMIT_INITIAL.actionId)
+                assertNotNull(action)
+                val sent = mutableListOf<String>()
+                composer.onSend = sent::add
+                composer.onEnqueue = { fail("Initial submit must not turn into a queued follow-up") }
+                var emptyConversation = true
+                val target = com.cursoragent.actions.AgentPanelActions(
+                    { emptyConversation && composer.canSubmitInitial },
+                    { _, event -> composer.submitInitial(event) },
+                )
+                val context = DataContext { if (com.cursoragent.actions.AgentPanelActions.KEY.`is`(it)) target else null }
+                fun submit(key: KeyEvent? = null) = action.actionPerformed(AnActionEvent(context, action.templatePresentation.clone(),
+                    "test", ActionUiKind.NONE, key, 0, ActionManager.getInstance()))
+                try {
+                    assertTrue(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(composer.inputArea).contains(action))
+                    assertFalse(composer.canSubmitInitial)
+                    composer.inputArea.text = " \n\t "
+                    assertFalse(composer.canSubmitInitial)
+                    submit()
+                    assertTrue(sent.isEmpty())
+                    composer.inputArea.text = " 最初の依頼 "
+                    assertTrue(composer.canSubmitInitial)
+                    var editor = requireNotNull(composer.inputArea.getEditor(true))
+                    val held = KeyEvent(editor.contentComponent, KeyEvent.KEY_PRESSED, 1,
+                        java.awt.event.InputEvent.CTRL_DOWN_MASK or java.awt.event.InputEvent.SHIFT_DOWN_MASK,
+                        KeyEvent.VK_ENTER, '\n')
+                    submit(held)
+                    submit(held)
+                    assertEquals(listOf("最初の依頼"), sent)
+                    val regular = ComposerPanel::class.java.getDeclaredField("sendShortcut").apply { isAccessible = true }.get(composer) as AnAction
+                    regular.actionPerformed(AnActionEvent(context, regular.templatePresentation.clone(), "test", ActionUiKind.NONE, held, 0, ActionManager.getInstance()))
+                    assertEquals(1, sent.size, "Changing modifiers while holding Enter must not send twice")
+                    editor.contentComponent.keyListeners.forEach { it.keyReleased(KeyEvent(editor.contentComponent, KeyEvent.KEY_RELEASED, 2, 0, KeyEvent.VK_ENTER, '\n')) }
+                    emptyConversation = false
+                    submit(held)
+                    assertEquals(1, sent.size, "The live owner can lose initial-conversation availability after update")
+                    emptyConversation = true
+                    composer.setRunning(true)
+                    assertFalse(composer.canSubmitInitial)
+                    submit()
+                    composer.setRunning(false)
+                    composer.showQueueEdit(true)
+                    assertFalse(composer.canSubmitInitial)
+                    submit()
+                    composer.showQueueEdit(false)
+                    composer.setInputEnabled(false)
+                    assertFalse(composer.canSubmitInitial)
+                    submit()
+                    composer.setInputEnabled(true)
+                    editor = requireNotNull(composer.inputArea.getEditor(true))
+                    val ime = editor.contentComponent.inputMethodListeners.filterIsInstance<PromptImeGuard>().single()
+                    ime.inputMethodTextChanged(InputMethodEvent(editor.contentComponent, InputMethodEvent.INPUT_METHOD_TEXT_CHANGED,
+                        AttributedString("変換中").iterator, 0, null, null))
+                    assertFalse(composer.canSubmitInitial)
+                    submit()
+                    ime.reset()
+                    assertEquals(1, sent.size)
+                    assertEquals(" 最初の依頼 ", composer.inputArea.text)
+                    submit()
+                    assertEquals(listOf("最初の依頼", "最初の依頼"), sent)
+                    Disposer.dispose(lifetime)
+                    assertFalse(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(composer.inputArea).contains(action))
+                } finally { if (!Disposer.isDisposed(lifetime)) Disposer.dispose(lifetime) }
+            }
+        } finally { runInEdtAndWait { fixture.tearDown() } }
+    }
+
+    @Test
     fun `mode cycling is registered on recreated prompt editors and cannot bypass ACP busy state`() {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("mode cycle").fixture
         fixture.setUp()
