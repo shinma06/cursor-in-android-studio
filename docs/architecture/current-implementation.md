@@ -19,6 +19,14 @@
 
 最後の会話タブを閉じると、既存の`SessionTabs`が空の`New Agent`を用意し、対象controllerの破棄後にfactoryが標準`ToolWindow.hide`でAgentパネルを非表示にする（#213）。再表示時はその新規会話を使い、閉じた会話の本文・下書き・provider IDを復帰させない。閉じるボタン、タブ上のDelete、全チャット閉鎖は同じ処理を通る。確認dialog後の現行タブ集合で最後かを判定し、確認中に追加されたタブがあればパネルを維持する。未保存/実行中の確認・取消、対象runだけの停止と遅着拒否は既存経路を保つ。ヘッダーの「パネルを隠す」は会話を閉じず、そのまま保持する別操作。実画面の非表示・再表示と入力/並行実行の受入は[Case #213](../verification/changes/issue-213.json)で確認する。
 
+## 会話タブの折り返し
+
+会話タブはIDEの `Settings → Editor → General → Editor Tabs → Show tabs in` に連動する（#211）。`Multiple rows` は `UISettings.scrollTabLayoutInEditor == false`、`One row` は `true` で、Rabbit 1の既定値は `true`。設定はIDE全体に適用され、各panelは生成時と `UISettingsListener.TOPIC` のEDT通知で反映する。接続はprojectに登録し、panel破棄時にも明示的に切断する。製品独自の設定・永続化は増やさない。読み取りAPIと設定画面の値対応はRabbit 1 `AI-262.9437.185.2621.16467767` のSDKで確認した。[設定の公式説明](https://www.jetbrains.com/help/idea/using-code-editor.html) / [UISettings](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettings.kt) / [既定値](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettingsState.kt)。
+
+`SessionTabStrip`の既存描画・IDによる操作を保ち、右固定Actionを除いた幅で改行する。幅変更・追加・閉鎖で高さを更新し、タブ領域は親の利用可能高さの半分までに抑えて会話・入力欄の領域を残す。収まらない行は既存の`JScrollPane`で縦スクロールする。バーなしの全利用可能幅で必要高さを先に求め、親の高さ上限を超える場合だけバー幅を除いて再配置する。直前のバー表示状態に依存せず、幅変更・タブ削除・高さ拡大で不要になったバーを解除する。選択・並べ替え・幅変更時には選択タブを表示範囲へ戻す。各行で選択・閉じる・tooltip・DnDを同じtab IDへ送り、折り返し中のdragは上下端で縦スクロールする。右固定Actionは先頭行の右側に置く。折り返し切替と複数行表示のresizeで進行中のdragを取消し、1行へ戻すと既存の自然幅・横スクロールを再使用する。IDEの `Squeeze tabs`、editorの配置/非表示/上限・pinは移植対象外で、1行指定はどちらの幅方針でも従来の横スクロールになる。会話・下書き・run・PRINT/ACPの接続には触れない。
+
+コンポーネントテストは複数行の配置・幅変更・切替・2行目の操作・行間DnD・背景とAction領域に加え、固定320×500の親で20タブを折り返し、高さ変更後の全行への到達・会話/入力欄の領域・縦ホイール・閉鎖/キー操作を確認する。IDEの設定画面との実連動、Dark/Light・多数タブ・複数projectでの固定build受入は[Case #211](../verification/changes/issue-211.json)へ残す。競合構成でもAI Chatをeditor tabとして開けるため、複数会話やIDEタブ設定自体を独自機能とは扱わない。本件は会話をAgentパネル内に保持したままIDEの表示選択を共有する。[JetBrains公式](https://www.jetbrains.com/help/ai-assistant/customize-ai-chat.html)。
+
 ## 入力文書と候補popupの境界
 
 この節は2026-09-24 / [PR #405](https://github.com/shinma06/cursor-in-android-studio/pull/405)で更新。先行Document生成とcommand対応の実装基準は`aa83b8f155cde6affe88a90c20467180246213e9`、Undo境界は同PRのレビュー修正。冒頭の全体照合基準とは別の追加実装であり、PRの固定commitとCaseを根拠とする。
