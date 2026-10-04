@@ -37,7 +37,7 @@ internal class ConversationFindPanel(
     internal val search = SearchTextField(false)
     internal val matchCase = option("Aa", "大文字・小文字を区別")
     internal val wholeWord = option("単語", "単語単位で検索")
-    internal val regex = option(".*", "正規表現で検索")
+    internal val regex = option(".*", "正規表現で検索（先読み・後読み・後方参照は非対応）")
     internal val count = JLabel("0 / 0")
     private val notice = JTextArea().apply {
         isEditable = false

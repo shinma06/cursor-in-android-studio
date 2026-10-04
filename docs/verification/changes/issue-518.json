@@ -5,7 +5,7 @@
   "reason": "本文位置の実表示・スクロール、OS別キー/IME/Keymap再割当、streamと複数tab/projectのfocus・破棄を固定buildで受け入れる。headlessテストだけではGUI合格としない。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品Kotlin/関連tooling）",
-    "ConversationSearchTest: 条件・位置・ゼロ幅・不正/複雑regex・上限・取消",
+    "ConversationSearchTest: 条件・位置・ゼロ幅・不正/非対応regex・反復展開上限・実行途中取消",
     "ConversationFindPanelTest / ConversationFindActionTest: 表示Document・選択/原文維持・復元本文・遅着/IME/dispose・Action対象再取得・XML",
     "git diff --check、Case schema、固定HEAD/base独立レビュー、必須checks"
   ],
@@ -63,7 +63,7 @@
       "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile。固定source SHA・ZIP SHA256・ロードJARとRabbit/JBRの識別を照合。必要通信はprint/ACP合成fixture。既存認証・作業・実providerを変更しない。",
       "steps": [
         "Aa（大文字小文字）、単語、.*（正規表現）を切り替え、大小文字・単語途中・underscore・結合文字・日本語・改行・複数messageの一致を比較する。message間を連結しない。",
-        "不正な式、ゼロ幅一致、長いコード、複雑な式を使う。不正/複雑/時間上限で説明が表示され、別の検索へ変更・取消できる。ゼロ幅一致は本文を変えず縦線で示す。",
+        "不正な式、RE2/J非対応の先読み・後読み・後方参照、巨大/入れ子の数値反復、ゼロ幅一致(?:)、長いコードを使う。非対応/反復上限は日本語で説明し、別の検索へ変更・取消できる。通常の数値反復・Unicode/絵文字の位置も確認する。ゼロ幅一致は本文を変えず縦線で示す。",
         "4,096文字超のquery、10,000件超の一致、時間上限の途中結果を確認する。不足結果は件数の+と説明で区別し、全検索完了と表示しない。"
       ],
       "expected": "条件に合う位置と件数を表示する。検索はEDTを正規表現処理で占有せず、エラーや部分結果を正しく伝える。",

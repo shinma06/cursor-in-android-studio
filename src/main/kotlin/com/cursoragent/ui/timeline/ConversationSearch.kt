@@ -1,8 +1,8 @@
 package com.cursoragent.ui.timeline
 
+import com.google.re2j.Pattern
+import com.google.re2j.PatternSyntaxException
 import java.util.concurrent.CancellationException
-import java.util.regex.Pattern
-import java.util.regex.PatternSyntaxException
 
 internal data class ConversationFindOptions(val matchCase: Boolean = false, val wholeWord: Boolean = false, val regex: Boolean = false)
 internal data class ConversationFindHit(val document: Int, val start: Int, val end: Int)
@@ -18,6 +18,7 @@ internal fun findConversationMatches(
 ): ConversationFindResult {
     if (query.isEmpty()) return ConversationFindResult(emptyList())
     if (query.length > 4_096) return ConversationFindResult(emptyList(), "検索文字列は4,096文字以内にしてください。")
+    if (options.regex && exceedsRegexExpansion(query)) return ConversationFindResult(emptyList(), "正規表現の繰り返しが多すぎます。条件を簡単にしてください。")
     val hits = mutableListOf<ConversationFindHit>()
     val deadline = System.nanoTime() + budgetNanos
     fun checkBudget() {
@@ -26,7 +27,7 @@ internal fun findConversationMatches(
     }
     try {
         checkBudget()
-        val flags = if (options.matchCase) 0 else Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE
+        val flags = if (options.matchCase) 0 else Pattern.CASE_INSENSITIVE
         val pattern = Pattern.compile(if (options.regex) query else Pattern.quote(query), flags)
         documents.forEachIndexed { index, text ->
             checkBudget()
@@ -43,7 +44,7 @@ internal fun findConversationMatches(
     } catch (_: SearchBudgetExceeded) {
         return ConversationFindResult(hits, "検索を時間上限で中断しました。表示は途中までの結果です。条件を絞ってください。")
     } catch (_: PatternSyntaxException) {
-        return ConversationFindResult(emptyList(), "正規表現を確認してください。")
+        return ConversationFindResult(emptyList(), "正規表現が不正または非対応です。先読み・後読み・後方参照などは使えません。")
     } catch (_: StackOverflowError) {
         return ConversationFindResult(emptyList(), "正規表現が複雑すぎます。条件を簡単にしてください。")
     }
@@ -60,17 +61,16 @@ private fun wordCodePoint(value: Int) = Character.isLetterOrDigit(value) || valu
 
 private class SearchBudgetExceeded : RuntimeException(null, null, false, false)
 
-/** Java regex does not honor Future.cancel alone; check inside backtracking and subsequences too. */
+/** RE2/J bounds matching complexity; input reads also enforce our deadline and cancellation. */
 private class CheckedSearchText(
     private val text: String,
     private val check: () -> Unit,
     private val start: Int = 0,
     private val end: Int = text.length,
 ) : CharSequence {
-    private var reads = 0
-    override val length: Int get() = end - start
+    override val length: Int get() { check(); return end - start }
     override fun get(index: Int): Char {
-        if (++reads % 256 == 0) check()
+        check()
         require(index in 0 until length)
         return text[start + index]
     }
@@ -80,4 +80,21 @@ private class CheckedSearchText(
         return CheckedSearchText(text, check, start + startIndex, start + endIndex)
     }
     override fun toString(): String { check(); return text.substring(start, end) }
+}
+
+// RE2/J 1.8 bounds each count but expands nested counted repetitions during compilation.
+// Conservatively multiply every numeric repeat, including disjoint ones and those in a class.
+// Quoted/escaped literals are skipped. Keep compilation bounded before starting the matcher.
+private val regexRepeatTokens = Regex("""\\Q.*?(?:\\E|$)|\\.|\{([0-9]+)(?:,([0-9]*))?}""", RegexOption.DOT_MATCHES_ALL)
+private fun exceedsRegexExpansion(query: String): Boolean {
+    var estimate = query.length.coerceAtLeast(1)
+    for (token in regexRepeatTokens.findAll(query)) {
+        val lower = token.groups[1]?.value ?: continue
+        val upper = token.groups[2]?.value
+        val count = (if (upper.isNullOrEmpty()) lower else upper).toIntOrNull() ?: return true
+        val factor = count.coerceAtLeast(1)
+        if (factor > 1_000 || estimate > 65_536 / factor) return true
+        estimate *= factor
+    }
+    return false
 }
