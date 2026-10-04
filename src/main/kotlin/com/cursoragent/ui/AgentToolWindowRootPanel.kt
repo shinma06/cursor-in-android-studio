@@ -95,7 +95,6 @@ class AgentToolWindowRootPanel(
             AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled
             AgentPanelCommand.MODEL_MENU -> composer.modelSelector.isEnabled
             AgentPanelCommand.ADD_CONTEXT -> composer.inputArea.isEnabled
-            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> sessions.snapshot().tabs.size > 1
             else -> true
         }
     }
@@ -106,12 +105,9 @@ class AgentToolWindowRootPanel(
         when (command) {
             AgentPanelCommand.NEW_CHAT -> open()
             AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
-            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> {
-                val snapshot = sessions.snapshot()
-                val offset = if (command == AgentPanelCommand.PREVIOUS_CHAT) -1 else 1
-                val index = Math.floorMod(snapshot.tabs.indexOfFirst { it.id == snapshot.selectedId } + offset, snapshot.tabs.size)
-                if (sessions.select(snapshot.tabs[index].id)) showSelected()
-            }
+            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT,
+            AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT ->
+                navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT || command == AgentPanelCommand.PREVIOUS_AGENT)
             AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT -> showRecentChats(command, event)
             AgentPanelCommand.STOP -> view.controller.stopRun()
             AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
@@ -227,6 +223,46 @@ class AgentToolWindowRootPanel(
         val conversation = view.controller.conversationSnapshot()
         RecentChatEntry(recentChatId(tab, view), tab.title, conversation?.updatedMs ?: 0L, tab.transport, tab.chatId,
             open = true, running = view.composer.isRunning)
+    }
+
+    private fun navigateChat(reverse: Boolean) {
+        val snapshot = sessions.snapshot()
+        if (snapshot.tabs.size > 1) {
+            val index = Math.floorMod(snapshot.tabs.indexOfFirst { it.id == snapshot.selectedId } + if (reverse) -1 else 1, snapshot.tabs.size)
+            if (sessions.select(snapshot.tabs[index].id)) showSelected()
+            return
+        }
+        val owner = selectedView ?: return
+        val selected = recentChatId(snapshot.selected, owner)
+        val ticket = ++chatFocusGeneration
+        val store = project.getService(ConversationHistory::class.java)
+        store.load { result -> SwingUtilities.invokeLater {
+            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration ||
+                selectedView !== owner || !windowShortcutAvailable) return@invokeLater
+            val loaded = result.getOrNull()
+            if (loaded == null) {
+                owner.timeline.showStatus("履歴を読み込めませんでした。保存先の権限を確認してください。")
+                return@invokeLater
+            }
+            val saved = loaded.conversations.filterNot { store.isDeleted(it.id) }
+            val legacy = ChatHistoryState.getInstance(project).list()
+            val target = adjacentSavedChat(availableChatEntries(openRecentEntries(), saved, legacy), selected, reverse)
+            when (target) {
+                is RecentChatId.Body -> saved.firstOrNull { it.id == target.id }?.let { openNavigatedChat(it, null, snapshot.selectedId) }
+                is RecentChatId.LegacyPrint -> if (legacy.any { it.chatId == target.id }) openNavigatedChat(null, target.id, snapshot.selectedId)
+                null -> Unit
+            }
+        } }
+    }
+
+    private fun openNavigatedChat(conversation: Conversation?, legacyId: String?, previousId: String) {
+        openSavedChat(conversation, legacyId)
+        // Replace an idle, saved tab so repeated navigation still walks history. Preserve live work and names.
+        val snapshot = sessions.snapshot()
+        val previous = snapshot.tabs.firstOrNull { it.id == previousId } ?: return
+        if (snapshot.selectedId != previousId && canReplaceNavigationTab(previous, hasPendingChatWork(previousId))) {
+            closeTabs(listOf(previousId), confirmed = true)
+        }
     }
 
     private fun showRecentChats(command: AgentPanelCommand, event: AnActionEvent) {
@@ -363,7 +399,7 @@ class AgentToolWindowRootPanel(
     private fun closeTabs(ids: List<String>, confirmed: Boolean = false) {
         if (disposed || project.isDisposed) return
         ids.forEach { views[it]?.controller?.pauseQueue() }
-        if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit || it.composer.commands.selectedName != null || it.composer.images?.hasUnsent == true) } == true }) {
+        if (!confirmed && ids.any(::hasPendingChatWork)) {
             if (Messages.showYesNoDialog(project, "未保存の本文・下書き・予約した入力、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
         }
         if (disposed || project.isDisposed) return
@@ -377,6 +413,14 @@ class AgentToolWindowRootPanel(
         }
         showSelected()
         if (closesAllTabs) onLastTabClosed()
+    }
+
+    private fun hasPendingChatWork(id: String): Boolean {
+        val view = views[id] ?: return false
+        return view.controller.hasUnsavedBody || view.controller.hasQueuedPrompts || view.composer.isRunning ||
+            sessions.snapshot().tabs.any { it.id == id && it.run != null } ||
+            view.composer.inputArea.text.isNotBlank() || view.composer.promptContext.draft.hasExplicit ||
+            view.composer.commands.selectedName != null || view.composer.images?.hasUnsent == true
     }
 
     private fun open(chatId: String? = null) {

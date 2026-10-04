@@ -95,6 +95,13 @@ class AgentPanelActionTest {
                 val expected = if (command == AgentPanelCommand.RECENT_CHAT) "control TAB" else "control shift TAB"
                 byKeymap.values.forEach { keys -> assertEquals(listOf(expected), keys.map { it.getAttribute("first-keystroke") }) }
             }
+            if (command in setOf(AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT)) {
+                val key = if (command == AgentPanelCommand.PREVIOUS_AGENT) "LEFT" else "RIGHT"
+                byKeymap.forEach { (keymap, keys) ->
+                    val modifier = if (keymap == "\$default") "control" else "meta"
+                    assertEquals(listOf("$modifier alt $key"), keys.map { it.getAttribute("first-keystroke") })
+                }
+            }
             byKeymap.forEach { (keymap, keys) ->
                 if (keymap != "\$default") assertEquals("true", keys.first().getAttribute("replace-all"))
                 keys.forEach { key ->
@@ -114,6 +121,8 @@ class AgentPanelActionTest {
         AgentPanelCommand.CLOSE_CHAT to AgentPanelAction.CloseChat(),
         AgentPanelCommand.PREVIOUS_CHAT to AgentPanelAction.PreviousChat(),
         AgentPanelCommand.NEXT_CHAT to AgentPanelAction.NextChat(),
+        AgentPanelCommand.PREVIOUS_AGENT to AgentPanelAction.PreviousAgent(),
+        AgentPanelCommand.NEXT_AGENT to AgentPanelAction.NextAgent(),
         AgentPanelCommand.RECENT_CHAT to AgentPanelAction.RecentChat(),
         AgentPanelCommand.LEAST_RECENT_CHAT to AgentPanelAction.LeastRecentChat(),
         AgentPanelCommand.STOP to AgentPanelAction.Stop(),

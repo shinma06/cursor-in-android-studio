@@ -2,6 +2,7 @@ package com.cursoragent.ui
 
 import com.cursoragent.history.Conversation
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.session.SessionTab
 import com.cursoragent.settings.ChatHistoryRecord
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -41,8 +42,7 @@ internal class RecentChatVisits {
     fun snapshot(): List<RecentChatId> = ids.toList()
 }
 
-internal fun recentChatEntries(
-    visits: List<RecentChatId>,
+internal fun availableChatEntries(
     open: List<RecentChatEntry>,
     saved: List<Conversation>,
     legacy: List<ChatHistoryRecord>,
@@ -53,8 +53,29 @@ internal fun recentChatEntries(
         RecentChatEntry(RecentChatId.LegacyPrint(it.chatId), it.firstPromptPreview.ifBlank { "（本文なし）" }, it.lastUpdatedMs, null)
     }
     // Open views contain the latest metadata and drafts, including bodies not saved yet.
-    val entries = (open + bodies + old).distinctBy { it.id }.associateBy { it.id }
+    return (open + bodies + old).distinctBy { it.id }
+}
+
+internal fun recentChatEntries(
+    visits: List<RecentChatId>,
+    open: List<RecentChatEntry>,
+    saved: List<Conversation>,
+    legacy: List<ChatHistoryRecord>,
+): List<RecentChatEntry> {
+    val entries = availableChatEntries(open, saved, legacy).associateBy { it.id }
     val visited = visits.mapNotNull(entries::get)
     val seen = visited.map { it.id }.toSet()
     return (visited + entries.values.filter { it.id !in seen }.sortedByDescending { it.updatedMs }).take(10)
 }
+
+/** One visible tab navigates all available history by update time, not the ten-item visit list. */
+internal fun adjacentSavedChat(entries: List<RecentChatEntry>, selected: RecentChatId, reverse: Boolean): RecentChatId? {
+    val ordered = entries.sortedByDescending { it.updatedMs }
+    val index = ordered.indexOfFirst { it.id == selected }
+    if (index < 0 || ordered.size < 2) return null
+    return ordered[Math.floorMod(index + if (reverse) -1 else 1, ordered.size)].id
+}
+
+/** A running token and a manually named tab must survive even if its input looks empty. */
+internal fun canReplaceNavigationTab(tab: SessionTab, pendingWork: Boolean): Boolean =
+    tab.run == null && !tab.renamedByUser && !pendingWork

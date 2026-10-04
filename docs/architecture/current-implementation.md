@@ -29,6 +29,8 @@ project内のglobal入口として`AgentWindowAction`のM+A+J（表示切替）�
 
 `RecentChat` / `LeastRecentChat`は全OSのControl+Tab / Control+Shift+Tabで、最大10件の最近使用一覧をnative popupへ開く。panel内は初期11操作にこの2操作を加えた13 Action。表示確定時の訪問順をruntime内に持ち、閉じた保存会話と更新日時順の候補も含む。移動/stream更新で訪問順を変えず、旧print IDと本文ID、PRINTとACPを区別する。初期選択は2番目/末尾、一覧内の同じキーで循環、修飾キー解放またはEnterで開き、Esc等で取り消す。読込み前に解放しても遅い自動選択は行わない。native popupのkey handlerとdisposable付きlocal shortcutを使い、app全体のkeyboard hookを追加しない。候補はmetadataだけで、閉じた本文は確定時に再読込し、世代/選択/削除とIME/別popupを照合して既存履歴の表示・再開制約を保持する。保存形式やprovider操作は追加しない。All Agents/sidebar、修飾左右navigationと共通providerのBackground/未読表示は未達として対応表に残す。
 
+前後タブ（M+[/]）と専用の前後Agent（M+A+左右）は、複数タブなら表示順、1タブなら保存会話を更新日時順で循環する。panel内は計15 Action。1タブでも無効にせず、履歴の背景読込み後にowner/世代/IME/popup/削除を確認する。保存済みで作業のないタブを置き換え、実行token・保存失敗/保留・queue・draft/context/command/画像・手動名は追加タブにより保持する。Closeと同じ未保存判定を共有し、実行tokenも確認する。履歴を10件へ切り詰めず、MRUとは別の順序を使う。修飾左右のsidebar表示中navigation mode、保護対象がある場合のタブ数変化、固定buildのfocus/停止境界は未GUIとして対応表/Caseで追跡する。
+
 model menuの既定値はWindowsではCtrl+/、LinuxではCtrl+/とCtrl+Alt+/、MacではCmd+/とCmd+Option+/。Linuxの副キーは同梱`Default for XWin`とそれを継承するGNOME/KDEへ定義し、OS判定によるユーザー割当の変更は行わない。OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
 ## 会話タブの折り返し
 

@@ -4,6 +4,8 @@ import com.cursoragent.history.ChatMessage
 import com.cursoragent.history.Conversation
 import com.cursoragent.history.SavedTurn
 import com.cursoragent.service.AgentTransport
+import com.cursoragent.session.SessionTabs
+import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.ChatHistoryRecord
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import org.junit.jupiter.api.Assertions.*
@@ -66,6 +68,47 @@ class RecentChatsTest {
         assertEquals(10, entries.size)
         assertEquals(listOf("2") + (15 downTo 7).map(Int::toString), entries.map { (it.id as RecentChatId.Body).id })
         assertTrue(recentChatEntries(visits, emptyList(), emptyList(), emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `single tab navigation follows all history update times and wraps past the MRU limit`() {
+        val saved = (1..15).map { conversation("$it", it.toLong()) }
+        val entries = availableChatEntries(emptyList(), saved, emptyList())
+        assertEquals(15, entries.size)
+        assertEquals(RecentChatId.Body("14"), adjacentSavedChat(entries, RecentChatId.Body("15"), false))
+        assertEquals(RecentChatId.Body("1"), adjacentSavedChat(entries, RecentChatId.Body("15"), true))
+        assertEquals(RecentChatId.Body("15"), adjacentSavedChat(entries, RecentChatId.Body("1"), false))
+        assertEquals(RecentChatId.Body("2"), adjacentSavedChat(entries, RecentChatId.Body("1"), true))
+        assertEquals(RecentChatId.Body("5"), adjacentSavedChat(entries, RecentChatId.Body("6"), false))
+        assertNull(adjacentSavedChat(entries, RecentChatId.Body("missing"), false))
+        assertNull(adjacentSavedChat(emptyList(), RecentChatId.Body("missing"), true))
+        assertNull(adjacentSavedChat(entries.take(1), entries.first().id, true))
+    }
+
+    @Test
+    fun `single tab navigation includes unsent open and legacy entries without confusing their IDs`() {
+        val current = RecentChatEntry(RecentChatId.Body("same"), "draft", 300, AgentTransport.PRINT, open = true)
+        val entries = availableChatEntries(listOf(current), listOf(conversation("saved", 100)),
+            listOf(ChatHistoryRecord("same", "legacy", 200)))
+        assertEquals(RecentChatId.LegacyPrint("same"), adjacentSavedChat(entries, current.id, false))
+        assertEquals(RecentChatId.Body("saved"), adjacentSavedChat(entries, current.id, true))
+    }
+
+    @Test
+    fun `navigation replacement preserves live run tokens pending view work and manual names`() {
+        val tabs = SessionTabs()
+        val id = tabs.snapshot().selectedId
+        assertTrue(canReplaceNavigationTab(tabs.snapshot().selected, false))
+        assertFalse(canReplaceNavigationTab(tabs.snapshot().selected, true))
+        tabs.updateComposer(id, AgentMode.AGENT, "model", "run", 3)
+        tabs.beginTurn(id)
+        // SessionTabs clears the sent draft, but its empty input does not mean the run is replaceable.
+        assertEquals("", tabs.snapshot().selected.draft)
+        assertFalse(canReplaceNavigationTab(tabs.snapshot().selected, false))
+        tabs.stop(id)
+        assertTrue(canReplaceNavigationTab(tabs.snapshot().selected, false))
+        tabs.rename(id, "Keep this name")
+        assertFalse(canReplaceNavigationTab(tabs.snapshot().selected, false))
     }
 
     @Test

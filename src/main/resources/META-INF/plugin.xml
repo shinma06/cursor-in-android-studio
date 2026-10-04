@@ -103,16 +103,28 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta W" replace-all="true"/>
             </action>
             <action id="CursorAgent.PreviousChat" class="com.cursoragent.actions.AgentPanelAction$PreviousChat"
-                    text="前のチャット" description="現在のパネルの前のタブへ移動します。">
+                    text="前のチャット" description="前のタブへ移動します。タブが1つの場合は保存会話を更新日時順に移動します。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control OPEN_BRACKET"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta OPEN_BRACKET" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta OPEN_BRACKET" replace-all="true"/>
             </action>
             <action id="CursorAgent.NextChat" class="com.cursoragent.actions.AgentPanelAction$NextChat"
-                    text="次のチャット" description="現在のパネルの次のタブへ移動します。">
+                    text="次のチャット" description="次のタブへ移動します。タブが1つの場合は保存会話を更新日時順に移動します。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control CLOSE_BRACKET"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta CLOSE_BRACKET" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta CLOSE_BRACKET" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.PreviousAgent" class="com.cursoragent.actions.AgentPanelAction$PreviousAgent"
+                    text="前のAgentへ移動" description="開いているタブを切り替えます。タブが1つの場合は保存会話を更新日時順に移動します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt LEFT"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt LEFT" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt LEFT" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.NextAgent" class="com.cursoragent.actions.AgentPanelAction$NextAgent"
+                    text="次のAgentへ移動" description="開いているタブを切り替えます。タブが1つの場合は保存会話を更新日時順に移動します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt RIGHT"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt RIGHT" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt RIGHT" replace-all="true"/>
             </action>
             <action id="CursorAgent.RecentChat" class="com.cursoragent.actions.AgentPanelAction$RecentChat"
                     text="最近使ったチャットへ切り替える" description="最近使った会話の一覧を開きます。キーを押したまま候補を選び、修飾キーを離して開きます。">
