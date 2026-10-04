@@ -34,6 +34,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
+import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -41,11 +42,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.util.PopupUtil
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Component
@@ -425,9 +428,18 @@ class AgentToolWindowRootPanel(
             }
             onClosed()
         })
-        popup.showUnderneathOf(strip)
+        popup.showUnderneathOf(historyPopupAnchor(popup))
         view.useLoadedHistory(loaded)
         return popup
+    }
+
+    private fun historyPopupAnchor(popup: JBPopup): Component {
+        // The native toggle marker consumes a click on the opener instead of closing then reopening.
+        // Resolve by action identity even when the global shortcut opened the menu first.
+        val button = UIUtil.findComponentsOfType(SwingUtilities.getRootPane(this) ?: this, ActionButton::class.java)
+            .firstOrNull { it.action === actions.historyAction && it.isShowing }
+        PopupUtil.setPopupToggleComponent(popup, button)
+        return button ?: strip
     }
 
     private fun navigateSidebar(command: AgentPanelCommand) {

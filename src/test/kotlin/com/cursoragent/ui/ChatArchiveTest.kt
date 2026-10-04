@@ -251,6 +251,23 @@ class ChatArchiveTest {
             runInEdtAndWait {
                 val panel = AgentToolWindowRootPanel(fixture.project) {}
                 root = panel
+                var buttonShowing = true
+                val action = panel.actions.historyAction
+                val button = object : com.intellij.openapi.actionSystem.impl.ActionButton(
+                    action, action.templatePresentation.clone(), "CursorAgent.SessionHeader", java.awt.Dimension(22, 34),
+                ) { override fun isShowing() = buttonShowing }
+                panel.installHeaderToolbar(javax.swing.JPanel().apply { add(button) })
+                val popup = com.intellij.openapi.ui.popup.JBPopupFactory.getInstance()
+                    .createComponentPopupBuilder(javax.swing.JPanel(), null).createPopup()
+                try {
+                    val anchor = panel.javaClass.getDeclaredMethod("historyPopupAnchor", com.intellij.openapi.ui.popup.JBPopup::class.java)
+                        .apply { isAccessible = true }
+                    assertSame(button, anchor.invoke(panel, popup))
+                    assertSame(button, com.intellij.openapi.ui.popup.util.PopupUtil.getPopupToggleComponent(popup))
+                    buttonShowing = false
+                    assertSame(get(panel, "strip"), anchor.invoke(panel, popup))
+                    assertNull(com.intellij.openapi.ui.popup.util.PopupUtil.getPopupToggleComponent(popup))
+                } finally { com.intellij.openapi.util.Disposer.dispose(popup) }
                 val sessions = get(panel, "sessions") as SessionTabs
                 val views = get(panel, "views") as Map<*, *>
                 val owner = sessions.snapshot().selected
