@@ -105,7 +105,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
                     javax.swing.SwingUtilities.isDescendingFrom(it, inputArea)
                 } == true
         },
-        perform = { if (queueEditAvailable) onCancelQueueEdit() },
+        perform = { _, _ -> if (queueEditAvailable) onCancelQueueEdit() },
     )
 
     override fun uiDataSnapshot(sink: com.intellij.openapi.actionSystem.DataSink) {

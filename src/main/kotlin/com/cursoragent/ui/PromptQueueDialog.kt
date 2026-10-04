@@ -19,6 +19,8 @@ internal class PromptQueueDialog(
     private val isCurrent: () -> Boolean,
     private val onChanged: () -> Unit,
     private val onResume: () -> Unit,
+    private val canSubmit: () -> Boolean,
+    private val onSubmit: (QueuedPrompt) -> Boolean,
 ) : DialogWrapper(project, false) {
     private val list: PromptQueueList = PromptQueueList(queue,
         isCurrent = { !isDisposed && isCurrent() },
@@ -26,6 +28,8 @@ internal class PromptQueueDialog(
         onEdit = { editQueuedPrompt(project, queue, isCurrent, it) },
         onChanged = { isOKActionEnabled = queue.size > 0; onChanged() },
         onReturnToInput = { close(CANCEL_EXIT_CODE) },
+        canSubmit = canSubmit,
+        onSubmit = { if (onSubmit(it)) close(CANCEL_EXIT_CODE) },
     )
 
     private fun listHasFocus() = list.isFocusOwner && !JBPopupFactory.getInstance().isChildPopupFocused(list)

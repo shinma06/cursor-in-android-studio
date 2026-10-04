@@ -22,6 +22,7 @@ internal data class QueueDispatch(val generation: Long, val revision: Long, val 
 internal class PromptQueue(val conversationId: String,
     private val releaseImage: (com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment) -> Unit = { it.close() }) {
     private var revision = 0L
+    val version: Long get() = revision
     private val entries = mutableListOf<QueuedPrompt>()
     private var editingId: String? = null
     var paused = false
@@ -65,16 +66,19 @@ internal class PromptQueue(val conversationId: String,
     /** Recheck the scheduled action, conversation/selection, and idle run at actual dispatch time. */
     fun dispatch(ticket: QueueDispatch, generation: Long, ownerIsIdle: Boolean, start: (QueuedPrompt) -> Boolean): Boolean {
         if (!ownerIsIdle || ticket.generation != generation || ticket.revision != revision || next() != ticket.prompt) return false
-        return dispatchSelected(ticket.prompt, true, start)
+        return dispatchSelected(ticket.prompt, true, start = start)
     }
 
     /** An explicit idle submit may send this row even while automatic dispatch is paused. */
-    fun dispatchSelected(expected: QueuedPrompt, ownerIsIdle: Boolean, start: (QueuedPrompt) -> Boolean): Boolean {
+    fun dispatchSelected(expected: QueuedPrompt, ownerIsIdle: Boolean, resumeAutomatic: Boolean = false, start: (QueuedPrompt) -> Boolean): Boolean {
         if (!ownerIsIdle || expected.id == editingId || entries.none { it === expected }) return false
         revision++
+        val startingRevision = revision
         return if (start(expected)) {
             // Ownership transfers to the started turn; removal here must not release its image.
             entries.removeIf { it.id == expected.id }
+            // Send Now may preserve prior automatic delivery, but never undo a newer pause/recovery.
+            if (resumeAutomatic && revision == startingRevision) paused = false
             revision++
             true
         } else { pause(); false }

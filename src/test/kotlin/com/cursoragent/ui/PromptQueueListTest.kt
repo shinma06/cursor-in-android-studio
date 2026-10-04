@@ -16,6 +16,105 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class PromptQueueListTest {
     @Test
+    fun `queue submit defaults follow send settings and respect custom keys on each OS`() {
+        for (mac in listOf(false, true)) {
+            val primary = if (mac) java.awt.event.InputEvent.META_DOWN_MASK else java.awt.event.InputEvent.CTRL_DOWN_MASK
+            fun accepts(mode: com.cursoragent.settings.SendKeyMode, modifiers: Int, code: Int = java.awt.event.KeyEvent.VK_ENTER) =
+                com.cursoragent.actions.acceptsQueueSubmitShortcut(java.awt.event.KeyEvent(javax.swing.JButton(),
+                    java.awt.event.KeyEvent.KEY_PRESSED, 1, modifiers, code, java.awt.event.KeyEvent.CHAR_UNDEFINED), mode, mac)
+            assertTrue(accepts(com.cursoragent.settings.SendKeyMode.ENTER, 0))
+            assertFalse(accepts(com.cursoragent.settings.SendKeyMode.MODIFIER_ENTER, 0))
+            for (mode in com.cursoragent.settings.SendKeyMode.entries) {
+                assertTrue(accepts(mode, primary))
+                assertTrue(accepts(mode, java.awt.event.InputEvent.SHIFT_DOWN_MASK, java.awt.event.KeyEvent.VK_F9))
+                assertTrue(accepts(mode, primary or java.awt.event.InputEvent.SHIFT_DOWN_MASK))
+            }
+            assertFalse(accepts(com.cursoragent.settings.SendKeyMode.ENTER, primary or java.awt.event.InputEvent.ALT_DOWN_MASK))
+            assertTrue(accepts(com.cursoragent.settings.SendKeyMode.MODIFIER_ENTER, primary or java.awt.event.InputEvent.ALT_DOWN_MASK))
+        }
+    }
+
+    @Test
+    fun `native submit action rechecks the selected row and guards held keys across refresh and mode changes`() {
+        val fixture = com.intellij.testFramework.fixtures.IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("queue send keys").fixture
+        fixture.setUp()
+        try {
+            com.intellij.testFramework.runInEdtAndWait {
+                val lifetime = com.intellij.openapi.util.Disposer.newDisposable()
+                val settings = com.cursoragent.settings.AgentSettingsState.getInstance()
+                val oldMode = settings.sendKeyMode
+                val queue = PromptQueue("owner")
+                repeat(4) { queue.add("row-$it", AgentMode.ASK, "exact") }
+                val sent = mutableListOf<QueuedPrompt>()
+                var current = true
+                var focused = true
+                var ready = true
+                val list = PromptQueueList(queue, { current }, { focused }, {}, {}, {}, { ready }, { sent.add(it); queue.remove(it.id) })
+                val manager = com.intellij.openapi.actionSystem.ActionManager.getInstance()
+                val action = manager.getAction(AgentQueueCommand.SUBMIT.actionId)
+                assertNotNull(action)
+                list.installShortcuts(lifetime)
+                list.refresh()
+                fun event(modifiers: Int = 0, code: Int = java.awt.event.KeyEvent.VK_ENTER) = AnActionEvent(
+                    DataContext { if (AgentQueueActions.KEY.`is`(it)) list.actions else null }, action.templatePresentation.clone(), "test", ActionUiKind.NONE,
+                    java.awt.event.KeyEvent(list, java.awt.event.KeyEvent.KEY_PRESSED, 1, modifiers, code, java.awt.event.KeyEvent.CHAR_UNDEFINED), 0, manager)
+                fun release(code: Int = java.awt.event.KeyEvent.VK_ENTER) {
+                    java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().dispatchEvent(java.awt.event.KeyEvent(list,
+                        java.awt.event.KeyEvent.KEY_RELEASED, 2, 0, code, java.awt.event.KeyEvent.CHAR_UNDEFINED))
+                }
+                try {
+                    settings.sendKeyMode = com.cursoragent.settings.SendKeyMode.ENTER
+                    assertTrue(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(list).contains(action))
+                    val primary = if (com.intellij.openapi.util.SystemInfo.isMac) java.awt.event.InputEvent.META_DOWN_MASK else java.awt.event.InputEvent.CTRL_DOWN_MASK
+                    val initial = event()
+                    action.update(initial)
+                    assertTrue(initial.presentation.isEnabled)
+                    ready = false
+                    action.actionPerformed(initial)
+                    ready = true
+                    focused = false
+                    action.actionPerformed(initial)
+                    focused = true
+                    current = false
+                    action.actionPerformed(initial)
+                    assertTrue(sent.isEmpty())
+                    current = true
+                    queue.edit(queue.snapshot().first().id, "latest row")
+                    action.actionPerformed(initial)
+                    assertEquals("latest row", sent.single().text, "the live row replaces the displayed snapshot")
+                    action.actionPerformed(initial)
+                    action.actionPerformed(event(primary))
+                    assertEquals(1, sent.size, "refresh and modifier changes must not send the next row")
+                    release()
+                    settings.sendKeyMode = com.cursoragent.settings.SendKeyMode.MODIFIER_ENTER
+                    val plain = event()
+                    action.update(plain)
+                    assertFalse(plain.presentation.isEnabled)
+                    action.actionPerformed(plain)
+                    assertEquals(1, sent.size)
+                    action.actionPerformed(event(primary or java.awt.event.InputEvent.ALT_DOWN_MASK))
+                    assertEquals(2, sent.size)
+                    release()
+                    action.actionPerformed(event(primary))
+                    assertEquals(3, sent.size)
+                    release()
+                    val custom = event(java.awt.event.InputEvent.SHIFT_DOWN_MASK, java.awt.event.KeyEvent.VK_F9)
+                    action.actionPerformed(custom)
+                    action.actionPerformed(custom)
+                    assertEquals(4, sent.size)
+                    assertEquals(0, queue.size)
+                    assertTrue(queue.paused, "explicit queue mutation does not resume paused automatic dispatch")
+                } finally {
+                    settings.sendKeyMode = oldMode
+                    current = false
+                    com.intellij.openapi.util.Disposer.dispose(lifetime)
+                    assertFalse(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(list).contains(action))
+                }
+            }
+        } finally { com.intellij.testFramework.runInEdtAndWait { fixture.tearDown() } }
+    }
+
+    @Test
     fun `entry from an empty prompt selects last for up and second or only item for down`() = SwingUtilities.invokeAndWait {
         val queue = PromptQueue("owner")
         var current = true
@@ -110,7 +209,7 @@ class PromptQueueListTest {
     }
 
     @Test
-    fun `queue keymap actions use native list defaults and OS specific removal without a submit alias`() {
+    fun `queue keymap actions use native list defaults and OS specific removal and submit keys`() {
         val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(java.io.File("src/main/resources/META-INF/plugin.xml"))
         val nodes = xml.getElementsByTagName("action")
         val declarations = (0 until nodes.length).map { nodes.item(it) as org.w3c.dom.Element }.associateBy { it.getAttribute("id") }
@@ -119,6 +218,7 @@ class PromptQueueListTest {
             AgentQueueCommand.NEXT to (AgentQueueAction.Next() to listOf("DOWN")),
             AgentQueueCommand.EDIT to (AgentQueueAction.Edit() to listOf("RIGHT", "SPACE")),
             AgentQueueCommand.REMOVE to (AgentQueueAction.Remove() to listOf("control DELETE")),
+            AgentQueueCommand.SUBMIT to (AgentQueueAction.Submit() to listOf("ENTER", "control ENTER", "control alt ENTER")),
             AgentQueueCommand.RETURN_TO_INPUT to (AgentQueueAction.ReturnToInput() to listOf("ESCAPE")),
         )
         assertEquals(AgentQueueCommand.entries.toSet(), commands.keys)
@@ -133,6 +233,13 @@ class PromptQueueListTest {
                 for (keymap in listOf("Mac OS X", "Mac OS X 10.5+")) {
                     assertEquals("meta BACK_SPACE", keys.getValue(keymap).single().getAttribute("first-keystroke"))
                     assertEquals("true", keys.getValue(keymap).single().getAttribute("replace-all"))
+                }
+            } else if (command == AgentQueueCommand.SUBMIT) {
+                assertEquals(setOf("\$default", "Mac OS X", "Mac OS X 10.5+"), keys.keys)
+                for (keymap in listOf("Mac OS X", "Mac OS X 10.5+")) {
+                    val values = keys.getValue(keymap)
+                    assertEquals(listOf("ENTER", "meta ENTER", "meta alt ENTER"), values.map { it.getAttribute("first-keystroke") })
+                    assertEquals("true", values.first().getAttribute("replace-all"))
                 }
             } else assertEquals(setOf("\$default"), keys.keys)
             keys.values.flatten().forEach { assertNotNull(KeyStroke.getKeyStroke(it.getAttribute("first-keystroke"))) }

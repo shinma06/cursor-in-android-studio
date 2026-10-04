@@ -249,6 +249,18 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta BACK_SPACE" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta BACK_SPACE" replace-all="true"/>
             </action>
+            <action id="CursorAgent.QueueSubmit" class="com.cursoragent.actions.AgentQueueAction$Submit"
+                    text="選択した予約を今すぐ送信" description="実行中なら停止完了後に選択した1件を送信します">
+                <keyboard-shortcut keymap="$default" first-keystroke="ENTER"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="ENTER" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ENTER" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt ENTER"/>
+            </action>
             <action id="CursorAgent.QueueReturnToInput" class="com.cursoragent.actions.AgentQueueAction$ReturnToInput"
                     text="予約から入力へ戻る" description="予約一覧を離れるか、入力欄の予約編集を取り消して元の下書きへ戻ります。">
                 <keyboard-shortcut keymap="$default" first-keystroke="ESCAPE"/>

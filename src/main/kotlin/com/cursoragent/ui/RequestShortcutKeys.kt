@@ -5,7 +5,7 @@ import java.awt.KeyEventDispatcher
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
 
-/** A held key cannot answer the next request, or turn a rejection into a subsequent run Stop. */
+/** A held key cannot dispatch the next row/request, or turn a rejection into a subsequent run Stop. */
 internal class RequestShortcutKeys : KeyEventDispatcher, Disposable {
     private val manager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
     private val pressed = mutableSetOf<Int>()

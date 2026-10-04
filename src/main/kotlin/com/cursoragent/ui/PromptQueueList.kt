@@ -18,11 +18,15 @@ internal class PromptQueueList(
     private val onEdit: (QueuedPrompt) -> Unit,
     private val onChanged: () -> Unit,
     private val onReturnToInput: () -> Unit,
+    private val canSubmit: () -> Boolean = { false },
+    private val onSubmit: (QueuedPrompt) -> Unit = {},
 ) : JBList<QueuedPrompt>(DefaultListModel()), UiDataProvider {
     private val rows get() = model as DefaultListModel<QueuedPrompt>
+    private val submitKeys = RequestShortcutKeys()
     internal val actions = AgentQueueActions(
         available = { command ->
             isCurrent() && shortcutAvailable() &&
+                (command != AgentQueueCommand.SUBMIT || canSubmit()) &&
                 (command == AgentQueueCommand.RETURN_TO_INPUT || currentEntry() != null)
         },
         perform = ::perform,
@@ -48,6 +52,7 @@ internal class PromptQueueList(
     }
 
     fun installShortcuts(parent: Disposable) {
+        com.intellij.openapi.util.Disposer.register(parent, submitKeys)
         AgentQueueCommand.entries.forEach { command ->
             ActionManager.getInstance().getAction(command.actionId)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, this, parent)
@@ -86,10 +91,11 @@ internal class PromptQueueList(
 
     private fun currentEntry(): QueuedPrompt? = selectedValue?.id?.let { id -> queue.snapshot().find { it.id == id } }
 
-    private fun perform(command: AgentQueueCommand) {
+    private fun perform(command: AgentQueueCommand, event: com.intellij.openapi.actionSystem.AnActionEvent) {
         // Recheck even when a previous Action update enabled this command.
         if (!actions.available(command)) return
         when (command) {
+            AgentQueueCommand.SUBMIT -> if (submitKeys.accept(event.inputEvent as? java.awt.event.KeyEvent)) withSelected(onSubmit)
             AgentQueueCommand.RETURN_TO_INPUT -> onReturnToInput()
             AgentQueueCommand.EDIT -> withSelected(onEdit)
             AgentQueueCommand.REMOVE -> withSelected { queue.remove(it.id) }

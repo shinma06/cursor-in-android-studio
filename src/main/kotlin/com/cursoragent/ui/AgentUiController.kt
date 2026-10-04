@@ -80,6 +80,14 @@ class AgentUiController(
         isCurrent = { !disposed && !project.isDisposed && composer.isShowing && isSelectedConversation() },
         releaseImage = agentService::releaseImage, changed = ::refreshQueue, error = timeline::showStatus,
         onQueueReady = ::scheduleNextQueuedPrompt, onSend = ::sendEditedQueuedPrompt)
+    private val queueSubmission = PromptQueueSubmission(queue,
+        isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() && composer.isShowing &&
+            !queueEditor.isEditing && composer.inputArea.isEnabled && composer.panelShortcutAvailable &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(composer) },
+        activeRun = { activeRun }, generation = { turnGeneration },
+        dispatchLater = { SwingUtilities.invokeLater(it) }, start = { startPrompt(it.text, it) },
+        stop = ::stopActiveRun, changed = ::refreshQueue,
+        stopFailed = { timeline.showStatus("停止を確認できません。選択した予約を保持しました。") })
     private var queueDialog: PromptQueueDialog? = null
     private val queueUiLifetime = com.intellij.openapi.util.Disposer.newDisposable()
     private val inlineQueue: PromptQueueList = PromptQueueList(queue,
@@ -88,9 +96,11 @@ class AgentUiController(
             !queueEditor.isEditing && composer.isShowing && inlineQueue.isFocusOwner &&
                 !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(inlineQueue)
         },
-        onEdit = { queueEditor.begin(it.id) },
+        onEdit = { queueSubmission.cancel(); queueEditor.begin(it.id) },
         onChanged = ::refreshQueue,
         onReturnToInput = { inlineQueue.clearSelection(); composer.inputArea.requestFocusInWindow() },
+        canSubmit = { queueSubmission.available },
+        onSubmit = { queueSubmission.submit(it) },
     )
     val hasQueuedPrompts: Boolean get() = queue.size > 0 || queueEditor.isEditing
 
@@ -120,7 +130,7 @@ class AgentUiController(
         return selected.id == tabId && selected.conversationId == queue.conversationId
     }
 
-    fun pauseQueue() { queue.pause(); refreshQueue() }
+    fun pauseQueue() { queueSubmission.cancel(); queue.pause(); refreshQueue() }
     private fun refreshQueue() {
         val returnToInput = inlineQueue.isFocusOwner && queue.size == 0 && isSelectedConversation()
         inlineQueue.refresh()
@@ -147,6 +157,8 @@ class AgentUiController(
                     scheduleNextQueuedPrompt()
                 }
             },
+            canSubmit = { queueSubmission.available },
+            onSubmit = queueSubmission::submit,
         )
         queueDialog = dialog
         dialog.show()
@@ -321,6 +333,7 @@ class AgentUiController(
         composer.onFocusQueue = { false }
         composer.onSubmitQueueEdit = {}
         composer.onCancelQueueEdit = {}
+        queueSubmission.cancel()
         queueEditor.close()
         com.intellij.openapi.util.Disposer.dispose(queueUiLifetime)
         timeline.runStatus.dispose()
@@ -615,25 +628,31 @@ class AgentUiController(
     fun stopRun() {
         pauseQueue()
         val run = activeRun ?: return
+        stopActiveRun(run)
+    }
+
+    private fun stopActiveRun(run: AgentRun) {
         try {
             run.stop()
         } finally {
             // An already-observed exit wins over a later Stop click.
-            if (run.wasStopped) {
+            if (run.wasStopped && activeRun === run) {
                 composer.contextUsage.stop()
                 timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.STOPPING)
             }
         }
     }
 
-    private fun finishRun(successful: Boolean) {
+    private fun finishRun(phase: com.cursoragent.ui.timeline.RunPhase) {
+        val successful = phase == com.cursoragent.ui.timeline.RunPhase.COMPLETED
+        val finishedRun = activeRun
         finishImage?.invoke(successful)
         finishImage = null
         if (!successful) releaseUnsentTransport?.invoke()
         releaseUnsentTransport = null
         if (!successful) recoverUnsentCommand?.invoke()
         recoverUnsentCommand = null
-        if (!successful) queue.pause()
+        if (!successful && !queue.paused) queue.pause()
         activeToken?.let(sessions::finishTurn)
         activeToken = null
         activeRun = null
@@ -641,7 +660,8 @@ class AgentUiController(
         composer.setRunning(false)
         composer.commands.update(commandConnection.catalog, !transportState().second)
         refreshQueue()
-        if (successful) scheduleNextQueuedPrompt()
+        val explicitSend = queueSubmission.finished(finishedRun, phase)
+        if (successful && !explicitSend) scheduleNextQueuedPrompt()
     }
 
     private fun runOnEdt(block: () -> Unit) {

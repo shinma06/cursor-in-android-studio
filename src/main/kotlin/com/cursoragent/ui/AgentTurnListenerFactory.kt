@@ -27,7 +27,7 @@ internal class AgentTurnListenerFactory(
     private val onUsage: (Long, com.cursoragent.parser.TokenUsage?) -> Unit,
     private val onConfiguration: (AgentEvent.Configuration) -> Unit,
     private val recorder: ConversationRecorder,
-    private val onRunFinished: (successful: Boolean) -> Unit,
+    private val onRunFinished: (RunPhase) -> Unit,
     private val changes: ConversationChanges,
     private val beforeRevert: () -> Unit,
     private val onUsageFinish: (Long, UsagePhase) -> Unit,
@@ -136,7 +136,7 @@ internal class AgentTurnListenerFactory(
                     recorder.finish(outcome.name.lowercase())
                     timeline.showStatus(outcome.message)
                     finish(if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) RunPhase.STOPPED else RunPhase.FAILED)
-                    onRunFinished(false)
+                    onRunFinished(if (outcome == com.cursoragent.service.AgentTurnOutcome.CANCELLED) RunPhase.STOPPED else RunPhase.FAILED)
                 }
             }
 
@@ -149,7 +149,7 @@ internal class AgentTurnListenerFactory(
                     recorder.finish("failed")
                     timeline.showError(message)
                     finish(RunPhase.FAILED)
-                    onRunFinished(false)
+                    onRunFinished(RunPhase.FAILED)
                 }
             }
 
@@ -253,7 +253,7 @@ internal class AgentTurnListenerFactory(
                     recorder.error("このターンでエラーが発生しました。")
                     recorder.finish("failed")
                     finish(RunPhase.FAILED)
-                    onRunFinished(false)
+                    onRunFinished(RunPhase.FAILED)
                 }
             }
 
@@ -266,7 +266,7 @@ internal class AgentTurnListenerFactory(
                     recorder.finish("stopped")
                     timeline.showStatus("停止しました。途中までの応答は残ります。適用済みの変更は自動で戻りません。")
                     finish(RunPhase.STOPPED)
-                    onRunFinished(false)
+                    onRunFinished(RunPhase.STOPPED)
                 }
             }
 
@@ -287,7 +287,7 @@ internal class AgentTurnListenerFactory(
                     recorder.finish(if (exitCode == 0) "completed" else "failed")
                     finish(if (exitCode == 0) RunPhase.COMPLETED else RunPhase.FAILED)
                     if (requestId != null) onPrintRequestId(requestId)
-                    onRunFinished(exitCode == 0)
+                    onRunFinished(if (exitCode == 0) RunPhase.COMPLETED else RunPhase.FAILED)
                 }
             }
         }
