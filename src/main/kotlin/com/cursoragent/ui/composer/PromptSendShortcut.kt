@@ -11,9 +11,21 @@ import javax.swing.KeyStroke
 
 /** Replace only our send action. Native editor newline, paste and caret handling stay intact. */
 internal class PromptSendShortcut(private val submit: () -> Unit) : AnAction() {
-    override fun actionPerformed(e: AnActionEvent) = submit()
+    private var enterPressed = false
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val key = e.inputEvent as? KeyEvent
+        if (key?.id == KeyEvent.KEY_PRESSED && key.keyCode == KeyEvent.VK_ENTER) {
+            if (enterPressed) return
+            enterPressed = true
+        }
+        submit()
+    }
+
+    fun release() { enterPressed = false }
 
     fun install(component: JComponent, mode: SendKeyMode, isMac: Boolean) {
+        release()
         unregisterCustomShortcutSet(component)
         val modifiers = when (mode) {
             SendKeyMode.ENTER -> 0

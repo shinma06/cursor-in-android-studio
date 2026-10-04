@@ -36,11 +36,71 @@ class PromptQueueTest {
         val replacement = entry.copy(text = "edited", mode = AgentMode.PLAN, model = "model-b")
         assertTrue(queue.replace(entry, replacement))
         assertFalse(queue.replace(entry, entry.copy(text = "stale")))
-        assertTrue(queue.paused)
-        queue.resume()
+        assertFalse(queue.paused)
         assertFalse(queue.dispatch(ticket, 1, true) { error("stale ticket") })
         assertTrue(queue.dispatch(queue.ticket(1)!!, 1, true) { assertSame(replacement, it); true })
         assertFalse(queue.replace(replacement, replacement))
+    }
+
+    @Test
+    fun `editing holds only its head position and never releases an explicit pause or stale ticket`() {
+        for (paused in listOf(false, true)) {
+            val queue = PromptQueue("owner")
+            repeat(3) { queue.add("entry-$it", AgentMode.AGENT, "model") }
+            val entries = queue.snapshot()
+            val previousTicket = queue.ticket(1)!!
+            if (paused) queue.pause()
+            assertTrue(queue.beginEdit(entries[1]))
+            assertFalse(queue.beginEdit(entries[2]))
+            assertEquals(paused, queue.paused)
+            assertFalse(queue.dispatch(previousTicket, 1, true) { error("ticket predates edit hold") })
+            if (paused) assertNull(queue.next())
+            else {
+                assertSame(entries[0], queue.next(), "an earlier row can finish before the edited row")
+                assertTrue(queue.dispatch(queue.ticket(1)!!, 1, true) { it === entries[0] })
+                assertNull(queue.next(), "later rows cannot skip the edited head")
+            }
+            assertFalse(queue.dispatchSelected(entries[1], true) { error("cannot send a held row") })
+            val edited = entries[1].copy(text = "edited")
+            assertTrue(queue.replace(entries[1], edited))
+            assertEquals(paused, queue.paused)
+            queue.endEdit("unrelated")
+            assertFalse(queue.dispatchSelected(edited, true) { error("unrelated release cannot end editing") })
+            queue.endEdit(edited.id)
+            assertEquals(paused, queue.paused)
+            if (paused) { assertNull(queue.next()); queue.resume() }
+            assertTrue(queue.dispatch(queue.ticket(2)!!, 2, true) { true })
+            assertEquals(if (paused) listOf(edited, entries[2]) else listOf(entries[2]), queue.snapshot())
+        }
+        val queue = PromptQueue("owner")
+        queue.add("edit", AgentMode.AGENT, "model")
+        val entry = queue.next()!!
+        queue.beginEdit(entry)
+        queue.pause() // Stop, Revert or failed execution during editing.
+        queue.endEdit(entry.id)
+        assertNull(queue.next())
+        assertTrue(queue.paused)
+        queue.clear()
+        assertFalse(queue.beginEdit(entry))
+    }
+
+    @Test
+    fun `explicit idle submit sends only its current selected row and leaves failed preparation paused`() {
+        val queue = PromptQueue("owner")
+        repeat(3) { queue.add("entry-$it", AgentMode.AGENT, "model") }
+        val entries = queue.snapshot()
+        val earlierTicket = queue.ticket(1)!!
+        queue.pause()
+        assertFalse(queue.dispatchSelected(entries[1], false) { error("busy or wrong owner") })
+        assertTrue(queue.dispatchSelected(entries[1], true) { assertSame(entries[1], it); true })
+        assertEquals(listOf(entries[0], entries[2]), queue.snapshot())
+        assertTrue(queue.paused, "explicit submission does not resume other paused rows")
+        assertFalse(queue.dispatchSelected(entries[1], true) { error("duplicate submit") })
+        queue.resume()
+        assertFalse(queue.dispatch(earlierTicket, 1, true) { error("explicit submission invalidated the earlier ticket") })
+        assertFalse(queue.dispatchSelected(entries[2], true) { false })
+        assertTrue(queue.paused)
+        assertEquals(listOf(entries[0], entries[2]), queue.snapshot(), "preparation failure retains the edited snapshot for explicit retry")
     }
 
     @org.junit.jupiter.api.Test

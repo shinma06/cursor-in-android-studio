@@ -21,7 +21,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     var onEnqueue: (String) -> Unit = {}
     var onShowQueue: () -> Unit = {}
     internal var onFocusQueue: (Boolean) -> Boolean = { false }
-    internal var onSaveQueueEdit: () -> Unit = {}
+    internal var onSubmitQueueEdit: () -> Unit = {}
     internal var onCancelQueueEdit: () -> Unit = {}
     internal var isQueueEditing = false
         private set
@@ -91,7 +91,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     private val enqueueButton = javax.swing.JButton("予約に追加").apply {
         isVisible = false
         toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
-        addActionListener { if (isRunning && inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen) inputText().takeIf { it.isNotBlank() || commands.selectedName != null || images?.attachment != null }?.let(onEnqueue) }
+        addActionListener { if (isRunning && !isQueueEditing) submit() }
     }
     private val queueButton = javax.swing.JButton().apply {
         isVisible = false
@@ -99,11 +99,14 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         addActionListener { onShowQueue() }
     }
     private val queueContainer = JPanel(BorderLayout()).apply { isOpaque = false; isVisible = false }
+    private val queueEditSubmit = javax.swing.JButton().apply {
+        addActionListener { if (queueEditAvailable) onSubmitQueueEdit() }
+    }
     private val queueEditBanner = JPanel(FlowLayout(FlowLayout.LEFT, JBUI.scale(4), 0)).apply {
         isOpaque = false
         isVisible = false
         add(javax.swing.JLabel("予約した入力を編集中"))
-        add(javax.swing.JButton("保存").apply { addActionListener { if (queueEditAvailable) onSaveQueueEdit() } })
+        add(queueEditSubmit)
         add(javax.swing.JButton("キャンセル").apply { addActionListener { if (queueEditAvailable) onCancelQueueEdit() } })
     }
 
@@ -167,6 +170,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     init {
         border = JBUI.Borders.empty(5, 12, 8, 12)
         isOpaque = false
+        inputArea.onSendKeyReleased = sendShortcut::release
         inputArea.onQueueNavigate = { reverse ->
             !isQueueEditing && panelShortcutAvailable && !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this) &&
                 commands.selectedName == null && images?.hasUnsent != true &&
@@ -249,8 +253,12 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     }
 
     private fun updateSendLabel() {
-        sendButton.toolTipText = if (isRunning) "停止" else if (isQueueEditing) sendLabel.replace("送信", "予約を保存") else sendLabel
+        sendButton.toolTipText = if (isRunning) "停止" else sendLabel
         sendButton.accessibleContext.accessibleName = sendButton.toolTipText
+        queueEditSubmit.text = if (isRunning) "予約を更新" else "送信"
+        queueEditSubmit.toolTipText = if (isRunning) sendLabel.replace("送信", "予約を更新") else sendLabel
+        enqueueButton.accessibleContext.accessibleName = sendLabel.replace("送信", "予約に追加")
+        enqueueButton.toolTipText = "${enqueueButton.accessibleContext.accessibleName}。入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
     }
 
     fun useAcp() {
@@ -301,13 +309,13 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (!inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
-        if (isQueueEditing) { if (queueEditAvailable) onSaveQueueEdit(); return }
-        if (isRunning) return
+        if (!inputArea.isEnabled || !panelShortcutAvailable ||
+            com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)) return
+        if (isQueueEditing) { if (queueEditAvailable) onSubmitQueueEdit(); return }
         val text = inputText()
         if (images?.importing == true) return
         if (text.isNotEmpty() || commands.selectedName != null || images?.attachment != null) {
-            onSend(text)
+            if (isRunning) onEnqueue(text) else onSend(text)
         }
     }
 }

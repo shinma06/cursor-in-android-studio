@@ -5,7 +5,7 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.composer.context.PromptContextSnapshot
 import com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment
 
-/** One tab's paused queue edit. The hidden draft and the queue retain independent image leases. */
+/** Hold one tab's edited queue item; the hidden draft and queue retain independent image leases. */
 internal class PromptQueueEditor(
     private val queue: PromptQueue,
     private val composer: ComposerPanel,
@@ -13,6 +13,8 @@ internal class PromptQueueEditor(
     private val releaseImage: (ImageAttachment) -> Unit,
     private val changed: () -> Unit,
     private val error: (String) -> Unit,
+    private val onQueueReady: () -> Unit,
+    private val onSend: (QueuedPrompt) -> Unit,
 ) : AutoCloseable {
     private data class Edit(val expected: QueuedPrompt, val draft: ComposerDraft)
     private var edit: Edit? = null
@@ -32,16 +34,21 @@ internal class PromptQueueEditor(
             error("予約の画像を読み取れません。予約一覧で画像を確認してください。")
             return
         }
-        queue.pause()
+        if (!queue.beginEdit(entry)) {
+            saved.image?.let(releaseImage)
+            image?.let(releaseImage)
+            return
+        }
         edit = Edit(entry, saved)
         composer.showQueueEdit(true)
         composer.restoreDraft(ComposerDraft(entry.text, null, entry.mode, entry.model,
             entry.context ?: PromptContextSnapshot(emptyList(), emptyList(), true), entry.command, image))
         changed()
+        onQueueReady()
         if (composer.isShowing) composer.inputArea.requestFocusInWindow()
     }
 
-    fun save() {
+    fun submit() {
         val session = edit ?: return
         if (!isCurrent() || !composer.queueEditAvailable || composer.images?.importing == true) return
         val context = try {
@@ -68,7 +75,7 @@ internal class PromptQueueEditor(
                 else "予約が変更されています。編集内容をコピーしてからキャンセルしてください。")
             return
         }
-        finish(session)
+        finish(session, replacement.takeUnless { composer.isRunning })
     }
 
     fun cancel() {
@@ -76,18 +83,21 @@ internal class PromptQueueEditor(
         if (isCurrent() && composer.queueEditAvailable) finish(session)
     }
 
-    private fun finish(session: Edit) {
+    private fun finish(session: Edit, send: QueuedPrompt? = null) {
         // Transfer the saved lease back exactly once; clear/replacement releases the temporary editing lease.
         edit = null
         composer.restoreDraft(session.draft)
         composer.showQueueEdit(false)
+        queue.endEdit(session.expected.id)
         changed()
+        if (send != null) onSend(send) else onQueueReady()
         if (composer.isShowing) composer.inputArea.requestFocusInWindow()
     }
 
     override fun close() {
         closed = true
         edit?.draft?.image?.let(releaseImage)
+        edit?.expected?.id?.let(queue::endEdit)
         edit = null
         composer.showQueueEdit(false)
     }

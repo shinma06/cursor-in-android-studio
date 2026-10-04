@@ -78,7 +78,8 @@ class AgentUiController(
     private val queue = PromptQueue(recorder.conversation.id, agentService::releaseImage)
     private val queueEditor = PromptQueueEditor(queue, composer,
         isCurrent = { !disposed && !project.isDisposed && composer.isShowing && isSelectedConversation() },
-        releaseImage = agentService::releaseImage, changed = ::refreshQueue, error = timeline::showStatus)
+        releaseImage = agentService::releaseImage, changed = ::refreshQueue, error = timeline::showStatus,
+        onQueueReady = ::scheduleNextQueuedPrompt, onSend = ::sendEditedQueuedPrompt)
     private var queueDialog: PromptQueueDialog? = null
     private val queueUiLifetime = com.intellij.openapi.util.Disposer.newDisposable()
     private val inlineQueue: PromptQueueList = PromptQueueList(queue,
@@ -164,6 +165,12 @@ class AgentUiController(
         }
     }
 
+    private fun sendEditedQueuedPrompt(entry: QueuedPrompt) {
+        val ownerIsIdle = !disposed && !project.isDisposed && composer.isShowing && activeRun == null && isSelectedConversation()
+        queue.dispatchSelected(entry, ownerIsIdle) { startPrompt(it.text, it) }
+        if (!disposed) refreshQueue()
+    }
+
     private val changes = ConversationChanges(recorder.conversation.id)
     private val changesReview = ChangesReviewController(
         changes = changes,
@@ -222,7 +229,7 @@ class AgentUiController(
         composer.installQueueList(inlineQueue)
         inlineQueue.installShortcuts(queueUiLifetime)
         composer.onFocusQueue = ::focusQueue
-        composer.onSaveQueueEdit = queueEditor::save
+        composer.onSubmitQueueEdit = queueEditor::submit
         composer.onCancelQueueEdit = queueEditor::cancel
         com.intellij.openapi.actionSystem.ActionManager.getInstance()
             .getAction(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId)?.let { action ->
@@ -315,7 +322,7 @@ class AgentUiController(
         recorder.finish("interrupted")
         disposed = true
         composer.onFocusQueue = { false }
-        composer.onSaveQueueEdit = {}
+        composer.onSubmitQueueEdit = {}
         composer.onCancelQueueEdit = {}
         queueEditor.close()
         com.intellij.openapi.util.Disposer.dispose(queueUiLifetime)

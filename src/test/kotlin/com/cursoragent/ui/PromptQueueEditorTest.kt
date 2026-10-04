@@ -74,8 +74,11 @@ class PromptQueueEditorTest {
                     var current = true
                     var sends = 0
                     val errors = mutableListOf<String>()
-                    val editing = PromptQueueEditor(queue, composer, { current }, { worker.execute { it.close() } }, {}, errors::add)
-                    composer.onSaveQueueEdit = editing::save
+                    val idleSubmissions = mutableListOf<QueuedPrompt>()
+                    var queueReady = 0
+                    val editing = PromptQueueEditor(queue, composer, { current }, { worker.execute { it.close() } }, {}, errors::add,
+                        { queueReady++ }, idleSubmissions::add)
+                    composer.onSubmitQueueEdit = editing::submit
                     composer.onCancelQueueEdit = editing::cancel
                     composer.onSend = { sends++ }
                     val send = ComposerPanel::class.java.getDeclaredField("sendShortcut").apply { isAccessible = true }.get(composer) as AnAction
@@ -85,7 +88,8 @@ class PromptQueueEditorTest {
                         composer.setRunning(true)
                         editing.begin(first.id)
                         assertTrue(editing.isEditing)
-                        assertTrue(queue.paused)
+                        assertFalse(queue.paused)
+                        assertNull(queue.next(), "the edited head is held without a manual pause")
                         assertFalse(queue.dispatch(ticket, 1, true) { error("pre-edit send must be invalidated") })
                         assertEquals("queued", composer.inputArea.text)
                         assertEquals("queued-command", composer.commands.selectedName)
@@ -121,7 +125,9 @@ class PromptQueueEditorTest {
                         assertEquals(" 東京  alpha ", updated.text, "command arguments retain whitespace")
                         assertEquals(context, updated.context, "an unchanged queued snapshot remains valid after file edits")
                         assertEquals(0, sends)
-                        assertTrue(queue.paused)
+                        assertTrue(idleSubmissions.isEmpty(), "a running edit is re-queued, not sent now")
+                        assertFalse(queue.paused)
+                        assertSame(updated, queue.next())
                         assertEquals("draft\ntext", composer.inputArea.text)
                         assertEquals(carets.map { it.caretPosition to (it.selectionStart to it.selectionEnd) },
                             editor.caretModel.caretsAndSelections.map { it.caretPosition to (it.selectionStart to it.selectionEnd) })
@@ -141,6 +147,7 @@ class PromptQueueEditorTest {
                         composer.setRunning(false)
                         submit()
                         assertFalse(editing.isEditing)
+                        assertSame(queue.snapshot().single(), idleSubmissions.single(), "idle submission uses the updated queued snapshot")
                         assertEquals(" updated body ", queue.snapshot().single().text, "saving an edit does not normalize the queued text")
                         assertNull(queue.snapshot().single().command)
                         assertEquals("edited-model", queue.snapshot().single().model)
@@ -159,6 +166,8 @@ class PromptQueueEditorTest {
                         assertEquals("concurrent change", queue.snapshot().single().text)
                         editing.cancel()
                         assertEquals("draft\ntext", composer.inputArea.text)
+                        assertTrue(queue.paused, "a concurrent explicit pause must survive cancellation")
+                        assertTrue(queueReady > 0)
 
                         // Undo within a draft remains native; it cannot put queue text into the restored draft.
                         val file = TextEditorProvider.getInstance().getTextEditor(editor)

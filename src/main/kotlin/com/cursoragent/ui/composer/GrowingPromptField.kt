@@ -23,6 +23,7 @@ import javax.swing.SwingUtilities
 class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
     internal var onQueueNavigate: (Boolean) -> Boolean = { false }
+    internal var onSendKeyReleased: () -> Unit = {}
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
@@ -85,6 +86,15 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
             if (!isEnabled || isComposing) true else onImageTransfer?.invoke(value) ?: false
         }
         ime.reset()
+        onSendKeyReleased()
+        editor.contentComponent.addKeyListener(object : java.awt.event.KeyAdapter() {
+            override fun keyReleased(event: java.awt.event.KeyEvent) {
+                if (event.keyCode == java.awt.event.KeyEvent.VK_ENTER) onSendKeyReleased()
+            }
+        })
+        editor.contentComponent.addFocusListener(object : java.awt.event.FocusAdapter() {
+            override fun focusLost(event: java.awt.event.FocusEvent) = onSendKeyReleased()
+        })
         editor.contentComponent.addInputMethodListener(ime)
         editor.settings.apply {
             isUseSoftWraps = true
