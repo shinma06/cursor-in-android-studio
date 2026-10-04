@@ -432,7 +432,7 @@
         "Altだけを離した時は未確定、Control/Metaが両方離れた時だけ対象chatを開く。設定変更後の単一修飾キーと複数stroke/Enterも確認する。Esc、root外へのfocus、別window、hide/disposeで取り消し、取消後にkeyupしても開かない。",
         "IME変換・候補・子popup中は既存入力処理を優先する。navigationの途中に検索結果更新/候補削除/別tab選択/別projectへ移動しても古い対象を開かない。繰り返し開始/取消/破棄後にdispatcherが重複・残留せず、一般editorのkeyup/Enter/Escを奪わない。",
         "実行/準備/下書き/画像/context/command/queue/保存失敗があるchatから確定しても元viewを保持し、Stop・送信・本文書換えを起こさない。sidebarを隠すと修飾左右が従来のtab/全履歴循環に戻る。",
-        "pin/日付section/折畳み/Moreの順序と6件追加を専用Caseで照合する。固定CursorのArchived/復元・Cloud・Find with Agent・transient/editor-groupへの表示を含む拡張候補との差と未接続を記録し、通常chatのhighlight成功だけで全候補をpassにしない。"
+        "pin/日付section/折畳み/Moreの順序と6件追加を専用Caseで照合する。Archived/復元と通常一覧からの除外はKEYMAP-ALL-CHATS-ARCHIVEで確認する。Cloud・Find with Agent・transient/editor-groupへの表示の差と未接続を記録し、通常chatのhighlight成功だけで全候補をpassにしない。"
       ],
       "expected": "sidebar表示中は候補highlightと確定を分離し、非表示時のtab循環と混同しない。対象root内だけでキーを処理し、全終了経路で解除する。未接続候補は残作業にする。"
     },
@@ -479,7 +479,7 @@
         "区分見出しをクリック/Enterで折り畳み・展開する。折り畳んだ会話とMoreへキー移動せず、全部折り畳みなら候補移動は何もしない。project別の状態とIDE再起動後の復元、通常の非表示/再表示では検索語・追加表示件数・scroll位置を保持し、IDE再起動等でcontentを作り直すと表示上限が6件へ戻ることを確認する。スクリーンリーダーで区分名/件数/操作とMoreの対象を識別できる。",
         "一覧に固定/固定解除を行い、移動先の区分が折り畳み中なら別会話をpin対象にしない。75件目まで追加でき、76件目は理由付きで無効、解除後は追加できる。削除済み等の残ったpin metadataは有効件数に数えず、同じ文字列の本文IDと旧print IDを混同しない。pinから本文/空会話を作らず、未保存draftの再起動復元を保証しない。",
         "履歴の読込み待ち/失敗/破損中は新規pinを無効にし、既存の解除を可能にする。検索待ち・IME変換中・古い結果でpin/Moreを実行しない。別projectと破棄済みviewを操作せず、pin/折り畳み/MoreでStop・送信・履歴削除を発生させない。 読込み/検索中に隠して即再表示しても旧世代の結果を適用しない。非表示中はworker/timerとnavigation listenerを止め、content破棄時に保持viewを解放する。",
-        "local日付の0時越え、DSTで昨日が24時間と一致しない場合、7日/30日の境界を確認する。表示中の1分更新で区分が変わり、選択/対象IDを取り違えない。固定Cursorと同条件で比較し、未接続のArchived/復元・Cloud・editor sticky等を別の残作業として記録する。"
+        "local日付の0時越え、DSTで昨日が24時間と一致しない場合、7日/30日の境界を確認する。表示中の1分更新で区分が変わり、選択/対象IDを取り違えない。固定Cursorと同条件で比較し、Archived/復元はKEYMAP-ALL-CHATS-ARCHIVEで照合する。未接続のCloud・editor sticky等は別の残作業として記録する。"
       ],
       "expected": "表示区分とnavigation候補が一致し、折り畳み/Moreは会話の所有や実行を変えない。pinの上限・ID・状態保持を守り、GUI未検証/未接続の拡張能力を省略しない。"
     },
