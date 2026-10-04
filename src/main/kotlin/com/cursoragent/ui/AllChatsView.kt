@@ -13,6 +13,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
@@ -206,7 +207,8 @@ internal class AllChatsView(
         }
         list.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
-                if (SwingUtilities.isLeftMouseButton(event) && list.selectedIndex >= 0 &&
+                if (!event.isConsumed && !event.isPopupTrigger && !(SystemInfo.isMac && event.isControlDown) &&
+                    SwingUtilities.isLeftMouseButton(event) && list.selectedIndex >= 0 &&
                     list.getCellBounds(list.selectedIndex, list.selectedIndex)?.contains(event.point) == true) choose()
             }
         })

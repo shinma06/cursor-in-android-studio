@@ -41,6 +41,7 @@ class ChatArchiveTest {
         val old = (1..14).map { entry().copy(updatedMs = it.toLong()) }
         val unrelated = entry().copy(title = "Kotlin unrelated")
         val requests = mutableListOf<ChatArchivePriorRequest>()
+        val choices = mutableListOf<RecentChatId>()
         val views = mutableListOf<AllChatsView>()
         var valid = true
         fun searchNow(view: AllChatsView) {
@@ -60,7 +61,7 @@ class ChatArchiveTest {
             runInEdtAndWait {
                 properties.setList("CursorAgent.pinnedChats", listOf(pinnedChatKey(old.first().id)))
                 for (mode in ChatListMode.entries) {
-                    views += AllChatsView(fixture.project, mode, { old + anchor + unrelated }, { anchor.id }, { valid }, {}, {},
+                    views += AllChatsView(fixture.project, mode, { old + anchor + unrelated }, { anchor.id }, { valid }, choices::add, {},
                         onArchivePrior = requests::add).apply {
                         useLoadedHistory(com.cursoragent.history.ConversationStore.Loaded(emptyList(), 0))
                         (get(this, "search") as SearchTextField).text = "Android"
@@ -78,6 +79,21 @@ class ChatArchiveTest {
                 sidebar.javaClass.getDeclaredMethod("rebuildRows", SidebarChatTarget::class.java).apply { isAccessible = true }
                     .invoke(sidebar, SidebarChatTarget.Chat(anchor.id))
                 assertEquals(2, (0 until list.model.size).count { list.model.getElementAt(it) is AllChatRow.Chat })
+                list.setSize(400, 400)
+                val bounds = requireNotNull(list.getCellBounds(list.selectedIndex, list.selectedIndex))
+                fun click(popup: Boolean = false, consumed: Boolean = false, modifiers: Int = 0) {
+                    val event = java.awt.event.MouseEvent(list, java.awt.event.MouseEvent.MOUSE_CLICKED, 0, modifiers,
+                        bounds.x + 1, bounds.y + 1, 1, popup, java.awt.event.MouseEvent.BUTTON1)
+                    if (consumed) event.consume()
+                    // Exercise row activation without showing an OS popup in the SDK fixture.
+                    list.mouseListeners.filterNot { it is com.intellij.ui.PopupHandler }.forEach { it.mouseClicked(event) }
+                }
+                click(popup = true)
+                click(consumed = true)
+                if (com.intellij.openapi.util.SystemInfo.isMac) click(modifiers = java.awt.event.InputEvent.CTRL_DOWN_MASK)
+                assertTrue(choices.isEmpty(), "context-menu clicks must not open the chat first")
+                click()
+                assertEquals(listOf(anchor.id), choices)
                 // Retained hits are authoritative even when only the anchor and pinned section remain visible.
                 val menu = requireNotNull(action(sidebar))
                 assertEquals(com.intellij.openapi.actionSystem.ActionUpdateThread.EDT, menu.actionUpdateThread)
