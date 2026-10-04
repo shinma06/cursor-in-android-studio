@@ -59,7 +59,7 @@ class PromptQueueListTest {
                     DataContext { if (AgentQueueActions.KEY.`is`(it)) list.actions else null }, action.templatePresentation.clone(), "test", ActionUiKind.NONE,
                     java.awt.event.KeyEvent(list, java.awt.event.KeyEvent.KEY_PRESSED, 1, modifiers, code, java.awt.event.KeyEvent.CHAR_UNDEFINED), 0, manager)
                 fun release(code: Int = java.awt.event.KeyEvent.VK_ENTER) {
-                    java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().dispatchEvent(java.awt.event.KeyEvent(list,
+                    com.intellij.ide.IdeEventQueue.getInstance().dispatchEvent(java.awt.event.KeyEvent(list,
                         java.awt.event.KeyEvent.KEY_RELEASED, 2, 0, code, java.awt.event.KeyEvent.CHAR_UNDEFINED))
                 }
                 try {
