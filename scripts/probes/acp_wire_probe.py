@@ -145,7 +145,9 @@ class Probe:
             method, params = frame["method"], frame.get("params", {})
             result = None
             if method == "session/request_permission":
-                if scenario in ("permission-cancel", "cancel-child-permission"):
+                if cancelled:
+                    result = {"outcome": {"outcome": "cancelled"}}
+                elif scenario in ("permission-cancel", "cancel-child-permission"):
                     self.record("probe", {"permission_wait_seconds": 1})
                     time.sleep(1)
                     self.send("session/cancel", {"sessionId": session}, request=False)

@@ -82,6 +82,8 @@ cancel-childの主な時点（PIDは公開fixture内の置換値）:
 - 異常EOF、無応答、別tabとの同時復元、離脱した子孫の回収、別model、明示sandbox、force/auto-review、分離worktreeは実測していない。synthetic testや今回の観測で代替しない。
 - [Case JSON](../verification/changes/issue-146.json)はGUI不要の調査として`cases: []`、CLI Caseの正本は本表とmanifest。製品の固定build・GUIは[QA #152](https://github.com/shinma06/cursor-in-android-studio/issues/152)で追い、今回のdevelop統合とmain反映を分ける。
 
+採取後の独立レビューで、cancel送信後に届く追加permissionを許可し得る競合が見つかり、現在のprobeには取消後の要求を`cancelled`で返すガードと、許可→取消→追加要求の合成回帰試験を追加した。公開8件には取消後の追加permission要求はなく、fixture・manifest・採取時の固定コードは変更していない。この修正後のlive採取は実施していない。
+
 通常検証はCursor/networkを起動しない。既存のworkflow test discoveryにprobe/exporterの回帰試験を含める。Change Impactのunknown分類と必要な全検証を維持し、分類器やCIを変更して検査を省略しない。
 
 ```bash

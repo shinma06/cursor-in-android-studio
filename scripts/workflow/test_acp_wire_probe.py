@@ -124,6 +124,35 @@ class ProbeTest(unittest.TestCase):
             edit["toolCall"]["locations"].append({"path": str(probe.root / "other.py")})
             self.assertFalse(probe.can_allow(edit, "synthetic-session", "edit"))
 
+    def test_permission_after_cancel_cannot_start_another_execution(self):
+        probe = Probe.__new__(Probe)
+        probe.send = Mock(return_value=1)
+        probe.write = Mock()
+        probe.snapshot = Mock()
+        probe.tick_count = Mock(side_effect=[0, 2, 2])
+        probe.can_allow = Mock(return_value=True)
+        probe.tool_state = {}
+        params = {"sessionId": "synthetic-session", "toolCall": {
+            "toolCallId": "synthetic-tool", "kind": "execute",
+            "rawInput": {"command": "python3 tick.py"}},
+            "options": [{"kind": "allow_once", "optionId": "allow-once"}]}
+        probe.receive = Mock(side_effect=[
+            {"id": 0, "method": "session/request_permission", "params": params},
+            {"id": 2, "method": "session/request_permission", "params": params},
+            {"id": 1, "result": {"stopReason": "cancelled"}},
+        ])
+        with patch("scripts.probes.acp_wire_probe.time.sleep"):
+            result = probe.prompt("synthetic-session", "synthetic fixed prompt", "cancel-child")
+        self.assertEqual(result["result"]["stopReason"], "cancelled")
+        self.assertEqual([call.args[0] for call in probe.write.call_args_list], [
+            {"jsonrpc": "2.0", "id": 0, "result": {
+                "outcome": {"outcome": "selected", "optionId": "allow-once"}}},
+            {"jsonrpc": "2.0", "id": 2, "result": {"outcome": {"outcome": "cancelled"}}},
+        ])
+        probe.send.assert_called_with("session/cancel", {"sessionId": "synthetic-session"}, request=False)
+        self.assertEqual(probe.send.call_count, 2)
+        probe.can_allow.assert_called_once_with(params, "synthetic-session", "cancel-child")
+
     def test_permission_id_zero_is_answered_on_cancel(self):
         with tempfile.TemporaryDirectory() as temporary:
             agent = Path(temporary) / "fake_permission.py"
