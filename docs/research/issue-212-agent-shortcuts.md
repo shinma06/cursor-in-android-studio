@@ -120,9 +120,9 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
 | P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | #45の保存履歴検索と区別。大文字小文字/単語単位/正規表現、一致箇所の強調と位置/総数、長い本文/不正な式の応答性、stream・タブ所有、検索focusとIME/送信競合を検証。実装・GUIは未達。 |
-| P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保ち、過去message再送範囲とShift+Tabの優先を確定する。 |
+| P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保持する。下記の履歴変更契約が未確定であり、末尾への通常再送に置換しない。 |
 | P03 | コピー元を識別できるcodeのcontext付き貼付け | #24/#343を再利用。公開clipboard形式で得られた出典だけを使い、path/range/versionを推測しない。 |
-| P04 | 同一実行turnへの即時入力 | #278は公開method待ちの研究完了。次turn queueやStop後再送を代替にしない。公開契約と有限live証拠が必要。 |
+| P04 | 同一実行turnへの即時入力 | #278のACP/print調査とSDKの公開`run.steer()`を区別する。下記の別方式候補を評価し、次turn queueやStop後再送を代替にしない。 |
 | P05 | 実行中terminal toolだけの取消 | #147/#297/#300のrun取消/permissionと区別。providerのtool ID付き取消契約が必要。 |
 | P06 | 初回draftのbranch/native Git worktree選択 | #301/#39のroot所有を保持。ISOLATED作業コピーをGit worktreeと呼ばず、公開起動・setup/cancel/cleanupを確定。 |
 | P07 | 同一Agent会話のToolWindow/editor表示切替 | #156/#213を再利用。chat ID/run/draft/contextを二重化せず、close/reopen/focus/別projectを検証。 |
@@ -132,6 +132,32 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 | P11 | 選択codeからcodebase検索付きchatを開く | #24の一般選択添付と区別。固定版の操作と公開検索意味を確定し、非公開flagや独自indexを発明しない。 |
 
 #48のqueue、#97の送信設定、#258/#404のSkills/command候補、#156のopened chats、#213の最後tab閉鎖等を再利用する。これらの実装Issueがclosedでも、対応QAやmain反映は未達の場合がある。SubComposerの所属未確定からside chat能力を推測して起票しない。
+
+### 残る操作の接続契約（2026-10-05確認）
+
+この節はP02/P04/P05/P09の接続方式を選ぶ際に読む。対象は現在の公開仕様とCLI `2026.10.01-e373342`の静的確認であり、
+新しいprovider prompt・SDK実行・GUI合格の証拠ではない。既存[#278の固定調査](issue-278-midturn-contract.md)を
+全版・全経路の非対応判断へ拡大しない。未接続の行は親#212の受入に残す。
+
+| 能力 | 確認した契約と限界 | 次に確定する接続条件 |
+| --- | --- | --- |
+| P02 履歴編集 | [ACP v1 schema](https://agentclientprotocol.com/protocol/v1/schema)のPromptRequestはsessionId/prompt/_metaで、編集対象messageや履歴分岐点を指定しない。[Cursor CLIの`/fork`・`/rewind`](https://cursor.com/docs/cli/reference/slash-commands)はinteractive経路の公開機能。固定CLIのACP command処理から、この組込み操作への接続は確認できなかった。 | 元会話を保持する分岐か後続履歴の置換か、対象ID、provider側の履歴変更と失敗時復旧を確定する。画面の本文だけを消したり、旧本文を通常promptとして末尾へ送ったりして編集済みと表示しない。 |
+| P04 同一turn入力 | [SDK `run.steer`](https://cursor.com/docs/sdk/typescript#steering-a-run-in-flight)は実行中turnへの追記を公開し、`complete_delivered`と`revert_to_followup`を区別する。localのlive handleが対象で、Cloud/detached localのfallbackは追記成功ではない。固定CLIのACPは次のprompt受付で先行promptの取消を呼び、同時promptを非中断steeringには使えない。 | SDKを別方式として採用する場合、run/追加message/ackの所有、終端との競合、結果不明時の再送禁止、Stop/close、保存と再開を検証する。既存PRINT/ACP会話をSDKへ暗黙移行しない。 |
+| P05 terminal tool限定取消 | [ACP prompt取消](https://agentclientprotocol.com/protocol/v1/prompt-turn)とSDKの`run.cancel()`はrunを止める契約。今回確認したCursor ACPのclient→agent拡張handlerに、実行中tool IDを指定する取消はなかった。clientが所有するterminalの操作とprovider内部toolの取消を同一視しない。 | 対象toolだけの取消受付、他tool/親runの継続、完了競合と結果帰属が保証される公開契約。現在のStop/OS process停止をこのキーへ別名接続しない。 |
+| P09 Voice | 固定CLIのACP初期capabilityはaudio=false。これは音声をそのままpromptに渡す経路の広告であり、client側の文字起こし可能性を否定しない。[#99](https://github.com/shinma06/cursor-in-android-studio/issues/99)のOS dictation研究だけではAgent Voiceの開始/停止/取消は実装されない。 | 録音・文字起こしの採用経路、権限/費用、chatと録音の所有、取消後の遅着拒否、音声の保存/破棄を確定する。OS dictationの起動だけをVoice受入としない。 |
+
+SDK候補には公開された[JVM等向けBridge](https://cursor.com/docs/sdk/bridge)もあるが、
+確認した[固定proto](https://github.com/cursor/sdk-bridge/blob/d932194bcaf3d8ca4cae7373dfec32633ed0c9d0/proto/sdk/v1/sdk_agent_service.proto)
+のサービスはSend/CancelRun等を持ち、steer RPCはない。TypeScriptのmethodがBridgeにも存在すると推定しない。
+SDKはAPI keyと別のruntime/lifecycleを必要とし、[公開のlocal実行説明](https://cursor.com/docs/sdk/typescript#quick-start)では
+既定tool実行に確認を挟まない。新方式では既存の権限・質問・Plan・Todo・MCP・保存を含む全契約を照合する必要がある。
+この確認では依存追加、認証作成、SDK agent起動は行わず、採用決定や実装完了とはしていない。
+
+固定CLIの静的観測はACP実装bundleのSHA-256
+`9f99eb2b344aace7e5c67f7c07dc6d6b4bab3b85ba068e0cb9b1074ffb5eebf1`に限定する。
+raw bundle・wire・個人command一覧は公開しない。公開method/広告または固定版が変わった場合に、該当行だけ再照合する。
+JetBrains AI Assistant + Cursor ACP + IDE MCP/toolsでも、IDE側の検索・context・terminal能力と
+provider会話の編集/実行中入力契約は別に検証する。ここで未測定の競合機能を非対応と断定せず、同等以上のGUI受入は残す。
 
 ## Keymap・競合・完了条件
 
