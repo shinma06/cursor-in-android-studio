@@ -62,6 +62,31 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta E" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta E" replace-all="true"/>
             </action>
+            <action id="CursorAgent.OpenChat" class="com.cursoragent.actions.AgentWindowAction$OpenChat"
+                    text="チャットを開く" description="現在のチャットを開いて選択コードを追加します。パネルにfocusがある場合は隠します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control L"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control I"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta L" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta I"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta L" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta I"/>
+            </action>
+            <action id="CursorAgent.FollowUp" class="com.cursoragent.actions.AgentWindowAction$FollowUp"
+                    text="チャットの入力へ戻る" description="現在のチャットに選択コードを追加して入力欄へ戻ります。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
+                <keyboard-shortcut keymap="Default for XWin" first-keystroke="control Y" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta Y" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta Y" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.NewAgent" class="com.cursoragent.actions.AgentWindowAction$NewAgent"
+                    text="New Agent" description="空のAgentを再利用または作成します。focus済みの空Agentではパネルを隠します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift L"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift I"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift L" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift I"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift L" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift I"/>
+            </action>
             <action id="CursorAgent.NewChat" class="com.cursoragent.actions.AgentPanelAction$NewChat"
                     text="新規チャット" description="現在のパネルに新しいチャットを開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control T"/>

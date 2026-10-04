@@ -118,6 +118,34 @@ class AgentWindowActionTest {
         }
     }
 
+    @Test
+    fun `chat entries expose both aliases and Windows follow up does not leak into Linux or Mac`() {
+        val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(java.io.File("src/main/resources/META-INF/plugin.xml"))
+        val nodes = xml.getElementsByTagName("action")
+        val declarations = (0 until nodes.length).map { nodes.item(it) as org.w3c.dom.Element }
+            .associateBy { it.getAttribute("id") }
+        for ((command, action, keys) in listOf(
+            Triple(AgentWindowCommand.OPEN_CHAT, AgentWindowAction.OpenChat(), listOf("L", "I")),
+            Triple(AgentWindowCommand.NEW_AGENT, AgentWindowAction.NewAgent(), listOf("shift L", "shift I")),
+            Triple(AgentWindowCommand.FOLLOW_UP, AgentWindowAction.FollowUp(), listOf("Y")),
+        )) {
+            val declaration = declarations.getValue(command.actionId)
+            assertEquals(action.javaClass.name, declaration.getAttribute("class"))
+            val shortcuts = declaration.getElementsByTagName("keyboard-shortcut")
+            val byKeymap = (0 until shortcuts.length).map { shortcuts.item(it) as org.w3c.dom.Element }.groupBy { it.getAttribute("keymap") }
+            val followUp = command == AgentWindowCommand.FOLLOW_UP
+            assertEquals(if (followUp) 4 else 6, shortcuts.length)
+            assertEquals(if (followUp) listOf("control shift Y") else keys.map { "control $it" },
+                byKeymap.getValue("\$default").map { it.getAttribute("first-keystroke") })
+            for (keymap in listOf("Mac OS X", "Mac OS X 10.5+") + if (followUp) listOf("Default for XWin") else emptyList()) {
+                val entries = byKeymap.getValue(keymap)
+                val modifier = if (keymap == "Default for XWin") "control" else "meta"
+                assertEquals(keys.map { "$modifier $it" }, entries.map { it.getAttribute("first-keystroke") })
+                assertEquals("true", entries.first().getAttribute("replace-all"))
+            }
+        }
+    }
+
     private fun event(action: AgentWindowAction, project: Project?) = AnActionEvent(
         DataContext { if (CommonDataKeys.PROJECT.`is`(it)) project else null },
         action.templatePresentation.clone(), "test", ActionUiKind.NONE, null, 0, unusedActionManager,

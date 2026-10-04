@@ -2,6 +2,8 @@ package com.cursoragent.ui
 
 import com.cursoragent.actions.AgentPanelActions
 import com.cursoragent.actions.AgentPanelCommand
+import com.cursoragent.actions.AgentWindowCommand
+import com.cursoragent.ui.composer.context.SelectionContext
 import com.cursoragent.service.AgentTransport
 import com.cursoragent.service.AgentProcessService
 import com.cursoragent.service.TurnSettings
@@ -35,12 +37,16 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.CardLayout
+import java.awt.KeyboardFocusManager
+import java.awt.event.HierarchyEvent
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
 /** Retain complete tab views so editor caret/selection and timeline scroll never cross sessions. */
 class AgentToolWindowRootPanel(
@@ -50,9 +56,16 @@ class AgentToolWindowRootPanel(
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
-    private data class TabView(val panel: JPanel, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
+    private data class TabView(
+        val panel: JPanel,
+        val composer: ComposerPanel,
+        val timeline: ChatTimelinePanel,
+        val controller: AgentUiController,
+        var lastShownNanos: Long? = null,
+    )
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
+    private var chatFocusGeneration = 0L
     private var openedChatsPopup: JBPopup? = null
     private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
@@ -172,7 +185,12 @@ class AgentToolWindowRootPanel(
         })
         strip.onSelect = { id -> if (sessions.select(id)) showSelected() }
         strip.onClose = { id -> closeTabs(listOf(id)) }
-        addHierarchyListener { if (!isShowing) openedChatsPopup?.cancel() }
+        addHierarchyListener { event ->
+            if (!isShowing) {
+                openedChatsPopup?.cancel()
+                if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) cancelPendingChatFocus()
+            }
+        }
         strip.onMove = { id, index -> if (sessions.move(id, index)) refreshStrip() }
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
@@ -192,6 +210,44 @@ class AgentToolWindowRootPanel(
             if (!disposed && !project.isDisposed && views[id] === owner) {
                 owner.composer.promptContext.addSelection(selection)
                 owner.composer.inputArea.requestFocusInWindow()
+            }
+        }
+    }
+
+    internal fun cancelPendingChatFocus() { chatFocusGeneration++ }
+
+    internal fun enterChat(command: AgentWindowCommand, selection: SelectionContext?, window: ToolWindow) {
+        if (!windowShortcutAvailable || window.isDisposed || window.project !== project) return
+        val snapshot = sessions.snapshot()
+        val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+        val focused = isShowing && focus != null && SwingUtilities.isDescendingFrom(focus, this)
+        val tabs = snapshot.tabs.map { tab ->
+            val view = views.getValue(tab.id)
+            // Live composer state is authoritative: SessionTab.draft is only updated on send.
+            val empty = view.composer.selection.mode == AgentMode.AGENT && tab.run == null &&
+                !view.composer.isRunning && !view.controller.hasQueuedPrompts &&
+                view.controller.conversationSnapshot()?.turns?.isEmpty() == true &&
+                view.composer.inputArea.text.isBlank() && view.composer.commands.selectedName == null &&
+                view.composer.images?.hasUnsent != true
+            ChatEntryTab(tab.id, empty, view.composer.promptContext.draft.snapshot().selections.isNotEmpty(), view.lastShownNanos)
+        }
+        when (val entry = chatEntry(command, tabs, snapshot.selectedId, focused, window.isVisible, System.nanoTime())) {
+            ChatEntry.Hide -> { cancelPendingChatFocus(); window.hide(null) }
+            is ChatEntry.Focus -> {
+                if (entry.id == null) {
+                    open()
+                    selectedView?.composer?.modeSelector?.selectMode(AgentMode.AGENT)
+                } else if (entry.id != snapshot.selectedId && sessions.select(entry.id)) {
+                    showSelected()
+                }
+                val owner = selectedView ?: return
+                if (entry.insertSelection && selection != null) owner.composer.promptContext.addSelection(selection)
+                owner.lastShownNanos = System.nanoTime()
+                val generation = ++chatFocusGeneration
+                window.activate({
+                    if (!window.isDisposed && window.isAvailable && window.isVisible && generation == chatFocusGeneration &&
+                        selectedView === owner && windowShortcutAvailable) owner.composer.inputArea.requestFocusInWindow()
+                }, false)
             }
         }
     }
@@ -268,6 +324,7 @@ class AgentToolWindowRootPanel(
 
     private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
         if (disposed) return
+        cancelPendingChatFocus()
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
@@ -302,6 +359,7 @@ class AgentToolWindowRootPanel(
         }
         (cards.layout as CardLayout).show(cards, tab.id)
         refreshStrip()
+        view.lastShownNanos = System.nanoTime()
         view.composer.inputArea.requestFocusInWindow()
     }
 

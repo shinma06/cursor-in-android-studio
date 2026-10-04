@@ -1,8 +1,10 @@
 package com.cursoragent.actions
 
 import com.cursoragent.ui.AgentToolWindowRootPanel
+import com.cursoragent.ui.composer.context.EditorContextReader
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -12,6 +14,9 @@ import com.intellij.openapi.wm.ToolWindowManager
 internal enum class AgentWindowCommand(val actionId: String) {
     TOGGLE("CursorAgent.TogglePanel"),
     SWAP_SIDE("CursorAgent.SwapPanelSide"),
+    OPEN_CHAT("CursorAgent.OpenChat"),
+    FOLLOW_UP("CursorAgent.FollowUp"),
+    NEW_AGENT("CursorAgent.NewAgent"),
 }
 
 /** Resolve the owning project's live ToolWindow for every event, including before content creation. */
@@ -27,11 +32,19 @@ abstract class AgentWindowAction internal constructor(
 
     override fun actionPerformed(e: AnActionEvent) {
         val window = target(e) ?: return
+        panel(window)?.cancelPendingChatFocus()
         when (command) {
             AgentWindowCommand.TOGGLE -> if (window.isVisible) window.hide(null) else window.show(null)
             AgentWindowCommand.SWAP_SIDE -> {
                 window.setAnchor(if (window.anchor == ToolWindowAnchor.LEFT) ToolWindowAnchor.RIGHT else ToolWindowAnchor.LEFT, null)
                 window.show(null)
+            }
+            AgentWindowCommand.OPEN_CHAT, AgentWindowCommand.FOLLOW_UP, AgentWindowCommand.NEW_AGENT -> {
+                // Read the event editor before content creation/activation can move focus.
+                val selection = e.getData(CommonDataKeys.EDITOR)?.takeIf { it.selectionModel.hasSelection() }
+                    ?.let { EditorContextReader.read(window.project, it)?.selection }
+                window.contentManager.contents.firstNotNullOfOrNull { it.component as? AgentToolWindowRootPanel }
+                    ?.enterChat(command, selection, window)
             }
         }
     }
@@ -39,10 +52,15 @@ abstract class AgentWindowAction internal constructor(
     private fun target(e: AnActionEvent): ToolWindow? {
         val project = e.project?.takeUnless { it.isDisposed } ?: return null
         val window = windowFor(project)?.takeUnless { it.isDisposed || !it.isAvailable || it.project !== project } ?: return null
-        val panel = window.contentManagerIfCreated?.contents?.firstNotNullOfOrNull { it.component as? AgentToolWindowRootPanel }
-        return window.takeUnless { panel?.windowShortcutAvailable == false }
+        return window.takeUnless { panel(window)?.windowShortcutAvailable == false }
     }
+
+    private fun panel(window: ToolWindow) =
+        window.contentManagerIfCreated?.contents?.firstNotNullOfOrNull { it.component as? AgentToolWindowRootPanel }
 
     class Toggle : AgentWindowAction(AgentWindowCommand.TOGGLE)
     class SwapSide : AgentWindowAction(AgentWindowCommand.SWAP_SIDE)
+    class OpenChat : AgentWindowAction(AgentWindowCommand.OPEN_CHAT)
+    class FollowUp : AgentWindowAction(AgentWindowCommand.FOLLOW_UP)
+    class NewAgent : AgentWindowAction(AgentWindowCommand.NEW_AGENT)
 }

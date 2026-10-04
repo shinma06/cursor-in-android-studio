@@ -2,11 +2,12 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内11操作とglobal入口2操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内11操作とglobal入口5操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
     "AgentWindowActionTest: project/ToolWindowの実行時再取得、別project拒否、未生成content、不可/破棄後の拒否、visible/anchorの最新状態とglobal既定キー",
+    "ChatEntryTest: Openのfocus/非表示選択保持、FollowUpの現在chat維持、NewAgentの空再利用/作成/500ms境界と再表示時更新",
     "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks"
   ],
   "cases": [
@@ -137,8 +138,8 @@
       "id": "KEYMAP-OS-REMAP",
       "change": "OS別Keymap・変更・解除・寿命",
       "steps": [
-        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel内11操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+Eはproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
-        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel内11操作とglobal入口2操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
+        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel内11操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/Iはproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel内11操作とglobal入口5操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
         "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
       ],
       "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel外でキーを奪わず、dispose済みの対象へ配送しない。"
@@ -187,6 +188,52 @@
         "project A/Bで交互に操作し、選択eventのprojectのパネルだけ動くことを確認する。Aの破棄/閉鎖後の遅いeventや未生成contentに対するupdateで、別projectを操作したりcontentを先に生成したりしない。Keymap再割当/削除とOS/US-JIS配列も照合する。"
       ],
       "expected": "visibilityとanchorだけを既存ToolWindowへ適用し、会話/draft/runを保持する。IME/popup/破棄と別projectの境界を守り、Cursorとの配置差・実focus・浮動状態は固定buildの実観察で判定する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-CHAT-ENTRY",
+      "change": "開く・入力へ戻る・New Agentの再利用とfocus所有",
+      "steps": [
+        "content未生成/非表示/表示中の各状態でM+L/Iを押す。現在の会話/draftを保持し、editorの選択コードを追加して入力欄にfocusする。既にパネル内にfocusがある場合は隠す。非表示の会話に明示選択がある場合は新たなeditor選択で置換・追加しない。",
+        "MacのCmd+Y、LinuxのCtrl+Y、WindowsのCtrl+Shift+Yで現在の入力へ戻る。本文/draft/contextを保持してeventの選択コードを追加する。WindowsのCtrl+Y、LinuxのCtrl+Shift+Yを副キーと誤認しない。",
+        "本文あり、未送信draftあり、空Agent、空Plan、画像/command/予約あり、legacy本文不明のタブを用意する。M+Shift+L/Iは最初の空Agentを再利用し、適格なタブがなければ新規Agentを作る。共有mode設定と他タブ、明示contextを保持する。空Agentにfocusして500ms未満の再入力で隠れず、最後の表示/focus要求から500ms経過後に隠れることを確認する。",
+        "表示callback待ちにタブ切替、非表示、project閉鎖を行い、旧viewへのfocusや別projectへの添付を起こさない。IME/候補/子popup中は背後の表示/タブ操作が起きない。Keymap変更/解除、US/JIS、全OSの既存IDE操作との競合を記録する。",
+        "Cursorのnative Git-worktree除外、editor表示、過去入力からの戻りはP06/P07/P02の未実装として残す。ISOLATEDをnative Git-worktreeとみなさず、pane分岐だけの成功で全対応をpassにしない。"
+      ],
+      "expected": "pane入口がview/draft/context/runを保持し、空Agent再利用・500ms・OS差・遅いfocusの所有を満たす。未実装分岐とCursorとの入力保護差を記録する。"
     },
     {
       "gpt": {
