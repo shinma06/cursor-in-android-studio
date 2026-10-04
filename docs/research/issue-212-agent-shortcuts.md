@@ -115,11 +115,11 @@
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-以下は実装を分割する候補であり、現時点では未起票・未完了。能力と公開契約の不足を確認したものを、実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma06/cursor-in-android-studio/issues/518)へ実分解した（native sub-issue、未実装）。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
-| P01 | 開いている会話の本文findと次/前/解除 | #45の保存履歴検索と区別。本文位置、検索focusと送信の競合を検証。 |
+| P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | #45の保存履歴検索と区別。大文字小文字/単語単位/正規表現、一致箇所の強調と位置/総数、長い本文/不正な式の応答性、stream・タブ所有、検索focusとIME/送信競合を検証。実装・GUIは未達。 |
 | P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保ち、過去message再送範囲とShift+Tabの優先を確定する。 |
 | P03 | コピー元を識別できるcodeのcontext付き貼付け | #24/#343を再利用。公開clipboard形式で得られた出典だけを使い、path/range/versionを推測しない。 |
 | P04 | 同一実行turnへの即時入力 | #278は公開method待ちの研究完了。次turn queueやStop後再送を代替にしない。公開契約と有限live証拠が必要。 |
@@ -141,4 +141,4 @@ M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。現行�
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
-3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行11 Actionや静的件数だけで#212を閉じない。全対象の有限な到達目標と分割先のMilestoneも確定する。
+3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行11 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
