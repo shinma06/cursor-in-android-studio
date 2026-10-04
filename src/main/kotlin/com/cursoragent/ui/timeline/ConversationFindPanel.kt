@@ -13,10 +13,12 @@ import java.awt.event.InputMethodListener
 import java.util.concurrent.CancellationException
 import java.util.concurrent.Future
 import javax.swing.JButton
+import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextArea
 import javax.swing.JToggleButton
+import javax.swing.JViewport
 import javax.swing.SwingUtilities
 import javax.swing.Timer
 import javax.swing.event.DocumentEvent
@@ -196,8 +198,19 @@ internal class ConversationFindPanel(
             currentHighlight = highlighter to highlighter.addHighlight(hit.start, hit.end, currentPainter)
             // Keep the search field focused and preserve the message's native text selection.
             component.modelToView2D(hit.start)?.bounds?.let { bounds ->
+                component.modelToView2D(hit.end)?.bounds?.takeIf { it.y == bounds.y }?.let(bounds::add)
                 bounds.width = bounds.width.coerceAtLeast(JBUI.scale(4))
-                component.scrollRectToVisible(bounds)
+                // The code's inner viewport consumes scrollRectToVisible. Reveal the same
+                // text rectangle in every enclosing viewport, including the transcript.
+                var parent = component.parent
+                while (parent != null) {
+                    if (parent is JViewport) {
+                        (parent.view as? JComponent)?.let { view ->
+                            view.scrollRectToVisible(SwingUtilities.convertRectangle(component, bounds, view))
+                        }
+                    }
+                    parent = parent.parent
+                }
             }
         }
         updateCount()

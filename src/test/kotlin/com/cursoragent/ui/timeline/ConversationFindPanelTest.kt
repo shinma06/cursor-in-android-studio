@@ -9,6 +9,46 @@ import org.junit.jupiter.api.Test
 
 class ConversationFindPanelTest {
     @Test
+    fun `a match in long code scrolls both the inner horizontal and outer transcript viewport`() {
+        val jobs = mutableListOf<() -> Unit>()
+        lateinit var panel: ConversationFindPanel
+        lateinit var outer: javax.swing.JScrollPane
+        lateinit var inner: javax.swing.JScrollPane
+        onEdt {
+            val code = (1..80).joinToString("\n") { if (it == 80) "x".repeat(160) + "needle" else "line $it" }
+            val bubble = AssistantMessageBubble("```\n$code\n```")
+            val transcript = javax.swing.JPanel(TranscriptLayout(14)).apply { add(bubble) }
+            outer = javax.swing.JScrollPane(transcript).apply { setSize(260, 180); doLayout() }
+            transcript.setSize(outer.viewport.extentSize.width, 2_000)
+            repeat(4) {
+                transcript.doLayout()
+                transcript.setSize(outer.viewport.extentSize.width, transcript.preferredSize.height)
+                outer.viewport.viewSize = transcript.size
+                outer.doLayout()
+            }
+            inner = bubble.components.filterIsInstance<javax.swing.JScrollPane>().single()
+            assertTrue(transcript.height > 500, "fixture must overflow the transcript")
+            outer.viewport.viewPosition = java.awt.Point(0, 0)
+            inner.viewport.viewPosition = java.awt.Point(0, 0)
+            panel = ConversationFindPanel({ listOf(bubble.searchableText) }, { true }, {}, { jobs.add(it); CompletableFuture<Unit>() })
+            panel.open()
+            panel.search.text = "needle"
+            panel.searchNow()
+        }
+        jobs.removeFirst().invoke()
+        onEdt {
+            assertEquals("1 / 1", panel.count.text)
+            assertTrue(outer.viewport.viewPosition.y > 100, "the transcript must reveal the match's line, not merely its message")
+            assertTrue(inner.viewport.viewPosition.x > 100, "the code viewport must reveal the matching column")
+            val pane = inner.viewport.view as MessageTextPane
+            val offset = pane.document.getText(0, pane.document.length).indexOf("needle")
+            val point = SwingUtilities.convertPoint(pane, pane.modelToView2D(offset).bounds.location, outer.viewport.view)
+            assertTrue(outer.viewport.viewRect.contains(point), "the matching line and column must actually be in view")
+            panel.dispose()
+        }
+    }
+
+    @Test
     fun `search highlights rendered positions cycles and preserves source selection and other highlights`() {
         val jobs = mutableListOf<() -> Unit>()
         lateinit var pane: MessageTextPane
