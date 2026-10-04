@@ -81,6 +81,34 @@ class SessionTabsTest {
     }
 
     @Test
+    fun `closing the final ACP conversation leaves a fresh unlocked tab and rejects late connection metadata`() {
+        val store = SessionTabs()
+        val old = store.snapshot().selected
+        store.selectTransport(old.id, com.cursoragent.service.AgentTransport.ACP)
+        store.updateComposer(old.id, AgentMode.ASK, "provider-model", "request", 7)
+        val turn = store.beginTurn(old.id)!!
+        store.bindChat(turn.token, "provider-session")
+        store.applyAcpTitle(old.id, "provider-session", "Provider title")
+        store.updateComposer(old.id, AgentMode.ASK, "provider-model", "next draft", 4)
+
+        assertSame(turn.token, store.closeAll(listOf(old.id)).single().run)
+        val fresh = store.snapshot().selected
+        assertNotEquals(old.id, fresh.id)
+        assertNotEquals(old.conversationId, fresh.conversationId)
+        assertEquals(SessionTab.NEW_AGENT_TITLE, fresh.title)
+        assertNull(fresh.chatId)
+        assertNull(fresh.run)
+        assertEquals("", fresh.draft)
+        assertEquals("", fresh.modelId)
+        assertFalse(fresh.transportLocked)
+        assertEquals(com.cursoragent.service.AgentTransport.PRINT, fresh.transport)
+        assertFalse(store.accepts(turn.token))
+        assertFalse(store.finishTurn(turn.token))
+        assertFalse(store.applyAcpTitle(old.id, "provider-session", "Late title"))
+        assertEquals(fresh, store.snapshot().selected)
+    }
+
+    @Test
     fun `inactive close and invalid operations leave selected state alone`() {
         val store = SessionTabs()
         val a = store.snapshot().selected.id

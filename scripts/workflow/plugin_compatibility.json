@@ -27,8 +27,8 @@
       "disposition": "34 usages are present in Rabbit: 32 existing Terminal view/output and ToolWindowFactory bridges, plus two ManagingFS.flushPendingUpdates calls required by JetBrains' documented async editor-save contract before external Git/CLI access. Flush runs off EDT/write actions and failure aborts the operation. Preserve optional Terminal loading/linkage protection; issue-466 Cases cover both Terminal states and saved-content/restore ordering. Reevaluate these experimental APIs before expanding the SDK range."
     },
     "internal-api-usages.txt": {
-      "sha256": "7eaec9b605e9d87ec7fee57dc40252c70d3dd771d3b2895a87b4dcf3b5971440",
-      "disposition": "9 usages are present in Rabbit: ToolWindow header/menu, build diagnostics lookup and browser recovery plugin settings navigation. Preserve existing UI behavior and reevaluate public alternatives before expanding the SDK range."
+      "sha256": "378f943adb69e86552a2788ae4a16def47bc35914b901ea41d8583096d8f3196",
+      "disposition": "9 usages are present in Rabbit: ToolWindow header/menu, build diagnostics lookup and browser recovery plugin settings navigation. Preserve existing UI behavior and reevaluate public alternatives before expanding the SDK range. PR #509の固定CIレポートでは既存callbackのコンパイル名が$lambda$1から$lambda$2へ変わり行順も変化した。9件のAPI利用が同一であることを独立レビューで確認し、実レポートのhashだけを更新。検査対象・未知APIの拒否条件は維持する。"
     }
   },
   "reviewed_log_warnings": {
