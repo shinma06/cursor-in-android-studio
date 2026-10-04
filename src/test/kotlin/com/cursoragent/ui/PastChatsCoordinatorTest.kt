@@ -8,6 +8,7 @@ import com.intellij.testFramework.runInEdtAndWait
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.util.ArrayDeque
+import javax.swing.SwingUtilities
 
 class PastChatsCoordinatorTest {
     @Test
@@ -190,7 +191,9 @@ class PastChatsCoordinatorTest {
         fun edt(block: () -> Unit) = runInEdtAndWait(block)
         fun complete(conversations: List<com.cursoragent.history.Conversation> = emptyList()) {
             edt { loads.removeFirst()(Result.success(ConversationStore.Loaded(conversations, 0))) }
-            edt {} // Deliver the coordinator's EDT callback after its asynchronous load.
+            // The coordinator posts to Swing's queue. The IDE's separate invocation queue
+            // may overtake that event, so an empty runInEdtAndWait is not a completion barrier.
+            SwingUtilities.invokeAndWait {}
         }
     }
 }
