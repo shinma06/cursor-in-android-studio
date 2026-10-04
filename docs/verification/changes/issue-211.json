@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "issue": 211,
+  "gui_required": true,
+  "reason": "IDEの共有設定との即時連動と複数行タブ・固定Actionの実画面受入が必要。今回はGUI操作を行わずpendingを保持する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（製品変更の./gradlew testを含む）",
+    "SessionTabStripTestの既存1行・複数行・幅変更・切替・選択/閉鎖・行間DnD・背景/固定Actionと固定親サイズで20タブの全行到達・会話/入力欄の領域・縦ホイール・drag自動縦スクロール検証",
+    "git diff --check、Case JSON schema、固定HEAD/baseの独立レビューと4必須checks"
+  ],
+  "cases": [
+    {
+      "id": "TABS-WRAP-SETTINGS",
+      "issue": 211,
+      "change": "IDE設定・幅・テーマ・panel寿命に応じた複数行",
+      "preconditions": "指定GUI担当のhost leaseと専用profile・使い捨てproject。#211を含む固定source SHA/ZIP SHA256/installed全JAR/ロード実体を照合。通常IDEと設定を保全し、実providerへ送信しない。PRINT/ACPの状態回帰には既存の合成fixtureを使う。",
+      "steps": [
+        "初期のEditor Tabs設定を記録し、Agentパネルで6件以上の会話を開く。専用profileの Settings → Editor → General → Editor Tabs → Show tabs in を Multiple rows に変更してApplyする。開き直しなしで複数行となることを確認する。",
+        "パネルを狭幅/通常幅/広幅へ変更し、行数が増減すること、全tabのタイトル/閉じる領域と右固定Actionが重ならないことを確認する。長い日本語・結合文字・絵文字のタイトルと20件のタブを含め、右固定Actionが先頭行にあり、すべてのタブを操作できることを確認する。320×500程度の狭いパネルで20件を折り返し、タブ領域がパネル高さの半分以内となり、会話本文と入力欄が画面内に残ること、縦ホイール/スクロールバーで末尾まで到達できることを確認する。高さを縮小/拡大し、End/Homeによる末尾/先頭選択が表示範囲へ戻ることも確認する。 バーなしなら2列×3行が収まる6タブの境界幅で、狭幅から広げた場合と広幅から縮めた場合の配置が一致することを確認する。タブ削除や高さ拡大で全行が収まる場合は縦バーが消え、末尾行が隠れないことも確認する。",
+        "タブを追加/閉鎖して行数が増減することを確認。最後のtabを選択してOne rowへ戻すと1行/横スクロールに戻り、選択tabが見えること、Scroll the tabs panel / Squeeze tabsのどちらも本Pluginは従来の自然幅/横スクロールであることを確認する。",
+        "Dark/Lightを切り替え、各行の選択背景、境界、閉じるicon、tooltipを確認。使い捨ての別projectでも設定変更を反映し、それぞれの会話と下書きを保持する。片方のprojectを閉じて再度設定を変えても破棄済みpanelから例外や操作が発生せず、残ったpanelだけが更新される。試験後は専用profileの設定を元へ戻す。"
+      ],
+      "expected": "IDE全体の折り返し選択を再起動不要で共有し、幅とタブ数に応じて高さが変わる。無効時は既存1行表示。Actionを先頭行に保ち、親の高さを超えず会話/入力欄の領域を確保し、あふれる全行へ縦スクロールと選択時の表示で到達できる。会話状態を失わない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。headless部品テストは固定buildの実画面受入ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。headless部品テストは固定buildの実画面受入ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件・専用fix Issue/PR・修正buildを特定して再確認。旧build/部分/合成passを新候補へ転記しない。",
+      "next_action": "GUI操作再開後に指定担当が固定buildで確認。未確認Caseとmain未反映をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/211",
+        "https://www.jetbrains.com/help/idea/using-code-editor.html"
+      ]
+    },
+    {
+      "id": "TABS-WRAP-ACTIONS",
+      "issue": 211,
+      "change": "複数行の選択・閉鎖・並べ替えと状態保持",
+      "preconditions": "指定GUI担当のhost leaseと専用profile・使い捨てproject。#211を含む固定source SHA/ZIP SHA256/installed全JAR/ロード実体を照合。通常IDEと設定を保全し、実providerへ送信しない。PRINT/ACPの状態回帰には既存の合成fixtureを使う。",
+      "steps": [
+        "各会話へ識別可能な下書きと明示contextを置く。2行目以降のtabをクリックし、正しい会話/本文/下書きへ切り替わることを確認する。tooltipは全文を文字列として表示する。",
+        "2行目以降の閉じるボタンとDeleteを使用する。確認の取消は会話を保持し、承認は対象tabだけを閉じる。#213を含む候補では、最後のタブ閉鎖も#213のCaseで別途確認する。",
+        "1行目から後続行、後続行から先頭へドラッグして順序を変更し、別tabの状態とIDが混ざらないことを確認する。多数タブの縦スクロール状態で上下端のdragによる自動スクロールと後続行への移動も確認する。Escape、パネル非表示、折り返し切替と幅変更でドラッグを取消し、意図しない移動とタイマー残存がないことを確認する。",
+        "タブにfocusを置き左右キー、Home/End、Alt+Shift+左右、Deleteを操作し、表示順の正しいtabへ移動/並べ替え/閉鎖を行う。PRINT/ACP合成fixtureの実行中にも表示設定と並べ替えを変更し、送受信・Stopが元のtabへ届き他のrunを止めないことを確認する。"
+      ],
+      "expected": "行位置によらず選択・閉鎖・並べ替え・キー操作は元のtab IDを使用し、会話/下書き/実行の所有を保持する。取消後に遅れたdrag操作を適用しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。headless部品テストは固定buildの実画面受入ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。headless部品テストは固定buildの実画面受入ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件・専用fix Issue/PR・修正buildを特定して再確認。旧build/部分/合成passを新候補へ転記しない。",
+      "next_action": "GUI操作再開後に指定担当が固定buildで確認。未確認Caseとmain未反映をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/211",
+        "https://www.jetbrains.com/help/idea/using-code-editor.html"
+      ]
+    }
+  ]
+}
