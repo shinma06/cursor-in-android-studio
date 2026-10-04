@@ -7,9 +7,9 @@
 
  import com.cursoragent.history.Conversation
  import com.cursoragent.history.ConversationHistory
-@@ -33,6 +35,7 @@
-     private val legacyOnly: Boolean = false,
+@@ -34,6 +36,7 @@
      private val onShowConversation: () -> Unit = {},
+     private val onTitleChanged: () -> Unit = {},
  ) {
 +    private val verificationOwner = VerificationDefer.owner(project, composer.inputArea)
      private var turnGeneration = 0L
