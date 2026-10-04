@@ -200,22 +200,27 @@ class SessionTabStrip : JPanel(BorderLayout()) {
 
     private fun tabBounds(): List<Pair<SessionTabPresentation, Rectangle>> {
         val metrics = canvas.getFontMetrics(canvas.font)
-        val scrollbarWidth = if (wrapTabs && scrollPane.verticalScrollBar.isVisible) {
-            scrollPane.verticalScrollBar.preferredSize.width
-        } else 0
-        val availableWidth = (width - (toolbar()?.preferredSize?.width ?: 0) - scrollbarWidth).coerceAtLeast(1)
-        var x = 0
-        var y = 0
-        return tabs.map { tab ->
-            val title = abbreviateSessionTitle(tab.fullTitle, metrics, sessionTitleWidth(metrics))
-            val naturalWidth = (metrics.stringWidth(title) + JBUI.scale(66)).coerceAtLeast(JBUI.scale(112))
-            val tabWidth = if (wrapTabs) naturalWidth.coerceAtMost(availableWidth) else naturalWidth
-            if (wrapTabs && x > 0 && x + tabWidth > availableWidth) {
-                x = 0
-                y += tabHeight
+        val fullWidth = (width - (toolbar()?.preferredSize?.width ?: 0)).coerceAtLeast(1)
+        fun arrange(availableWidth: Int): List<Pair<SessionTabPresentation, Rectangle>> {
+            var x = 0
+            var y = 0
+            return tabs.map { tab ->
+                val title = abbreviateSessionTitle(tab.fullTitle, metrics, sessionTitleWidth(metrics))
+                val naturalWidth = (metrics.stringWidth(title) + JBUI.scale(66)).coerceAtLeast(JBUI.scale(112))
+                val tabWidth = if (wrapTabs) naturalWidth.coerceAtMost(availableWidth) else naturalWidth
+                if (wrapTabs && x > 0 && x + tabWidth > availableWidth) {
+                    x = 0
+                    y += tabHeight
+                }
+                (tab to Rectangle(x, y, tabWidth, tabHeight)).also { x += tabWidth }
             }
-            (tab to Rectangle(x, y, tabWidth, tabHeight)).also { x += tabWidth }
         }
+        val withoutScrollbar = arrange(fullWidth)
+        val rowsHeight = withoutScrollbar.lastOrNull()?.second?.let { it.y + it.height } ?: tabHeight
+        // Decide from the full width first: current scrollbar visibility depends on these same rows.
+        return if (wrapTabs && rowsHeight > (wrappedHeightLimit() ?: Int.MAX_VALUE)) {
+            arrange((fullWidth - scrollPane.verticalScrollBar.preferredSize.width).coerceAtLeast(1))
+        } else withoutScrollbar
     }
 
     private fun closeBounds(bounds: Rectangle) = Rectangle(
@@ -275,15 +280,16 @@ class SessionTabStrip : JPanel(BorderLayout()) {
     private fun toolbar(): java.awt.Component? =
         (layout as BorderLayout).getLayoutComponent(BorderLayout.EAST)?.takeIf { it.isVisible }
 
+    private fun wrappedHeightLimit(): Int? = parent?.takeIf {
+        (it.layout as? BorderLayout)?.getLayoutComponent(BorderLayout.NORTH) === this
+    }?.let { it.height - it.insets.top - it.insets.bottom }?.takeIf { it > 0 }?.div(2)
+
     override fun getPreferredSize(): Dimension {
         val toolbar = toolbar()?.preferredSize
         val rowsHeight = tabBounds().lastOrNull()?.second?.let { it.y + it.height } ?: tabHeight
         val naturalHeight = maxOf(rowsHeight, toolbar?.height ?: 0)
         // Leave at least half of the tool window for the chat and composer; scroll the remaining rows.
-        val availableHeight = parent?.takeIf {
-            (it.layout as? BorderLayout)?.getLayoutComponent(BorderLayout.NORTH) === this
-        }?.let { it.height - it.insets.top - it.insets.bottom } ?: 0
-        val height = if (wrapTabs && availableHeight > 0) minOf(naturalHeight, availableHeight / 2) else naturalHeight
+        val height = if (wrapTabs) minOf(naturalHeight, wrappedHeightLimit() ?: naturalHeight) else naturalHeight
         return Dimension(JBUI.scale(320) + (toolbar?.width ?: 0), height)
     }
 

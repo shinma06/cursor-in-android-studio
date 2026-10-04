@@ -12,6 +12,7 @@ import java.awt.Container
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.Point
+import java.awt.Rectangle
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.image.BufferedImage
@@ -460,6 +461,56 @@ class SessionTabStripTest {
         assertNotNull(strip.boundsFor("a"))
         strip.setTabs(emptyList(), null)
         assertNull(strip.boundsFor("a"))
+    }
+
+    @Test
+    fun `wrapped rows return to the same layout after widening and narrowing`() = onEdt {
+        val tabs = (0 until 6).map { SessionTabPresentation("tab-$it") }
+        val toolbarWidth = JBUI.scale(108)
+        val strip = SessionTabStrip().apply {
+            setTabs(tabs, "tab-0")
+            add(JPanel().apply { preferredSize = Dimension(toolbarWidth, JBUI.scale(34)) }, BorderLayout.EAST)
+        }
+        val tabWidth = strip.boundsFor("tab-0")!!.width
+        val tabHeight = strip.boundsFor("tab-0")!!.height
+        val root = JPanel(BorderLayout()).apply {
+            add(strip, BorderLayout.NORTH)
+            add(JPanel(), BorderLayout.CENTER)
+        }
+        strip.setWrapTabs(true)
+        val targetWidth = toolbarWidth + tabWidth * 2
+        fun resize(width: Int, height: Int = tabHeight * 7): List<Rectangle> {
+            root.setSize(width, height)
+            // Give the parent and viewport repeated layout passes, as Swing does after resize.
+            repeat(4) { root.doLayout(); layout(strip) }
+            return tabs.map { strip.boundsFor(it.id)!! }
+        }
+        resize(targetWidth - 1)
+        assertTrue(strip.scrollPane.verticalScrollBar.isVisible)
+        val widened = resize(targetWidth)
+        assertFalse(strip.scrollPane.verticalScrollBar.isVisible, "Two tabs per row fit without a scrollbar")
+        assertEquals(tabHeight * 3, strip.height)
+        resize(targetWidth + tabWidth)
+        val narrowed = resize(targetWidth)
+        assertEquals(widened, narrowed, "The same width must not depend on previous scrollbar visibility")
+        assertFalse(strip.scrollPane.verticalScrollBar.isVisible)
+        assertEquals(tabHeight * 3, strip.height)
+        for (bounds in narrowed) assertTrue(strip.scrollPane.viewport.viewRect.contains(bounds))
+
+        resize(targetWidth - 1)
+        assertTrue(strip.scrollPane.verticalScrollBar.isVisible)
+        strip.setTabs(tabs.take(3), "tab-0")
+        repeat(4) { root.doLayout(); layout(strip) }
+        assertFalse(strip.scrollPane.verticalScrollBar.isVisible, "Removing tabs must release unneeded scrollbar width")
+        assertEquals(tabHeight * 3, strip.height)
+
+        strip.setTabs(tabs, "tab-0")
+        resize(targetWidth - 1)
+        assertTrue(strip.scrollPane.verticalScrollBar.isVisible)
+        val expanded = resize(targetWidth - 1, tabHeight * 14)
+        assertFalse(strip.scrollPane.verticalScrollBar.isVisible, "Increasing parent height must release the scrollbar")
+        assertEquals(tabHeight * 6, strip.height)
+        for (bounds in expanded) assertTrue(strip.scrollPane.viewport.viewRect.contains(bounds))
     }
 
     @Test
