@@ -11,7 +11,6 @@ import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
@@ -38,7 +37,10 @@ internal class RecentChatsPopup(
     private val model = DefaultListModel<RecentChatEntry>()
     private val list = JBList(model).apply {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
-        cellRenderer = SimpleListCellRenderer.create<RecentChatEntry> { label, entry, _ -> label.text = entry?.label.orEmpty() }
+        cellRenderer = object : javax.swing.DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(list: javax.swing.JList<*>?, value: Any?, index: Int, selected: Boolean, focus: Boolean): java.awt.Component =
+                super.getListCellRendererComponent(list, (value as? RecentChatEntry)?.label.orEmpty(), index, selected, focus)
+        }
         emptyText.text = "履歴を読み込み中…"
         accessibleContext.accessibleName = "最近使ったチャット"
         focusTraversalKeysEnabled = false

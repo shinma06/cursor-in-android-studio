@@ -6,7 +6,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBList
 import javax.swing.DefaultListModel
 import javax.swing.ListSelectionModel
@@ -32,10 +31,14 @@ internal class PromptQueueList(
     init {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
         getAccessibleContext().accessibleName = "予約した入力"
-        cellRenderer = SimpleListCellRenderer.create<QueuedPrompt> { label, value, _ ->
-            label.text = value?.let {
-                (if (it.image != null) "[画像あり] " else "") + "${it.mode.name.lowercase().replaceFirstChar { c -> c.titlecase() }} / ${it.model.ifBlank { "既定モデル" }} — ${com.cursoragent.service.commandPrompt(it.command, it.text).replace('\n', ' ').take(100)}"
-            }.orEmpty()
+        cellRenderer = object : javax.swing.DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(list: javax.swing.JList<*>?, value: Any?, index: Int, selected: Boolean, focus: Boolean): java.awt.Component {
+                val entry = value as? QueuedPrompt
+                val text = entry?.let {
+                    (if (it.image != null) "[画像あり] " else "") + "${it.mode.name.lowercase().replaceFirstChar { c -> c.titlecase() }} / ${it.model.ifBlank { "既定モデル" }} — ${com.cursoragent.service.commandPrompt(it.command, it.text).replace('\n', ' ').take(100)}"
+                }.orEmpty()
+                return super.getListCellRendererComponent(list, text, index, selected, focus)
+            }
         }
         emptyText.text = "予約した入力はありません"
     }
