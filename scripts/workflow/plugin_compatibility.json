@@ -19,8 +19,8 @@
   },
   "reviewed_api_reports": {
     "deprecated-usages.txt": {
-      "sha256": "bdfcbac6782ea928c7ba4764b82c01d5b76a26e5072e4df13268515fc0499fc1",
-      "disposition": "Rabbit 262 contains all 17 reported usages: 5 scheduled for removal (four existing list-renderer overloads and settings file chooser), plus ToolWindowFactory default bridges, ProcessAdapter, ReadAction and file chooser factory. Reevaluate replacements before expanding the SDK range; no missing APIs are waived."
+      "sha256": "96b05160bc96eceddbe60d585214e5dec8d5ef082a55ab244df7f358f4ab24ad",
+      "disposition": "Rabbit 262 retains 16 previously reviewed usages: 4 scheduled for removal (three existing list-renderer overloads and the settings file chooser), plus ToolWindowFactory default bridges, ProcessAdapter, ReadAction and file chooser factory. Issue 212 removes the former PromptQueueDialog renderer usage; PromptQueueList and RecentChatsPopup use the supported Customizer overload. No new deprecated, missing or incompatible API is waived; the full report must match these retained usages. Reevaluate remaining replacements before expanding the SDK range."
     },
     "experimental-api-usages.txt": {
       "sha256": "1639d56d3c0d7f90c5b065a60c95eb5859db916be21bdd70dd692b63274d7dff",

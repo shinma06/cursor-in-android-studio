@@ -38,7 +38,7 @@ internal class RecentChatsPopup(
     private val model = DefaultListModel<RecentChatEntry>()
     private val list = JBList(model).apply {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
-        cellRenderer = SimpleListCellRenderer.create("") { entry: RecentChatEntry -> entry.label }
+        cellRenderer = SimpleListCellRenderer.create<RecentChatEntry> { label, entry, _ -> label.text = entry?.label.orEmpty() }
         emptyText.text = "履歴を読み込み中…"
         accessibleContext.accessibleName = "最近使ったチャット"
         focusTraversalKeysEnabled = false

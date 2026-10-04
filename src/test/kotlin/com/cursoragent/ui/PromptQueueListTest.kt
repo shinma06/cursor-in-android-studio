@@ -25,6 +25,9 @@ class PromptQueueListTest {
         queue.add("one", AgentMode.AGENT, "model")
         assertTrue(list.selectFromPrompt(false))
         assertEquals(0, list.selectedIndex)
+        val renderer = list.cellRenderer
+        assertEquals("Agent / model — one", (renderer.getListCellRendererComponent(list, list.selectedValue, 0, false, false) as javax.swing.JLabel).text)
+        assertEquals("", (renderer.getListCellRendererComponent(list, null, -1, false, false) as javax.swing.JLabel).text)
         repeat(2) { queue.add("next-$it", AgentMode.AGENT, "model") }
         val ticket = queue.ticket(1)
         assertTrue(list.selectFromPrompt(true))

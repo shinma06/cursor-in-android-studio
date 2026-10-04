@@ -32,8 +32,10 @@ internal class PromptQueueList(
     init {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
         getAccessibleContext().accessibleName = "予約した入力"
-        cellRenderer = SimpleListCellRenderer.create("") { value: QueuedPrompt ->
-            (if (value.image != null) "[画像あり] " else "") + "${value.mode.name.lowercase().replaceFirstChar { it.titlecase() }} / ${value.model.ifBlank { "既定モデル" }} — ${com.cursoragent.service.commandPrompt(value.command, value.text).replace('\n', ' ').take(100)}"
+        cellRenderer = SimpleListCellRenderer.create<QueuedPrompt> { label, value, _ ->
+            label.text = value?.let {
+                (if (it.image != null) "[画像あり] " else "") + "${it.mode.name.lowercase().replaceFirstChar { c -> c.titlecase() }} / ${it.model.ifBlank { "既定モデル" }} — ${com.cursoragent.service.commandPrompt(it.command, it.text).replace('\n', ' ').take(100)}"
+            }.orEmpty()
         }
         emptyText.text = "予約した入力はありません"
     }

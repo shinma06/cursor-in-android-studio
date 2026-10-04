@@ -13,7 +13,8 @@
     "AllChatsTest: 全履歴の検索後200件上限、名前/冒頭文の曖昧検索と一致位置、sidebar更新順、metadata優先/PRINT重複識別、端のhighlightとControl/Meta解放/Keymap",
     "SidebarChatsTest: local日付/DST/7日30日境界、pin優先と6件/More、折畳み候補除外、部分一致とpopup曖昧検索の区別、75件の有効pin上限と型付き保存/不正値",
     "SessionTabsTest/SessionTabsExecutionTest/ChatEntryTest/ToolWindowChatActionsTest: 表示置換とowner保持、空会話/履歴後draft条件、hidden runの配送/実終了排他、visibleだけの移動/閉鎖、Actionと入力focus/IME/import guard",
-    "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks"
+    "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks",
+    "標準buildPlugin/verifyPluginStructureとRabbit 1のPlugin Verifier: 最近使用/予約一覧の現行renderer API、残る既存16 deprecated usageの完全report、全class・ZIP hash・固定SDK/JBRを照合する"
   ],
   "cases": [
     {
