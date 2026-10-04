@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "issue": 146,
+  "gui_required": false,
+  "reason": "専用CLI probe・匿名化したlive部分fixture・調査文書・合成回帰試験のみ。製品runtime/保存形式/GUIを変更しない。CLI研究Caseの正本はdocs/research/acp-wire-probe-2026-10-04.mdとfixtures/acp-146/manifest.json。GUI成功を転記しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（unknown/mixedを含む既存の必要検証を維持）",
+    "python3 -m unittest scripts.workflow.test_acp_wire_probe -v（合成transport、permission境界、匿名化と未知field拒否。Cursor/network起動なし）",
+    "CLI 2026.10.01-14929f9で本人承認上限8回を実行：新規8session・固定7prompt。initialize/new、正式config set/readback、連続2turn、edit部分更新を記録",
+    "cancel text・既知有限commandのallow-once後cancel・permission待機cancelの3条件で、prompt終端・tick数・process snapshot・stdin EOF・exit0を分離。全8回で最後の観測familyが空",
+    "質問/Plan/Todo/task/image・usageは未観測、reject-once/allow-alwaysのlive返信・異常EOF・外部仕事静止・GUIは未確認として保持",
+    "公開fixture 8件とmanifestのhash、元captureとの加工対応、固定prompt/許可ファイル、setup/catalog/thought/ID/pathの加工、残る文字列を照合",
+    "旧2026-09-09の消失fixtureを復元したとは扱わず、新しい版付き証拠として区別。固定HEAD/base独立レビューとgit diff --check"
+  ],
+  "cases": []
+}
