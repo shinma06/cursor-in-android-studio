@@ -93,6 +93,7 @@ class AgentToolWindowRootPanel(
             AgentPanelCommand.MODEL_MENU -> view.composer.modelSelector.doClick()
             AgentPanelCommand.ADD_CONTEXT -> view.composer.promptContext.onAddMention()
             AgentPanelCommand.HISTORY -> { view.controller.pauseQueue(); history.showPopup(event) }
+            AgentPanelCommand.CHANGES -> view.controller.showChanges()
             AgentPanelCommand.SETTINGS -> ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java)
         }
     }

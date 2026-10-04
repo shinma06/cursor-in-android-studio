@@ -21,7 +21,7 @@
 
 ## パネルのActionとKeymap
 
-#212の初期接続は新規/閉じる/前後タブ/停止/mode/model/context/履歴/設定の10操作。`AgentPanelAction`はprojectを保持せず、rootの`UiDataProvider`から現在の操作対象を取得し、EDT上で実行直前にも可否を照合する。rootのlocal shortcut登録はIDEで設定された同じActionのshortcut setを使い、disposeで解除する。停止と閉鎖は既存controller/確認経路へ接続する。IME、入力候補、子popupとACP設定のbusy制約を保つ。
+#212の初期接続は新規/閉じる/前後タブ/停止/mode/model/context/履歴/変更一覧/設定の11操作。`AgentPanelAction`はprojectを保持せず、rootの`UiDataProvider`から現在の操作対象を取得し、EDT上で実行直前にも可否を照合する。rootのlocal shortcut登録はIDEで設定された同じActionのshortcut setを使い、disposeで解除する。停止と閉鎖は既存controller/確認経路へ接続する。変更一覧も既存の予約一時停止とsnapshot/owner確認を共有し、M+Shift+Rで開く。modeのM+A+.、設定のM+,も同じActionの副キーとして扱う。IME、入力候補、子popupとACP設定のbusy制約を保つ。
 
 OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
 

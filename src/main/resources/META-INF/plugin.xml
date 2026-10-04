@@ -86,8 +86,11 @@
             <action id="CursorAgent.ModeMenu" class="com.cursoragent.actions.AgentPanelAction$ModeMenu"
                     text="Modeを選ぶ" description="現在のチャットのMode選択を開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control PERIOD"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt PERIOD"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta PERIOD" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt PERIOD"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta PERIOD" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt PERIOD"/>
             </action>
             <action id="CursorAgent.ModelMenu" class="com.cursoragent.actions.AgentPanelAction$ModelMenu"
                     text="Modelを選ぶ" description="現在のチャットのModel選択を開きます。">
@@ -110,11 +113,20 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt QUOTE" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt QUOTE" replace-all="true"/>
             </action>
+            <action id="CursorAgent.Changes" class="com.cursoragent.actions.AgentPanelAction$Changes"
+                    text="変更一覧" description="現在のチャットによる変更一覧を開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift R"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift R" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift R" replace-all="true"/>
+            </action>
             <action id="CursorAgent.Settings" class="com.cursoragent.actions.AgentPanelAction$Settings"
                     text="Cursorの設定" description="Cursor in Android Studioの設定を開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control shift J"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control COMMA"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift J" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta COMMA"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift J" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta COMMA"/>
             </action>
         </group>
     </actions>
