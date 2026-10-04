@@ -52,6 +52,19 @@ popupが消えた後の画面だけで「一度も開かなかった」と判定
 
 [TurnWorkspace](../../src/main/kotlin/com/cursoragent/service/TurnWorkspace.kt) / [PromptContextBuilder](../../src/main/kotlin/com/cursoragent/ui/PromptContextBuilder.kt) / [MentionResolver](../../src/main/kotlin/com/cursoragent/ui/composer/mention/MentionResolver.kt) を参照。context注入は現行prompt文字列経路。`@Docs`/`@Web`はヒントであり、独自検索やMCP server実装ではない。
 
+### コピー元付きcontextと本文貼り付け（#521）
+
+通常の `EditorPaste` は、このpluginの入力editorだけで検証済みの複数行コピーを明示contextへ追加する。`ClipboardContextCopyProcessor` はnative copyの実document・全選択範囲・本文・変更stamp・projectをJVM内のtransferableへ結び付ける。同じ本文、現在のactive editor、clipboard履歴の時刻から出典を推測しない。paste時にproject・改行正規化後の本文・元documentを照合し、編集/削除済み、別project、外部コピー、単一行、不正/取得不能metadataは元のnative本文pasteへ戻す。送信/予約時は既存の選択の再検証とsnapshot所有を使う。予約後の元document変更は受理済みsnapshotを書き換えない。
+
+optional Terminalの `Terminal.CopySelectedText` では、Actionの明示 `TerminalView` と選択のcopy前snapshotを採り、成功後の新しいclipboard本文との一致を確認して出典を付ける。名前・行範囲・本文だけを保持し、Terminal/editor/project本体やprocessを保持・新規起動しない。後続出力・tab閉鎖後もsnapshotを使う。対応するview/選択を得られないコピー（他engine/別Actionを含む）は本文のまま。`@terminal` の現在の出力取得とは別経路で、現在のtailをコピー元の代用にしない。
+
+`CursorAgent.PastePlain` はMacのCmd+Shift+V、Windows/LinuxのCtrl+Shift+Vを初期値とし、native `EditorPasteSimple` に委譲して本文の選択置換・改行・Undoを保つ。Actionの現在のKeymap shortcutを各入力editorへ登録し、入力不可・IME変換中・候補表示中はcontext/plain専用処理を無効化する。通常editorのPasteは既存処理へ委譲する。Paste拡張は `order="first"` により、PSI付き入力でplatformのPasteHandlerが本文を消費する前に処理する。画像添付の経路を共有し、外部HTMLをcontextとして解釈しない。contextのpreview/削除、queue、送信前コマンド失敗時の回収を既存の添付/送信snapshotに接続し、PRINT/ACPとも現行prompt文字列へ注入する。保存形式・providerの再開能力・ACPのRevert可否は変えない。
+
+[Cursor公式キー一覧](https://cursor.com/docs/reference/keyboard-shortcuts)のcontext/plain区別と、固定Cursor 3.23.12（commit `2d29876d567da1607532b23bbf2cd5ddbca496f0`、workbench bundle SHA-256 `87cd7ca0b620138599c195d477a728e05910e28dc02082b325d78f13588acced`）の通常paste条件を静的照合した。固定版は改行正規化後のcopy記録との一致・複数行を条件にし、chat内のrich mention再貼付けは別処理を持つ。本pluginはその非公開形式を読まず、外部のrich mentionは本文として扱う。自前の添付行のコピー/再貼付けは未実装であり、全rich clipboard互換を主張しない。[JetBrains AI Assistantの選択context](https://www.jetbrains.com/help/ai-assistant/chat-mode.html)・[Cursor ACP連携](https://www.jetbrains.com/help/ai-assistant/acp.html)にも選択の添付がある。追加価値はIDEの未保存documentとcopy元の対応、会話/予約ごとの所有、Keymapとnative編集の接続であり、選択添付自体を独自能力としない。
+
+根拠は `ClipboardContextTest`（native Copy/Paste/plain/Undo・複数選択・IME・外部/不正/別project/stale・画像共存）、`TerminalCopyContextTest`（native Terminal Actionと制御fixture・後続出力・失敗fallback・送信snapshot）、`PromptQueueTest`。fixtureはOS clipboardを触らない。実OS/JIS/IME/Keymap・Terminal有無・スクリーンリーダー・固定buildのPRINT/ACP受入は[Case JSON](../verification/changes/issue-521.json)で追跡し、合成テストをGUI passにしない。
+
+
 Rabbitではeditorの保存後もVFSからdiskへの書き込みが残り得るため、PRINT/ACP共通の送信準備とcheckpoint復元の外部I/O前に、pooled thread（write action外）で`ManagingFS.flushPendingUpdates()`を待つ。失敗時は既存の送信準備/復元エラー経路で中止し、待機中のStopも再確認する。未保存Documentの自動保存や後続の編集を固定する機能ではない。[公式の非同期保存契約](https://blog.jetbrains.com/platform/2026/06/async-vfs-content-writes-what-plugin-authors-need-to-know/)と[AgentUiController](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)が根拠。VFS内だけで読み書きするfile Revertには待機を追加しない。実IDE回帰は[Case #466](../verification/changes/issue-466.json)で追跡する。
 
 ## 停止・タブclose・project終了

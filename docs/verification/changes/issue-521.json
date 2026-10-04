@@ -1,0 +1,316 @@
+{
+  "schema": 1,
+  "issue": 521,
+  "gui_required": true,
+  "reason": "出典付きcontext/plain pasteの実OSキー、IME/Keymap、Terminal選択、会話/予約と画像・accessibilityを同一固定buildで確認する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "ClipboardContextTest / TerminalCopyContextTest / PromptQueueTest: native Actionと隔離clipboard、複数caret、stale/foreign/invalid fallback、Undo/IME/image、送信snapshot",
+    "./gradlew buildPlugin verifyPluginStructure",
+    "scripts/workflow/plugin_compatibility.py: 固定Rabbit SDK/同梱JBRと封印した同一ZIPのVerifier",
+    "git diff --check"
+  ],
+  "cases": [
+    {
+      "id": "PASTE-521-CODE",
+      "issue": 521,
+      "change": "コードコピーの正確な出典・複数選択・通常paste",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "使い捨てprojectの日本語/空白を含むpathで未保存を含む複数行を選択し、native Copyのキーとmenuの両方でコピーする。別editor/Terminalへfocusを移してから対象会話の入力欄へ通常pasteする。",
+        "同一行内の別範囲、複数caretの離れた範囲、矩形選択も試す。添付のpreviewでpath・各範囲・コピー本文を照合する。単一行と選択なしのline copyも試す。"
+      ],
+      "expected": "検証できる複数行コピーだけが実際の各選択のcontextになる。入力本文/caretを置換せず、active editorから出典を推測しない。単一行/認識不能な選択は本文pasteとして失わない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    },
+    {
+      "id": "PASTE-521-FALLBACK",
+      "issue": 521,
+      "change": "外部・変更済み・別project・破棄されたコピー",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "コードをコピー後、元documentを編集/削除してpasteする。別projectの同じ本文をコピーしてpasteし、外部アプリとCursorのrich mention/HTMLからのコピーも試す。",
+        "改行CRLF、末尾改行、日本語/サロゲート文字を含む本文をpasteする。copy元project/会話を閉じ、別会話へ切り替えて再度pasteする。"
+      ],
+      "expected": "出典検証不能なmetadataは添付にせずnative本文へfallbackする。外部rich mentionを非公開形式から復元しない。貼り付け対象以外の会話を変更せず、本文/clipboardを壊さない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    },
+    {
+      "id": "PASTE-521-TERMINAL",
+      "issue": 521,
+      "change": "Terminal選択のcopy時snapshotとoptional依存",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "同名を含む2つのTerminal tabで異なる複数行を選択しnative Copyする。別tabの後続出力を増やし、copy元tabを閉じてからpasteしpreviewする。範囲/本文/表示名をcopy時点と比較する。",
+        "Terminal選択なし、単一行、対応viewが得られないcopy/menu、無効化したTerminal plugin、Terminal未起動でも本文paste/コードcontextを試す。"
+      ],
+      "expected": "対応Actionでcopy時に検証できた元選択だけをsnapshotとして添付し、現在のtailや別Terminalの内容へ置換しない。optionalなし/不明copyは本文のまま、新規Terminal/processを起動しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    },
+    {
+      "id": "PASTE-521-NATIVE",
+      "issue": 521,
+      "change": "context/plainのキー・menu・Keymap・native編集",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "Mac/JISでCmd+V/Cmd+Shift+V、Windows/LinuxでCtrl+V/Ctrl+Shift+Vを区別し、複数行コピーを既存本文の範囲選択中へ貼り付ける。plain後のUndo/Redoと改行を確認する。",
+        "通常Pasteのmenu、PastePlainのFind Action実行、IDE Keymapで両Actionの変更/解除、editor再作成後の変更キーを確認する。通常editorと他tool windowのPaste/history動作を照合する。"
+      ],
+      "expected": "通常pasteは出典付きcontext、plainは本文置換になる。plainは添付を増やさずnative Undo/Redoを保持する。IDE Keymapに追随し旧キーを独自捕捉しない。通常editorへ専用動作を漏らさない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    },
+    {
+      "id": "PASTE-521-IME",
+      "issue": 521,
+      "change": "IME・候補・入力不可・破棄境界",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "日本語変換中と確定直後、@/コマンド候補の表示中、入力不可時に通常/plain pasteを試す。候補とnative editorの状態を確認する。",
+        "会話切替、送信後/入力再有効化のeditor再生成、tab破棄後の遅いActionを試す。コピーを貼るだけで送信/停止/新会話が起きないことを確認する。"
+      ],
+      "expected": "変換/候補/入力不可の専用context/plain処理は発火せず、native編集を壊さない。生きている対象入力だけに作用し、再生成後もActionが使える。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    },
+    {
+      "id": "PASTE-521-SNAPSHOT",
+      "issue": 521,
+      "change": "会話draft・予約・PRINT/ACP送信と失敗保持",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "コード/Terminalを会話Aへ添付し、本文と予約へ登録する。元コードを変更、Terminalへ後続出力、会話Bへ切替/別添付を行い、予約を送信する。PRINT/ACPの制御fixtureで実送信promptを照合する。",
+        "予約前に元コードを変更した場合の再追加要求、予約後snapshot、コマンドの送信前失敗/回収を確認する。送信内容の保存/履歴とprovider再開の可否を分けて確認する。"
+      ],
+      "expected": "受理前のstale選択は再追加が必要。受理済み予約のコード/Terminal本文は元のsnapshotを維持し、別draftで置換/脱落しない。PRINT/ACPに同じ出典本文を注入し、失敗した未送信入力を保つ。provider自動再送やACP Revertを追加しない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    },
+    {
+      "id": "PASTE-521-UI",
+      "issue": 521,
+      "change": "preview・削除・多数添付・画像共存・accessibility",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "画像、file mention、複数コード/Terminal contextを同じdraftへ添付し、狭幅/広幅・Dark/Light・多数添付でpreview/削除/Tab移動を試す。スクリーンリーダーで各対象を識別する。",
+        "contextを繰り返しpasteし、全削除後の高さと入力/送信欄を確認する。画像だけのnative Paste、通常の外部テキスト、plain貼付けが互いの添付を消さないことを確認する。"
+      ],
+      "expected": "既存の添付スクロール/preview/削除と対象の読み上げを維持し、本文や他添付を失わない。画像のnative Pasteが新しいcontext処理に遮られない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
+    }
+  ]
+}

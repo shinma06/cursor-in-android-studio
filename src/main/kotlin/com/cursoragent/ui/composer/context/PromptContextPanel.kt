@@ -82,6 +82,12 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
 
     fun addSelection(selection: SelectionContext) { draft.add(selection); render() }
     fun addMention(mention: Mention) { draft.add(mention); render() }
+    fun addTerminal(terminal: TerminalContext) { draft.add(terminal); render() }
+    internal fun addClipboard(context: ClipboardContextData) {
+        context.selections.forEach(draft::add)
+        context.terminal?.let(draft::add)
+        render()
+    }
     fun clearExplicit() { draft.clearExplicit(); render() }
 
     /** Validate once when sending/enqueuing. The returned value then belongs to that request. */
@@ -123,6 +129,11 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
         for (mention in state.mentions) {
             rows.add(row("明示: ${mention.displayLabel}", mention.contextDescription(), {
                 draft.removeMention(mention); render()
+            }))
+        }
+        for (terminal in state.terminals) {
+            rows.add(row("明示: ${terminal.label}", terminal.block(), {
+                draft.removeTerminal(terminal.id); render()
             }))
         }
         attachments.isVisible = rows.componentCount > 0
