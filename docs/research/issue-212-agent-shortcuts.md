@@ -197,7 +197,7 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
-3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用17 Actionとglobal8 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用19 Actionとglobal8 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
 
 ## 入力欄のEscapeと作業場所への復帰
 

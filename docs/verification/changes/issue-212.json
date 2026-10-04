@@ -152,8 +152,8 @@
       "id": "KEYMAP-OS-REMAP",
       "change": "OS別Keymap・変更・解除・寿命",
       "steps": [
-        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel専用17操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/、M+Shift+J/M+,、M+A+'はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
-        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel専用17操作とglobal入口8操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
+        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel専用19操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/、M+Shift+J/M+,、M+A+'はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel専用19操作とglobal入口8操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
         "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
       ],
       "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel内操作は一般editorを奪わず、global入口は明示割当どおりに動く。dispose済みの対象へ配送しない。"
@@ -1144,7 +1144,7 @@
       "steps": [
         "固定Cursor 3.23.12のKeyboard Shortcutsと入力欄/各popup/提案/検索/承認を、対応表の43登録行（40静的in-IDE、2所属未確定、1Inline対象外）と17入力群（15静的確認）に逐一照合する。共有部品6群・公式/動的4候補も所属を判定し、未確定から対象を落とさず全キー・OS・focus/mode条件を記録する。",
         "対応表の未確定項目と未実装能力を具体Issue/依存へ対応付け、完了した調査を機能実装の合格に置換しない。必要なsub-issueと親の全対象を照合する。 会話内findはnative子Issue #518（条件切替・一致位置/総数・stream/タブ所有を含む）へ実分解済みで、未実装/GUI未確認として追跡する。Milestone 8の全件受入を子1件の完了に縮めない。",
-        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel専用17/global8操作のpassで未対応を省略しない。"
+        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel専用19/global8操作のpassで未対応を省略しない。"
       ],
       "expected": "全対象が根拠付きで確定し、未対応/条件差と次のownerを追跡する。全件未達の間は#212を完了にしない。"
     }
