@@ -27,7 +27,7 @@ class AgentWindowActionTest {
             assertEquals(ActionUpdateThread.EDT, action.actionUpdateThread)
             val event = event(action, first.project)
             action.update(event)
-            assertTrue(event.presentation.isEnabled)
+            assertEquals(command != AgentWindowCommand.HISTORY, event.presentation.isEnabled)
             // A resolver change must never route an old project's event into another project.
             selected = second
             action.actionPerformed(event)
@@ -83,7 +83,7 @@ class AgentWindowActionTest {
                 fixture.disposed = false
                 fixture.projectDisposed = false
                 action.update(event)
-                assertTrue(event.presentation.isEnabled)
+                assertEquals(command != AgentWindowCommand.HISTORY, event.presentation.isEnabled)
                 invalidate()
                 action.actionPerformed(event)
                 action.update(event)
@@ -102,6 +102,7 @@ class AgentWindowActionTest {
         for ((command, action, key) in listOf(
             Triple(AgentWindowCommand.TOGGLE, AgentWindowAction.Toggle(), "alt J"),
             Triple(AgentWindowCommand.SWAP_SIDE, AgentWindowAction.SwapSide(), "E"),
+            Triple(AgentWindowCommand.HISTORY, AgentWindowAction.History(), "alt QUOTE"),
         )) {
             assertFalse(AgentPanelCommand.entries.any { it.actionId == command.actionId })
             val declaration = declarations.getValue(command.actionId)
@@ -197,19 +198,89 @@ class AgentWindowActionTest {
         }
     }
 
+    @Test
+    fun `history uses an existing selected chat without creating or activating hidden content`() {
+        val ide = com.intellij.testFramework.fixtures.IdeaTestFixtureFactory.getFixtureFactory()
+            .createLightFixtureBuilder("global history").fixture
+        ide.setUp()
+        val settings = com.cursoragent.settings.AgentSettingsState.getInstance()
+        val executable = settings.agentExecutablePath
+        settings.agentExecutablePath = java.nio.file.Path.of(ide.project.basePath!!, "missing-history-fixture-agent-${java.util.UUID.randomUUID()}").toString()
+        var root: com.cursoragent.ui.AgentToolWindowRootPanel? = null
+        try {
+            var metadata: java.util.concurrent.Future<*>? = null
+            com.intellij.testFramework.runInEdtAndWait {
+                val created = com.cursoragent.ui.AgentToolWindowRootPanel(ide.project) {}
+                root = created
+                val views = created.javaClass.getDeclaredField("views").apply { isAccessible = true }.get(created) as Map<*, *>
+                val view = requireNotNull(views.values.single())
+                val controller = view.javaClass.getDeclaredField("controller").apply { isAccessible = true }.get(view)
+                val loader = controller.javaClass.getDeclaredField("modelLoader").apply { isAccessible = true }.get(controller)
+                metadata = loader.javaClass.getDeclaredField("pending").apply { isAccessible = true }.get(loader) as java.util.concurrent.Future<*>?
+            }
+            metadata?.get(10, java.util.concurrent.TimeUnit.SECONDS)
+            com.intellij.testFramework.runInEdtAndWait {
+                val root = requireNotNull(root)
+                val fixture = WindowFixture(ide.project)
+                val content = com.intellij.ui.content.ContentFactory.getInstance().createContent(root, "test", false)
+                fixture.contentManager = Proxy.newProxyInstance(com.intellij.ui.content.ContentManager::class.java.classLoader,
+                    arrayOf(com.intellij.ui.content.ContentManager::class.java)) { _, method, _ ->
+                    when (method.name) {
+                        "getContents" -> arrayOf(content)
+                        else -> error("Unexpected ContentManager call: ${method.name}")
+                    }
+                } as com.intellij.ui.content.ContentManager
+                try {
+                    val action = object : AgentWindowAction(AgentWindowCommand.HISTORY, { fixture.window }) {}
+                    val event = event(action, ide.project)
+                    action.update(event)
+                    assertTrue(event.presentation.isEnabled)
+                    action.actionPerformed(event)
+                    action.actionPerformed(event)
+                    assertFalse(root.isShowing)
+                    assertFalse(fixture.visible)
+                    assertTrue(fixture.calls.isEmpty(), "history does not create, show, or activate the panel")
+                    val history = root.javaClass.getDeclaredField("history").apply { isAccessible = true }.get(root)
+                    val requests = history.javaClass.getDeclaredField("requested").apply { isAccessible = true }.get(history) as Set<*>
+                    val sessions = root.javaClass.getDeclaredField("sessions").apply { isAccessible = true }.get(root) as com.cursoragent.session.SessionTabs
+                    assertEquals(setOf(sessions.snapshot().selectedId), requests)
+                    val local = com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(root)
+                    assertTrue(local.contains(com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("CursorAgent.History")))
+                    fixture.contentManager = null
+                    action.update(event)
+                    assertFalse(event.presentation.isEnabled)
+                    action.actionPerformed(event)
+                    assertEquals(1, requests.size)
+                    root.dispose()
+                    assertTrue(requests.isEmpty())
+                    assertFalse(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(root).contains(
+                        com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("CursorAgent.History")))
+                } finally {
+                    root.dispose()
+                    com.intellij.openapi.util.Disposer.dispose(content)
+                }
+            }
+        } finally {
+            com.intellij.testFramework.runInEdtAndWait { root?.dispose() }
+            settings.agentExecutablePath = executable
+            com.intellij.testFramework.runInEdtAndWait { ide.tearDown() }
+        }
+    }
+
     private fun event(action: AgentWindowAction, project: Project?) = AnActionEvent(
         DataContext { if (CommonDataKeys.PROJECT.`is`(it)) project else null },
         action.templatePresentation.clone(), "test", ActionUiKind.NONE, null, 0, unusedActionManager,
     )
 
-    private class WindowFixture {
+    private class WindowFixture(providedProject: Project? = null) {
+        var contentManager: com.intellij.ui.content.ContentManager? = null
         var projectDisposed = false
         var disposed = false
         var available = true
         var visible = false
         var anchor = ToolWindowAnchor.RIGHT
         val calls = mutableListOf<String>()
-        val project = Proxy.newProxyInstance(Project::class.java.classLoader, arrayOf(Project::class.java)) { _, method, _ ->
+        val project = providedProject ?: Proxy.newProxyInstance(Project::class.java.classLoader, arrayOf(Project::class.java)) { _, method, _ ->
             when (method.name) {
                 "isDisposed" -> projectDisposed
                 "toString" -> "synthetic-project"
@@ -222,7 +293,7 @@ class AgentWindowActionTest {
                 "isDisposed" -> disposed
                 "isAvailable" -> available
                 "isVisible" -> visible
-                "getContentManagerIfCreated" -> null
+                "getContentManagerIfCreated" -> contentManager
                 "getAnchor" -> anchor
                 "setAnchor" -> { anchor = args!![0] as ToolWindowAnchor; calls.add("anchor"); null }
                 "show" -> { visible = true; calls.add("show"); null }

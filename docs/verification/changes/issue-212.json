@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用17操作とglobal入口7操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用16操作とglobal入口8操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
@@ -17,7 +17,8 @@
     "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks",
     "標準buildPlugin/verifyPluginStructureとRabbit 1のPlugin Verifier: 最近使用/予約一覧の現行renderer API、残る既存16 deprecated usageの完全report、全class・ZIP hash・固定SDK/JBRを照合する",
     "AgentWindowActionTest: Settingsのpanel contextなし実行、event projectの切替、content未生成/非表示維持、失効の拒否と旧Action ID/OS別2キー",
-    "RequestShortcutsTest: 実カード/ボタン・timeline・turn listener・SessionTabs tokenによる一意/曖昧/focus対象、返信の一度性、onceだけの選択と質問/Plan、close/token更新/Stop/project破棄/terminal後の拒否、OS/送信設定・キー長押し"
+    "RequestShortcutsTest: 実カード/ボタン・timeline・turn listener・SessionTabs tokenによる一意/曖昧/focus対象、返信の一度性、onceだけの選択と質問/Plan、close/token更新/Stop/project破棄/terminal後の拒否、OS/送信設定・キー長押し",
+    "PastChatsCoordinatorTest/AgentWindowActionTest: 非表示中の会話別要求、sidebarとheader取消、反復キー、読込み世代、古い選択callback・close/破棄後拒否、実rootでcontent未生成/非表示維持とAction登録/解除"
   ],
   "cases": [
     {
@@ -147,8 +148,8 @@
       "id": "KEYMAP-OS-REMAP",
       "change": "OS別Keymap・変更・解除・寿命",
       "steps": [
-        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel専用17操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/、M+Shift+J/M+,はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
-        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel専用17操作とglobal入口7操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
+        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel専用16操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/、M+Shift+J/M+,、M+A+'はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel専用16操作とglobal入口8操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
         "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
       ],
       "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel内操作は一般editorを奪わず、global入口は明示割当どおりに動く。dispose済みの対象へ配送しない。"
@@ -857,6 +858,55 @@
         "Cursor固定版のgroup全件操作・通知・shell Enter/Shift+Enter/Escapeと今回の個別返信との差を記録する。group/allowlistや未接続submitの合格をこのCaseから推定せず、全対象照合の残作業として追う。"
       ],
       "expected": "提示済みの個別要求だけを既存ボタンと同じtyped replyで一度だけ解決する。once optionの推測・永続許可への昇格・別要求/別ownerへの転送なし。古いUI、IME/popup、長押しの連続返信を拒否する。保留要求への拒否と全run Stopを区別する。通常送信/予約/下書きと既存のMouse操作を維持し、group/allowlist/通知などの未対応をpassにしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-HISTORY",
+      "change": "履歴のglobal入口・会話別の表示要求・sidebar排他",
+      "steps": [
+        "使い捨てprojectで複数の保存会話と開いた会話A/Bを用意する。Agent content未生成時はM+A+'で会話やToolWindowを生成しない。生成後は通常editor/Terminal/他ToolWindowのfocusから同じキーで既存の選択中会話の履歴を開く。別projectへ転送せず、providerの送信/再開は起こさない。",
+        "Agent panelを隠してAへの履歴を要求する。panelは隠れたままで、run/draft/予約は変化しない。通常の入口で同じAを表示した時に履歴を開く。先にBを選んだ場合はBへ要求を転送せず、Aへ戻った時だけ表示する。要求したAを閉じた場合は再表示しない。",
+        "sidebar表示中は履歴キーとheader操作で履歴を開かず、既存の会話・検索・予約を変更しない。履歴の読込み中または表示中にsidebarを表示すると、その会話の要求を解除して履歴を閉じる。sidebarを隠しても取消済み要求が復活しない。",
+        "履歴キーを反復/長押ししても読込みを重ねず、表示済みの履歴を閉じない。headerクリックは開閉切替として、読込み中/表示中の要求を取り消せる。閉じた後の再要求では新しい履歴を読み込む。",
+        "遅い履歴読込みの間にpanelを隠す、会話を切り替える、対象を閉じる、projectを閉じる。古いcallbackからdialogを開いたり、別会話へ選択/削除/書出しを適用しない。再表示時は新しい世代で読み直す。読込み失敗時は保存データを保持し、自動再試行しない。",
+        "IME変換・入力候補・子popup中はキーを奪わない。読込み後にguardが失効した場合も遅れてdialogを開かない。要求の記録や読込み取消だけでは予約をpauseせず、実際の履歴dialog表示直前に既存の一時停止を行う。Stop/Revert等の明示pauseを解除しない。",
+        "履歴から保存本文/旧print履歴を選び、元の表示・provider再開制約と本文検索の一致移動、削除時の確認/開いた会話の保護、Markdown出力を確認する。表示要求を記録しただけで保存形式や会話IDを変更しない。",
+        "macOS/Windows/LinuxとUS/JIS配列でM+A+'、IDE既存割当、Keymap変更/解除を確認する。固定Cursor版のheader flyoutとnative dialog、header iconを隠した時の到達、editor表示の履歴は未確認の差として記録し、入口の接続だけで全対象をpassにしない。"
+      ],
+      "expected": "既存の選択中会話だけが履歴の表示要求を所有し、globalキー・header切替・sidebar排他・非表示/再表示と非同期取消が混線しない。content生成/強制表示や別会話への遅い操作がなく、既存の履歴検索と保存保護を維持する。"
     },
     {
       "gpt": {

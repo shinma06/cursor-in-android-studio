@@ -31,7 +31,6 @@ internal enum class AgentPanelCommand(val actionId: String) {
     MODE_MENU("CursorAgent.ModeMenu"),
     MODEL_MENU("CursorAgent.ModelMenu"),
     ADD_CONTEXT("CursorAgent.AddContext"),
-    HISTORY("CursorAgent.History"),
     CHANGES("CursorAgent.Changes"),
 }
 
@@ -71,7 +70,6 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
     class ModeMenu : AgentPanelAction(AgentPanelCommand.MODE_MENU)
     class ModelMenu : AgentPanelAction(AgentPanelCommand.MODEL_MENU)
     class AddContext : AgentPanelAction(AgentPanelCommand.ADD_CONTEXT)
-    class History : AgentPanelAction(AgentPanelCommand.HISTORY)
     class Changes : AgentPanelAction(AgentPanelCommand.CHANGES)
 }
 

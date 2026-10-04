@@ -200,7 +200,7 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt P" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt P" replace-all="true"/>
             </action>
-            <action id="CursorAgent.History" class="com.cursoragent.actions.AgentPanelAction$History"
+            <action id="CursorAgent.History" class="com.cursoragent.actions.AgentWindowAction$History"
                     text="チャット履歴" description="保存済みのチャットを探します。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control alt QUOTE"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt QUOTE" replace-all="true"/>

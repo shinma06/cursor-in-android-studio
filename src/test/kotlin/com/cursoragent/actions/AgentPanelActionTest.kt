@@ -148,7 +148,6 @@ class AgentPanelActionTest {
         AgentPanelCommand.MODE_MENU to AgentPanelAction.ModeMenu(),
         AgentPanelCommand.MODEL_MENU to AgentPanelAction.ModelMenu(),
         AgentPanelCommand.ADD_CONTEXT to AgentPanelAction.AddContext(),
-        AgentPanelCommand.HISTORY to AgentPanelAction.History(),
         AgentPanelCommand.CHANGES to AgentPanelAction.Changes(),
     )
 

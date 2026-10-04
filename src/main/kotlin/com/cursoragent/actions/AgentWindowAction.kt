@@ -19,6 +19,7 @@ internal enum class AgentWindowCommand(val actionId: String) {
     NEW_AGENT("CursorAgent.NewAgent"),
     ALL_CHATS("CursorAgent.AllChats"),
     SETTINGS("CursorAgent.Settings"),
+    HISTORY("CursorAgent.History"),
 }
 
 /** Resolve the owning project's live ToolWindow for every event, including before content creation. */
@@ -41,6 +42,7 @@ abstract class AgentWindowAction internal constructor(
         panel(window)?.cancelPendingChatFocus()
         when (command) {
             AgentWindowCommand.SETTINGS -> openSettings(window.project)
+            AgentWindowCommand.HISTORY -> panel(window)?.requestHistory()
             AgentWindowCommand.TOGGLE -> if (window.isVisible) window.hide(null) else window.show(null)
             AgentWindowCommand.SWAP_SIDE -> {
                 window.setAnchor(if (window.anchor == ToolWindowAnchor.LEFT) ToolWindowAnchor.RIGHT else ToolWindowAnchor.LEFT, null)
@@ -65,7 +67,9 @@ abstract class AgentWindowAction internal constructor(
     private fun target(e: AnActionEvent): ToolWindow? {
         val project = e.project?.takeUnless { it.isDisposed } ?: return null
         val window = windowFor(project)?.takeUnless { it.isDisposed || !it.isAvailable || it.project !== project } ?: return null
-        return window.takeUnless { panel(window)?.windowShortcutAvailable == false }
+        val panel = panel(window)
+        if (command == AgentWindowCommand.HISTORY && panel?.historyShortcutAvailable != true) return null
+        return window.takeUnless { panel?.windowShortcutAvailable == false }
     }
 
     private fun panel(window: ToolWindow) =
@@ -78,4 +82,5 @@ abstract class AgentWindowAction internal constructor(
     class NewAgent : AgentWindowAction(AgentWindowCommand.NEW_AGENT)
     class AllChats : AgentWindowAction(AgentWindowCommand.ALL_CHATS)
     class Settings : AgentWindowAction(AgentWindowCommand.SETTINGS)
+    class History : AgentWindowAction(AgentWindowCommand.HISTORY)
 }

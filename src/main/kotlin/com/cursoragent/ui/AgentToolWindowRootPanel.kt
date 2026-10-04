@@ -145,7 +145,6 @@ class AgentToolWindowRootPanel(
             AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
             AgentPanelCommand.MODEL_MENU -> view.composer.modelSelector.doClick()
             AgentPanelCommand.ADD_CONTEXT -> view.composer.promptContext.onAddMention()
-            AgentPanelCommand.HISTORY -> { view.controller.pauseQueue(); history.showPopup(event) }
             AgentPanelCommand.CHANGES -> view.controller.showChanges()
         }
     }
@@ -158,7 +157,7 @@ class AgentToolWindowRootPanel(
         onTransport = { selectedView?.controller?.selectTransport(it) },
         onSummarize = { selectedView?.controller?.sendPrompt("/summarize") },
         onNewChat = { open() },
-        onHistory = { event -> selectedView?.controller?.pauseQueue(); history.showPopup(event) },
+        onHistory = { history.request(toggle = true) },
         onMcp = { McpServersDialog(project).show() },
         onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
         onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
@@ -189,7 +188,7 @@ class AgentToolWindowRootPanel(
         requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
         onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
     )
-    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
+    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project),
         onChatResumed = { conversation, legacyId, match, query ->
             openSavedChat(conversation, legacyId)
             if (match != null) {
@@ -201,6 +200,9 @@ class AgentToolWindowRootPanel(
             }
         },
         isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
+        context = { HistoryPopupContext(selectedView?.let { sessions.snapshot().selectedId }, isShowing,
+            isShowing && allChatsSidebarVisible, windowShortcutAvailable) },
+        onShowing = { selectedView?.controller?.pauseQueue() },
     )
 
     init {
@@ -222,6 +224,7 @@ class AgentToolWindowRootPanel(
                 allChatsSidebar?.suspendUpdates()
                 if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) cancelPendingChatFocus()
             } else if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) allChatsSidebar?.reload()
+            if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) history.refresh()
         }
         strip.onMove = { id, index -> if (sessions.move(id, index)) refreshStrip() }
         add(strip, BorderLayout.NORTH)
@@ -230,7 +233,7 @@ class AgentToolWindowRootPanel(
         showSelected()
         if (PropertiesComponent.getInstance(project).getBoolean("CursorAgent.allChatsSidebar", false)) setAllChatsVisible(true)
         val shortcutIds = AgentPanelCommand.entries.filterNot { it == AgentPanelCommand.UNFOCUS_INPUT }.map { it.actionId } +
-            AgentWindowCommand.SETTINGS.actionId
+            listOf(AgentWindowCommand.SETTINGS.actionId, AgentWindowCommand.HISTORY.actionId)
         shortcutIds.forEach { actionId ->
             ActionManager.getInstance().getAction(actionId)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, this)
@@ -250,6 +253,11 @@ class AgentToolWindowRootPanel(
             }
         }
     }
+
+    internal val historyShortcutAvailable: Boolean
+        get() = selectedView != null && (!isShowing || !allChatsSidebarVisible) && windowShortcutAvailable
+
+    internal fun requestHistory() { if (historyShortcutAvailable) history.request() }
 
     internal fun cancelPendingChatFocus() { chatFocusGeneration++ }
 
@@ -311,6 +319,7 @@ class AgentToolWindowRootPanel(
             allChatsContainer.add(view, BorderLayout.CENTER)
         }
         if (visible) contentSplitter.firstComponent = allChatsContainer
+        history.refresh()
         PropertiesComponent.getInstance(project).setValue("CursorAgent.allChatsSidebar", visible, false)
         allChatsSidebar?.reload()
         revalidate()
@@ -547,6 +556,7 @@ class AgentToolWindowRootPanel(
         // Modal confirmation may have opened another tab; decide against the current set.
         val closesAllTabs = sessions.snapshot().visibleTabs.all { it.id in ids }
         sessions.closeAll(ids).forEach { tab ->
+            history.forget(tab.id)
             views.remove(tab.id)?.let { view ->
                 view.controller.dispose()
                 cards.remove(view.panel)
@@ -653,6 +663,7 @@ class AgentToolWindowRootPanel(
         view.lastShownNanos = System.nanoTime()
         view.composer.inputArea.requestFocusInWindow()
         allChatsSidebar?.reload()
+        history.refresh()
     }
 
     private fun refreshStrip() {
