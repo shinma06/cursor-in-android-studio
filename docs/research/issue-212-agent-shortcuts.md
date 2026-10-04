@@ -147,7 +147,7 @@ M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。13個の
 
 最近使用一覧は全OSでControl+Tab / Control+Shift+Tab（MacでもCmdではない）。固定版のruntime訪問リストは最大10件で、未登録の候補を更新日時の新しい順で10件まで補う。通常開始は2番目、逆方向開始は末尾を選び、一覧内では同じキーで次/前へ循環する。タブの表示順とは異なり、閉じた保存会話も候補に含む。Pluginはproject内のPRINT/ACP本文・旧print metadata・未保存の開いたタブを統合し、訪問順は表示の確定時だけ更新する。タブ並替え、stream更新、候補上の移動は順序を変えない。本文IDと旧print provider IDを別の型にし、同じprovider文字列のACPをprint legacyとしてまとめない。
 
-修飾キーの解放はIDEで設定された単一strokeのControl/Meta/Altを使い、Shiftは他の修飾キーを離した場合だけ確定に使う。複数strokeはEnterで確定する。一覧の入口と候補移動は同じAction/Keymapを共有し、別popupや通常editorに配送しない。読込み前の解放は一覧を残し、遅れて候補が来ても勝手に開かない。Esc、外部click、別window、panel非表示/破棄は取消。候補はmetadataだけを保持し、閉じた会話の本文は確定時に再読込して削除/最新保存を照合する。選択中tabや世代が変わった後の読込み結果は捨てる。本文表示とprovider再開/Revertの可否は既存履歴経路を共有する。
+修飾キーの解放はIDEで設定された単一strokeのControl/Meta/Altを使い、Shiftは他の修飾キーを離した場合だけ確定に使う。複数strokeはEnterで確定する。一覧の入口と候補移動は同じAction/Keymapを共有し、別popupや通常editorに配送しない。読込み前の解放は一覧を残し、遅れて候補が来ても勝手に開かない。Esc、外部click、別window、panel非表示/破棄は取消。候補はmetadataだけを保持し、閉じた会話の本文は確定時に再読込して削除/最新保存を照合する。選択中tabや世代が変わった後、IME変換や別popupが始まった後の読込み結果は捨てる。本文表示とprovider再開/Revertの可否は既存履歴経路を共有する。
 
 根拠は上記固定版のMRU service/provider、Quick Accessの初期選択、Quick Pickの修飾keyup handlerと固定SDKのnative popup API。GUI操作は未実施。共通providerにはBackground候補、未読/保留要求の印もあり、in-IDEでの実データ条件と公開取得契約は未確定・未接続として残す。All Agentsは別の`chat:` provider（更新日時/検索順、最大200件）とsidebar表示制御を使うため、最近使用一覧や既存opened chatsで代替済みとは扱わない。M+A+左右のnavigation modeも別経路で、次の実装対象として残る。
 

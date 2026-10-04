@@ -277,7 +277,7 @@
         "使い捨てprojectでA/B/Cの順にタブを作り、A→C→Bと表示する。タブを並べ替えたりAで応答を更新したりしても訪問順B/C/Aは変わらない。全OSでControl+Tab（MacでもControl）からCを初期選択し、Controlを保持してTabで次、Shift+Tabで前へ循環する。逆方向から開始すると末尾を選ぶ。",
         "候補上の移動だけでは本文を切り替えず、Control解放またはEnterで選択を確定する。Esc、外部click、別windowへの移動で取り消し、元のtab/draft/context/runを保つ。確定したviewだけを最新訪問にする。",
         "10件を超える会話、閉じた保存会話、閉じて失われた未送信draft、旧print metadata、同じprovider文字列のPRINT/ACPを用意する。直近訪問と更新日時fallbackから最大10件を表示し、存在しないdraftを復活させない。既に開いたviewを再利用し、閉じた保存本文は最新データを再読込する。本文表示をprovider再開やRevert許可に置き換えない。",
-        "履歴読込みを遅くしてControlを先に離す。一覧を残し、結果到着後に勝手に会話を開かない。読込失敗/破損件数を表示し、既存ファイルを変更しない。選択確定後の読込中にtab変更/非表示/project破棄を行い、遅い結果で別の選択やprojectを操作しない。",
+        "履歴読込みを遅くしてControlを先に離す。一覧を残し、結果到着後に勝手に会話を開かない。読込失敗/破損件数を表示し、既存ファイルを変更しない。選択確定後の読込中にtab変更/非表示/project破棄・IME変換/別popupの開始を行い、遅い結果で別の選択やprojectを操作しない。",
         "IDE Keymapで入口をAlt/Meta付き単一strokeや複数strokeに変更/解除する。一覧内の移動にも反映し、Shiftだけの解放でControl保持中に確定しない。複数strokeはEnterで確定する。一般editorや別popupで同じキーを奪わず、IME/候補中は最近使用一覧を開かない。",
         "Cursor固定版との一覧初期選択・キー解放・閉じた会話・All Agentsとの差を記録する。共通providerのBackground/未読候補とAll Agents/sidebar、M+A+左右は未確定/未接続として残し、本Caseだけで全対象をpassにしない。"
       ],

@@ -253,7 +253,7 @@ class AgentToolWindowRootPanel(
         val ticket = ++chatFocusGeneration
         val store = project.getService(ConversationHistory::class.java)
         store.load { result -> SwingUtilities.invokeLater {
-            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration) return@invokeLater
+            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration || !windowShortcutAvailable) return@invokeLater
             val loaded = result.getOrNull()
             if (loaded == null) {
                 selectedView?.timeline?.showStatus("履歴を読み込めませんでした。保存先の権限を確認してください。")
