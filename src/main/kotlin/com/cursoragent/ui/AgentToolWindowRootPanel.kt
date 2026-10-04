@@ -133,7 +133,6 @@ class AgentToolWindowRootPanel(
             AgentPanelCommand.ADD_CONTEXT -> view.composer.promptContext.onAddMention()
             AgentPanelCommand.HISTORY -> { view.controller.pauseQueue(); history.showPopup(event) }
             AgentPanelCommand.CHANGES -> view.controller.showChanges()
-            AgentPanelCommand.SETTINGS -> ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java)
         }
     }
 
@@ -216,8 +215,10 @@ class AgentToolWindowRootPanel(
         add(contentSplitter, BorderLayout.CENTER)
         showSelected()
         if (PropertiesComponent.getInstance(project).getBoolean("CursorAgent.allChatsSidebar", false)) setAllChatsVisible(true)
-        AgentPanelCommand.entries.filterNot { it == AgentPanelCommand.UNFOCUS_INPUT }.forEach { command ->
-            ActionManager.getInstance().getAction(command.actionId)?.let { action ->
+        val shortcutIds = AgentPanelCommand.entries.filterNot { it == AgentPanelCommand.UNFOCUS_INPUT }.map { it.actionId } +
+            AgentWindowCommand.SETTINGS.actionId
+        shortcutIds.forEach { actionId ->
+            ActionManager.getInstance().getAction(actionId)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, this)
                 registeredShortcuts.add(action)
             }

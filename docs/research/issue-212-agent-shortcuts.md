@@ -31,7 +31,7 @@
 | `composer.startComposerPrompt` | Cmd+I | Ctrl+I | Ctrl+I | global登録でAgent入口へ転送。ToolWindow表示/focusを既存APIで接続する。 | in-IDE静的確認 / pane入口を接続済み、worktree/editor/過去入力の分岐は未達・未GUI / A1 |
 | `composer.newAgentChat` | Cmd+Shift+L / Cmd+Shift+I | Ctrl+Shift+L / Ctrl+Shift+I | Ctrl+Shift+L / Ctrl+Shift+I | global登録。in-IDEでは空のAgentを再利用または作成し、focus済みの空Agentなら隠す場合がある。単純な現在chatへの選択追加とは異なる。 | in-IDE静的確認 / pane入口を接続済み、worktree/editor/過去入力の分岐は未達・未GUI / A1 |
 | `composer.createNewComposerTab` | Cmd+T / Cmd+N | Ctrl+T / Ctrl+N | Ctrl+T / Ctrl+N | M+T: composer/view/composer editor/agentsPane。M+Nはさらに一般editor text・files explorer・explorer viewletのfocusを除く。 | in-IDE静的確認 / 一部接続済み / A1 |
-| `composer.showComposerHistory` | Cmd+Option+' | Ctrl+Alt+' | Ctrl+Alt+' | 登録にwhenなし。Pluginの現在のpanel内限定より広い入口を持つ。 | in-IDE静的確認 / 一部接続済み / A1 |
+| `composer.showComposerHistory` | Cmd+Option+' | Ctrl+Alt+' | Ctrl+Alt+' | 登録にwhenなし。選択中composerを解決し、統合sidebarが表示中なら履歴表示を変更しない。Pluginは現在panel内限定。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `composer.closeComposerTab` | Cmd+W | Ctrl+W | Ctrl+W | composerまたはaichat viewにfocusし、一般editor textにfocusなし。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `composer.cancelComposerStep` | Cmd+Shift+Backspace | Ctrl+Shift+Backspace | Ctrl+Shift+Backspace | panel/viewにfocus。保留decision拒否→実行中run取消→表示中の変更却下の順に分岐。PluginのStopだけでは全分岐を満たさない。 | in-IDE静的確認 / 一部接続済み / A3 |
 | `composer.acceptComposerStep` | Cmd+Enter / Cmd+Option+Enter | Ctrl+Enter / Ctrl+Alt+Enter | Ctrl+Enter / Ctrl+Alt+Enter | panel/viewにfocus。送信がM+Enter設定ならM+A+Enter、それ以外ならM+Enter。保留decision groupまたはnotificationを受理する。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
@@ -58,11 +58,11 @@
 | `workbench.action.quickOpenPreviousRecentlyUsedAgent` | Control+Tab | Ctrl+Tab | Ctrl+Tab | agentsPane/composerにfocus、chatEditorGroup.enabledではなくBackground Composer Windowでもない。最近使用順picker。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenLeastRecentlyUsedAgent` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記と同じ条件で初期選択を逆順にする。tab表示順とは別。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `composer.sendToAgent` | Cmd+L | Ctrl+L | Ctrl+L | editor prompt barが存在しfocus中。Inline Edit→Agent境界であり、通常panel内操作の対象外。入口として採るかは別判断。 | 対象外 / 通常panel対象外 / X-INLINE |
-| `aiSettings.action.open` | Cmd+Shift+J / Cmd+, | Ctrl+Shift+J / Ctrl+, | Ctrl+Shift+J / Ctrl+, | M+Shift+Jはglobal、M+,はisGlass=false。固定配布版では両方Cursor Settingsを開き、一般IDE設定はM+Shift+,。公式概要との差を保持する。 | in-IDE静的確認 / 一部接続済み / A1 |
+| `aiSettings.action.open` | Cmd+Shift+J / Cmd+, | Ctrl+Shift+J / Ctrl+, | Ctrl+Shift+J / Ctrl+, | M+Shift+Jはglobal、M+,はisGlass=false。固定配布版では両方Cursor Settingsを開き、一般IDE設定はM+Shift+,。Pluginはproject内global設定入口へ接続。公式概要との差を保持する。 | in-IDE静的確認 / global設定へ接続・GUI pending / A1 |
 | `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 
-panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、panel内は計17 Actionとなる。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
+panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、panel専用は計16 Action、Settingsは同じIDを保って7つ目のglobal Actionへ移す。Settingsは引き続きpanelにもlocal登録する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
 ## 入力部品内の操作
 
@@ -171,7 +171,7 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
-3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel内17 Actionとglobal6 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用16 Actionとglobal7 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
 
 ## 入力欄のEscapeと作業場所への復帰
 
@@ -185,7 +185,7 @@ OpenChat/FollowUp/NewAgent/All Agentsのglobal入口ではcontent生成・activa
 
 ## 予約一覧のキー操作と残る送信能力
 
-固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内17操作・global6入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
+固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel専用16操作・global7入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
 
 管理dialogを開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
 
@@ -236,3 +236,11 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 `SessionTabs`は同じproject内の会話ownerと表示タブを区別する。置換は旧ownerのvisibleをfalseにするだけで、tab UUID、conversation/provider ID、run token、完全なview/controller、下書き、queue編集と画像leaseを保持する。元の実行の応答は元ownerへ届き、Stopや新しい会話への再送は起こさない。予約は従来の会話切替時と同じく一時停止する。All Agentsや最近使用一覧から同じownerへ戻り、provider再接続や保存履歴の再生で代替しない。本文のないdraftは一覧の説明に短い本文/command/画像表示を出すが、正式な会話名を生成しない（#66維持）。表示タブの前後移動/並替え/開いているチャット/全タブ閉鎖はvisible集合だけを使い、最後のvisibleを閉じた時は#213の空New Agentとパネル非表示を維持する。root破棄では非表示ownerも停止・破棄する。未送信draftのディスク保存や再起動復元は本変更に含まず、既存の保存範囲を変更しない。
 
 [JetBrains AI Chat](https://www.jetbrains.com/help/ai-assistant/ai-chat.html)にもNew Chat、会話履歴、editor表示があり、[Cursor ACP連携](https://cursor.com/docs/integrations/jetbrains)と[IDE MCP Server](https://www.jetbrains.com/help/idea/mcp-server.html)を含む構成を比較対象とする。会話切替は同等UXへの接続であり独自機能とは呼ばない。直接IDE統合では、IDE Keymapと入力focusに限定して会話owner/実行tokenを維持する。配布版の静的経路とSessionTabs/Action/入力guardのテストが根拠で、liveのキー配送・画面・各接続の動作は[Case正本](../verification/changes/issue-212.json)のKEYMAP-INPUT-RESETで未確認として追う。native worktree・spec/project・subagent/editorの分岐は既存P06/P07/全対象照合に残す。
+
+## 設定と履歴の入口条件
+
+`Settings`はM+Shift+J / M+,をproject内global Actionにし、既存の`CursorAgent.Settings` IDとユーザーKeymapを維持する。各eventのprojectと利用可能なToolWindowを再確認し、既存rootがあればIME/候補/子popupを拒否する。updateも実行もcontentを生成せず、パネルの表示/配置・会話・draft・queue・runを変えずに、native設定dialogの本Plugin設定を開く。panel内のlocal登録も維持し、破棄時に解除する。IDEの設定/行結合等との競合はKeymapで再割当/解除する。projectなし/ToolWindow利用不可は対象外。welcome画面の設定入口や、一般editor/Terminal側IMEのキー配送は本接続の検証済み範囲に含めない。
+
+根拠は固定版`Ryp`と`gfy` / `ffy`のglobal登録、[公式Settings shortcut](https://cursor.com/docs/reference/keyboard-shortcuts)、IDE Action System。`AgentWindowActionTest`はpanel contextなし、eventごとのproject、content未生成/非表示維持、失効後の拒否、旧IDとOS別2キーを確認する。実配送とユーザー再割当は`KEYMAP-SETTINGS`でGUI pending。これはJetBrainsの設定/Keymapと同種の入口であり、直接統合では既存のPlugin設定と会話ownerをそのまま使う。
+
+履歴の`GK`登録はglobalだが、`run`は選択中composerのhandleを必要とし、`showComposerHistory`は統合sidebar表示中に何もしない。それ以外で会話の`shouldShowHistory`を立て、editor側の履歴表示flagを下げる。未生成会話の作成やパネル表示を直接要求するhandlerではない。Pluginの`PastChatsCoordinator`は表示中rootを前提に検索dialogを開くため、global登録だけの追加では同等にならない。sidebarとの排他、非表示中の要求と再表示、active composerなし、dialog/flyout差をA1の残作業とし、固定build GUIで照合する。根拠は固定版の当該handlerとserviceの静的確認で、GUI到達の証拠ではない。

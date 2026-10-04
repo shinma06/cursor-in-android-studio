@@ -203,7 +203,7 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift R" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift R" replace-all="true"/>
             </action>
-            <action id="CursorAgent.Settings" class="com.cursoragent.actions.AgentPanelAction$Settings"
+            <action id="CursorAgent.Settings" class="com.cursoragent.actions.AgentWindowAction$Settings"
                     text="Cursorの設定" description="Cursor in Android Studioの設定を開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control shift J"/>
                 <keyboard-shortcut keymap="$default" first-keystroke="control COMMA"/>

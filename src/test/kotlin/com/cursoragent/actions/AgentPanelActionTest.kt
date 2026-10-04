@@ -143,7 +143,6 @@ class AgentPanelActionTest {
         AgentPanelCommand.ADD_CONTEXT to AgentPanelAction.AddContext(),
         AgentPanelCommand.HISTORY to AgentPanelAction.History(),
         AgentPanelCommand.CHANGES to AgentPanelAction.Changes(),
-        AgentPanelCommand.SETTINGS to AgentPanelAction.Settings(),
     )
 
     private fun event(action: AgentPanelAction, context: DataContext = DataContext.EMPTY_CONTEXT) = AnActionEvent(

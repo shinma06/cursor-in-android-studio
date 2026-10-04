@@ -18,12 +18,17 @@ internal enum class AgentWindowCommand(val actionId: String) {
     FOLLOW_UP("CursorAgent.FollowUp"),
     NEW_AGENT("CursorAgent.NewAgent"),
     ALL_CHATS("CursorAgent.AllChats"),
+    SETTINGS("CursorAgent.Settings"),
 }
 
 /** Resolve the owning project's live ToolWindow for every event, including before content creation. */
 abstract class AgentWindowAction internal constructor(
     private val command: AgentWindowCommand,
     private val windowFor: (Project) -> ToolWindow? = { ToolWindowManager.getInstance(it).getToolWindow("Cursor Agent") },
+    private val openSettings: (Project) -> Unit = {
+        com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+            .showSettingsDialog(it, com.cursoragent.settings.AgentSettingsConfigurable::class.java)
+    },
 ) : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
 
@@ -35,6 +40,7 @@ abstract class AgentWindowAction internal constructor(
         val window = target(e) ?: return
         panel(window)?.cancelPendingChatFocus()
         when (command) {
+            AgentWindowCommand.SETTINGS -> openSettings(window.project)
             AgentWindowCommand.TOGGLE -> if (window.isVisible) window.hide(null) else window.show(null)
             AgentWindowCommand.SWAP_SIDE -> {
                 window.setAnchor(if (window.anchor == ToolWindowAnchor.LEFT) ToolWindowAnchor.RIGHT else ToolWindowAnchor.LEFT, null)
@@ -71,4 +77,5 @@ abstract class AgentWindowAction internal constructor(
     class FollowUp : AgentWindowAction(AgentWindowCommand.FOLLOW_UP)
     class NewAgent : AgentWindowAction(AgentWindowCommand.NEW_AGENT)
     class AllChats : AgentWindowAction(AgentWindowCommand.ALL_CHATS)
+    class Settings : AgentWindowAction(AgentWindowCommand.SETTINGS)
 }

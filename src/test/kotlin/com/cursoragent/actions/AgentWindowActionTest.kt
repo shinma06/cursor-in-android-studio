@@ -163,6 +163,40 @@ class AgentWindowActionTest {
         }
     }
 
+    @Test
+    fun `settings opens for the event project without creating or showing Agent content`() = SwingUtilities.invokeAndWait {
+        val first = WindowFixture()
+        val second = WindowFixture()
+        val opened = mutableListOf<Project>()
+        val action = object : AgentWindowAction(AgentWindowCommand.SETTINGS,
+            { if (it === first.project) first.window else second.window }, opened::add) {}
+        for (fixture in listOf(first, second, first)) {
+            val event = event(action, fixture.project)
+            action.update(event)
+            assertTrue(event.presentation.isEnabled)
+            action.actionPerformed(event)
+            assertSame(fixture.project, opened.last())
+            assertFalse(fixture.visible)
+            assertTrue(fixture.calls.isEmpty())
+        }
+        assertEquals(3, opened.size)
+
+        val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(java.io.File("src/main/resources/META-INF/plugin.xml"))
+        val nodes = xml.getElementsByTagName("action")
+        val declaration = (0 until nodes.length).map { nodes.item(it) as org.w3c.dom.Element }
+            .single { it.getAttribute("id") == "CursorAgent.Settings" }
+        assertEquals(AgentWindowAction.Settings().javaClass.name, declaration.getAttribute("class"))
+        assertFalse(AgentPanelCommand.entries.any { it.actionId == AgentWindowCommand.SETTINGS.actionId })
+        val shortcuts = declaration.getElementsByTagName("keyboard-shortcut")
+        val byKeymap = (0 until shortcuts.length).map { shortcuts.item(it) as org.w3c.dom.Element }.groupBy { it.getAttribute("keymap") }
+        assertEquals(setOf("\$default", "Mac OS X", "Mac OS X 10.5+"), byKeymap.keys)
+        byKeymap.forEach { (keymap, keys) ->
+            val modifier = if (keymap == "\$default") "control" else "meta"
+            assertEquals(listOf("$modifier shift J", "$modifier COMMA"), keys.map { it.getAttribute("first-keystroke") })
+            if (keymap != "\$default") assertEquals("true", keys.first().getAttribute("replace-all"))
+        }
+    }
+
     private fun event(action: AgentWindowAction, project: Project?) = AnActionEvent(
         DataContext { if (CommonDataKeys.PROJECT.`is`(it)) project else null },
         action.templatePresentation.clone(), "test", ActionUiKind.NONE, null, 0, unusedActionManager,
