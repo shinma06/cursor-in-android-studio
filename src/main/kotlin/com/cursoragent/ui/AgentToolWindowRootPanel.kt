@@ -38,7 +38,10 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 
 /** Retain complete tab views so editor caret/selection and timeline scroll never cross sessions. */
-class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
+class AgentToolWindowRootPanel(
+    private val project: Project,
+    private val onLastTabClosed: () -> Unit,
+) : JPanel(BorderLayout()), Disposable {
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
@@ -188,6 +191,9 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         if (!confirmed && ids.any { id -> views[id]?.let { it.controller.hasUnsavedBody || it.controller.hasQueuedPrompts || it.composer.isRunning || (it.composer.inputArea.text.isNotBlank() || it.composer.promptContext.draft.hasExplicit || it.composer.commands.selectedName != null || it.composer.images?.hasUnsent == true) } == true }) {
             if (Messages.showYesNoDialog(project, "未保存の本文・下書き・予約した入力、または実行中の応答があります。閉じると未保存分を失う可能性があります。閉じますか？", "チャットを閉じる", Messages.getWarningIcon()) != Messages.YES) return
         }
+        if (disposed || project.isDisposed) return
+        // Modal confirmation may have opened another tab; decide against the current set.
+        val closesAllTabs = sessions.snapshot().tabs.all { it.id in ids }
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
                 view.controller.dispose()
@@ -195,6 +201,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
             }
         }
         showSelected()
+        if (closesAllTabs) onLastTabClosed()
     }
 
     private fun open(chatId: String? = null) {

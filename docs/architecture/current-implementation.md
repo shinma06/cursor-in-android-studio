@@ -17,6 +17,8 @@
 
 対応ソース: [root](../../src/main/kotlin/com/cursoragent/ui/AgentToolWindowRootPanel.kt)、[状態](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、[controller](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)、[service](../../src/main/kotlin/com/cursoragent/service/AgentProcessService.kt)、[run](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt)、[listener](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt)。
 
+最後の会話タブを閉じると、既存の`SessionTabs`が空の`New Agent`を用意し、対象controllerの破棄後にfactoryが標準`ToolWindow.hide`でAgentパネルを非表示にする（#213）。再表示時はその新規会話を使い、閉じた会話の本文・下書き・provider IDを復帰させない。閉じるボタン、タブ上のDelete、全チャット閉鎖は同じ処理を通る。確認dialog後の現行タブ集合で最後かを判定し、確認中に追加されたタブがあればパネルを維持する。未保存/実行中の確認・取消、対象runだけの停止と遅着拒否は既存経路を保つ。ヘッダーの「パネルを隠す」は会話を閉じず、そのまま保持する別操作。実画面の非表示・再表示と入力/並行実行の受入は[Case #213](../verification/changes/issue-213.json)で確認する。
+
 ## 会話タブの折り返し
 
 会話タブはIDEの `Settings → Editor → General → Editor Tabs → Show tabs in` に連動する（#211）。`Multiple rows` は `UISettings.scrollTabLayoutInEditor == false`、`One row` は `true` で、Rabbit 1の既定値は `true`。設定はIDE全体に適用され、各panelは生成時と `UISettingsListener.TOPIC` のEDT通知で反映する。接続はprojectに登録し、panel破棄時にも明示的に切断する。製品独自の設定・永続化は増やさない。読み取りAPIと設定画面の値対応はRabbit 1 `AI-262.9437.185.2621.16467767` のSDKで確認した。[設定の公式説明](https://www.jetbrains.com/help/idea/using-code-editor.html) / [UISettings](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettings.kt) / [既定値](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettingsState.kt)。

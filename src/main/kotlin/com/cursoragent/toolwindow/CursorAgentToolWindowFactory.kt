@@ -27,7 +27,9 @@ class CursorAgentToolWindowFactory : ToolWindowFactory {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = AgentToolWindowRootPanel(project)
+        val panel = AgentToolWindowRootPanel(project, onLastTabClosed = {
+            if (!toolWindow.isDisposed) toolWindow.hide(null)
+        })
         val content = ContentFactory.getInstance().createContent(panel, "", false)
         toolWindow.setAdditionalGearActions(panel.actions.gearActions)
         // Keep SDK-specific decoration access here; other ToolWindow implementations retain the native header.

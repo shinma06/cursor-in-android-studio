@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "issue": 213,
+  "gui_required": true,
+  "reason": "最後の会話タブ閉鎖でIDE ToolWindowを非表示にするため、再表示・確認dialog・並行実行の固定build実画面受入が必要。今回はGUI操作を行わずpendingを保持する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（製品変更の./gradlew testを含む）",
+    "SessionTabsTest / SessionTabsExecutionTest / SessionTabStripTest / ToolWindowChatActionsTestで新規会話・遅着・取消/捕捉ID・操作経路を確認",
+    "git diff --check、Case JSON schema、固定HEAD/baseの独立レビュー、4必須checks"
+  ],
+  "cases": [
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 213,
+      "preconditions": "指定GUI担当のhost leaseと専用profile・使い捨てproject。#213を含む固定source SHA/ZIP SHA256/installed全JAR/ロード実体を照合。通常IDEや認証・既存作業を変更しない。通信が必要なCaseは既存print/ACP合成fixtureを使い、実providerへ送信しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/213",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/214"
+      ],
+      "id": "LAST-TAB-HIDE-REOPEN",
+      "change": "最後の会話閉鎖とNew Agentでの再表示",
+      "steps": [
+        "空のNew Agentが1件だけの状態で閉じるボタンを押す。Agentパネルだけが非表示になり、IDE/projectとファイルエディターが残ることを確認する。",
+        "IDEのToolWindowボタン/メニューから再表示し、空のNew Agentが1件・本文/下書きなしで、通常入力と新規会話の設定選択ができることを確認する。タブにfocusを置きDeleteで閉じ、再表示を繰り返す。",
+        "合成fixtureで完了したprint会話/ACP会話それぞれを最後の1件として閉じ、再表示時に元のtitle・本文・下書き・provider sessionを引き継がないことを確認する。",
+        "会話と下書きがある状態でヘッダーの「Agentパネルを隠す」を使う。この操作では閉鎖確認や会話リセットをせず、再表示で同じ会話/下書きを保持する。Dark/Lightと狭幅/通常幅で閉じる操作を確認する。"
+      ],
+      "expected": "最後のタブ閉鎖はパネルを隠し、再表示は新規New Agent。単なるパネル非表示は会話を保持する。IDE/projectは閉じない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 213,
+      "preconditions": "指定GUI担当のhost leaseと専用profile・使い捨てproject。#213を含む固定source SHA/ZIP SHA256/installed全JAR/ロード実体を照合。通常IDEや認証・既存作業を変更しない。通信が必要なCaseは既存print/ACP合成fixtureを使い、実providerへ送信しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/213",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/214"
+      ],
+      "id": "LAST-TAB-CONFIRM-OWNER",
+      "change": "取消・並行実行・遅いcallbackの所有を保持",
+      "steps": [
+        "下書き/明示context/予約入力のある最後のタブを閉じる。確認を取消すとパネル・同じタブ・入力内容を保持し、確認を承認した場合だけ非表示になる。保存失敗の本文がある場合も確認対象になる。",
+        "合成fixtureの準備保留と実行保留それぞれで最後のタブを閉じる。承認後は対象runの準備/実行を既存停止経路で扱い、再表示のNew Agentへ旧本文・終端・titleを配送しない。ACP終了不確定の場合は既存の新規送信/復元拒否を維持する。",
+        "会話A/Bを開き両方に識別可能な本文/下書きを置く。Aを閉じてもパネルとBの状態を保持する。Aのみ実行中、Bのみ実行中の条件で閉鎖対象以外のrunを停止しない。別projectの会話も影響を受けない。",
+        "「すべてのチャットを閉じる」を取消す/承認する。取消は全tabを保持し、承認して現存tabをすべて閉じた場合はパネル非表示、再表示はNew Agentになることを確認する。確認中に追加されたtabの保護は既存の捕捉ID回帰テストと独立レビューも照合し、通常のGUI操作だけで競合発生を確認したとは扱わない。"
+      ],
+      "expected": "取消では閉鎖/非表示なし。確認時の対象tabだけを閉じ、全tabがなくなる操作だけ非表示にする。旧run/titleの遅着を新規会話へ混入させず、他tab/projectの実行と状態を保持する。"
+    }
+  ]
+}
