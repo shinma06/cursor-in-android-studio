@@ -41,7 +41,7 @@
 | `composer.cancelComposerStepInputFocused` | Control+C | Ctrl+Shift+Backspace | Ctrl+Shift+Backspace | panel/view条件で取消可能な実行を止める。名称から入力部品focus限定とは推測しない。macOSだけControl+C。Pluginは既存Stopの副キーとして接続し、選択中runとIME/popup保護を再利用。 | in-IDE静的確認 / 一部接続済み / A3 |
 | `composer.cancelTerminalToolCall` | Shift+Backspace | Shift+Backspace | Shift+Backspace | panel/viewの選択中composer。保留terminal decisionを拒否するかterminal streamだけを取り消す。全run Stopと別。 | in-IDE静的確認 / 能力未実装 / P05 |
 | `composer.triggerCreateWorktreeButton` | Cmd+Shift+Enter | Ctrl+Shift+Enter | Ctrl+Shift+Enter | composerにfocus、空会話かつ非空draft。初回submitを呼ぶ登録であり、named worktree作成を保証しない。 | in-IDE静的確認 / 能力未実装 / P06 |
-| `composer.openModeMenu` | Cmd+. / Cmd+Option+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | composer/view/composer editor/mode menuにfocus、一般editor textとquick inputを除く。Shift+Tabは入力局所処理との優先が未確定。 | in-IDE静的確認 / 一部接続済み / A1 |
+| `composer.openModeMenu` | Cmd+. / Cmd+Option+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | composer/view/composer editor/mode menuにfocus、一般editor textとquick inputを除く。名前に反してmodeを循環する。入力のkeydownでは一致したmode ActionをTabの過去message処理より先に扱う。 | in-IDE静的確認 / Pluginの既存3 mode循環へ接続、提案分岐・拡張mode・GUIは未達 / A1 |
 | `composer.toggleChatAsEditor` | Cmd+D | Ctrl+D | Ctrl+D | composerにfocus、一般editor textにfocusなし。同一chatのeditor表示を切り替える。 | in-IDE静的確認 / 能力未実装 / P07 |
 | `composer.previousChatTab` | Cmd+[ | Ctrl+[ | Ctrl+[ | composerにfocus、一般editor textにfocusなし。複数タブは表示順、1タブは全会話の更新日時順で循環する静的経路を確認。実GUIは未確認。 | in-IDE静的確認 / 複数/単一タブ分岐へ接続、未GUI / A2 |
 | `composer.nextChatTab` | Cmd+] | Ctrl+] | Ctrl+] | 上記の次tab。 | in-IDE静的確認 / 複数/単一タブ分岐へ接続、未GUI / A2 |
@@ -71,7 +71,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 | INPUT-RESET | M+R | 入力にfocus、Shiftなし。空会話の再利用、履歴後draftの引継ぎ、元ownerを保持した表示置換へ接続。 | in-IDE静的確認 / 実装済み・GUI pending。native worktree/editor分岐はP06/P07 / A1 |
 | INPUT-LEGACY-NEW | M+N | 入力にfocus、Shiftなし。composer.createNewの現在の既定登録は発見できず、legacy/custom条件付き経路として未確定。 | 未確定 / 既存機能へ接続/差分確認が必要 / A1 |
 | INPUT-MESSAGE-NEXT | Tab | ghost候補位置・mention menuがなくhuman messageを編集中。次のhuman messageまたは末尾入力へ移動。通常の末尾入力ではnative focusへ渡す。 | in-IDE静的確認 / 能力未実装 / P02 |
-| INPUT-MESSAGE-PREVIOUS | Shift+Tab | 同じ候補保護に加えてtool review待ちでない。末尾入力からも前のhuman messageへ移動。公式mode回転・登録mode menuとの優先は未GUI。 | in-IDE静的確認 / 能力未実装 / P02 |
+| INPUT-MESSAGE-PREVIOUS | Shift+Tab | 同じ候補保護に加えてtool review待ちでない。末尾入力からも前のhuman messageへ移動。mode Actionに一致する場合は先行keydownがこの局所処理へ進ませない。Keymap変更時のfallbackと実配送は未GUI。 | in-IDE静的確認 / 能力未実装 / P02 |
 | INPUT-UP | ArrowUp | caretが入力境界、Shift/候補menuなし。保留reviewの前option、最新queue編集、過去human message等へ状態別に移る。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / P02 |
 | INPUT-DOWN | ArrowDown | caretが入力境界、Shift/候補menuなし。保留reviewの次option、steering条件下の空末尾入力からqueue focus等へ分岐。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
 | INPUT-ESCAPE | Escape | model nudge、個別Escape処理、編集/review状態の解除後に入力focus解除等へ分岐。popup/IMEを優先する。 | in-IDE静的確認 / 予約編集取消と通常focus復帰を接続・GUI pending。過去入力/review等はP02/A3 / A1 |
@@ -106,7 +106,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 - M+Lは`aichat.newchataction`（Open Chat）。`composer.cancelChat`への初期抽出の対応は誤り。M+Iと同じ入口を使い、選択やfocusで新規/既存が分岐する。M+Shift+L/Iも単純な既存chatへの選択追加とは異なる。
 - Windowsのmodel menuはCtrl+/だけ。Ctrl+Alt+/とCtrl+Shift+/はparameter変更であり、Mac/Linuxのmodel menu副キーをWindowsへ継承してはいけない。Pluginは標準Windows KeymapをCtrl+/だけにし、Linuxの副キーは`Default for XWin`へ定義した。parameter変更の接続はP10で未達。
 - M+Rは入力欄だけで新しい会話へ移る。本文消去や追加tab作成だけに置換せず、後述の再利用/表示置換/下書き条件へ接続する。
-- Shift+Tabは公式概要のmode回転、Action登録のmode menu、入力内の前human message移動という3経路がある。[Plan Mode公式説明](https://cursor.com/docs/agent/plan-mode)との版/focus差も残し、GUI前に一つへ決めつけない。現行の逆focus移動も同等passではない。
+- Shift+Tabは[Plan Mode公式説明](https://cursor.com/docs/agent/plan-mode)のmode回転と整合する固定版の実handlerを確認した。`openModeMenu`という名前だけでmenu表示とした初期解釈を修正する。先行keydownがmode Actionへの一致を検出した場合は、Tabによる過去human message移動へ進まない。Keymap変更/条件不一致時のP02 fallbackは別に残し、静的優先を実OSの配送passへ読み替えない。
 - M+Shift+Enterは初回draft submit、空入力の変更承認/Apply worktree、取消等で意味が分かれる。すべてを「新しいworktreeで開始」としない。
 - 固定版のM+,はCursor Settings、一般IDE設定はM+Shift+,。公式概要のGeneral settingsと異なるため、既存IDEの割当を一括上書きしない。
 - in-IDEのEnter予約/M+Enter即時入力と、独立Agents Window/Webの新しいsteer操作を混ぜない。JetBrainsのSend Nowが実行を中断する場合、非中断の同一turn入力と同等には扱わない。
@@ -261,3 +261,13 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 固定版の`f6t`は現在のpending decision groupの全`accept`、`Kft`/`j5e`の`$dp`はgroupの全`reject`を通常run取消より優先する。groupは単なる全pending集合ではなく、terminal優先・類似tool・質問の状態を使う。shell用`U8o`はreview modelとallowlist候補・設定gateを参照し、一部経路では確認dialogと共有自動実行設定変更を伴う。現在の[ACP permission](https://agentclientprotocol.com/protocol/v1/tool-calls#requesting-permission)受信経路は個別option IDを扱い、この内部group・allowlist候補を提供しない。そのため、今回の個別返信をgroup全件、shell allowlistや通知の対応と呼ばず、A3の残作業として保持する。`allow_always`とshell allowlistを同一化しない。
 
 `RequestShortcutsTest`は実カード/ボタン・timeline・turn listenerと実SessionTabs tokenで、一意/曖昧/focus失効、返信の一度性、質問選択、Stop/close/token更新/project破棄/terminal後の拒否、設定/OSとキー解放を検証する。`AgentPanelActionTest`と`ComposerSubmissionTest`はAction/XMLと入力componentへの登録/破棄時解除を確認する。これは合成入力のCLI検証であり、固定版Cursorや[JetBrains ACPの承認UI](https://www.jetbrains.com/help/ai-assistant/acp.html)と実GUIを比較した合格ではない。直接IDE統合の追加価値は、同じ会話ownerとIDE Keymapから既存の提示済み要求へ返信する接続にある。
+
+### Mode循環とShift+Tabの優先
+
+固定版の`Kdp`（`composer.openModeMenu`）はM+. / M+A+. / Shift+Tabを同じhandlerへ登録し、menuを開かず次のmodeを選ぶ。`getAllModes`の候補と現在値を用い、project/background・複数model・Plan/Debug提案済みflag等で分岐する。入力の`GMf`は一般keydown（`n9e`）をTab局所command（`BRe`）より先に配送する。一般keydownの`softDispatch`が`m6t`へ一致するとそこで返るため、既定Shift+Tabと過去human messageへの局所移動を同列の競合とはしない。ただし実際のfocus/context・別Keymap・IMEの到達は固定build GUIで確認する。
+
+Pluginは既存`CursorAgent.ModeMenu` IDとclass・M+. / M+A+.を保ち、Shift+Tabも同じActionへ追加する。既存選択肢のAgent → Plan → Ask → Agentを現在値から循環し、ラベル/アクセシビリティ名を同時に更新する。modeボタンのクリックは従来の選択menuを開く。現在の入力・選択範囲・model・別会話・共有既定設定・実行中turnの設定を変更しない。printでは次turn用の選択を更新できるが、ACP実行中はwidgetが一時的に有効でも変更を拒否する。これは現行3 modeへの接続であり、CursorのDebug等や自動提案を同等実装した意味ではない。非公開の提案判定・未対応modeを推測した置換は行わず、A1の残分岐に保持する。
+
+入力のnative editorを生成/再生成するたび、同じmode ActionをTab字下げ防止用Actionと同じcomponentへ登録する。IDE KeymapがShift+Tabをmodeへ割り当て、現在のpanelで実行可能な場合はmode Actionを優先する。割当の変更/解除やmode実行不可では従来の逆focus移動を保ち、通常Tab・選択範囲・貼り付け済みtab文字を変更しない。複数strokeの先頭に割り当てた場合もIDE側の解決へ渡す。SDKのlocal登録はcomponentに保持され、IDE全体のkey listenerやeditorを保持する独自registryは追加しない。mode操作が無効な要求card内の移動、IME/候補popup、別project、Keymap再設定の実配送はGUI Caseで照合する。P02の過去message編集/移動はこの接続で完了とはしない。
+
+`SelectorInitializationTest`は循環順・最新選択値・無効状態・別会話・アクセシビリティ表示を確認する。`PromptFocusTraversalTest`は実Actionと現在のshortcut setでmode/逆focusの排他、Keymap変更・複数stroke・失効focusと本文/選択保持を確認する。`ComposerSubmissionTest`は実Editor再生成後の登録、printとACP busyの区別、入力不可と共有設定/draft保持を検証する。比較相手の[JetBrains ACP連携](https://www.jetbrains.com/help/ai-assistant/acp.html)に対するmode/agent選択能力の独自性は主張しない。直接IDE統合では同じKeymapと会話所有、入力保護へ接続し、画面上の同等性は未確認として残す。

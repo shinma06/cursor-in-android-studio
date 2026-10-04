@@ -176,13 +176,16 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt ENTER"/>
             </action>
             <action id="CursorAgent.ModeMenu" class="com.cursoragent.actions.AgentPanelAction$ModeMenu"
-                    text="Modeを選ぶ" description="現在のチャットのMode選択を開きます。">
+                    text="次のModeに切り替える" description="現在のチャットをAgent・Plan・Askの順に切り替えます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control PERIOD"/>
                 <keyboard-shortcut keymap="$default" first-keystroke="control alt PERIOD"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="shift TAB"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta PERIOD" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt PERIOD"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="shift TAB"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta PERIOD" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt PERIOD"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="shift TAB"/>
             </action>
             <action id="CursorAgent.ModelMenu" class="com.cursoragent.actions.AgentPanelAction$ModelMenu"
                     text="Modelを選ぶ" description="現在のチャットのModel選択を開きます。">

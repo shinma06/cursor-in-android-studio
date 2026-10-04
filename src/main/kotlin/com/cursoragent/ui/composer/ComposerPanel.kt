@@ -51,6 +51,11 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     val promptContext = com.cursoragent.ui.composer.context.PromptContextPanel(project)
     private val mentionPopupController = MentionPopupController(project, inputArea, promptContext::addMention)
 
+    internal val canCycleMode: Boolean
+        get() = modeSelector.isEnabled && (!acp || !isRunning)
+
+    internal fun cycleMode() { if (canCycleMode) modeSelector.cycleMode() }
+
     internal val panelShortcutAvailable: Boolean
         get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen
 

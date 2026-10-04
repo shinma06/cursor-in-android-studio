@@ -30,6 +30,56 @@ class ComposerSubmissionTest {
         if (value is Container) value.components.flatMap(::components) else emptyList()
 
     @Test
+    fun `mode cycling is registered on recreated prompt editors and cannot bypass ACP busy state`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("mode cycle").fixture
+        fixture.setUp()
+        try {
+            runInEdtAndWait {
+                val lifetime = Disposer.newDisposable()
+                val composer = ComposerPanel(fixture.project)
+                composer.inputArea.setDisposedWith(lifetime)
+                val globalMode = com.cursoragent.settings.AgentSettingsState.getInstance().mode
+                try {
+                    composer.inputArea.text = "draft stays here"
+                    val action = ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.MODE_MENU.actionId)
+                    assertNotNull(action)
+                    var editor = requireNotNull(composer.inputArea.getEditor(true))
+                    assertTrue(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(editor.contentComponent).contains(action))
+                    composer.modeSelector.selectMode(com.cursoragent.settings.AgentMode.AGENT)
+                    composer.cycleMode()
+                    assertEquals(com.cursoragent.settings.AgentMode.PLAN, composer.selection.mode)
+                    composer.setRunning(true)
+                    assertTrue(composer.canCycleMode, "print next-turn selection remains editable during execution")
+                    composer.cycleMode()
+                    assertEquals(com.cursoragent.settings.AgentMode.ASK, composer.selection.mode)
+                    composer.useAcp()
+                    composer.setRunning(true)
+                    assertFalse(composer.canCycleMode)
+                    composer.modeSelector.isEnabled = true // Stale widget state must not bypass ACP's run guard.
+                    composer.cycleMode()
+                    assertEquals(com.cursoragent.settings.AgentMode.ASK, composer.selection.mode)
+                    composer.setRunning(false)
+                    composer.cycleMode()
+                    assertEquals(com.cursoragent.settings.AgentMode.AGENT, composer.selection.mode)
+                    composer.setInputEnabled(false)
+                    assertFalse(composer.canCycleMode)
+                    composer.cycleMode()
+                    assertEquals(com.cursoragent.settings.AgentMode.AGENT, composer.selection.mode)
+                    composer.setInputEnabled(true)
+                    editor = requireNotNull(composer.inputArea.getEditor(true))
+                    assertTrue(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(editor.contentComponent).contains(action))
+                    assertEquals("draft stays here", composer.inputArea.text)
+                    assertEquals(globalMode, com.cursoragent.settings.AgentSettingsState.getInstance().mode)
+                } finally {
+                    Disposer.dispose(lifetime)
+                }
+            }
+        } finally {
+            runInEdtAndWait { fixture.tearDown() }
+        }
+    }
+
+    @Test
     fun `the configured send action queues while running and preserves native input guards and Stop`(@TempDir parent: Path) {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("composer submission").fixture
         fixture.setUp()

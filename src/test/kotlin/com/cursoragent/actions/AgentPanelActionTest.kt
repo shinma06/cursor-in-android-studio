@@ -102,6 +102,13 @@ class AgentPanelActionTest {
                     assertEquals(listOf("meta R"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
                 }
             }
+            if (command == AgentPanelCommand.MODE_MENU) {
+                byKeymap.forEach { (keymap, keys) ->
+                    val modifier = if (keymap == "\$default") "control" else "meta"
+                    assertEquals(listOf("$modifier PERIOD", "$modifier alt PERIOD", "shift TAB"),
+                        keys.map { it.getAttribute("first-keystroke") })
+                }
+            }
             val recent = command in setOf(AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT)
             if (recent) {
                 val expected = if (command == AgentPanelCommand.RECENT_CHAT) "control TAB" else "control shift TAB"
@@ -126,7 +133,9 @@ class AgentPanelActionTest {
                         key.getAttribute("first-keystroke") == "control C"
                     val modifier = if (keymap == "\$default" || keymap == "Default for XWin" || macControlStop || recent) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
                     if (command == AgentPanelCommand.UNFOCUS_INPUT) assertEquals(0, stroke.modifiers)
-                    else assertTrue(stroke.modifiers and modifier != 0)
+                    else if (command == AgentPanelCommand.MODE_MENU && stroke.keyCode == java.awt.event.KeyEvent.VK_TAB) {
+                        assertEquals(KeyStroke.getKeyStroke("shift TAB"), stroke)
+                    } else assertTrue(stroke.modifiers and modifier != 0)
                 }
             }
         }

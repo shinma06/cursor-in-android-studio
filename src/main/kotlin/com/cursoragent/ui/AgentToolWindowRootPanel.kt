@@ -114,7 +114,7 @@ class AgentToolWindowRootPanel(
                 if (timeline.hasPendingInput) timeline.pendingInput(focus)?.canRespond(false) == true
                 else composer.isRunning
             } == true
-            AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled
+            AgentPanelCommand.MODE_MENU -> composer.canCycleMode
             AgentPanelCommand.MODEL_MENU -> composer.modelSelector.isEnabled
             AgentPanelCommand.ADD_CONTEXT -> composer.inputArea.isEnabled
             else -> true
@@ -142,7 +142,7 @@ class AgentToolWindowRootPanel(
                         ?.respond(command == AgentPanelCommand.ACCEPT_PENDING)
                 } else if (command == AgentPanelCommand.STOP) view.controller.stopRun()
             }
-            AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
+            AgentPanelCommand.MODE_MENU -> view.composer.cycleMode()
             AgentPanelCommand.MODEL_MENU -> view.composer.modelSelector.doClick()
             AgentPanelCommand.ADD_CONTEXT -> view.composer.promptContext.onAddMention()
             AgentPanelCommand.CHANGES -> view.controller.showChanges()

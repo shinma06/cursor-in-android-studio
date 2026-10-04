@@ -78,7 +78,8 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         // A prompt is an embedded form field, even though it supports multiple lines.
         // Use prompt-local shortcuts as well: selection indentation ignores this flag.
         editor.isEmbeddedIntoDialogWrapper = true
-        installPromptFocusTraversal(editor.contentComponent)
+        installPromptFocusTraversal(editor.contentComponent,
+            com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.MODE_MENU.actionId))
         installPromptQueueNavigation(editor) { reverse ->
             isEnabled && !isComposing && onQueueNavigate(reverse)
         }
