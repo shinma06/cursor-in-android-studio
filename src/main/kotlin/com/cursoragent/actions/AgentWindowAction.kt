@@ -17,6 +17,7 @@ internal enum class AgentWindowCommand(val actionId: String) {
     OPEN_CHAT("CursorAgent.OpenChat"),
     FOLLOW_UP("CursorAgent.FollowUp"),
     NEW_AGENT("CursorAgent.NewAgent"),
+    ALL_CHATS("CursorAgent.AllChats"),
 }
 
 /** Resolve the owning project's live ToolWindow for every event, including before content creation. */
@@ -38,6 +39,10 @@ abstract class AgentWindowAction internal constructor(
             AgentWindowCommand.SWAP_SIDE -> {
                 window.setAnchor(if (window.anchor == ToolWindowAnchor.LEFT) ToolWindowAnchor.RIGHT else ToolWindowAnchor.LEFT, null)
                 window.show(null)
+            }
+            AgentWindowCommand.ALL_CHATS -> {
+                window.contentManager.contents.firstNotNullOfOrNull { it.component as? AgentToolWindowRootPanel }
+                    ?.toggleAllChats(window)
             }
             AgentWindowCommand.OPEN_CHAT, AgentWindowCommand.FOLLOW_UP, AgentWindowCommand.NEW_AGENT -> {
                 // Read the event editor before content creation/activation can move focus.
@@ -63,4 +68,5 @@ abstract class AgentWindowAction internal constructor(
     class OpenChat : AgentWindowAction(AgentWindowCommand.OPEN_CHAT)
     class FollowUp : AgentWindowAction(AgentWindowCommand.FOLLOW_UP)
     class NewAgent : AgentWindowAction(AgentWindowCommand.NEW_AGENT)
+    class AllChats : AgentWindowAction(AgentWindowCommand.ALL_CHATS)
 }

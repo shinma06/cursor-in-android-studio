@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内15操作とglobal入口5操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel内15操作とglobal入口6操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
@@ -10,6 +10,7 @@
     "ChatEntryTest: Openのfocus/非表示選択保持、FollowUpの現在chat維持、NewAgentの空再利用/作成/500ms境界と再表示時更新",
     "RecentChatsTest: 訪問順/10件上限、閉じた保存会話と更新日時fallback、open metadata優先、PRINT/ACP/旧履歴のID分離、Keymapの修飾解放/複数stroke",
     "RecentChatsTest: 単一tabの全履歴更新日時順/循環/10件超、本文/legacyの識別、run token/保留作業/手動名の置換拒否",
+    "AllChatsTest: 全履歴の検索後200件上限、名前/冒頭文の曖昧検索と一致位置、sidebar更新順、metadata優先/PRINT重複識別、端のhighlightとControl/Meta解放/Keymap",
     "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks"
   ],
   "cases": [
@@ -140,8 +141,8 @@
       "id": "KEYMAP-OS-REMAP",
       "change": "OS別Keymap・変更・解除・寿命",
       "steps": [
-        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel内15操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/Iはproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
-        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel内15操作とglobal入口5操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
+        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel内15操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel内15操作とglobal入口6操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
         "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
       ],
       "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel内操作は一般editorを奪わず、global入口は明示割当どおりに動く。dispose済みの対象へ配送しない。"
@@ -322,14 +323,106 @@
       "id": "KEYMAP-ADJACENT-CHATS",
       "change": "複数タブと単一タブ履歴の前後移動・修飾左右",
       "steps": [
-        "A/B/Cのタブを並べ替え、M+[/]とM+A+左右で表示順の循環を確認する。MRUの訪問順や更新日時順と混同せず、他のtab/projectのdraft/context/runを保持する。一般editorの同キーは奪わない。",
+        "sidebarを非表示にした状態でA/B/Cのタブを並べ替え、M+[/]とM+A+左右で表示順の循環を確認する。MRUの訪問順や更新日時順と混同せず、他のtab/projectのdraft/context/runを保持する。一般editorの同キーは奪わない。",
         "開いたtabを1つにし、更新日時が異なる保存会話を15件以上用意する。操作が無効にならず、全会話の更新日時順で前後/端の循環ができることを確認する。最近使用一覧の10件上限で途中を落とさない。保存済みで作業のないtabは置換され、続けて履歴を巡回できる。",
         "1tabで実行/準備中、未送信draft、明示context、画像、command、queue、保存失敗/保留、手動名の各状態を作る。前後移動で元tabを閉じず、対象を追加tabで開く。Stopや送信は発生しない。新規tabの生成後にも元tabの作業状態を再確認する。",
         "旧print metadata、同じprovider文字列のPRINT/ACP、削除済み/破損した保存会話、未保存の空tabを用意する。名前や本文を推測せず、既存の本文表示・provider再開/Revert制約を保持する。履歴読込み失敗では会話を勝手に切り替えない。",
         "読込み中にtab切替、別の前後操作、panel非表示、project破棄、IME変換、子popupを開始し、遅い結果を反映しない。OS/US-JIS/Keymap変更・解除を確認する。",
-        "固定Cursorの複数/単一tabとrunning switchを同条件で比較する。Pluginが未保存作業/手動名を追加tabで保護した後は複数tabの移動になる差を記録する。sidebar表示中navigation modeとAll Agentsは未実装の別分岐として残し、本Caseで全対応をpassにしない。"
+        "固定Cursorの複数/単一tabとrunning switchを同条件で比較する。Pluginが未保存作業/手動名を追加tabで保護した後は複数tabの移動になる差を記録する。All Agentsとsidebar表示中navigationは専用Caseで確認し、拡張候補を本Caseだけで全対応passにしない。"
       ],
       "expected": "表示順と全履歴更新日時順の2分岐が正しく循環し、作業のない単一tabでは継続移動できる。実行・未保存作業・名前を失わず、遅い読込みや別projectへ誤配送しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-ALL-CHATS",
+      "change": "All Agentsの表示切替・全候補検索・確定時の再読込み",
+      "steps": [
+        "パネル非表示・表示中editor focus・Agent pane focusを切り替え、MacはControl+Shift+S、Windows/LinuxはCtrl+Shift+/を実行する。一覧がない時は一覧と検索popupを開き、pane focus中で一覧表示済みの場合は一覧だけを隠す。既存chat/本文/draft/runは保持する。閉じるボタン、IDE再起動後のproject別表示状態、別project、遅いactivate中のtab変更/一覧閉鎖/破棄も確認する。",
+        "更新日時の異なる候補240件以上と手動名のあるopen tab、PRINT/ACP/旧履歴を用意する。空検索では新しい200件、200件より古い候補も名前/冒頭文の検索後には表示されることを確認する。日本語/英語/大小文字/曖昧検索/一致強調、同名候補と名前と冒頭文の両方、0件、読込み不能/破損を確認する。本文全文のみにある語では一致せず、従来の履歴本文検索との役割を混ぜない。",
+        "検索欄の上下とEnter、一覧のクリック、Esc/外部click/window blurを確認する。IME変換中と背景検索の古い結果では開かず、確定した候補だけを開く。検索中の新query・dispose・panel非表示で古い結果を反映しない。",
+        "一覧表示後に候補を更新/削除する。open viewはそのまま選択し、閉じた候補は最新本文・削除/legacy存在を再確認する。ACP本文表示とprovider再開/Revertの可否を区別する。キー変更/解除とWindowsのparameter競合は未対応分も含めて記録する。",
+        "固定Cursorのlocal/Cloud候補、絞込み/上限/表示分岐と比較する。Pluginの初期非表示・ToolWindow内splitter配置、native matcherの順位差、Cloud取得/操作未接続を記録し、local候補だけで全対応passにしない。"
+      ],
+      "expected": "最近使用10件とは独立した一覧と検索入口になり、全候補を検索してから200件に制限する。既存作業・所有・IME・削除/再開制約を保つ。拡張候補とGUI差は追跡する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-SIDEBAR-NAVIGATION",
+      "change": "sidebar表示中の候補highlight・解放確定・取消",
+      "steps": [
+        "一覧表示中に選択中chatからM+A+左右を押す。会話本体は確定まで変わらず、表示候補を前後highlightして先頭/末尾で止まる。選択中chatがfilter外なら次で先頭、前で末尾へ進む。検索後も一覧は更新日時順を保持する。",
+        "Altだけを離した時は未確定、Control/Metaが両方離れた時だけ対象chatを開く。設定変更後の単一修飾キーと複数stroke/Enterも確認する。Esc、root外へのfocus、別window、hide/disposeで取り消し、取消後にkeyupしても開かない。",
+        "IME変換・候補・子popup中は既存入力処理を優先する。navigationの途中に検索結果更新/候補削除/別tab選択/別projectへ移動しても古い対象を開かない。繰り返し開始/取消/破棄後にdispatcherが重複・残留せず、一般editorのkeyup/Enter/Escを奪わない。",
+        "実行/準備/下書き/画像/context/command/queue/保存失敗があるchatから確定しても元viewを保持し、Stop・送信・本文書換えを起こさない。sidebarを隠すと修飾左右が従来のtab/全履歴循環に戻る。",
+        "固定Cursorのpin/日付section/折畳み/More、Cloud、Find with Agent、transient/editor-groupへの表示を含む候補順と比較する。現行local一覧との差と未接続を記録し、通常chatのhighlight成功だけで全候補をpassにしない。"
+      ],
+      "expected": "sidebar表示中は候補highlightと確定を分離し、非表示時のtab循環と混同しない。対象root内だけでキーを処理し、全終了経路で解除する。未接続候補は残作業にする。"
     },
     {
       "gpt": {
@@ -373,7 +466,7 @@
       "steps": [
         "固定Cursor 3.23.12のKeyboard Shortcutsと入力欄/各popup/提案/検索/承認を、対応表の43登録行（40静的in-IDE、2所属未確定、1Inline対象外）と17入力群（15静的確認）に逐一照合する。共有部品6群・公式/動的4候補も所属を判定し、未確定から対象を落とさず全キー・OS・focus/mode条件を記録する。",
         "対応表の未確定項目と未実装能力を具体Issue/依存へ対応付け、完了した調査を機能実装の合格に置換しない。必要なsub-issueと親の全対象を照合する。 会話内findはnative子Issue #518（条件切替・一致位置/総数・stream/タブ所有を含む）へ実分解済みで、未実装/GUI未確認として追跡する。Milestone 8の全件受入を子1件の完了に縮めない。",
-        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行11操作のpassで未対応を省略しない。"
+        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel内15/global6操作のpassで未対応を省略しない。"
       ],
       "expected": "全対象が根拠付きで確定し、未対応/条件差と次のownerを追跡する。全件未達の間は#212を完了にしない。"
     }

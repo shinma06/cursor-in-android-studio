@@ -24,6 +24,7 @@ import com.cursoragent.ui.session.SessionTabPresentation
 import com.cursoragent.ui.session.SessionTabStrip
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.ide.ActivityTracker
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.UISettings
 import com.intellij.ide.ui.UISettingsListener
@@ -41,12 +42,15 @@ import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.KeyboardFocusManager
 import java.awt.event.HierarchyEvent
+import javax.swing.JButton
+import javax.swing.JLabel
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -59,6 +63,7 @@ class AgentToolWindowRootPanel(
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
+    private val contentSplitter = OnePixelSplitter(false, 0.3f)
     private data class TabView(
         val panel: JPanel,
         val composer: ComposerPanel,
@@ -72,6 +77,9 @@ class AgentToolWindowRootPanel(
     private var openedChatsPopup: JBPopup? = null
     private val recentVisits = RecentChatVisits()
     private var recentChatsPopup: RecentChatsPopup? = null
+    private var allChatsPopup: JBPopup? = null
+    private var allChatsSidebar: AllChatsView? = null
+    private var sidebarNavigation: SidebarChatNavigation? = null
     private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
     private val selectedView: TabView?
@@ -85,7 +93,8 @@ class AgentToolWindowRootPanel(
     }
 
     internal val windowShortcutAvailable: Boolean
-        get() = selectedView?.composer?.panelShortcutAvailable == true && !JBPopupFactory.getInstance().isChildPopupFocused(this)
+        get() = selectedView?.composer?.panelShortcutAvailable == true && allChatsSidebar?.isComposing != true &&
+            !JBPopupFactory.getInstance().isChildPopupFocused(this)
 
     private fun shortcutAvailable(command: AgentPanelCommand): Boolean {
         val composer = selectedView?.composer ?: return false
@@ -105,9 +114,11 @@ class AgentToolWindowRootPanel(
         when (command) {
             AgentPanelCommand.NEW_CHAT -> open()
             AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
-            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT,
-            AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT ->
-                navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT || command == AgentPanelCommand.PREVIOUS_AGENT)
+            AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT)
+            AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT -> {
+                if (allChatsSidebar == null) navigateChat(command == AgentPanelCommand.PREVIOUS_AGENT)
+                else navigateSidebar(command)
+            }
             AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT -> showRecentChats(command, event)
             AgentPanelCommand.STOP -> view.controller.stopRun()
             AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
@@ -186,13 +197,17 @@ class AgentToolWindowRootPanel(
             if (!isShowing) {
                 openedChatsPopup?.cancel()
                 recentChatsPopup?.dispose()
+                allChatsPopup?.cancel()
+                stopSidebarNavigation()
                 if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) cancelPendingChatFocus()
-            }
+            } else if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) allChatsSidebar?.reload()
         }
         strip.onMove = { id, index -> if (sessions.move(id, index)) refreshStrip() }
         add(strip, BorderLayout.NORTH)
-        add(cards, BorderLayout.CENTER)
+        contentSplitter.secondComponent = cards
+        add(contentSplitter, BorderLayout.CENTER)
         showSelected()
+        if (PropertiesComponent.getInstance(project).getBoolean("CursorAgent.allChatsSidebar", false)) setAllChatsVisible(true)
         AgentPanelCommand.entries.forEach { command ->
             ActionManager.getInstance().getAction(command.actionId)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, this)
@@ -222,7 +237,108 @@ class AgentToolWindowRootPanel(
         val view = views.getValue(tab.id)
         val conversation = view.controller.conversationSnapshot()
         RecentChatEntry(recentChatId(tab, view), tab.title, conversation?.updatedMs ?: 0L, tab.transport, tab.chatId,
-            open = true, running = view.composer.isRunning)
+            open = true, running = view.composer.isRunning, description = conversation?.preview.orEmpty())
+    }
+
+    internal fun toggleAllChats(window: ToolWindow) {
+        if (!windowShortcutAvailable || window.isDisposed || window.project !== project) return
+        val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+        val focused = isShowing && focus != null && SwingUtilities.isDescendingFrom(focus, this)
+        if (allChatsSidebar != null && focused) {
+            setAllChatsVisible(false)
+            selectedView?.composer?.inputArea?.requestFocusInWindow()
+            return
+        }
+        setAllChatsVisible(true)
+        val ticket = ++chatFocusGeneration
+        window.activate({
+            if (!disposed && !project.isDisposed && !window.isDisposed && window.isAvailable && window.isVisible &&
+                isShowing && allChatsSidebar != null && ticket == chatFocusGeneration && windowShortcutAvailable) showAllChatsPicker()
+        }, false)
+    }
+
+    private fun setAllChatsVisible(visible: Boolean) {
+        stopSidebarNavigation()
+        if (!visible) {
+            cancelPendingChatFocus()
+            allChatsPopup?.cancel()
+            allChatsSidebar?.dispose()
+            allChatsSidebar = null
+            contentSplitter.firstComponent = null
+        } else if (allChatsSidebar == null) {
+            val view = AllChatsView(project, false, ::openRecentEntries,
+                selectedId = { selectedView?.let { recentChatId(sessions.snapshot().selected, it) } },
+                valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebar != null },
+                onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it) } },
+            )
+            allChatsSidebar = view
+            val header = JPanel(BorderLayout()).apply {
+                add(JLabel("All Agents"), BorderLayout.CENTER)
+                add(JButton("閉じる").apply {
+                    toolTipText = "チャット一覧を隠す"
+                    addActionListener { setAllChatsVisible(false); selectedView?.composer?.inputArea?.requestFocusInWindow() }
+                }, BorderLayout.EAST)
+            }
+            contentSplitter.firstComponent = JPanel(BorderLayout()).apply {
+                add(header, BorderLayout.NORTH)
+                add(view, BorderLayout.CENTER)
+            }
+        }
+        PropertiesComponent.getInstance(project).setValue("CursorAgent.allChatsSidebar", visible, false)
+        allChatsSidebar?.reload()
+        revalidate()
+        repaint()
+    }
+
+    private fun showAllChatsPicker() {
+        allChatsPopup?.cancel()
+        val ticket = ++chatFocusGeneration
+        lateinit var popup: JBPopup
+        val view = AllChatsView(project, true, ::openRecentEntries, selectedId = { null },
+            valid = { !disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration && allChatsPopup === popup },
+            onChoose = { id -> popup.cancel(); openRecentChat(id) },
+        )
+        view.preferredSize = JBUI.size(560, 340)
+        popup = JBPopupFactory.getInstance().createComponentPopupBuilder(view, view.focusComponent)
+            .setTitle("All Agents")
+            .setProject(project)
+            .setRequestFocus(true)
+            .setResizable(true)
+            .setCancelOnClickOutside(true)
+            .setCancelOnOtherWindowOpen(true)
+            .setCancelOnWindowDeactivation(true)
+            .setCancelKeyEnabled(false)
+            .setKeyEventHandler { event ->
+                if (!view.isComposing && event.id == java.awt.event.KeyEvent.KEY_PRESSED && event.keyCode == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    popup.cancel(); true
+                } else false
+            }
+            .createPopup()
+        allChatsPopup = popup
+        Disposer.register(popup, Disposable { view.dispose(); if (allChatsPopup === popup) allChatsPopup = null })
+        popup.showInCenterOf(this)
+        view.reload()
+    }
+
+    private fun navigateSidebar(command: AgentPanelCommand) {
+        val view = allChatsSidebar ?: return
+        if (!view.navigate(command == AgentPanelCommand.PREVIOUS_AGENT)) return
+        if (sidebarNavigation == null) {
+            sidebarNavigation = SidebarChatNavigation(this,
+                valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebar === view && windowShortcutAvailable },
+                onFinish = { accept ->
+                    sidebarNavigation = null
+                    if (accept) view.confirmNavigation() else view.cancelNavigation()
+                },
+            )
+        }
+        sidebarNavigation?.useShortcuts(ActionManager.getInstance().getAction(command.actionId)?.shortcutSet?.shortcuts.orEmpty())
+    }
+
+    private fun stopSidebarNavigation() {
+        sidebarNavigation?.dispose()
+        sidebarNavigation = null
+        allChatsSidebar?.cancelNavigation()
     }
 
     private fun navigateChat(reverse: Boolean) {
@@ -279,7 +395,7 @@ class AgentToolWindowRootPanel(
     }
 
     private fun openRecentChat(id: RecentChatId) {
-        if (disposed || project.isDisposed || !isShowing) return
+        if (disposed || project.isDisposed || !isShowing || !windowShortcutAvailable) return
         val open = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == id } == true }
         if (open != null) {
             if (sessions.select(open.id)) showSelected()
@@ -433,6 +549,8 @@ class AgentToolWindowRootPanel(
         if (disposed) return
         cancelPendingChatFocus()
         recentChatsPopup?.dispose()
+        allChatsPopup?.cancel()
+        stopSidebarNavigation()
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
@@ -470,11 +588,13 @@ class AgentToolWindowRootPanel(
         recentVisits.visit(recentChatId(tab, view))
         view.lastShownNanos = System.nanoTime()
         view.composer.inputArea.requestFocusInWindow()
+        allChatsSidebar?.reload()
     }
 
     private fun refreshStrip() {
         val snapshot = sessions.snapshot()
         strip.setTabs(snapshot.tabs.map { SessionTabPresentation(it.id, it.title) }, snapshot.selectedId)
+        allChatsSidebar?.refreshOpenEntries()
     }
 
     override fun dispose() {
@@ -487,6 +607,11 @@ class AgentToolWindowRootPanel(
         openedChatsPopup = null
         recentChatsPopup?.dispose()
         recentChatsPopup = null
+        allChatsPopup?.cancel()
+        allChatsPopup = null
+        stopSidebarNavigation()
+        allChatsSidebar?.dispose()
+        allChatsSidebar = null
         history.dispose()
         sessions.stopAll()
         views.values.forEach { it.controller.dispose() }

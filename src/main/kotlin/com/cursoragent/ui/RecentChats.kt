@@ -22,6 +22,7 @@ internal data class RecentChatEntry(
     val providerId: String? = null,
     val open: Boolean = false,
     val running: Boolean = false,
+    val description: String = "",
 ) {
     val label: String get() = " ${title.replace('\n', ' ').replace('\r', ' ').take(120)} " +
         (if (updatedMs > 0) "(${SimpleDateFormat("MM/dd HH:mm").format(Date(updatedMs))}) " else "") +
@@ -48,12 +49,17 @@ internal fun availableChatEntries(
     legacy: List<ChatHistoryRecord>,
 ): List<RecentChatEntry> {
     val bodies = saved.map { RecentChatEntry(RecentChatId.Body(it.id), it.preview.ifBlank { "（本文なし）" }, it.updatedMs, it.transport, it.providerId) }
-    val printIds = (open + bodies).filter { it.id is RecentChatId.Body && it.transport == AgentTransport.PRINT }.mapNotNull { it.providerId }.toSet()
-    val old = legacy.filter { it.chatId !in printIds }.map {
+    val old = legacy.map {
         RecentChatEntry(RecentChatId.LegacyPrint(it.chatId), it.firstPromptPreview.ifBlank { "（本文なし）" }, it.lastUpdatedMs, null)
     }
     // Open views contain the latest metadata and drafts, including bodies not saved yet.
-    return (open + bodies + old).distinctBy { it.id }
+    return mergeChatEntries(open, bodies + old)
+}
+
+internal fun mergeChatEntries(open: List<RecentChatEntry>, stored: List<RecentChatEntry>): List<RecentChatEntry> {
+    val entries = open + stored
+    val printIds = entries.filter { it.id is RecentChatId.Body && it.transport == AgentTransport.PRINT }.mapNotNull { it.providerId }.toSet()
+    return entries.filterNot { it.id is RecentChatId.LegacyPrint && it.id.id in printIds }.distinctBy { it.id }
 }
 
 internal fun recentChatEntries(

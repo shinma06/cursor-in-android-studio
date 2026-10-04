@@ -87,6 +87,12 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift L" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift I"/>
             </action>
+            <action id="CursorAgent.AllChats" class="com.cursoragent.actions.AgentWindowAction$AllChats"
+                    text="All Agents" description="チャット一覧を表示して名前・冒頭文で検索します。一覧表示中にパネル内から実行すると一覧を隠します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift SLASH"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="control shift S" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control shift S" replace-all="true"/>
+            </action>
             <action id="CursorAgent.NewChat" class="com.cursoragent.actions.AgentPanelAction$NewChat"
                     text="新規チャット" description="現在のパネルに新しいチャットを開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control T"/>

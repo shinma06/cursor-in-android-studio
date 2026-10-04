@@ -146,6 +146,23 @@ class AgentWindowActionTest {
         }
     }
 
+    @Test
+    fun `All Agents uses Mac Control Shift S and Windows Linux Control Shift Slash`() {
+        val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(java.io.File("src/main/resources/META-INF/plugin.xml"))
+        val nodes = xml.getElementsByTagName("action")
+        val declaration = (0 until nodes.length).map { nodes.item(it) as org.w3c.dom.Element }
+            .single { it.getAttribute("id") == AgentWindowCommand.ALL_CHATS.actionId }
+        assertEquals(AgentWindowAction.AllChats().javaClass.name, declaration.getAttribute("class"))
+        val shortcuts = declaration.getElementsByTagName("keyboard-shortcut")
+        assertEquals(3, shortcuts.length)
+        val keys = (0 until shortcuts.length).map { shortcuts.item(it) as org.w3c.dom.Element }.associateBy { it.getAttribute("keymap") }
+        assertEquals("control shift SLASH", keys.getValue("\$default").getAttribute("first-keystroke"))
+        listOf("Mac OS X", "Mac OS X 10.5+").forEach { keymap ->
+            assertEquals("control shift S", keys.getValue(keymap).getAttribute("first-keystroke"))
+            assertEquals("true", keys.getValue(keymap).getAttribute("replace-all"))
+        }
+    }
+
     private fun event(action: AgentWindowAction, project: Project?) = AnActionEvent(
         DataContext { if (CommonDataKeys.PROJECT.`is`(it)) project else null },
         action.templatePresentation.clone(), "test", ActionUiKind.NONE, null, 0, unusedActionManager,
