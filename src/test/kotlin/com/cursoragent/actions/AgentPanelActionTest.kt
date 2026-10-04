@@ -74,7 +74,16 @@ class AgentPanelActionTest {
             val shortcuts = declaration.getElementsByTagName("keyboard-shortcut")
             val byKeymap = (0 until shortcuts.length).map { shortcuts.item(it) as org.w3c.dom.Element }
                 .groupBy { it.getAttribute("keymap") }
-            assertEquals(setOf("\$default", "Mac OS X", "Mac OS X 10.5+"), byKeymap.keys)
+            val expectedKeymaps = setOf("\$default", "Mac OS X", "Mac OS X 10.5+") +
+                if (command == AgentPanelCommand.MODEL_MENU) setOf("Default for XWin") else emptySet()
+            assertEquals(expectedKeymaps, byKeymap.keys)
+            if (command == AgentPanelCommand.MODEL_MENU) {
+                assertEquals(listOf("control SLASH"), byKeymap.getValue("\$default").map { it.getAttribute("first-keystroke") })
+                assertEquals(listOf("control SLASH", "control alt SLASH"), byKeymap.getValue("Default for XWin").map { it.getAttribute("first-keystroke") })
+                listOf("Mac OS X", "Mac OS X 10.5+").forEach { keymap ->
+                    assertEquals(listOf("meta SLASH", "meta alt SLASH"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
+                }
+            }
             if (command == AgentPanelCommand.STOP) {
                 assertEquals(listOf("control shift BACK_SPACE"), byKeymap.getValue("\$default").map { it.getAttribute("first-keystroke") })
                 listOf("Mac OS X", "Mac OS X 10.5+").forEach { keymap ->
@@ -88,7 +97,7 @@ class AgentPanelActionTest {
                     assertNotNull(stroke, key.getAttribute("first-keystroke"))
                     val macControlStop = command == AgentPanelCommand.STOP && keymap != "\$default" &&
                         key.getAttribute("first-keystroke") == "control C"
-                    val modifier = if (keymap == "\$default" || macControlStop) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
+                    val modifier = if (keymap == "\$default" || keymap == "Default for XWin" || macControlStop) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
                     assertTrue(stroke.modifiers and modifier != 0)
                 }
             }

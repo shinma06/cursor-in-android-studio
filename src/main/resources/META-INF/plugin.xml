@@ -97,7 +97,8 @@
             <action id="CursorAgent.ModelMenu" class="com.cursoragent.actions.AgentPanelAction$ModelMenu"
                     text="Modelを選ぶ" description="現在のチャットのModel選択を開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control SLASH"/>
-                <keyboard-shortcut keymap="$default" first-keystroke="control alt SLASH"/>
+                <keyboard-shortcut keymap="Default for XWin" first-keystroke="control SLASH" replace-all="true"/>
+                <keyboard-shortcut keymap="Default for XWin" first-keystroke="control alt SLASH"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta SLASH" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt SLASH"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta SLASH" replace-all="true"/>

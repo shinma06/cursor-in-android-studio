@@ -23,7 +23,7 @@
 
 #212の初期接続は新規/閉じる/前後タブ/停止/mode/model/context/履歴/変更一覧/設定の11操作。`AgentPanelAction`はprojectを保持せず、rootの`UiDataProvider`から現在の操作対象を取得し、EDT上で実行直前にも可否を照合する。rootのlocal shortcut登録はIDEで設定された同じActionのshortcut setを使い、disposeで解除する。停止と閉鎖は既存controller/確認経路へ接続する。変更一覧も既存の予約一時停止とsnapshot/owner確認を共有し、M+Shift+Rで開く。modeのM+A+.、設定のM+,も同じActionの副キーとして扱う。IME、入力候補、子popupとACP設定のbusy制約を保つ。
 
-OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
+model menuの既定値はWindowsではCtrl+/、LinuxではCtrl+/とCtrl+Alt+/、MacではCmd+/とCmd+Option+/。Linuxの副キーは同梱`Default for XWin`とそれを継承するGNOME/KDEへ定義し、OS判定によるユーザー割当の変更は行わない。OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
 ## 会話タブの折り返し
 
 会話タブはIDEの `Settings → Editor → General → Editor Tabs → Show tabs in` に連動する（#211）。`Multiple rows` は `UISettings.scrollTabLayoutInEditor == false`、`One row` は `true` で、Rabbit 1の既定値は `true`。設定はIDE全体に適用され、各panelは生成時と `UISettingsListener.TOPIC` のEDT通知で反映する。接続はprojectに登録し、panel破棄時にも明示的に切断する。製品独自の設定・永続化は増やさない。読み取りAPIと設定画面の値対応はRabbit 1 `AI-262.9437.185.2621.16467767` のSDKで確認した。[設定の公式説明](https://www.jetbrains.com/help/idea/using-code-editor.html) / [UISettings](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettings.kt) / [既定値](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettingsState.kt)。

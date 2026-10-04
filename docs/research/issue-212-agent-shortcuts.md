@@ -104,7 +104,7 @@
 特に次は初期一覧からの訂正で、GUIで差を確認する。
 
 - M+Lは`aichat.newchataction`（Open Chat）。`composer.cancelChat`への初期抽出の対応は誤り。M+Iと同じ入口を使い、選択やfocusで新規/既存が分岐する。M+Shift+L/Iも単純な既存chatへの選択追加とは異なる。
-- Windowsのmodel menuはCtrl+/だけ。Ctrl+Alt+/とCtrl+Shift+/はparameter変更であり、Mac/Linuxのmodel menu副キーをWindowsへ継承してはいけない。初期Pluginにはこの差の修正が残る。
+- Windowsのmodel menuはCtrl+/だけ。Ctrl+Alt+/とCtrl+Shift+/はparameter変更であり、Mac/Linuxのmodel menu副キーをWindowsへ継承してはいけない。Pluginは標準Windows KeymapをCtrl+/だけにし、Linuxの副キーは`Default for XWin`へ定義した。parameter変更の接続はP10で未達。
 - M+Rは入力部品から新規会話への静的経路を確認した。入力局所の条件を保って接続する。
 - Shift+Tabは公式概要のmode回転、Action登録のmode menu、入力内の前human message移動という3経路がある。[Plan Mode公式説明](https://cursor.com/docs/agent/plan-mode)との版/focus差も残し、GUI前に一つへ決めつけない。現行の逆focus移動も同等passではない。
 - M+Shift+Enterは初回draft submit、空入力の変更承認/Apply worktree、取消等で意味が分かれる。すべてを「新しいworktreeで開始」としない。
@@ -135,7 +135,7 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 
 ## Keymap・競合・完了条件
 
-現行11 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差が確認された既定値は訂正が必要で、初期定義を全対応とは呼ばない。
+現行11 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
 
 M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。現行のpanel内local Actionと、これから追加するglobal入口を区別し、一般editorや他projectの操作を奪わない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
 
