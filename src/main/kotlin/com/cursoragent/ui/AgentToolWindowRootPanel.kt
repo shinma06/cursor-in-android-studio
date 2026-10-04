@@ -66,9 +66,12 @@ class AgentToolWindowRootPanel(
         if (!disposed && !project.isDisposed) sink[AgentPanelActions.KEY] = panelActions
     }
 
+    internal val windowShortcutAvailable: Boolean
+        get() = selectedView?.composer?.panelShortcutAvailable == true && !JBPopupFactory.getInstance().isChildPopupFocused(this)
+
     private fun shortcutAvailable(command: AgentPanelCommand): Boolean {
         val composer = selectedView?.composer ?: return false
-        if (!isShowing || !composer.panelShortcutAvailable || JBPopupFactory.getInstance().isChildPopupFocused(this)) return false
+        if (!isShowing || !windowShortcutAvailable) return false
         return when (command) {
             AgentPanelCommand.STOP -> composer.isRunning
             AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled

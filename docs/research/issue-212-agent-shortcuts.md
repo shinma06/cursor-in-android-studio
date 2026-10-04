@@ -18,10 +18,10 @@
 
 | command ID | macOS | Windows | Linux | 有効条件・意味 | 所属 / Plugin / 次作業 |
 | --- | --- | --- | --- | --- | --- |
-| `cursor.toggleAgentWindowIDEUnification` | Cmd+E | Ctrl+E | Ctrl+E | IDEの空でないworkspace、isGlass=false。Agent用sidebarの位置/表示を切り替える。最大化とは異なる。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
+| `cursor.toggleAgentWindowIDEUnification` | Cmd+E | Ctrl+E | Ctrl+E | IDEの空でないworkspace、isGlass=false。Agent用sidebarの左右と表示を切り替え、editor/他領域の配置も調整する。最大化とは異なる。 | in-IDE静的確認 / PluginはToolWindow左右移動と表示へ接続、IDE全体配置の差は未GUI / A1 |
 | `cursor.openAgentChangesEditor` | Cmd+Shift+R | Ctrl+Shift+R | Ctrl+Shift+R | composerにfocus。選択中会話のReview Changes editorを開く。PluginはM+Shift+Rを既存の変更一覧へ接続し、editor表示面の一致は未確認。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `cursor.openBranchMenu` | Cmd+' | Ctrl+' | Ctrl+' | composerにfocusし、選択中会話を読み込み済みかつ空。開始時のbranch選択でありcontext添付とは別。 | in-IDE静的確認 / 能力未実装 / P06 |
-| `workbench.action.toggleAgentsFromKeyboard` | Cmd+Option+J | Ctrl+Alt+J | Ctrl+Alt+J | 補助windowにfocusがなくisGlass=false。Agent表示とkeyboard focusを切り替える。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
+| `workbench.action.toggleAgentsFromKeyboard` | Cmd+Option+J | Ctrl+Alt+J | Ctrl+Alt+J | 補助windowにfocusがなくisGlass=false。Agent表示中ならfocus位置によらず隠し、非表示なら前の表示領域を戻す。 | in-IDE静的確認 / PluginのToolWindow表示切替へ接続、実focusは未GUI / A1 |
 | `aichat.newfollowupaction` | Cmd+Y | Ctrl+Shift+Y | Ctrl+Y | global登録。選択chatを解決し、worktree chatを除外、選択codeを追加して入力へfocusする。WindowsだけShift付き。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
 | `composer.selectPreviousComposer` | Cmd+Option+Left | Ctrl+Alt+Left | Ctrl+Alt+Left | composer/agentsPaneにfocus、一般editor textにfocusなし。weight410。sidebar状態によって修飾キーを離すまでnavigation modeになる。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
 | `composer.selectNextComposer` | Cmd+Option+Right | Ctrl+Alt+Right | Ctrl+Alt+Right | 上記の次conversation。tab表示順・履歴順との一致は未GUI。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
@@ -62,7 +62,7 @@
 | `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
 | `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
 
-現在の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
+panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`の2 Actionを別に登録し、ToolWindowがまだ生成されていなくても標準showで表示できる。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
 ## 入力部品内の操作
 
@@ -137,7 +137,9 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 
 現行11 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
 
-M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。現行のpanel内local Actionと、これから追加するglobal入口を区別し、一般editorや他projectの操作を奪わない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
+M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。11個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）とM+E（左右移動）はproject内のglobal入口で、M+EのRecent Files等とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
+
+表示切替はToolWindowのvisible状態を基準にし、会話・draft・runを生成/終了せずnative show/hideへ接続する。左右移動はnative anchorのLEFT/RIGHTを反転し、TOP/BOTTOMからはLEFTへ移して表示する。ToolWindowのtype・split・他のIDEパネルは変更しない。固定SDKの標準ToolWindow移動もanchorを変更する経路であり、Floating/Windowed時の実配置と、Cursorのunified sidebar/auxiliary/editor全体とのUX差はGUI照合に残す。単一Agent ToolWindowへの対応だけで、Cursorの全配置が同じと主張しない。
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。

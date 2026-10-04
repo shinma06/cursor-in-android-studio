@@ -50,6 +50,18 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
         <group id="CursorAgent.PanelActions" text="Cursor in Android Studio">
+            <action id="CursorAgent.TogglePanel" class="com.cursoragent.actions.AgentWindowAction$Toggle"
+                    text="Agentパネルの表示切替" description="会話と実行を保持したまま、Agentパネルを表示・非表示にします。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt J"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt J" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt J" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.SwapPanelSide" class="com.cursoragent.actions.AgentWindowAction$SwapSide"
+                    text="Agentパネルを反対側へ移動" description="Agentパネルの配置を左・右に切り替えて表示します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control E"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta E" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta E" replace-all="true"/>
+            </action>
             <action id="CursorAgent.NewChat" class="com.cursoragent.actions.AgentPanelAction$NewChat"
                     text="新規チャット" description="現在のパネルに新しいチャットを開きます。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control T"/>

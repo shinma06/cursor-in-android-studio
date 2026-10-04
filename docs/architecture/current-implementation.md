@@ -23,6 +23,8 @@
 
 #212の初期接続は新規/閉じる/前後タブ/停止/mode/model/context/履歴/変更一覧/設定の11操作。`AgentPanelAction`はprojectを保持せず、rootの`UiDataProvider`から現在の操作対象を取得し、EDT上で実行直前にも可否を照合する。rootのlocal shortcut登録はIDEで設定された同じActionのshortcut setを使い、disposeで解除する。停止と閉鎖は既存controller/確認経路へ接続する。変更一覧も既存の予約一時停止とsnapshot/owner確認を共有し、M+Shift+Rで開く。modeのM+A+.、設定のM+,も同じActionの副キーとして扱う。IME、入力候補、子popupとACP設定のbusy制約を保つ。
 
+project内のglobal入口として`AgentWindowAction`のM+A+J（表示切替）とM+E（左右移動）を登録する。各eventでprojectとToolWindowを取り直し、破棄・利用不可・IME/候補/子popupを再確認する。標準show/hideとanchor変更を使い、会話・draft・run・ToolWindowのtype/splitを変更しない。左右移動はLEFT/RIGHTを反転し、上下配置からはLEFTへ移す。別projectを保持せず、未生成contentはupdate時に生成しない。M+EはIDE Recent Filesと競合するため、他のglobal入口と同じくKeymapで再割当/解除できる。Cursorの複数領域配置やFloating/Windowedでの表示差は全対象GUIに残す。
+
 model menuの既定値はWindowsではCtrl+/、LinuxではCtrl+/とCtrl+Alt+/、MacではCmd+/とCmd+Option+/。Linuxの副キーは同梱`Default for XWin`とそれを継承するGNOME/KDEへ定義し、OS判定によるユーザー割当の変更は行わない。OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
 ## 会話タブの折り返し
 
