@@ -8,19 +8,19 @@
 
 本人承認の上限8回に対し、新規session 8個・固定prompt 7回を実行した。2回はmetadataのみ、連続2turnは1 sessionに限定した。追加試行、新login/logout/authenticate、既存会話のlist/load、実開発の委譲、GUI操作は行っていない。
 
-各試験は新しい空Git workspaceを使用。許可対象は`input.txt`、有限command試験だけ`tick.py`と`ticks.txt`を追加した。終了後のファイル一覧もこの範囲と一致した。scriptは40回、0.2秒間隔で1行ずつ書く。各promptは採取時の[probe](../../scripts/probes/acp_wire_probe.py)に固定し、MCP/Web/他ファイル/子Agentを依頼しない。permission callbackで許可できるのは対象sessionの既知ファイル、または変更されていない有限scriptを起動する完全一致commandだけである。
+各試験は新しい空Git workspaceを使用。許可対象は`input.txt`、有限command試験だけ`tick.py`と`ticks.txt`を追加した。終了後のファイル一覧もこの範囲と一致した。scriptは40回、0.2秒間隔で1行ずつ書く。各promptは採取時の[probe](https://github.com/shinma06/cursor-in-android-studio/blob/17464894b1554669b9ed395660c63827f090d9ab/scripts/probes/acp_wire_probe.py)に固定し、MCP/Web/他ファイル/子Agentを依頼しない。permission callbackで許可できるのは対象sessionの既知ファイル、または変更されていない有限scriptを起動する完全一致commandだけである。
 
 Clientはfs read/writeとterminalをfalseで広告し、newには`mcpServers: []`を渡した。これはprovider自身の操作を禁止する仕組みではない。ユーザーMCP設定ファイルは存在せず、MCP toolイベントも未観測だが、外部サービスの静止保証とはしない。既存のユーザーhooksは変更せず維持した。`--trust`、`--force`、`--auto-review`、`--approve-mcps`は使用していない。API-key/認証token/endpointの環境変数上書きを渡さず、既存loginを利用した。
 
 共有設定の手動変更はしていない。ただし、run 01の実行中にCLI設定ファイルのhash変化を検出した。この回は項目別の差を採っていないため変更箇所は不明。run 07は`privacyCache`だけの変化を確認し、他の6回では監視した設定・hooks・MCPファイルのhashは不変だった。「起動だけなら共有ファイルへの書込みがない」とは主張しない。
 
-[manifest](fixtures/acp-146/manifest.json)がCLI版、probe/exporterのhash、各JSONLのhash、開始時刻、元/公開イベント数を結び付ける。JSONLは`seconds`、`direction`、`frame`を持つ。`seconds`はprobe起動後の観測時刻、`probe`行はfilesystem/processの観察でありACP frameではない。
+[manifest](fixtures/acp-146/manifest.json)がCLI版、採取時probe/exporterの固定commitとhash、各JSONLのhash、開始時刻、元/公開イベント数を結び付ける。JSONLは`seconds`、`direction`、`frame`を持つ。`seconds`はprobe起動後の観測時刻、`probe`行はfilesystem/processの観察でありACP frameではない。
 
 2026-09-09の旧資料4ファイルは保全したが、当時の実測fixture 9件は元の一時保存先と保全アーカイブに存在しなかった。本資料は**新しい実測**であり、旧記録の復元、旧hashとの一致、旧CLIでの再現とは扱わない。
 
 ## 公開時の加工と限界
 
-[exporter](../../scripts/probes/export_acp_wire.py)で次を加工し、残る文字列を確認した。
+[exporter](https://github.com/shinma06/cursor-in-android-studio/blob/17464894b1554669b9ed395660c63827f090d9ab/scripts/probes/export_acp_wire.py)で次を加工し、残る文字列を確認した。
 
 - client initialize/newを全省略し、initialize応答はprotocolVersionだけを残す。認証案内・client/agent/MCP capability metadata・cwdを含めない。初期能力の観測記述は非公開元記録に基づき、公開excerptだけから全setupを再現できるとはしない。
 - command一覧通知、旧形式model catalogを省略。stable model optionは実際のcurrent valueだけを残し、全model一覧ではないことを明記する。

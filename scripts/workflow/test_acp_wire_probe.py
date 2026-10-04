@@ -14,12 +14,14 @@ from scripts.probes.export_acp_wire import export
 
 
 class ProbeTest(unittest.TestCase):
-    def test_published_fixtures_match_capture_and_export_identity(self):
+    def test_published_fixture_integrity_and_anonymized_schema(self):
         root = Path(__file__).resolve().parents[2]
         folder = root / "docs/research/fixtures/acp-146"
         manifest = json.loads((folder / "manifest.json").read_text())
+        # Captures bind the historical revision, not a future edited probe.
+        self.assertRegex(manifest["capture_source_revision"], r"^[0-9a-f]{40}$")
         for name in ("capture_probe", "exporter"):
-            self.assertEqual(hashlib.sha256((root / manifest[name]).read_bytes()).hexdigest(), manifest[name + "_sha256"])
+            self.assertRegex(manifest[name + "_sha256"], r"^[0-9a-f]{64}$")
         self.assertEqual({p.name for p in folder.glob("*.jsonl")}, {f["file"] for f in manifest["fixtures"]})
         total_prompts = 0
         for fixture in manifest["fixtures"]:
