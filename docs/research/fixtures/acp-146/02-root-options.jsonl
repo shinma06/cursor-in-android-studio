@@ -1,0 +1,8 @@
+{"seconds":0.001,"direction":"probe","frame":{"created_at":"2026-10-04T01:20:52.919985+00:00","scenario":"metadata","profile":"ask-sandbox","arguments":["--mode","ask","--sandbox","enabled","acp"]}}
+{"seconds":0.214,"direction":"agent","frame":{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1}}}
+{"seconds":4.281,"direction":"agent","frame":{"jsonrpc":"2.0","id":2,"result":{"sessionId":"session-1-0","modes":{"currentModeId":"agent","availableModes":[{"id":"agent","name":"Agent","description":"Full agent capabilities with tool access"},{"id":"plan","name":"Plan","description":"Read-only mode for planning and designing before implementation"},{"id":"ask","name":"Ask","description":"Q&A mode - no edits or command execution"}]},"configOptions":[{"id":"mode","name":"Mode","category":"mode","type":"select","currentValue":"agent","options":[{"value":"agent","name":"Agent","description":"Full agent capabilities with tool access"},{"value":"plan","name":"Plan","description":"Read-only mode for planning and designing before implementation"},{"value":"ask","name":"Ask","description":"Q&A mode - no edits or command execution"}]},{"id":"model","name":"Model","category":"model","type":"select","currentValue":"composer-2.5[fast=true]","options":[{"value":"composer-2.5[fast=true]","name":"composer-2.5"}]}]}}}
+{"seconds":4.281,"direction":"probe","frame":{"before_shutdown_exit":null}}
+{"seconds":6.88,"direction":"probe","frame":{"stdout_reader_still_open":false}}
+{"seconds":6.881,"direction":"agent","frame":null}
+{"seconds":6.881,"direction":"probe","frame":{"exit_code":0}}
+{"seconds":6.922,"direction":"probe","frame":{"stage":"after_shutdown","ticks":0,"processes":[]}}

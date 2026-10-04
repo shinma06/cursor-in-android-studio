@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "issue": 146,
+  "captured_on": "2026-10-04",
+  "cli_version": "2026.10.01-14929f9",
+  "source_base": "795ec3d01b9bab811ee82e1cfb6f098aaa692a33",
+  "os": "macOS 27.0.1 arm64",
+  "python_version": "3.14.8",
+  "capture_probe": "scripts/probes/acp_wire_probe.py",
+  "capture_probe_sha256": "c6b7f53905111d613ffe63e4ed3bf43bf0d5aa306a011a73485854e8d3b86b2f",
+  "exporter": "scripts/probes/export_acp_wire.py",
+  "exporter_sha256": "9517056bc1deb16e8d642e7489d23b05c3b8b0a91083120c37f09dc16e232074",
+  "session_count": 8,
+  "prompt_count": 7,
+  "evidence_kind": "anonymized partial live records; probe observations are not ACP frames",
+  "redaction": [
+    "Client initialize/new frames omitted entirely; initialize response retains protocolVersion only.",
+    "Auth methods, agent/client capability metadata, cwd, client identity, and configured MCP metadata are omitted.",
+    "User/builtin command notifications are omitted; legacy model catalog is omitted and stable model options retain only the advertised current value.",
+    "Session/tool identities and process identifiers are consistently replaced. Newlines in opaque tool IDs are preserved when present.",
+    "Workspace path is replaced with /fixture; thought content is replaced. All other retained text values were inspected before publication.",
+    "Frame boundaries, repeated text deltas, RPC request ID 0, permission outcomes, timing, and separate process snapshots are retained."
+  ],
+  "limitations": [
+    "These new captures do not recover the missing 2026-09-09 records.",
+    "Full setup/catalog/thought data cannot be replayed from these partial fixtures.",
+    "Process snapshots and EOF in these bounded tests do not prove quiescence of detached children or external IDE/MCP work.",
+    "Question/Plan extensions and usage updates were not observed. No GUI or product acceptance is established.",
+    "The CLI changed its shared config file during run 01 (changed fields not recorded) and privacyCache during run 07; other runs left monitored config file hashes unchanged. No manual global-setting or authentication change was performed."
+  ],
+  "fixtures": [
+    {
+      "file": "01-metadata.jsonl",
+      "sha256": "35502ff795a9c70c0683ee79a24e39b2a5af68374b58885930adce63b4431eca",
+      "source_sha256": "70bc90ba2f6ca0eb72883202992094943f951de524cd610a13b408607e43af08",
+      "source_events": 11,
+      "published_events": 8,
+      "scenario": "metadata",
+      "profile": "default",
+      "started_at": "2026-10-04T01:20:02.227456+00:00",
+      "prompt_count": 0,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt"
+      ]
+    },
+    {
+      "file": "02-root-options.jsonl",
+      "sha256": "6ee19dbc3dd7e6484ffbb6c89c6b76fb650d330f8156680bf9c0cf66498f87db",
+      "source_sha256": "f27637bfd73cfbcc5b479b38ac07134dbde1885846daa90052d087c5b745c1f4",
+      "source_events": 11,
+      "published_events": 8,
+      "scenario": "metadata",
+      "profile": "ask-sandbox",
+      "started_at": "2026-10-04T01:20:52.885910+00:00",
+      "prompt_count": 0,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt"
+      ]
+    },
+    {
+      "file": "03-text.jsonl",
+      "sha256": "3a7b754f97f5a361a107f0f45836670afbbff0f3b3767c0d0e0b59511a69373f",
+      "source_sha256": "4c3960116ac95390e45cf7454f5353e665dff7e617490c7fc9e213c44de022fd",
+      "source_events": 42,
+      "published_events": 39,
+      "scenario": "text",
+      "profile": "default",
+      "started_at": "2026-10-04T01:21:25.961282+00:00",
+      "prompt_count": 2,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt"
+      ]
+    },
+    {
+      "file": "04-edit.jsonl",
+      "sha256": "bbf34f11e91126de9f14c3aeaf4558361743b4a1684d3e86e2914d18f042ef45",
+      "source_sha256": "0fb7f663053a15dea0853204b1e03a3dd787eeabbaf528f1c143b2f884c0edee",
+      "source_events": 56,
+      "published_events": 53,
+      "scenario": "edit",
+      "profile": "default",
+      "started_at": "2026-10-04T01:21:50.948289+00:00",
+      "prompt_count": 1,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt"
+      ]
+    },
+    {
+      "file": "05-extensions.jsonl",
+      "sha256": "859aeb190584d2f7eea4381c0df013fcf7d1f5e5cb5614eca1ad6b56126db2ff",
+      "source_sha256": "288a31509450496941354a7a1e00c272c9628f52c3be3cd540bd2dcc025a713f",
+      "source_events": 69,
+      "published_events": 66,
+      "scenario": "extensions",
+      "profile": "default",
+      "started_at": "2026-10-04T01:22:20.017860+00:00",
+      "prompt_count": 1,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt"
+      ]
+    },
+    {
+      "file": "06-cancel-text.jsonl",
+      "sha256": "758794784b4a581de3beac9058e30873c569281d43e18d207dc0a234ce05de82",
+      "source_sha256": "6daa916b73196af7990f5b66c2d6e7bae0fb42bf7784230c7fb81294be190424",
+      "source_events": 18,
+      "published_events": 15,
+      "scenario": "cancel-text",
+      "profile": "default",
+      "started_at": "2026-10-04T01:22:52.623449+00:00",
+      "prompt_count": 1,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt"
+      ]
+    },
+    {
+      "file": "07-cancel-child.jsonl",
+      "sha256": "8fe5bc2c1a554b0ade14a0869e1eae4c5dda16947e104d998cb557acfc4d05d1",
+      "source_sha256": "4e44111306e51662cc51c3f74cadc0012ad73e9c71c6428840ce4dd134a9f26b",
+      "source_events": 35,
+      "published_events": 32,
+      "scenario": "cancel-child",
+      "profile": "default",
+      "started_at": "2026-10-04T01:23:39.629124+00:00",
+      "prompt_count": 1,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt",
+        "tick.py",
+        "ticks.txt"
+      ]
+    },
+    {
+      "file": "08-cancel-permission.jsonl",
+      "sha256": "7af0e7920f0cc1712db5157eae2fe92bd72b08fa6e0b456961210409679dae43",
+      "source_sha256": "199d4c929bdb8e9a7189a6fc8ebcbb83f271e11abcebcfef04dbb2154f7029fd",
+      "source_events": 35,
+      "published_events": 32,
+      "scenario": "cancel-child-permission",
+      "profile": "default",
+      "started_at": "2026-10-04T01:24:21.348499+00:00",
+      "prompt_count": 1,
+      "process_exit": 0,
+      "observed_family_after_shutdown": [],
+      "workspace_files": [
+        "input.txt",
+        "tick.py"
+      ]
+    }
+  ],
+  "capture_source_revision": "17464894b1554669b9ed395660c63827f090d9ab"
+}
