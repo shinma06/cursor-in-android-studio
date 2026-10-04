@@ -23,7 +23,7 @@
     "ComposerSubmissionTest/AgentPanelActionTest: 初回送信のnative Action登録・OS別既定キー・実行時owner再確認、空白/run/予約編集/入力不可/IME拒否、通常送信とEnter長押し共有・解放後再送・破棄時解除",
     "PromptQueueSubmissionTest/PromptQueueListTest/RunProgressDispatchTest: 実AgentRun・listener・SessionTabsの確定終端/finally後に選択1件だけ送信、終了不確定/失敗・取消/世代/行更新/編集・画像lease、native Actionと送信設定/長押し/登録解除",
     "ToolReviewShortcutsTest/RequestShortcutsTest: 実Composer・Editor・timeline・permissionの空入力/command/画像/import/予約編集/IME/失効、Keymapの変更/解除/複数stroke先頭とsend/Escape排他、返信後の長押し配送抑止",
-    "ChatArchiveTest/SessionTabsTest/SidebarChatsTest/RecentChatsTest: project型付きmetadataと不正値/遅い保存、実listの検索待ち/IME/旧状態/非表示/破棄、実root/controller/AgentRunの対象Stop・遅延終了・draft/queue/owner保持、復元非送信、pin/折畳みとMRU除外"
+    "ChatArchiveTest/SessionTabsTest/SidebarChatsTest/RecentChatsTest: project型付きmetadata、不正値/遅い保存、実listの通常200件検索と履歴20件More/検索変更/IME/旧状態/非表示/破棄、root/controller/AgentRunの確認取消/対象Stop/遅延終了/owner保持、全区分の隣候補・復元非送信・pin/MRU除外"
   ],
   "cases": [
     {
@@ -956,10 +956,10 @@
         "Agent panelを隠してAへの履歴を要求する。panelは隠れたままで、run/draft/予約は変化しない。通常の入口で同じAを表示した時に履歴を開く。先にBを選んだ場合はBへ要求を転送せず、Aへ戻った時だけ表示する。要求したAを閉じた場合は再表示しない。",
         "sidebar表示中は履歴キーとheader操作で履歴を開かず、既存の会話・検索・予約を変更しない。履歴の読込み中または表示中にsidebarを表示すると、その会話の要求を解除して履歴を閉じる。sidebarを隠しても取消済み要求が復活しない。",
         "履歴キーを反復/長押ししても読込みを重ねず、表示済みの履歴を閉じない。headerクリックは開閉切替として、読込み中/表示中の要求を取り消せる。閉じた後の再要求では新しい履歴を読み込む。",
-        "遅い履歴読込みの間にpanelを隠す、会話を切り替える、対象を閉じる、projectを閉じる。古いcallbackからdialogを開いたり、別会話へ選択/削除/書出しを適用しない。再表示時は新しい世代で読み直す。読込み失敗時は保存データを保持し、自動再試行しない。",
-        "IME変換・入力候補・子popup中はキーを奪わない。読込み後にguardが失効した場合も遅れてdialogを開かない。要求の記録や読込み取消だけでは予約をpauseせず、実際の履歴dialog表示直前に既存の一時停止を行う。Stop/Revert等の明示pauseを解除しない。",
-        "履歴から保存本文/旧print履歴を選び、元の表示・provider再開制約と本文検索の一致移動、削除時の確認/開いた会話の保護、Markdown出力を確認する。表示要求を記録しただけで保存形式や会話IDを変更しない。",
-        "macOS/Windows/LinuxとUS/JIS配列でM+A+'、IDE既存割当、Keymap変更/解除を確認する。固定Cursor版のheader flyoutとnative dialog、header iconを隠した時の到達、editor表示の履歴は未確認の差として記録し、入口の接続だけで全対象をpassにしない。"
+        "遅い履歴読込みの間にpanelを隠す、会話を切り替える、対象を閉じる、projectを閉じる。古いcallbackから履歴メニュー/本文検索を開いたり、別会話へ選択/削除/書出しを適用しない。再表示時は新しい世代で読み直す。読込み失敗時は保存データを保持し、自動再試行しない。",
+        "IME変換・入力候補・子popup中はキーを奪わない。読込み後にguardが失効した場合も遅れて履歴メニュー/本文検索を開かない。要求の記録や読込み取消だけでは予約をpauseせず、実際の履歴メニュー表示直前に既存の一時停止を行う。Stop/Revert等の明示pauseを解除しない。",
+        "ヘッダー直下の履歴メニューから保存本文/旧print履歴を選び、元の表示・provider再開制約を確認する。通常候補のpin優先/更新順と各20件/More、Archived初期折畳み、検索変更時の件数リセットを確認する。「保存した会話を検索…」から本文検索の一致移動、削除時の確認/開いた会話の保護、Markdown出力を確認する。メニューcloseが遅れて通知されても新しい表示要求を消費せず、本文検索を別の会話へ開かない。表示要求を記録しただけで保存形式や会話IDを変更しない。",
+        "macOS/Windows/LinuxとUS/JIS配列でM+A+'、IDE既存割当、Keymap変更/解除を確認する。固定Cursor版のheader flyoutとの配置/focus/読み上げ、header iconを隠した時の到達、editor表示の履歴は未確認の差として記録し、入口の接続だけで全対象をpassにしない。"
       ],
       "expected": "既存の選択中会話だけが履歴の表示要求を所有し、globalキー・header切替・sidebar排他・非表示/再表示と非同期取消が混線しない。content生成/強制表示や別会話への遅い操作がなく、既存の履歴検索と保存保護を維持する。"
     },
@@ -1191,11 +1191,11 @@
       "id": "KEYMAP-ALL-CHATS-ARCHIVE",
       "change": "All Agentsのアーカイブ区分と復元、会話ownerの保持",
       "steps": [
-        "使い捨てproject/profileに保存済みPRINT/ACP・旧print履歴・未送信draft/画像/予約付き会話と別会話を用意し、All Agentsのsidebar/popup双方でアーカイブする。対象runだけ停止要求、本文保持、通常一覧/最近使用/単一tab履歴循環からの除外を確認する。停止要求後も物理終了まで新runへ取り違えず、別会話は停止しない。",
-        "アーカイブ済み区分をEnter/クリックで展開・検索する。sidebarの6件/More、通常/アーカイブ各200件のpopup上限、IME中・検索待ち・古い結果・非表示後の操作拒否を確認する。native focus/読み上げで区分・件数・操作名を識別する。",
-        "sidebarで選択中会話をアーカイブした際の隣visible tab/最後の空tabへの移動と、popupでは現在view維持を確認する。sidebarはpin解除、popupではpin metadata保持と上限からの除外。復元で送信やqueue再開・自動表示が起きず、明示表示で元draft/画像/予約が保持される。",
+        "使い捨てproject/profileに保存済みPRINT/ACP・旧print履歴・未送信draft/画像/予約付き会話と別会話を用意し、All Agentsのsidebarとヘッダー履歴メニュー双方でアーカイブする。global All Agents検索にはアーカイブ操作やアーカイブ済み候補が出ないことも確認する。対象runだけ停止要求、本文保持、通常一覧/最近使用/単一tab履歴循環からの除外を確認する。停止要求後も物理終了まで新runへ取り違えず、別会話は停止しない。",
+        "アーカイブ済み区分をEnter/クリックで展開・検索する。sidebarの6件/More、ヘッダー履歴の通常/アーカイブ各20件/Moreと検索変更での件数リセット、部分一致とpin優先/更新順、IME中・検索待ち・古い結果・非表示後の操作拒否を確認する。native focus/読み上げで区分・件数・操作名を識別する。",
+        "sidebarの実行中会話では確認を取消すと停止/区分変更がないこと、確認中に対象/run/検索/metadataが変わると中止することを確認する。選択中会話は検索済み全区分（折り畳み/Moreの非表示候補を含む）の次、末尾なら直前へ進む。隣がarchived/不明なら新規会話になる。閉じた候補の遅い読込み中に別会話/非表示へ移動した場合は戻されない。履歴メニューでは現在view維持。sidebarはpin解除、履歴メニューではpin metadata保持と上限からの除外。復元で送信やqueue再開・自動表示が起きず、明示表示で元draft/画像/予約が保持される。",
         "保存済み本文を含むprojectをIDE再起動し、同じ本文ID/旧履歴IDの区分と復元後の更新順を確認する。本文/会話再開/Revertの既存制限を維持し、未保存draftの再起動保存は期待しない。別projectの同名会話に影響しない。",
-        "Cursor 3.23.12のin-IDE local archive/restoreと比較し、popupの20件追加/配置やsidebarの次候補選択とPluginの表示方法の差を記録する。Cloud/private RPCや通常の履歴削除の合格へ読み替えない。"
+        "Cursor 3.23.12のin-IDE local archive/restoreと比較し、ヘッダー履歴の20件追加/配置・sidebarの確認と全区分からの隣候補選択・global All Agents検索の通常200件を入口別に記録する。一括archiveとCloud/Find with Agent/transient/editor-groupは残作業のまま区別する。Cloud/private RPCや通常の履歴削除の合格へ読み替えない。"
       ],
       "expected": "対象会話だけを停止要求し、本文を削除せず区分を変更する。遅い終了/保存でownerや区分を取り違えず、復元は自動送信しない。入力/画像/予約はproject内の同じownerへ戻り、保存済み本文と区分は再起動後も保持される。操作条件と残る表示差を固定buildで記録する。"
     }

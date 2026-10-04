@@ -83,6 +83,8 @@ class AgentToolWindowRootPanel(
     private val recentVisits = RecentChatVisits()
     private var recentChatsPopup: RecentChatsPopup? = null
     private var allChatsPopup: JBPopup? = null
+    private var historyMenuPopup: JBPopup? = null
+    private var historyMenuView: AllChatsView? = null
     private var allChatsSidebar: AllChatsView? = null
     private val allChatsContainer = JPanel(BorderLayout())
     private val allChatsSidebarVisible: Boolean get() = contentSplitter.firstComponent === allChatsContainer
@@ -214,8 +216,9 @@ class AgentToolWindowRootPanel(
         },
         isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
         context = { HistoryPopupContext(selectedView?.let { sessions.snapshot().selectedId }, isShowing,
-            isShowing && allChatsSidebarVisible, windowShortcutAvailable) },
+            isShowing && allChatsSidebarVisible, historyMenuAllowed) },
         onShowing = { selectedView?.controller?.pauseQueue() },
+        showMenu = ::showHistoryMenu,
     )
 
     init {
@@ -317,11 +320,11 @@ class AgentToolWindowRootPanel(
             allChatsSidebar?.suspendUpdates()
             contentSplitter.firstComponent = null
         } else if (allChatsSidebar == null) {
-            val view = AllChatsView(project, false, ::openRecentEntries,
+            val view = AllChatsView(project, ChatListMode.SIDEBAR, ::openRecentEntries,
                 selectedId = { selectedView?.let { recentChatId(sessions.snapshot().selected, it) } },
                 valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebarVisible },
                 onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it, allowArchived = true) } },
-                onArchive = { archiveChat(it, fromSidebar = true) },
+                onArchive = ::archiveChat,
             )
             allChatsSidebar = view
             val header = JPanel(BorderLayout()).apply {
@@ -346,10 +349,10 @@ class AgentToolWindowRootPanel(
         allChatsPopup?.cancel()
         val ticket = ++chatFocusGeneration
         lateinit var popup: JBPopup
-        val view = AllChatsView(project, true, ::openRecentEntries, selectedId = { null },
-            valid = { !disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration && allChatsPopup === popup },
-            onChoose = { id -> popup.cancel(); openRecentChat(id, allowArchived = true) },
-            onArchive = { archiveChat(it, fromSidebar = false) },
+        val view = AllChatsView(project, ChatListMode.QUICK_ACCESS, ::openRecentEntries, selectedId = { null },
+            valid = { !disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration && allChatsPopup != null && allChatsPopup === popup },
+            onChoose = { id -> popup.cancel(); openRecentChat(id) },
+            onArchive = ::archiveChat,
         )
         view.preferredSize = JBUI.size(560, 340)
         popup = JBPopupFactory.getInstance().createComponentPopupBuilder(view, view.focusComponent)
@@ -371,6 +374,60 @@ class AgentToolWindowRootPanel(
         Disposer.register(popup, Disposable { view.dispose(); if (allChatsPopup === popup) allChatsPopup = null })
         popup.showInCenterOf(this)
         view.reload()
+    }
+
+    private val historyMenuAllowed: Boolean
+        get() {
+            if (historyMenuView?.isComposing == true) return false
+            if (windowShortcutAvailable) return true
+            return selectedView?.composer?.panelShortcutAvailable == true && historyMenuPopup?.isVisible == true &&
+                JBPopupFactory.getInstance().getChildFocusedPopup(this) === historyMenuPopup
+        }
+
+    private fun showHistoryMenu(
+        loaded: com.cursoragent.history.ConversationStore.Loaded,
+        current: () -> Boolean,
+        onClosed: () -> Unit,
+    ): Disposable {
+        lateinit var popup: JBPopup
+        val ownerId = sessions.snapshot().selectedId
+        val view = AllChatsView(project, ChatListMode.HISTORY, ::openRecentEntries,
+            selectedId = { selectedView?.let { recentChatId(sessions.snapshot().selected, it) } },
+            valid = { !disposed && !project.isDisposed && isShowing && historyMenuPopup != null && current() && historyMenuPopup === popup },
+            onChoose = { id -> popup.cancel(); openRecentChat(id, allowArchived = true) },
+            onArchive = ::archiveChat,
+            onManage = {
+                val ticket = chatFocusGeneration
+                popup.cancel()
+                SwingUtilities.invokeLater {
+                    if (!disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration && sessions.snapshot().selectedId == ownerId &&
+                        !allChatsSidebarVisible && windowShortcutAvailable) history.request(manage = true)
+                }
+            },
+        )
+        view.preferredSize = JBUI.size(500, 340)
+        popup = JBPopupFactory.getInstance().createComponentPopupBuilder(view, view.focusComponent)
+            .setTitle("履歴").setProject(project).setRequestFocus(true)
+            .setResizable(true).setCancelOnClickOutside(true).setCancelOnOtherWindowOpen(true)
+            .setCancelOnWindowDeactivation(true).setCancelKeyEnabled(false)
+            .setKeyEventHandler { event ->
+                if (!view.isComposing && event.id == java.awt.event.KeyEvent.KEY_PRESSED && event.keyCode == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    popup.cancel(); true
+                } else false
+            }.createPopup()
+        historyMenuPopup = popup
+        historyMenuView = view
+        Disposer.register(popup, Disposable {
+            view.dispose()
+            if (historyMenuPopup === popup) {
+                historyMenuPopup = null
+                historyMenuView = null
+            }
+            onClosed()
+        })
+        popup.showUnderneathOf(strip)
+        view.useLoadedHistory(loaded)
+        return popup
     }
 
     private fun navigateSidebar(command: AgentPanelCommand) {
@@ -480,33 +537,75 @@ class AgentToolWindowRootPanel(
         } }
     }
 
-    private fun archiveChat(entry: RecentChatEntry, fromSidebar: Boolean) {
-        if (disposed || project.isDisposed || !chatArchive.matches(entry)) return
+    private fun archiveChat(request: ChatArchiveRequest) {
+        val entry = request.entry
         val store = project.getService(ConversationHistory::class.java)
-        if (entry.id is RecentChatId.Body && store.isDeleted(entry.id.id)) return
-        if (entry.id is RecentChatId.LegacyPrint && ChatHistoryState.getInstance(project).list().none { it.chatId == entry.id.id }) return
-        val target = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == entry.id } == true }
+        fun available(): Boolean = !disposed && !project.isDisposed && request.isCurrent() && chatArchive.matches(entry) &&
+            !(entry.id is RecentChatId.Body && store.isDeleted(entry.id.id)) &&
+            (entry.id !is RecentChatId.LegacyPrint || ChatHistoryState.getInstance(project).list().any { it.chatId == entry.id.id })
+        fun target() = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == entry.id } == true }
+        if (!available()) return
+        val originalTarget = target()
         if (!entry.archived) {
-            // Stop is a request. Keep the owner alive until its real completion, with its unsent work.
+            if (request.fromSidebar && originalTarget != null &&
+                (originalTarget.run != null || views[originalTarget.id]?.composer?.isRunning == true)) {
+                if (com.intellij.openapi.ui.Messages.showYesNoDialog(project,
+                        "この会話は実行中です。停止してアーカイブしますか？", "会話をアーカイブ",
+                        "アーカイブ", "キャンセル", com.intellij.openapi.ui.Messages.getWarningIcon()) != com.intellij.openapi.ui.Messages.YES) return
+                // A modal confirmation runs the event loop: selection, metadata and ownership may have changed.
+                if (!available() || target()?.id != originalTarget.id || target()?.run != originalTarget.run) return
+            }
             try {
-                target?.let { views.getValue(it.id).controller.stopRun() }
+                originalTarget?.let { views.getValue(it.id).controller.stopRun() }
             } catch (_: Exception) {
                 selectedView?.timeline?.showStatus("この会話を停止できなかったため、アーカイブしませんでした。")
                 return
             }
         }
         if (!chatArchive.set(entry, !entry.archived)) return
-        if (!entry.archived && fromSidebar) {
+        if (!entry.archived && request.fromSidebar) {
             val properties = PropertiesComponent.getInstance(project)
             val pins = properties.getList("CursorAgent.pinnedChats").orEmpty()
             properties.setList("CursorAgent.pinnedChats", pins.filterNot { pinnedChatId(it) == entry.id })
-            if (target != null && sessions.snapshot().selectedId == target.id) {
-                sessions.hide(target.id)
-                showSelected()
-                return
+            val selected = sessions.snapshot().selected
+            val activeId = selectedView?.let { recentChatId(selected, it) }
+            if (activeId != null && chatArchive.apply(openRecentEntries()).any { it.id == activeId && it.archived }) {
+                openAfterArchive(archiveNeighbor(request.candidates, activeId), selected.id)
             }
         }
         allChatsSidebar?.refreshOpenEntries()
+        historyMenuView?.refreshOpenEntries()
+    }
+
+    private fun openAfterArchive(candidate: RecentChatEntry?, previousId: String) {
+        val store = project.getService(ConversationHistory::class.java)
+        fun candidateAvailable() = candidate != null && chatArchive.matches(candidate) && !candidate.archived &&
+            !(candidate.id is RecentChatId.Body && store.isDeleted(candidate.id.id)) &&
+            (candidate.id !is RecentChatId.LegacyPrint || ChatHistoryState.getInstance(project).list().any { it.chatId == candidate.id.id })
+        fun finish(conversation: Conversation? = null, legacyId: String? = null, existing: String? = null) {
+            if (existing != null) sessions.select(existing)
+            else if (conversation != null) sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
+            else sessions.open(legacyId)
+            // Open the successor first; hiding the sole visible tab would otherwise create an extra empty tab.
+            sessions.hide(previousId)
+            showSelected(conversation, legacyId != null)
+        }
+        if (!candidateAvailable()) { finish(); return }
+        val live = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == candidate!!.id } == true }
+        if (live != null) { finish(existing = live.id); return }
+        val ticket = ++chatFocusGeneration
+        val owner = selectedView
+        store.load { result -> SwingUtilities.invokeLater {
+            if (disposed || project.isDisposed || ticket != chatFocusGeneration || selectedView !== owner ||
+                sessions.snapshot().selectedId != previousId || !isShowing || !allChatsSidebarVisible) return@invokeLater
+            val conversation = (candidate?.id as? RecentChatId.Body)?.let { id -> result.getOrNull()?.conversations?.firstOrNull { it.id == id.id } }
+            val legacy = (candidate?.id as? RecentChatId.LegacyPrint)?.id
+            if (candidateAvailable() && (conversation != null || legacy != null)) finish(conversation, legacy)
+            else {
+                finish()
+                selectedView?.timeline?.showStatus("次の会話を開けなかったため、新しい会話を表示しました。")
+            }
+        } }
     }
 
     private fun openSavedChat(conversation: Conversation?, legacyId: String?) {
@@ -718,6 +817,7 @@ class AgentToolWindowRootPanel(
         val snapshot = sessions.snapshot()
         strip.setTabs(snapshot.visibleTabs.map { SessionTabPresentation(it.id, it.title) }, snapshot.selectedId)
         allChatsSidebar?.refreshOpenEntries()
+        historyMenuView?.refreshOpenEntries()
     }
 
     override fun dispose() {

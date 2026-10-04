@@ -1,6 +1,7 @@
 package com.cursoragent.ui
 
 import com.cursoragent.history.ConversationHistory
+import com.cursoragent.history.ConversationStore
 import com.cursoragent.settings.ChatHistoryState
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
@@ -35,24 +36,34 @@ import javax.swing.SwingUtilities
 import javax.swing.Timer
 import javax.swing.event.DocumentEvent
 
-/** Shared metadata view for the persistent list and quick access; selected bodies are reloaded by the owner. */
+internal enum class ChatListMode { SIDEBAR, QUICK_ACCESS, HISTORY }
+
+internal data class ChatArchiveRequest(
+    val entry: RecentChatEntry,
+    val fromSidebar: Boolean,
+    val candidates: List<RecentChatEntry>,
+    val isCurrent: () -> Boolean,
+)
+
+/** Metadata-only views; the owning window reloads a selected body. */
 internal class AllChatsView(
     private val project: Project,
-    private val quickAccess: Boolean,
+    private val mode: ChatListMode,
     private val openEntries: () -> List<RecentChatEntry>,
     private val selectedId: () -> RecentChatId?,
     private val valid: () -> Boolean,
     private val onChoose: (RecentChatId) -> Unit,
-    private val onArchive: (RecentChatEntry) -> Unit,
+    private val onArchive: (ChatArchiveRequest) -> Unit,
+    private val onManage: (() -> Unit)? = null,
 ) : JPanel(BorderLayout(0, JBUI.scale(4))), Disposable {
-    private val limit = if (quickAccess) 200 else Int.MAX_VALUE
+    private val pageSize = if (mode == ChatListMode.HISTORY) 20 else 6
     private val store = project.getService(ConversationHistory::class.java)
     private val search = SearchTextField()
     private val properties by lazy { PropertiesComponent.getInstance(project) }
     private val archive by lazy { ChatArchiveState(properties) }
     private fun readPins() = properties.getList("CursorAgent.pinnedChats").orEmpty().mapNotNull(::pinnedChatId).toSet()
     private var pinned = readPins()
-    private val collapsed = if (quickAccess) mutableSetOf(ChatSection.ARCHIVED) else ChatSection.entries.filter {
+    private val collapsed = if (mode != ChatListMode.SIDEBAR) mutableSetOf(ChatSection.ARCHIVED) else ChatSection.entries.filter {
         properties.getBoolean("CursorAgent.chatSection.${it.key}.collapsed", it == ChatSection.ARCHIVED)
     }.toMutableSet()
     private val sectionLimits = mutableMapOf<ChatSection, Int>()
@@ -65,7 +76,7 @@ internal class AllChatsView(
             override fun customizeCellRenderer(list: JList<out AllChatRow>, value: AllChatRow?, index: Int, selected: Boolean, hasFocus: Boolean) {
                 toolTipText = when (value) {
                     is AllChatRow.Section -> "${value.section.label}、${value.count}件。Enterで${if (value.collapsed) "展開" else "折り畳み"}。"
-                    is AllChatRow.More -> "${value.section.label}を6件追加表示します。"
+                    is AllChatRow.More -> "${value.section.label}を${pageSize}件追加表示します。"
                     is AllChatRow.Chat -> value.hit.entry.title
                     null -> null
                 }
@@ -103,7 +114,7 @@ internal class AllChatsView(
     private val archiveButton = JButton("アーカイブ").apply { addActionListener { toggleArchive() } }
     private var renderedDate = LocalDate.now()
     private val dateRefresh = Timer(60_000) {
-        if (!quickAccess && !disposed && valid() && ready && !isComposing && LocalDate.now() != renderedDate) rebuildRows()
+        if (mode == ChatListMode.SIDEBAR && !disposed && valid() && ready && !isComposing && LocalDate.now() != renderedDate) rebuildRows()
     }
     private val debounce = Timer(150) { runSearch() }.apply { isRepeats = false }
     private var worker: Future<*>? = null
@@ -132,14 +143,24 @@ internal class AllChatsView(
         add(JPanel(BorderLayout()).apply {
             add(status, BorderLayout.CENTER)
             add(JPanel().apply {
-                if (!quickAccess) add(pinButton)
-                add(archiveButton)
+                if (mode != ChatListMode.QUICK_ACCESS) {
+                    add(pinButton)
+                    add(archiveButton)
+                }
+                onManage?.let { manage -> add(JButton("保存した会話を検索…").apply {
+                    addActionListener { if (!disposed && valid() && !isComposing) manage() }
+                }) }
             }, BorderLayout.EAST)
         }, BorderLayout.SOUTH)
         list.addListSelectionListener { updatePinButton() }
         updatePinButton()
         search.textEditor.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) { suspendedPosition = null; navigationTarget = null; scheduleSearch() }
+            override fun textChanged(e: DocumentEvent) {
+                suspendedPosition = null
+                navigationTarget = null
+                if (mode == ChatListMode.HISTORY) sectionLimits.clear()
+                scheduleSearch()
+            }
         })
         search.textEditor.addInputMethodListener(object : InputMethodListener {
             override fun inputMethodTextChanged(event: InputMethodEvent) {
@@ -170,23 +191,27 @@ internal class AllChatsView(
 
     fun reload() {
         if (disposed || !valid()) return
-        if (!quickAccess) dateRefresh.start()
+        if (mode == ChatListMode.SIDEBAR) dateRefresh.start()
         val ticket = ++loadGeneration
         historyComplete = false
         if (!ready) status.text = "履歴を読み込み中…"
         updatePinButton()
         store.load { result -> SwingUtilities.invokeLater {
             if (disposed || !valid() || ticket != loadGeneration) return@invokeLater
-            val loaded = result.getOrNull()
-            historyComplete = loaded != null && loaded.unreadable == 0
-            stored = availableChatEntries(emptyList(), loaded?.conversations.orEmpty().filterNot { store.isDeleted(it.id) }, emptyList())
-            loadStatus = when {
-                loaded == null -> "保存履歴を読み込めませんでした。"
-                loaded.unreadable > 0 -> "${loaded.unreadable}件は読み込めませんでした（ファイルは保持）。"
-                else -> ""
-            }
-            refreshOpenEntries()
+            useLoadedHistory(result.getOrNull())
         } }
+    }
+
+    fun useLoadedHistory(loaded: ConversationStore.Loaded?) {
+        if (disposed || !valid()) return
+        historyComplete = loaded != null && loaded.unreadable == 0
+        stored = availableChatEntries(emptyList(), loaded?.conversations.orEmpty().filterNot { store.isDeleted(it.id) }, emptyList())
+        loadStatus = when {
+            loaded == null -> "保存履歴を読み込めませんでした。"
+            loaded.unreadable > 0 -> "${loaded.unreadable}件は読み込めませんでした（ファイルは保持）。"
+            else -> ""
+        }
+        refreshOpenEntries()
     }
 
     fun refreshOpenEntries() {
@@ -213,9 +238,8 @@ internal class AllChatsView(
         val snapshot = entries
         val selection = list.selectedValue?.target ?: selectedId()?.let(SidebarChatTarget::Chat)
         worker = ApplicationManager.getApplication().executeOnPooledThread {
-            val found = if (quickAccess) {
-                searchAllChats(snapshot.filterNot { it.archived }, query) + searchAllChats(snapshot.filter { it.archived }, query)
-            } else searchSidebarChats(snapshot, query)
+            val found = if (mode == ChatListMode.QUICK_ACCESS) searchAllChats(snapshot.filterNot { it.archived }, query)
+            else searchSidebarChats(snapshot, query)
             SwingUtilities.invokeLater {
                 if (disposed || !valid() || isComposing || ticket != searchGeneration) return@invokeLater
                 hits = found
@@ -230,8 +254,11 @@ internal class AllChatsView(
         val now = System.currentTimeMillis()
         val zone = ZoneId.systemDefault()
         renderedDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        rows = if (quickAccess) quickAccessChatRows(hits, ChatSection.ARCHIVED in collapsed) else
-            sidebarChatRows(hits, pinned, collapsed, sectionLimits, now, zone)
+        rows = when (mode) {
+            ChatListMode.QUICK_ACCESS -> hits.map(AllChatRow::Chat)
+            ChatListMode.HISTORY -> historyChatRows(hits, pinned, ChatSection.ARCHIVED in collapsed, sectionLimits, appliedQuery.isBlank())
+            ChatListMode.SIDEBAR -> sidebarChatRows(hits, pinned, collapsed, sectionLimits, now, zone)
+        }
         if (navigationTarget != null && rows.none { it.target == navigationTarget }) navigationTarget = null
         model.clear()
         rows.forEach(model::addElement)
@@ -244,7 +271,7 @@ internal class AllChatsView(
         if (previousPosition != null) scroll.viewport.viewPosition = previousPosition
         else if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
         status.text = loadStatus.ifBlank {
-            if (quickAccess && (hits.count { !it.entry.archived } == limit || hits.count { it.entry.archived } == limit)) "通常・アーカイブ各${limit}件まで表示・検索で絞り込めます" else "${hits.size}件"
+            if (mode == ChatListMode.QUICK_ACCESS && hits.size == 200) "200件まで表示・検索で絞り込めます" else "${hits.size}件"
         }
         updatePinButton()
     }
@@ -285,13 +312,13 @@ internal class AllChatsView(
             }
             is AllChatRow.More -> {
                 val firstAdded = rows.indexOf(row)
-                sectionLimits[row.section] = (sectionLimits[row.section] ?: 6) + 6
+                sectionLimits[row.section] = (sectionLimits[row.section] ?: pageSize) + pageSize
                 rebuildRows(selectedId()?.let(SidebarChatTarget::Chat))
                 if (firstAdded in rows.indices) list.ensureIndexIsVisible(firstAdded)
             }
             is AllChatRow.Section -> {
                 if (!collapsed.remove(row.section)) collapsed.add(row.section)
-                if (!quickAccess) properties.setValue("CursorAgent.chatSection.${row.section.key}.collapsed", row.section in collapsed, row.section == ChatSection.ARCHIVED)
+                if (mode == ChatListMode.SIDEBAR) properties.setValue("CursorAgent.chatSection.${row.section.key}.collapsed", row.section in collapsed, row.section == ChatSection.ARCHIVED)
                 rebuildRows()
                 list.selectedIndex = rows.indexOfFirst { it is AllChatRow.Section && it.section == row.section }
             }
@@ -303,8 +330,8 @@ internal class AllChatsView(
         val actionable = !disposed && valid() && ready && !isComposing && appliedQuery == search.text && entry != null && entryAvailable(entry)
         archiveButton.text = if (entry?.archived == true) "復元" else "アーカイブ"
         archiveButton.toolTipText = if (entry?.archived == true) "通常の一覧へ戻します。会話の送信は再開しません。" else "この会話の実行を停止し、本文を保持してアーカイブへ移します。"
-        archiveButton.isEnabled = actionable
-        if (quickAccess) return
+        archiveButton.isEnabled = actionable && mode != ChatListMode.QUICK_ACCESS
+        if (mode == ChatListMode.QUICK_ACCESS) return
         val alreadyPinned = entry?.id in pinned
         val available = entries.filterNot { it.archived }.map { it.id }.toSet()
         val belowLimit = pinned.count { it in available } < 75
@@ -320,6 +347,7 @@ internal class AllChatsView(
     }
 
     private fun togglePin() {
+        if (mode == ChatListMode.QUICK_ACCESS) return
         if (disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return
         val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return
         if (!entryAvailable(entry) || entry.archived) { refreshOpenEntries(); return }
@@ -340,16 +368,27 @@ internal class AllChatsView(
         (entry.id !is RecentChatId.LegacyPrint || ChatHistoryState.getInstance(project).list().any { it.chatId == entry.id.id })
 
     private fun toggleArchive() {
+        if (mode == ChatListMode.QUICK_ACCESS) return
         if (disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return
         val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return
-        if (entryAvailable(entry)) onArchive(entry)
+        if (entryAvailable(entry)) {
+            val ticket = searchGeneration
+            val candidates = if (mode == ChatListMode.SIDEBAR) sidebarChatRows(
+                hits, pinned, emptySet(), ChatSection.entries.associateWith { Int.MAX_VALUE },
+                System.currentTimeMillis(), ZoneId.systemDefault(),
+            ).filterIsInstance<AllChatRow.Chat>().map { it.hit.entry } else emptyList()
+            onArchive(ChatArchiveRequest(entry, mode == ChatListMode.SIDEBAR, candidates) {
+                !disposed && valid() && ready && !isComposing && ticket == searchGeneration &&
+                    appliedQuery == search.text && (list.selectedValue as? AllChatRow.Chat)?.hit?.entry == entry && entryAvailable(entry)
+            })
+        }
         navigationTarget = null
         refreshOpenEntries()
     }
 
     /** Hiding retains the query, rows and expansion state, but rejects every callback from the old display. */
     fun suspendUpdates() {
-        if (!quickAccess && ready) suspendedPosition = scroll.viewport.viewPosition
+        if (mode == ChatListMode.SIDEBAR && ready) suspendedPosition = scroll.viewport.viewPosition
         loadGeneration++
         searchGeneration++
         debounce.stop()

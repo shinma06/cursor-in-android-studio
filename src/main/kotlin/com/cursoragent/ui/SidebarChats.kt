@@ -6,6 +6,7 @@ import java.util.Base64
 import java.util.Locale
 
 internal enum class ChatSection(val key: String, val label: String) {
+    CHATS("chats", "チャット"),
     PINNED("pinned", "固定したチャット"),
     TODAY("today", "今日"),
     YESTERDAY("yesterday", "昨日"),
@@ -110,12 +111,31 @@ internal fun pinnedChatId(value: String): RecentChatId? = try {
     decoded?.takeIf { pinnedChatKey(it) == value }
 } catch (_: IllegalArgumentException) { null }
 
-/** Archived results have their own search budget and disclosure, so they cannot crowd out normal chats. */
-internal fun quickAccessChatRows(hits: List<AllChatHit>, collapsed: Boolean): List<AllChatRow> = buildList {
-    hits.filterNot { it.entry.archived }.forEach { add(AllChatRow.Chat(it)) }
-    val archived = hits.filter { it.entry.archived }
-    if (archived.isNotEmpty()) {
-        add(AllChatRow.Section(ChatSection.ARCHIVED, archived.size, collapsed))
-        if (!collapsed) archived.forEach { add(AllChatRow.Chat(it)) }
+/** Header history has independent 20-row pages; pins precede the other normal chats. */
+internal fun historyChatRows(
+    hits: List<AllChatHit>,
+    pinned: Set<RecentChatId>,
+    archivedCollapsed: Boolean,
+    limits: Map<ChatSection, Int>,
+    showEmptyArchive: Boolean,
+): List<AllChatRow> = buildList {
+    fun page(section: ChatSection, entries: List<AllChatHit>) {
+        val limit = limits[section] ?: 20
+        entries.take(limit).forEach { add(AllChatRow.Chat(it)) }
+        if (entries.size > limit) add(AllChatRow.More(section))
     }
+    page(ChatSection.CHATS, hits.filterNot { it.entry.archived }
+        .sortedWith(compareByDescending<AllChatHit> { it.entry.id in pinned }.thenByDescending { it.entry.updatedMs }))
+    val archived = hits.filter { it.entry.archived }.sortedByDescending { it.entry.updatedMs }
+    if (archived.isNotEmpty() || showEmptyArchive) {
+        add(AllChatRow.Section(ChatSection.ARCHIVED, archived.size, archivedCollapsed))
+        if (!archivedCollapsed) page(ChatSection.ARCHIVED, archived)
+    }
+}
+
+/** The sidebar's neighbor uses every filtered section item, including collapsed and paged-out rows. */
+internal fun archiveNeighbor(entries: List<RecentChatEntry>, current: RecentChatId): RecentChatEntry? {
+    val index = entries.indexOfFirst { it.id == current }
+    if (index < 0) return null
+    return (entries.getOrNull(index + 1) ?: entries.getOrNull(index - 1))?.takeUnless { it.archived }
 }

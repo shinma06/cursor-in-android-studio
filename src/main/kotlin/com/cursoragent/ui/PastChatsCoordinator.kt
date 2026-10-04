@@ -7,6 +7,7 @@ import com.cursoragent.settings.ChatHistoryState
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.Disposer
 import javax.swing.SwingUtilities
 
 internal data class HistoryPopupContext(val ownerId: String?, val visible: Boolean, val sidebar: Boolean, val allowed: Boolean)
@@ -21,26 +22,36 @@ internal class PastChatsCoordinator(
     private val onShowing: () -> Unit,
     private val load: ((Result<ConversationStore.Loaded>) -> Unit) -> Unit = project.getService(ConversationHistory::class.java)::load,
     private val showDialog: (HistorySearchDialog) -> Unit = { it.show() },
+    private val showMenu: ((ConversationStore.Loaded, () -> Boolean, () -> Unit) -> Disposable)? = null,
 ) : Disposable {
     private val history = project.getService(ConversationHistory::class.java)
     private var dialog: HistorySearchDialog? = null
+    private var menu: Disposable? = null
+    private val management = mutableSetOf<String>()
     private var disposed = false
     private var generation = 0
     private val requested = mutableSetOf<String>()
     private var loadingOwner: String? = null
     private var dialogOwner: String? = null
 
-    fun request(toggle: Boolean = false) {
+    fun request(toggle: Boolean = false, manage: Boolean = false) {
         if (disposed || project.isDisposed) return
         val state = context()
         val id = state.ownerId ?: return
         if (state.sidebar || !state.allowed) return
-        if (toggle && id in requested) requested.remove(id) else requested.add(id)
+        if (toggle && id in requested) {
+            requested.remove(id)
+            management.remove(id)
+        } else {
+            requested.add(id)
+            if (manage) management.add(id)
+        }
         refresh()
     }
 
     fun forget(id: String) {
         requested.remove(id)
+        management.remove(id)
         refresh()
     }
 
@@ -49,6 +60,7 @@ internal class PastChatsCoordinator(
         val state = context()
         if (state.sidebar) state.ownerId?.let(requested::remove)
         if (state.visible && !state.allowed) state.ownerId?.let(requested::remove)
+        management.retainAll(requested)
         val id = state.ownerId?.takeIf { state.visible && !state.sidebar && state.allowed && it in requested }
         if (loadingOwner != null && loadingOwner != id || dialogOwner != null && dialogOwner != id) {
             generation++
@@ -57,8 +69,11 @@ internal class PastChatsCoordinator(
             val previous = dialog
             dialog = null
             previous?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+            val previousMenu = menu
+            menu = null
+            previousMenu?.let(Disposer::dispose)
         }
-        if (id == null || loadingOwner != null || dialog != null) return
+        if (id == null || loadingOwner != null || dialogOwner != null) return
         loadingOwner = id
         val ticket = ++generation
         load { result -> SwingUtilities.invokeLater {
@@ -73,6 +88,21 @@ internal class PastChatsCoordinator(
             if (loaded == null) {
                 requested.remove(id)
                 Messages.showErrorDialog(project, "履歴を読み込めませんでした。保存先の権限を確認してください。", "履歴")
+                return@invokeLater
+            }
+            if (showMenu != null && id !in management) {
+                dialogOwner = id
+                onShowing()
+                var closed = false
+                val next = showMenu(loaded, { ticket == generation && canDisplay(id) }) {
+                    closed = true
+                    if (ticket == generation) {
+                        requested.remove(id)
+                        dialogOwner = null
+                        menu = null
+                    }
+                }
+                if (!closed && ticket == generation && canDisplay(id)) menu = next else Disposer.dispose(next)
                 return@invokeLater
             }
             val entries = loaded.conversations.map { HistoryEntry(it, null, it.preview, it.updatedMs) } +
@@ -93,6 +123,7 @@ internal class PastChatsCoordinator(
             try { showDialog(next) } finally {
                 if (ticket == generation) {
                     requested.remove(id)
+                    management.remove(id)
                     dialogOwner = null
                     dialog = null
                 }
@@ -130,9 +161,13 @@ internal class PastChatsCoordinator(
         disposed = true
         generation++
         requested.clear()
+        management.clear()
         loadingOwner = null
         dialogOwner = null
         dialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
         dialog = null
+        val previousMenu = menu
+        menu = null
+        previousMenu?.let(Disposer::dispose)
     }
 }

@@ -9,7 +9,7 @@ import java.time.ZonedDateTime
 
 class SidebarChatsTest {
     @Test
-    fun `archive grouping wins over pins and quick access has a separate collapsed section`() {
+    fun `archive grouping wins over pins and header history has a separate collapsed section`() {
         val normal = hit("normal", now - 1)
         val archived = (1..8).map { hit("archive-$it", now + it).let { hit -> hit.copy(entry = hit.entry.copy(archived = true)) } }
         val rows = rows(listOf(normal) + archived, pinned = archived.map { it.entry.id }.toSet(), collapsed = setOf(ChatSection.ARCHIVED))
@@ -18,8 +18,40 @@ class SidebarChatsTest {
         assertEquals(AllChatRow.Section(ChatSection.ARCHIVED, 8, true), rows.last())
         assertEquals(6, rows(archived).filterIsInstance<AllChatRow.Chat>().size)
         val hits = archived + normal
-        assertEquals(listOf(AllChatRow.Chat(normal), AllChatRow.Section(ChatSection.ARCHIVED, 8, true)), quickAccessChatRows(hits, true))
-        assertEquals(listOf(normal) + archived, quickAccessChatRows(hits, false).filterIsInstance<AllChatRow.Chat>().map { it.hit })
+        assertEquals(listOf(AllChatRow.Chat(normal), AllChatRow.Section(ChatSection.ARCHIVED, 8, true)), historyChatRows(hits, emptySet(), true, emptyMap(), true))
+        assertEquals(listOf(normal) + archived.reversed(), historyChatRows(hits, emptySet(), false, emptyMap(), true).filterIsInstance<AllChatRow.Chat>().map { it.hit })
+    }
+
+    @Test
+    fun `history pages twenty rows in each partition and keeps pins ahead of newer normal chats`() {
+        val normal = (1..41).map { hit("normal-$it", now + it) }
+        val archived = (1..22).map { hit("archived-$it", now + it).let { hit -> hit.copy(entry = hit.entry.copy(archived = true)) } }
+        val pins = setOf(normal.first().entry.id, archived.first().entry.id)
+        val rows = historyChatRows(normal + archived, pins, false, emptyMap(), true)
+        val chats = rows.filterIsInstance<AllChatRow.Chat>()
+        assertEquals(40, chats.size)
+        assertEquals(normal.first(), chats.first().hit)
+        assertEquals(listOf(ChatSection.CHATS, ChatSection.ARCHIVED), rows.filterIsInstance<AllChatRow.More>().map { it.section })
+        val expanded = historyChatRows(normal + archived, pins, false, mapOf(ChatSection.CHATS to 40), true)
+        assertEquals(60, expanded.filterIsInstance<AllChatRow.Chat>().size)
+        assertEquals(listOf(AllChatRow.Section(ChatSection.ARCHIVED, 0, true)), historyChatRows(emptyList(), emptySet(), true, emptyMap(), true))
+        assertTrue(historyChatRows(emptyList(), emptySet(), true, emptyMap(), false).isEmpty())
+    }
+
+    @Test
+    fun `archive neighbor follows all section items with next then previous and never skips archived neighbor`() {
+        val normal = (1..8).map { hit("normal-$it", now + it) }
+        val old = hit("old", now - 100 * day)
+        val archived = hit("archived", now).let { it.copy(entry = it.entry.copy(archived = true)) }
+        val hits = normal + old + archived
+        val all = sidebarChatRows(hits, setOf(old.entry.id), emptySet(), ChatSection.entries.associateWith { Int.MAX_VALUE }, now, utc)
+            .filterIsInstance<AllChatRow.Chat>().map { it.hit.entry }
+        assertEquals(normal.last().entry, archiveNeighbor(all, old.entry.id))
+        assertEquals(normal[1].entry, archiveNeighbor(all, normal[2].entry.id), "paged-out row remains a candidate")
+        assertNull(archiveNeighbor(all, normal.first().entry.id), "an archived next item means a new chat, not a scan backward")
+        assertEquals(normal.first().entry, archiveNeighbor(all, archived.entry.id))
+        assertNull(archiveNeighbor(all, RecentChatId.Body("missing")))
+        assertNull(archiveNeighbor(listOf(old.entry), old.entry.id))
     }
 
     private val utc = ZoneId.of("UTC")

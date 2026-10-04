@@ -8,6 +8,8 @@ import com.cursoragent.settings.AgentMode
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.ui.composer.ComposerPanel
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.ui.TestDialog
+import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.ui.SearchTextField
@@ -96,10 +98,11 @@ class ChatArchiveTest {
         try {
             runInEdtAndWait {
                 archive = ChatArchiveState(PropertiesComponent.getInstance(fixture.project))
-                view = AllChatsView(fixture.project, true, { listOf(original) }, { original.id }, { valid }, chosen::add) {
-                    calls.add(it)
-                    assertTrue(archive.set(it, !it.archived))
-                }
+                view = AllChatsView(fixture.project, ChatListMode.HISTORY, { listOf(original) }, { original.id }, { valid }, chosen::add, onArchive = {
+                    assertTrue(it.isCurrent())
+                    calls.add(it.entry)
+                    assertTrue(archive.set(it.entry, !it.entry.archived))
+                })
                 search = get(view, "search") as SearchTextField
                 button = get(view, "archiveButton") as JButton
                 list = get(view, "list") as JList<*>
@@ -167,6 +170,74 @@ class ChatArchiveTest {
     }
 
     @Test
+    fun `quick access excludes archived candidates while history has twenty row pages reset by query`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("history routing").fixture
+        fixture.setUp()
+        val normal = (1..241).map { entry().copy(title = "Android Build $it", updatedMs = it.toLong()) }
+        val archived = entry().copy(title = "Archived Android Build", updatedMs = 999)
+        val views = mutableListOf<AllChatsView>()
+        val properties = PropertiesComponent.getInstance(fixture.project)
+        fun searchNow(view: AllChatsView) {
+            var worker: Future<*>? = null
+            runInEdtAndWait {
+                (get(view, "debounce") as Timer).stop()
+                invoke(view, "runSearch")
+                worker = get(view, "worker") as Future<*>?
+            }
+            worker?.get(10, TimeUnit.SECONDS)
+            SwingUtilities.invokeAndWait {}
+        }
+        fun rows(view: AllChatsView) = (get(view, "list") as JList<*>).let { list ->
+            (0 until list.model.size).map { list.model.getElementAt(it) as AllChatRow }
+        }
+        var archiveCalls = 0
+        try {
+            runInEdtAndWait {
+                assertTrue(ChatArchiveState(properties).set(archived, true))
+                for (mode in listOf(ChatListMode.QUICK_ACCESS, ChatListMode.HISTORY)) {
+                    views.add(AllChatsView(fixture.project, mode, { normal + archived }, { normal.first().id }, { true }, {},
+                        onArchive = { archiveCalls++ }, onManage = if (mode == ChatListMode.HISTORY) ({}) else null).apply {
+                        useLoadedHistory(com.cursoragent.history.ConversationStore.Loaded(emptyList(), 0))
+                    })
+                }
+            }
+            views.forEach(::searchNow)
+            val quick = views[0]
+            val history = views[1]
+            runInEdtAndWait {
+                assertEquals(200, rows(quick).size)
+                assertTrue(rows(quick).all { it is AllChatRow.Chat && !it.hit.entry.archived })
+                assertNull((get(quick, "archiveButton") as JButton).parent)
+                assertNull((get(quick, "pinButton") as JButton).parent)
+                invoke(quick, "toggleArchive")
+                invoke(quick, "togglePin")
+                assertEquals(0, archiveCalls)
+                assertEquals(20, rows(history).filterIsInstance<AllChatRow.Chat>().size)
+                val list = get(history, "list") as JList<*>
+                list.selectedIndex = rows(history).indexOfFirst { it is AllChatRow.More }
+                history.javaClass.getDeclaredMethod("choose", Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(history, true)
+                assertEquals(40, rows(history).filterIsInstance<AllChatRow.Chat>().size)
+                (get(history, "search") as SearchTextField).text = "Android"
+                (get(quick, "search") as SearchTextField).text = "andb"
+            }
+            views.forEach(::searchNow)
+            runInEdtAndWait {
+                assertEquals(20, rows(history).filterIsInstance<AllChatRow.Chat>().size, "query changes reset both history page limits")
+                assertEquals(200, rows(quick).size, "quick access remains fuzzy")
+                (get(history, "search") as SearchTextField).text = "andb"
+            }
+            searchNow(history)
+            runInEdtAndWait { assertTrue(rows(history).isEmpty(), "header history uses literal matching and hides empty archive during a query") }
+        } finally {
+            runInEdtAndWait {
+                views.forEach(AllChatsView::dispose)
+                properties.unsetValue("CursorAgent.chatArchive." + pinnedChatKey(archived.id))
+                fixture.tearDown()
+            }
+        }
+    }
+
+    @Test
     fun `root stops only the archived run while retaining hidden draft queue and owner until completion`() {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("archive owner").fixture
         fixture.setUp()
@@ -200,9 +271,10 @@ class ChatArchiveTest {
                 val secondOwner = sessions.open()
                 fun show() = panel.javaClass.getDeclaredMethod("showSelected", com.cursoragent.history.Conversation::class.java,
                     Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(panel, null, false)
-                fun archive(entry: RecentChatEntry, sidebar: Boolean) = panel.javaClass.getDeclaredMethod("archiveChat",
-                    RecentChatEntry::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(panel, entry, sidebar)
                 fun entries() = invoke(panel, "openRecentEntries") as List<*>
+                fun archive(entry: RecentChatEntry, sidebar: Boolean) = panel.javaClass.getDeclaredMethod("archiveChat",
+                    ChatArchiveRequest::class.java).apply { isAccessible = true }.invoke(panel,
+                        ChatArchiveRequest(entry, sidebar, entries().filterIsInstance<RecentChatEntry>()) { true })
                 show()
                 val second = get(views[secondOwner.id]!!, "controller") as AgentUiController
                 var otherStops = 0
@@ -218,11 +290,27 @@ class ChatArchiveTest {
                 val previousPins = properties.getList("CursorAgent.pinnedChats")
                 properties.setList("CursorAgent.pinnedChats", listOf(pinnedChatKey(original.id)))
                 try {
-                    archive(original, false)
+                    val previousDialog = TestDialogManager.setTestDialog(TestDialog.NO)
+                    try {
+                        archive(original, true)
+                        assertEquals(0, stops)
+                        assertFalse(state.apply(original).archived)
+                        assertEquals(owner.id, sessions.snapshot().selectedId)
+                        TestDialogManager.setTestDialog {
+                            // Re-entrant work while the confirmation is visible invalidates the row.
+                            assertTrue(state.set(original, true))
+                            com.intellij.openapi.ui.Messages.YES
+                        }
+                        archive(original, true)
+                        assertEquals(0, stops, "confirmation cannot stop a row whose metadata changed")
+                        assertTrue(state.set(state.apply(original), false))
+                    } finally { TestDialogManager.setTestDialog(previousDialog) }
+                    val currentOriginal = state.apply(original)
+                    archive(currentOriginal, false)
                     assertEquals(1, stops)
                     assertEquals(0, otherStops)
                     assertTrue(sessions.accepts(token), "Stop does not imply actual completion")
-                    assertEquals(owner.id, sessions.snapshot().selectedId, "quick access archive keeps the view open")
+                    assertEquals(owner.id, sessions.snapshot().selectedId, "header history archive keeps the view open")
                     assertEquals(queued, queue.snapshot())
                     assertTrue(queue.paused)
                     assertEquals("unsubmitted draft", composer.inputArea.text)
@@ -234,7 +322,8 @@ class ChatArchiveTest {
                     assertFalse(state.apply(original).archived)
                     assertTrue(queue.paused)
                     assertEquals(owner.id, sessions.snapshot().selectedId)
-                    archive(state.apply(original), true)
+                    val acceptDialog = TestDialogManager.setTestDialog(TestDialog.YES)
+                    try { archive(state.apply(original), true) } finally { TestDialogManager.setTestDialog(acceptDialog) }
                     assertEquals(secondOwner.id, sessions.snapshot().selectedId)
                     assertFalse(sessions.snapshot().tabs.first { it.id == owner.id }.visible)
                     assertSame(firstView, views[owner.id])

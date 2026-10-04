@@ -158,6 +158,92 @@ class PastChatsCoordinatorTest {
         }
     }
 
+    @Test
+    fun `nonmodal history persists through repeated requests and closes before a later owner can act`() {
+        val ide = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("history menu lifecycle").fixture
+        ide.setUp()
+        var state = HistoryPopupContext("original", true, false, true)
+        val loads = ArrayDeque<(Result<ConversationStore.Loaded>) -> Unit>()
+        val guards = mutableListOf<() -> Boolean>()
+        val closes = mutableListOf<() -> Unit>()
+        val handles = mutableListOf<com.intellij.openapi.Disposable>()
+        var showing = 0
+        var managerShows = 0
+        var disposeCount = 0
+        var closeImmediately = false
+        lateinit var coordinator: PastChatsCoordinator
+        fun complete() {
+            runInEdtAndWait { loads.removeFirst()(Result.success(ConversationStore.Loaded(emptyList(), 0))) }
+            SwingUtilities.invokeAndWait {}
+        }
+        try {
+            runInEdtAndWait {
+                coordinator = PastChatsCoordinator(ide.project, ChatHistoryState(),
+                    onChatResumed = { _, _, _, _ -> fail("metadata menu must not use body-search opening") },
+                    isOpen = { false }, context = { state }, onShowing = { showing++ }, load = { loads.add(it) },
+                    showDialog = { managerShows++; it.close(DialogWrapper.CANCEL_EXIT_CODE) },
+                    showMenu = { _, current, closed ->
+                        guards.add(current)
+                        closes.add(closed)
+                        com.intellij.openapi.Disposable { disposeCount++; closed() }.also {
+                            handles.add(it)
+                            if (closeImmediately) closed()
+                        }
+                    },
+                )
+                coordinator.request()
+            }
+            complete()
+            runInEdtAndWait {
+                assertTrue(guards[0]())
+                coordinator.request()
+                coordinator.refresh()
+                assertTrue(loads.isEmpty())
+                assertEquals(1, showing)
+                state = state.copy(ownerId = "other")
+                coordinator.refresh()
+                assertFalse(guards[0]())
+                assertEquals(1, disposeCount)
+                coordinator.request()
+            }
+            complete()
+            runInEdtAndWait {
+                closes[0]()
+                assertTrue(guards[1](), "late close cannot consume a new owner's request")
+                coordinator.request(toggle = true)
+                assertFalse(guards[1]())
+                assertEquals(2, disposeCount)
+                coordinator.refresh()
+                assertTrue(loads.isEmpty())
+                coordinator.request(manage = true)
+            }
+            complete()
+            runInEdtAndWait {
+                assertEquals(1, managerShows, "saved body search remains explicitly reachable")
+                assertEquals(2, handles.size)
+                closeImmediately = true
+                coordinator.request()
+            }
+            complete()
+            runInEdtAndWait {
+                assertFalse(guards.last()())
+                assertEquals(3, disposeCount, "synchronous close must not leave a retained popup handle")
+                coordinator.refresh()
+                assertTrue(loads.isEmpty())
+                closeImmediately = false
+                coordinator.request()
+            }
+            complete()
+            runInEdtAndWait {
+                coordinator.dispose()
+                assertFalse(guards.last()())
+                assertEquals(4, disposeCount)
+            }
+        } finally {
+            runInEdtAndWait { coordinator.dispose(); ide.tearDown() }
+        }
+    }
+
     private fun withCoordinator(check: (Fixture) -> Unit) {
         val ide = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("history requests").fixture
         ide.setUp()

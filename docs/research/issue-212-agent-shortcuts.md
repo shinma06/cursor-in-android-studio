@@ -183,7 +183,7 @@ Pluginは1タブ時に保存履歴を背景読込みし、現行tab・世代・I
 
 All Agentsは固定版の`workbench.action.openAgentsView` / `chat:` providerを確認した。Agent paneにfocusがありsidebarが見えている場合だけsidebarを隠す。それ以外はsidebarを表示して検索pickerを開く。Pluginは独立したチャット一覧と検索popupへ接続し、ToolWindowや会話本体は閉じない。一覧の表示状態をprojectごとに保持する。新規projectでは非表示から始めるPluginの初期状態と、ToolWindow内の分割配置は固定版の独立sidebarとGUI比較する。MacはControl+Shift+S、Windows/LinuxはCtrl+Shift+/。Windowsのmodel parameter優先（P10）は未接続として残す。
 
-候補は開いた会話・保存本文・旧print metadataを型付きIDで統合し、開いたviewの手動名/冒頭文を優先する。pickerは空検索なら更新日時降順、入力時は名前/冒頭文の一致順位で最大200件。全候補を検索してから件数を制限し、古い会話を検索対象から落とさない。IDE native matcherによる曖昧検索と一致強調を使い、Cursor内部のscore値・同順位の順序との完全一致は主張しない。sidebarは大文字小文字を区別しない部分一致で検索し、区分内の更新日時順を保つ。popupの曖昧検索と混同しない。本文全文検索は従来の履歴検索であり、この入口へ混ぜない。読込み/検索を背景処理し、IME中や結果待ちは確定を拒否する。保持するのはmetadataで、閉じた候補の本文/削除を確定時に再読込みする。
+候補は開いた会話・保存本文・旧print metadataを型付きIDで統合し、開いたviewの手動名/冒頭文を優先する。pickerはアーカイブを除外した通常候補を使い、pin/アーカイブ操作を持たない。空検索なら更新日時降順、入力時は名前/冒頭文の一致順位で最大200件。全候補を検索してから件数を制限し、古い会話を検索対象から落とさない。IDE native matcherによる曖昧検索と一致強調を使い、Cursor内部のscore値・同順位の順序との完全一致は主張しない。sidebarは大文字小文字を区別しない部分一致で検索し、区分内の更新日時順を保つ。popupの曖昧検索と混同しない。本文全文検索は従来の履歴検索であり、この入口へ混ぜない。読込み/検索を背景処理し、IME中や結果待ちは確定を拒否する。保持するのはmetadataで、閉じた候補の本文/削除を確定時に再読込みする。
 
 sidebar表示中のM+A+左右は選択中chatから前後の表示候補（会話・More）をhighlightし、端で止まる。見出しと折り畳んだ区分の会話/Moreはnavigation候補から除く。Control/Metaの両方が離れた時に確定し、Altだけの解放では開かない。変更済みKeymapでControl/Metaを使わない場合は設定した修飾キーへ従い、複数strokeはEnterで確定する。Esc、root外へのfocus移動、window blur、非表示/破棄は取消。子入力のkeyupを受けるdispatcherはnavigation中だけ登録し、対象root内だけで処理して全終了経路で解除する。最近使用popupの解放方式とは分離する。候補選択は既存の会話を保持して対象を開くため、暗黙の送信・Stop・既存tab置換はしない。
 
@@ -201,11 +201,13 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 ## All Agentsのアーカイブと復元
 
-2026-10-05に上記固定版のlocal経路を確認した。`KKb` providerは`isArchived`で通常/Archivedを分離し、localのarchive handlerは対象`cancelChat`と`isArchived=true`/更新日時を設定する。restore handlerはflag/更新日時だけを戻す。pickerからの会話表示自体は復元を意味しない。sidebarのlocal cardはpin解除を伴い、選択中の場合は次の会話を選ぶか新規会話を作成して元viewを閉じる。Cloudのprivate RPCとは別経路であり、Pluginはこれを呼ばない。
+固定版の`chat:` provider（`EGo` / `TGo`）はglobal All Agents検索に属し、local/Cloudの通常候補を曖昧検索して200件まで返す。`KKb`はヘッダー履歴メニュー（`zKb`）のproviderであり、global検索とは別経路である。履歴は名前/冒頭文の部分一致、通常候補のpin優先/更新順とアーカイブの更新順、`qKb`の各20件/Moreを使う。検索変更とメニュー再表示で件数を戻し、Archivedは初期折り畳みとする。両経路を同じpopupとみなした以前の比較は適用しない。Cloudのprivate RPCはPluginから呼ばない。
 
-PluginはAll Agentsの下部に「アーカイブ」/「復元」を置き、初期は折り畳んだ「アーカイブ済み」区分へ接続する。sidebarは既存の6件/More、popupは通常/アーカイブを個別に検索して各200件まで表示する。固定版popupの区分ごとの20件追加表示とは異なり、追加表示単位と配置/hover操作の同等性はGUIで未確認。本文の削除/書出しは既存履歴の操作として残す。metadataはproject内の型付きIDと変更時刻を使い、検索/選択callback・pin変更時には現在値を照合する。古い検索結果や削除済み候補からの変更、IME中・非表示・破棄後の操作を拒否する。最近使用10件の補完と単一tabの履歴循環では、本文とlegacyの重複統合後にアーカイブを除外する。
+現在の統合sidebarのarchive handlerは、実行中なら`_4p`の確認後、対象の`cancelChat`・pin解除・archive flag/更新日時の変更を行う。表示中の会話がアーカイブ済みなら、`getNextItemForId`の検索済み全区分の次候補、末尾なら直前候補を使う。折り畳み/Moreによる表示制限はこの候補列に適用しない。隣がアーカイブ済み等で無効なら新規会話を開き、別の有効候補を走査しない。旧sidebar componentのclose処理を現行handlerの契約へ混ぜない。ヘッダー履歴のarchiveはStopとflag/更新日時変更だけで、表示viewやpinは維持する。restoreはflag/更新日時だけを戻し、表示や送信を再開しない。
 
-アーカイブ時は該当controllerだけにStopを要求してqueueを一時停止する。sidebarで選択中の場合、Pluginは隣のvisible tab、なければ空tabへ移り、元owner/view/controller・draft/画像/queueと終了待ちtokenを保持する。固定版のsidebar候補からの次会話選択とは差があり、画面上の移動先をCaseで比較する。popupからのアーカイブは表示中viewとpin metadataを保持し、sidebarからはpinを解除する。アーカイブ済みpinは有効75件の上限に含めない。復元だけでは表示選択や送信・queue再開を発生させない。アーカイブ済み会話を明示的に表示しても、復元を選ぶまで区分は維持する。未送信draftはproject寿命内の保持であり、IDE再起動保存の保証ではない。
+Pluginのglobal検索は通常候補だけの200件上限とし、ヘッダー履歴にpin・アーカイブ/復元・初期折り畳み区分を接続する。履歴メニューは各20件/More・部分一致・pin優先を使い、検索変更で追加件数を戻す。sidebarは既存の6件/Moreを使う。本文の検索/削除/書出しは履歴メニューの「保存した会話を検索…」から既存dialogへ進む。非modalメニューの所有とcloseは`PastChatsCoordinator`の同じ会話/世代へ紐づけ、連打や古いcloseで新しい表示要求を消費しない。metadataはproject内の型付きIDと変更時刻を使い、検索/選択callback・pin変更時には現在値を照合する。古い結果/削除済み候補、IME中・非表示・破棄後の操作を拒否する。最近使用10件の補完と単一tabの履歴循環でも、本文とlegacyの重複統合後にアーカイブを除外する。
+
+アーカイブ時は該当controllerだけにStopを要求してqueueを一時停止する。sidebarの実行中候補は確認を挟み、確認中の対象/run/metadata/検索世代変更では停止・変更を中止する。表示中の会話がアーカイブ済みなら上記の全区分の隣へ移り、閉じた候補の本文を背景再読込みする。読込み後はowner/選択/世代/削除/区分を確認し、無効な候補は新しい会話へ進む。元owner/view/controller・draft/画像/queueと終了待ちtokenは保持する。ヘッダー履歴からの操作は表示中viewとpin metadataを保持し、sidebarからはpinを解除する。アーカイブ済みpinは有効75件の上限に含めない。復元だけでは表示選択や送信・queue再開を発生させない。アーカイブ済み会話を明示的に表示しても、復元を選ぶまで区分は維持する。未送信draftはproject寿命内の保持であり、IDE再起動保存の保証ではない。sidebarの一括archive、Cloud/Find with Agent、transient/editor-groupの表示、hover/配置/accessibilityは残る照合対象である。
 
 [Cursor Agent概要](https://cursor.com/docs/agent/overview)と[JetBrainsの会話管理](https://www.jetbrains.com/help/ai-assistant/chat-mode.html)、[ACP連携](https://www.jetbrains.com/help/ai-assistant/acp.html)を比較入口とする。JetBrainsもproject別履歴の保持・過去会話の再開/削除を提供しており、履歴管理自体を独自機能とは呼ばない。強構成のIDE/MCP連携も維持する。今回の直接統合は、Plugin内の同じ会話ownerにStop/保留入力/Keymapの条件を適用し、ローカル区分変更で本文・provider再開条件を壊さない点にある。[Cursor SDK](https://cursor.com/docs/sdk/typescript)の`Agent.archive/unarchive`は別のagent/store APIであり、このfixed in-IDEのlocal IDや既存print/ACP会話との対応は未確認。新しいSDKへの転送・Cloudの同期や未確認のACP RPCを追加しない。GUIの同等以上判定、再起動後の保存済み本文/区分、OS/accessibilityは`KEYMAP-ALL-CHATS-ARCHIVE`で未確認として追う。
 
@@ -281,7 +283,7 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 
 履歴の`GK`登録はglobalだが、`run`は選択中composerのhandleを必要とし、`showComposerHistory`は統合sidebar表示中に何もしない。それ以外で会話の`shouldShowHistory`を立て、editor側の履歴表示flagを下げる。未生成会話の作成やパネル表示を直接要求するhandlerではない。固定版のrendererは表示要求からheaderに紐づくflyoutを表示し、sidebar表示時に現在の会話のflagを下げる。キーは`show`だけで、headerのクリックは`show/hide`の切替である。Pluginは`History`をproject内global Actionへ移し、content未生成/選択会話なしでは無効とする。既存rootだけから同じtab UUIDへ要求を記録し、ToolWindowを表示/生成しない。非表示中や別会話選択中の要求は元ownerへ保持し、再表示/再選択時に表示条件を確認する。表示中のsidebarでは要求を拒否し、sidebar表示時にその会話の要求を解除する。反復キーは読込みを重ねず、表示中の要求も閉じない。headerだけは切替で取り消せる。
 
-`PastChatsCoordinator`は表示要求・読込み・dialogを同じownerと世代に紐づける。非表示/会話切替で古い読込みと表示を無効化し、close/project破棄では要求を破棄する。表示直前のIME/子popup等のguardが失効した場合は遅れて開かず、明示的な再要求を待つ。予約一時停止は実際のdialog表示直前だけに保ち、隠れた要求や取消済み読込みだけではpauseしない。保存形式・provider resume・既存の本文検索/削除/書出しは変えない。native dialogと固定版のheader flyout、header icon非表示時の到達、editor表示の履歴はGUI/P07で照合し、入口の接続だけで同等UXのpassとはしない。根拠は同じ固定配布版の`GK`、`showComposerHistory`、rendererとheader handlerの静的確認、および実coordinator/Action/rootのテストで、GUI到達の証拠ではない。
+`PastChatsCoordinator`は表示要求・読込み・非modal履歴メニュー/本文検索dialogを同じownerと世代に紐づける。非表示/会話切替で古い読込みと表示を無効化し、close/project破棄では要求を破棄する。表示直前のIME/子popup等のguardが失効した場合は遅れて開かず、明示的な再要求を待つ。予約一時停止は実際の表示直前だけに保ち、隠れた要求や取消済み読込みだけではpauseしない。保存形式・provider resume・既存の本文検索/削除/書出しは変えない。履歴メニューの配置/focus、header icon非表示時の到達、editor表示の履歴はGUI/P07で照合し、入口の接続だけで同等UXのpassとはしない。根拠は同じ固定配布版の`GK`、`showComposerHistory`、rendererとheader handlerの静的確認、および実coordinator/Action/rootのテストで、GUI到達の証拠ではない。
 
 
 ## 保留要求への返信と取消の優先
