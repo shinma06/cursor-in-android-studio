@@ -114,6 +114,18 @@
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta CLOSE_BRACKET" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta CLOSE_BRACKET" replace-all="true"/>
             </action>
+            <action id="CursorAgent.RecentChat" class="com.cursoragent.actions.AgentPanelAction$RecentChat"
+                    text="最近使ったチャットへ切り替える" description="最近使った会話の一覧を開きます。キーを押したまま候補を選び、修飾キーを離して開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control TAB"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="control TAB" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control TAB" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.LeastRecentChat" class="com.cursoragent.actions.AgentPanelAction$LeastRecentChat"
+                    text="最近使用一覧の末尾から切り替える" description="最近使った会話の一覧を開きます。キーを押したまま候補を選び、修飾キーを離して開きます。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift TAB"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="control shift TAB" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control shift TAB" replace-all="true"/>
+            </action>
             <action id="CursorAgent.Stop" class="com.cursoragent.actions.AgentPanelAction$Stop"
                     text="応答を停止" description="現在のチャットの実行を停止します。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control shift BACK_SPACE"/>

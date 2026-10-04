@@ -20,6 +20,8 @@ internal enum class AgentPanelCommand(val actionId: String) {
     CLOSE_CHAT("CursorAgent.CloseChat"),
     PREVIOUS_CHAT("CursorAgent.PreviousChat"),
     NEXT_CHAT("CursorAgent.NextChat"),
+    RECENT_CHAT("CursorAgent.RecentChat"),
+    LEAST_RECENT_CHAT("CursorAgent.LeastRecentChat"),
     STOP("CursorAgent.Stop"),
     MODE_MENU("CursorAgent.ModeMenu"),
     MODEL_MENU("CursorAgent.ModelMenu"),
@@ -46,6 +48,8 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
     class CloseChat : AgentPanelAction(AgentPanelCommand.CLOSE_CHAT)
     class PreviousChat : AgentPanelAction(AgentPanelCommand.PREVIOUS_CHAT)
     class NextChat : AgentPanelAction(AgentPanelCommand.NEXT_CHAT)
+    class RecentChat : AgentPanelAction(AgentPanelCommand.RECENT_CHAT)
+    class LeastRecentChat : AgentPanelAction(AgentPanelCommand.LEAST_RECENT_CHAT)
     class Stop : AgentPanelAction(AgentPanelCommand.STOP)
     class ModeMenu : AgentPanelAction(AgentPanelCommand.MODE_MENU)
     class ModelMenu : AgentPanelAction(AgentPanelCommand.MODEL_MENU)

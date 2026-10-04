@@ -3,6 +3,8 @@ package com.cursoragent.ui
 import com.cursoragent.actions.AgentPanelActions
 import com.cursoragent.actions.AgentPanelCommand
 import com.cursoragent.actions.AgentWindowCommand
+import com.cursoragent.history.Conversation
+import com.cursoragent.history.ConversationHistory
 import com.cursoragent.ui.composer.context.SelectionContext
 import com.cursoragent.service.AgentTransport
 import com.cursoragent.service.AgentProcessService
@@ -10,6 +12,7 @@ import com.cursoragent.service.TurnSettings
 import com.cursoragent.settings.AgentMode
 import com.cursoragent.session.SessionTabs
 import com.cursoragent.session.SessionTabsSnapshot
+import com.cursoragent.session.SessionTab
 import com.cursoragent.settings.AgentSettingsConfigurable
 import com.cursoragent.settings.AgentSettingsState
 import com.cursoragent.settings.ChatHistoryState
@@ -67,6 +70,8 @@ class AgentToolWindowRootPanel(
     private var disposed = false
     private var chatFocusGeneration = 0L
     private var openedChatsPopup: JBPopup? = null
+    private val recentVisits = RecentChatVisits()
+    private var recentChatsPopup: RecentChatsPopup? = null
     private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
     private val selectedView: TabView?
@@ -107,6 +112,7 @@ class AgentToolWindowRootPanel(
                 val index = Math.floorMod(snapshot.tabs.indexOfFirst { it.id == snapshot.selectedId } + offset, snapshot.tabs.size)
                 if (sessions.select(snapshot.tabs[index].id)) showSelected()
             }
+            AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT -> showRecentChats(command, event)
             AgentPanelCommand.STOP -> view.controller.stopRun()
             AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
             AgentPanelCommand.MODEL_MENU -> view.composer.modelSelector.doClick()
@@ -158,12 +164,7 @@ class AgentToolWindowRootPanel(
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId, match, query ->
-            if (conversation != null) {
-                sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
-            } else {
-                sessions.open(legacyId)
-            }
-            showSelected(conversation, legacyId != null)
+            openSavedChat(conversation, legacyId)
             if (match != null) {
                 val view = selectedView
                 javax.swing.SwingUtilities.invokeLater {
@@ -188,6 +189,7 @@ class AgentToolWindowRootPanel(
         addHierarchyListener { event ->
             if (!isShowing) {
                 openedChatsPopup?.cancel()
+                recentChatsPopup?.dispose()
                 if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) cancelPendingChatFocus()
             }
         }
@@ -215,6 +217,67 @@ class AgentToolWindowRootPanel(
     }
 
     internal fun cancelPendingChatFocus() { chatFocusGeneration++ }
+
+    private fun recentChatId(tab: SessionTab, view: TabView): RecentChatId =
+        if (view.controller.conversationSnapshot() == null && tab.chatId != null) RecentChatId.LegacyPrint(tab.chatId)
+        else RecentChatId.Body(tab.conversationId)
+
+    private fun openRecentEntries(): List<RecentChatEntry> = sessions.snapshot().tabs.map { tab ->
+        val view = views.getValue(tab.id)
+        val conversation = view.controller.conversationSnapshot()
+        RecentChatEntry(recentChatId(tab, view), tab.title, conversation?.updatedMs ?: 0L, tab.transport, tab.chatId,
+            open = true, running = view.composer.isRunning)
+    }
+
+    private fun showRecentChats(command: AgentPanelCommand, event: AnActionEvent) {
+        val ticket = ++chatFocusGeneration
+        recentChatsPopup?.dispose()
+        val popup = RecentChatsPopup(project, command == AgentPanelCommand.LEAST_RECENT_CHAT, recentVisits.snapshot(),
+            openEntries = ::openRecentEntries,
+            valid = { !disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration &&
+                selectedView?.composer?.panelShortcutAvailable == true },
+            onChoose = ::openRecentChat,
+        )
+        recentChatsPopup = popup
+        popup.show(event)
+    }
+
+    private fun openRecentChat(id: RecentChatId) {
+        if (disposed || project.isDisposed || !isShowing) return
+        val open = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == id } == true }
+        if (open != null) {
+            if (sessions.select(open.id)) showSelected()
+            return
+        }
+        // The picker owns metadata only. A closed chat may have been saved/deleted while it was visible.
+        val ticket = ++chatFocusGeneration
+        val store = project.getService(ConversationHistory::class.java)
+        store.load { result -> SwingUtilities.invokeLater {
+            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration) return@invokeLater
+            val loaded = result.getOrNull()
+            if (loaded == null) {
+                selectedView?.timeline?.showStatus("履歴を読み込めませんでした。保存先の権限を確認してください。")
+                return@invokeLater
+            }
+            val conversation = loaded.conversations.firstOrNull {
+                !store.isDeleted(it.id) && when (id) {
+                    is RecentChatId.Body -> it.id == id.id
+                    is RecentChatId.LegacyPrint -> it.transport == AgentTransport.PRINT && it.providerId == id.id
+                }
+            }
+            if (conversation != null) openSavedChat(conversation, null)
+            else if (id is RecentChatId.LegacyPrint && ChatHistoryState.getInstance(project).list().any { it.chatId == id.id })
+                openSavedChat(null, id.id)
+            else selectedView?.timeline?.showStatus("この会話は削除済みか、本文を読み込めませんでした。")
+        } }
+    }
+
+    private fun openSavedChat(conversation: Conversation?, legacyId: String?) {
+        if (disposed || project.isDisposed) return
+        if (conversation != null) sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
+        else sessions.open(legacyId)
+        showSelected(conversation, legacyId != null)
+    }
 
     internal fun enterChat(command: AgentWindowCommand, selection: SelectionContext?, window: ToolWindow) {
         if (!windowShortcutAvailable || window.isDisposed || window.project !== project) return
@@ -325,6 +388,7 @@ class AgentToolWindowRootPanel(
     private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
         if (disposed) return
         cancelPendingChatFocus()
+        recentChatsPopup?.dispose()
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
@@ -359,6 +423,7 @@ class AgentToolWindowRootPanel(
         }
         (cards.layout as CardLayout).show(cards, tab.id)
         refreshStrip()
+        recentVisits.visit(recentChatId(tab, view))
         view.lastShownNanos = System.nanoTime()
         view.composer.inputArea.requestFocusInWindow()
     }
@@ -376,6 +441,8 @@ class AgentToolWindowRootPanel(
         uiSettingsConnection.disconnect()
         openedChatsPopup?.cancel()
         openedChatsPopup = null
+        recentChatsPopup?.dispose()
+        recentChatsPopup = null
         history.dispose()
         sessions.stopAll()
         views.values.forEach { it.controller.dispose() }

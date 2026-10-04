@@ -55,14 +55,14 @@
 | `composer.find.next` | F3 / Enter | F3 / Enter | F3 / Enter | 会話内findにfocus。次の本文matchへ移動する。 | in-IDE静的確認 / 能力未実装 / P01 |
 | `composer.find.previous` | Shift+F3 / Shift+Enter | Shift+F3 / Shift+Enter | Shift+F3 / Shift+Enter | 会話内findにfocus。前の本文matchへ移動する。 | in-IDE静的確認 / 能力未実装 / P01 |
 | `workbench.action.openAgentsView` | Control+Shift+S | Ctrl+Shift+/ | Ctrl+Shift+/ | Background Composer Window以外。統合sidebarを表示するかAll Agents pickerを開く。macOSはControlを使う。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| `workbench.action.quickOpenPreviousRecentlyUsedAgent` | Control+Tab | Ctrl+Tab | Ctrl+Tab | agentsPane/composerにfocus、chatEditorGroup.enabledではなくBackground Composer Windowでもない。最近使用順picker。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| `workbench.action.quickOpenLeastRecentlyUsedAgent` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記と同じ条件で初期選択を逆順にする。tab表示順とは別。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
+| `workbench.action.quickOpenPreviousRecentlyUsedAgent` | Control+Tab | Ctrl+Tab | Ctrl+Tab | agentsPane/composerにfocus、chatEditorGroup.enabledではなくBackground Composer Windowでもない。最近使用順picker。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
+| `workbench.action.quickOpenLeastRecentlyUsedAgent` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記と同じ条件で初期選択を逆順にする。tab表示順とは別。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `composer.sendToAgent` | Cmd+L | Ctrl+L | Ctrl+L | editor prompt barが存在しfocus中。Inline Edit→Agent境界であり、通常panel内操作の対象外。入口として採るかは別判断。 | 対象外 / 通常panel対象外 / X-INLINE |
 | `aiSettings.action.open` | Cmd+Shift+J / Cmd+, | Ctrl+Shift+J / Ctrl+, | Ctrl+Shift+J / Ctrl+, | M+Shift+Jはglobal、M+,はisGlass=false。固定配布版では両方Cursor Settingsを開き、一般IDE設定はM+Shift+,。公式概要との差を保持する。 | in-IDE静的確認 / 一部接続済み / A1 |
-| `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
+| `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
+| `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 
-panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`を加えた5 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
+panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`を加えた5 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、panel内は計13 Actionとなる。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
 ## 入力部品内の操作
 
@@ -135,15 +135,21 @@ P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma
 
 ## Keymap・競合・完了条件
 
-現行11 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
+panel内13 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
 
-M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。11個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
+M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。13個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
 
 表示切替はToolWindowのvisible状態を基準にし、会話・draft・runを生成/終了せずnative show/hideへ接続する。左右移動はnative anchorのLEFT/RIGHTを反転し、TOP/BOTTOMからはLEFTへ移して表示する。ToolWindowのtype・split・他のIDEパネルは変更しない。固定SDKの標準ToolWindow移動もanchorを変更する経路であり、Floating/Windowed時の実配置と、Cursorのunified sidebar/auxiliary/editor全体とのUX差はGUI照合に残す。単一Agent ToolWindowへの対応だけで、Cursorの全配置が同じと主張しない。
 
 チャット入口は固定版のpane分岐を接続した。M+L/Iは選択中チャットを開き、パネルにfocusがあれば隠す。非表示から戻る際、既存の明示選択があればeventの選択コードを追加しない。入力へ戻る操作は選択中チャットを保持して選択コードを追加し、入力欄へfocusする。New Agentは表示順で最初の空Agentを再利用し、なければ新しいAgentを作る。focus済みの空Agentは最後の表示/focus要求から500ms以上経っていれば隠す。表示/focus要求ごとに単調時計でこの間隔を更新する。既存view/draft/contextは再作成せず、新規タブだけをAgent modeにし、共有設定を変更しない。
 
 空判定は送信時保存のdraftではなく現在の入力欄を読み、本文・run・予約・選択command・未送信画像がある会話、本文来歴不明のlegacy会話を再利用対象から外す。画像/commandを空扱いしない条件はPluginの入力保護であり、Cursorとの完全一致は未確認。明示contextだけの空Agentは添付を保持して再利用する。選択コードはcontent生成/表示前のevent editorから取得し、遅いfocus callbackは同じview・世代・生存状態を再確認する。native Git-worktree除外（P06）、editor表示（P07）、過去入力から末尾への移動（P02）は能力未実装のため残り、`ISOLATED`をnative Git-worktreeと推測しない。根拠は上記固定版のentry handler、`isComposerEmpty`、`showAndFocus`、`wasRecentlyShown`と500ms定数の静的確認であり、実GUI合格ではない。
+
+最近使用一覧は全OSでControl+Tab / Control+Shift+Tab（MacでもCmdではない）。固定版のruntime訪問リストは最大10件で、未登録の候補を更新日時の新しい順で10件まで補う。通常開始は2番目、逆方向開始は末尾を選び、一覧内では同じキーで次/前へ循環する。タブの表示順とは異なり、閉じた保存会話も候補に含む。Pluginはproject内のPRINT/ACP本文・旧print metadata・未保存の開いたタブを統合し、訪問順は表示の確定時だけ更新する。タブ並替え、stream更新、候補上の移動は順序を変えない。本文IDと旧print provider IDを別の型にし、同じprovider文字列のACPをprint legacyとしてまとめない。
+
+修飾キーの解放はIDEで設定された単一strokeのControl/Meta/Altを使い、Shiftは他の修飾キーを離した場合だけ確定に使う。複数strokeはEnterで確定する。一覧の入口と候補移動は同じAction/Keymapを共有し、別popupや通常editorに配送しない。読込み前の解放は一覧を残し、遅れて候補が来ても勝手に開かない。Esc、外部click、別window、panel非表示/破棄は取消。候補はmetadataだけを保持し、閉じた会話の本文は確定時に再読込して削除/最新保存を照合する。選択中tabや世代が変わった後の読込み結果は捨てる。本文表示とprovider再開/Revertの可否は既存履歴経路を共有する。
+
+根拠は上記固定版のMRU service/provider、Quick Accessの初期選択、Quick Pickの修飾keyup handlerと固定SDKのnative popup API。GUI操作は未実施。共通providerにはBackground候補、未読/保留要求の印もあり、in-IDEでの実データ条件と公開取得契約は未確定・未接続として残す。All Agentsは別の`chat:` provider（更新日時/検索順、最大200件）とsidebar表示制御を使うため、最近使用一覧や既存opened chatsで代替済みとは扱わない。M+A+左右のnavigation modeも別経路で、次の実装対象として残る。
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。

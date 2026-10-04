@@ -90,6 +90,11 @@ class AgentPanelActionTest {
                     assertEquals(listOf("meta shift BACK_SPACE", "control C"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
                 }
             }
+            val recent = command in setOf(AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT)
+            if (recent) {
+                val expected = if (command == AgentPanelCommand.RECENT_CHAT) "control TAB" else "control shift TAB"
+                byKeymap.values.forEach { keys -> assertEquals(listOf(expected), keys.map { it.getAttribute("first-keystroke") }) }
+            }
             byKeymap.forEach { (keymap, keys) ->
                 if (keymap != "\$default") assertEquals("true", keys.first().getAttribute("replace-all"))
                 keys.forEach { key ->
@@ -97,7 +102,7 @@ class AgentPanelActionTest {
                     assertNotNull(stroke, key.getAttribute("first-keystroke"))
                     val macControlStop = command == AgentPanelCommand.STOP && keymap != "\$default" &&
                         key.getAttribute("first-keystroke") == "control C"
-                    val modifier = if (keymap == "\$default" || keymap == "Default for XWin" || macControlStop) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
+                    val modifier = if (keymap == "\$default" || keymap == "Default for XWin" || macControlStop || recent) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
                     assertTrue(stroke.modifiers and modifier != 0)
                 }
             }
@@ -109,6 +114,8 @@ class AgentPanelActionTest {
         AgentPanelCommand.CLOSE_CHAT to AgentPanelAction.CloseChat(),
         AgentPanelCommand.PREVIOUS_CHAT to AgentPanelAction.PreviousChat(),
         AgentPanelCommand.NEXT_CHAT to AgentPanelAction.NextChat(),
+        AgentPanelCommand.RECENT_CHAT to AgentPanelAction.RecentChat(),
+        AgentPanelCommand.LEAST_RECENT_CHAT to AgentPanelAction.LeastRecentChat(),
         AgentPanelCommand.STOP to AgentPanelAction.Stop(),
         AgentPanelCommand.MODE_MENU to AgentPanelAction.ModeMenu(),
         AgentPanelCommand.MODEL_MENU to AgentPanelAction.ModelMenu(),

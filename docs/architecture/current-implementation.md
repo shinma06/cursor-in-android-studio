@@ -27,6 +27,8 @@ project内のglobal入口として`AgentWindowAction`のM+A+J（表示切替）�
 
 `OpenChat`（M+L/I）、`FollowUp`（Mac/LinuxはM+Y、WindowsはCtrl+Shift+Y）、`NewAgent`（M+Shift+L/I）もproject内global Action。開く操作はpanel focus中なら隠し、それ以外では現在のviewを保持して入力へ戻す。非表示の既存明示選択は追加選択で上書きしない。FollowUpは常に現在の入力へ戻る。NewAgentは本文/run/予約/入力/command/画像のないAgentを再利用し、なければAgent modeの新規タブを作る。focus済みの空Agentでは最後の表示/focus要求から500msを過ぎると隠す。本文不明のlegacy会話は空と推測しない。選択コードは表示前にevent editorから取り、添付先を確定してからnative activateへ進む。遅いfocusはtab viewと世代、project/panel/windowの生存、IME/popupを再確認する。既存draft/contextと共有mode設定を保持する。根拠・安全側の空判定差・未実装のworktree/editor/過去入力分岐は対応表に残す。
 
+`RecentChat` / `LeastRecentChat`は全OSのControl+Tab / Control+Shift+Tabで、最大10件の最近使用一覧をnative popupへ開く。panel内は初期11操作にこの2操作を加えた13 Action。表示確定時の訪問順をruntime内に持ち、閉じた保存会話と更新日時順の候補も含む。移動/stream更新で訪問順を変えず、旧print IDと本文ID、PRINTとACPを区別する。初期選択は2番目/末尾、一覧内の同じキーで循環、修飾キー解放またはEnterで開き、Esc等で取り消す。読込み前に解放しても遅い自動選択は行わない。native popupのkey handlerとdisposable付きlocal shortcutを使い、app全体のkeyboard hookを追加しない。候補はmetadataだけで、閉じた本文は確定時に再読込し、世代/選択/削除を照合して既存履歴の表示・再開制約を保持する。保存形式やprovider操作は追加しない。All Agents/sidebar、修飾左右navigationと共通providerのBackground/未読表示は未達として対応表に残す。
+
 model menuの既定値はWindowsではCtrl+/、LinuxではCtrl+/とCtrl+Alt+/、MacではCmd+/とCmd+Option+/。Linuxの副キーは同梱`Default for XWin`とそれを継承するGNOME/KDEへ定義し、OS判定によるユーザー割当の変更は行わない。OS別キー、IDEとの競合、Cursor側の版/有効条件と未対応は[ショートカット対応表](../research/issue-212-agent-shortcuts.md)を参照。現行のTab/Shift+Tab focus移動と送信キー設定を含め、Cursorの全操作との一致は未達。[Case #212](../verification/changes/issue-212.json)のGUI受入と全対象照合を省略して完了扱いにしない。
 ## 会話タブの折り返し
 
