@@ -335,6 +335,10 @@ class SessionTabStrip : JPanel(BorderLayout()) {
             if (index >= 0 && index + offset in tabs.indices) onMove(tabs[index].id, index + offset)
         }
 
+        override fun createToolTip(): javax.swing.JToolTip = super.createToolTip().apply {
+            putClientProperty("html.disable", true)
+        }
+
         override fun getToolTipText(e: MouseEvent): String? = hit(e.point)?.let { tab ->
             if (closeVisible(tab.id) && closeBoundsFor(tab.id)?.contains(e.point) == true) {
                 "${tab.fullTitle}を閉じる"

@@ -55,6 +55,21 @@ class SessionTabStripTest {
     }
 
     @Test
+    fun `provider title tooltip shows full literal text without an HTML renderer`() = onEdt {
+        val title = "<html><b>" + "日本語👨‍👩‍👧‍👦".repeat(20) + "</b></html>"
+        val strip = SessionTabStrip()
+        strip.setTabs(listOf(SessionTabPresentation("a", title)), "a")
+        val fullText = strip.eventTarget.getToolTipText(event(strip.eventTarget, MouseEvent.MOUSE_MOVED, Point(40, 15)))
+        assertEquals(title, fullText)
+        val tip = strip.eventTarget.createToolTip()
+        tip.tipText = fullText
+        assertEquals(title, tip.tipText)
+        assertNull(tip.getClientProperty(javax.swing.plaf.basic.BasicHTML.propertyKey))
+        tip.updateUI()
+        assertNull(tip.getClientProperty(javax.swing.plaf.basic.BasicHTML.propertyKey))
+    }
+
+    @Test
     fun `wide grapheme titles do not expand tab beyond the font width budget`() = onEdt {
         val strip = SessionTabStrip()
         strip.setTabs(listOf(SessionTabPresentation("a", "か\u3099".repeat(30))), "a")

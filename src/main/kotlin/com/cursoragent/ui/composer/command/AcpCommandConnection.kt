@@ -19,10 +19,12 @@ internal class AcpCommandConnection {
     var imageSupported: Boolean? = null
         private set
     fun updateImageSupport(ticket: Long, value: Boolean?): Boolean {
-        if (ticket != generation || key == null) return false
+        if (!isCurrent(ticket)) return false
         imageSupported = value
         return true
     }
+    fun isCurrent(ticket: Long): Boolean = ticket == generation && key != null
+
     val revision: Long get() = generation
     private var generation = 0L
     private var key: AcpCommandKey? = null
@@ -38,7 +40,7 @@ internal class AcpCommandConnection {
     }
 
     fun update(ticket: Long, value: CommandCatalog): Boolean {
-        if (ticket != generation || key == null) return false
+        if (!isCurrent(ticket)) return false
         catalog = value
         return true
     }

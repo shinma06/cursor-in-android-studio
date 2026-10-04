@@ -16,6 +16,7 @@ class AcpCommandConnectionTest {
     fun `unchanged settings reuse connection while changed settings and explicit retry invalidate old callbacks`() {
         val state = AcpCommandConnection()
         var ticket = state.replace(key)!!
+        assertTrue(state.isCurrent(ticket))
         assertTrue(state.update(ticket, ready))
         assertTrue(state.updateImageSupport(ticket, true))
         assertEquals(true, state.imageSupported)
@@ -25,6 +26,8 @@ class AcpCommandConnectionTest {
             key.copy(sandbox = SandboxMode.entries.first { it != key.sandbox }),
             key.copy(workspace = WorktreeMode.ISOLATED))) {
             val current = state.replace(next)!!
+            assertFalse(state.isCurrent(ticket))
+            assertTrue(state.isCurrent(current))
             assertFalse(state.update(ticket, ready))
             assertFalse(state.updateImageSupport(ticket, true))
             assertNull(state.imageSupported)
@@ -45,6 +48,7 @@ class AcpCommandConnectionTest {
         b.replace(key)
         assertTrue(a.updateImageSupport(ticket, true))
         a.clear()
+        assertFalse(a.isCurrent(ticket))
         assertNull(a.imageSupported)
         assertFalse(a.updateImageSupport(ticket, true))
         assertFalse(a.update(ticket, ready))

@@ -72,6 +72,36 @@ internal class AcpSession(
         }
     }
 
+    private var titleListener: (String, String?) -> Unit = { _, _ -> }
+    private var latestTitle: Pair<String, String?>? = null
+    private var promptDispatched = false
+
+    fun observeTitle(listener: (String, String?) -> Unit) {
+        synchronized(lock) { titleListener = listener; publishTitle() }
+    }
+
+    /** Rechecked on EDT as well: a queued metadata update cannot outlive this connection. */
+    fun isConnectedTo(id: String): Boolean = !closing && !disconnected && sessionId == id
+
+    private fun publishTitle() {
+        if (promptDispatched && !closing && !disconnected) latestTitle?.let { (id, title) -> titleListener(id, title) }
+    }
+
+    private fun updateTitle(update: JsonObject) = synchronized(lock) {
+        if (closing || disconnected || !update.has("title")) return@synchronized
+        val value = update["title"]
+        val title = when {
+            value.isJsonNull -> null
+            value.isJsonPrimitive && value.asJsonPrimitive.isString -> value.asString.takeIf {
+                // Local UI bound, not a claimed provider limit. Omitted/invalid values keep the current name.
+                it.isNotBlank() && it.length <= 4096
+            } ?: return@synchronized
+            else -> return@synchronized
+        }
+        latestTitle = (sessionId ?: return@synchronized) to title
+        publishTitle()
+    }
+
     private val protocol = AcpProtocol()
     private val configuration = AcpConfiguration()
     private val requests = ConcurrentHashMap.newKeySet<AgentInputRequest>()
@@ -149,6 +179,9 @@ internal class AcpSession(
                         privateDiagnostic(current.diagnosticId)
                         turn.promptDispatched = true
                         turn.run.emit { it.onStarted(); it.onSessionUpdated(sessionId, null) }
+                        // Binding is queued before metadata, including a title received during preparation.
+                        promptDispatched = true
+                        publishTitle()
                     }
                 }) { result ->
                     current.resultStage = ResultStage.STOP_REASON
@@ -316,6 +349,10 @@ internal class AcpSession(
             active?.turn?.run?.emit { it.onStructuredEvent(configuration.state()) }
             return
         }
+        if (update.string("sessionUpdate") == "session_info_update") {
+            updateTitle(update)
+            return
+        }
         val current = active
         if (current == null || current.terminal || !current.promptSent) {
             if (!closing && update.string("sessionUpdate") in setOf("tool_call", "tool_call_update")) {
@@ -462,7 +499,7 @@ internal class AcpSession(
     }
 
     override fun close() {
-        synchronized(lock) { closing = true; commandListener = {} }
+        synchronized(lock) { closing = true; commandListener = {}; titleListener = { _, _ -> }; latestTitle = null }
         val current = active
         if (current != null) current.turn.run.stop()
         else {
