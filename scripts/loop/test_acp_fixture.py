@@ -280,6 +280,36 @@ class ScenarioProcessTest(unittest.TestCase):
                 process.stdin.close()
                 self.assertEqual(0, process.wait(timeout=5))
 
+    def test_titles_keep_stdin_responsive_and_deliver_idle_metadata_on_explicit_release(self):
+        for action in ('cancel', 'complete'):
+            with self.subTest(action=action):
+                process, received, control, _ = self.start('titles', 'titles-' + action)
+                self.initialize(process, received)
+                self.assertEqual('準備中の名前', self.receive(received)['params']['update']['title'])
+                self.assertEqual('available_commands_update', self.receive(received)['params']['update']['sessionUpdate'])
+                self.prompt(process)
+                self.wait_file(control / 'title-ready')
+                updates = [self.receive(received)['params'] for _ in range(10)]
+                self.assertEqual('foreign-session', updates[0]['sessionId'])
+                self.assertTrue(updates[1]['update']['title'].startswith('<html>'))
+                if action == 'cancel':
+                    self.send(process, method='session/cancel', params={'sessionId': 'session-one'})
+                    self.assertEqual('cancelled', self.receive(received)['result']['stopReason'])
+                    (control / 'release-title-result').touch()
+                    (control / 'release-title-idle').touch()
+                    with self.assertRaises(queue.Empty):
+                        received.get(timeout=.1)
+                else:
+                    (control / 'release-title-result').touch()
+                    self.assertEqual('end_turn', self.receive(received)['result']['stopReason'])
+                    self.assertEqual('応答完了後の名前', self.receive(received)['params']['update']['title'])
+                    (control / 'release-title-idle').touch()
+                    self.assertIsNone(self.receive(received)['params']['update']['title'])
+                    self.assertNotIn('title', self.receive(received)['params']['update'])
+                    self.assertEqual('available_commands_update', self.receive(received)['params']['update']['sessionUpdate'])
+                process.stdin.close()
+                self.assertEqual(0, process.wait(timeout=5))
+
     def test_delayed_new_is_per_process_and_does_not_block_stdin_or_cancel(self):
         first = self.start('commands-delayed', 'first')
         second = self.start('commands-delayed', 'second')

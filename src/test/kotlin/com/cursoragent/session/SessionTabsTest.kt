@@ -155,6 +155,42 @@ class SessionTabsTest {
     }
 
     @Test
+    fun `ACP metadata updates only its bound tab after completion and preserves drafts selection and manual names`() {
+        val store = SessionTabs()
+        val a = store.snapshot().selectedId
+        store.selectTransport(a, com.cursoragent.service.AgentTransport.ACP)
+        assertFalse(store.applyAcpTitle(a, "provider-a", "before binding"))
+        val turn = start(store, a)
+        store.bindChat(turn, "provider-a")
+        store.finishTurn(turn)
+        store.updateComposer(a, AgentMode.ASK, "model-a", "編集中の下書き", 3)
+        val b = store.open("provider-b", transport = com.cursoragent.service.AgentTransport.ACP)
+        val selection = store.snapshot().selectionRevision
+        assertFalse(store.applyAcpTitle(a, "provider-b", "foreign"))
+        assertTrue(store.applyAcpTitle(a, "provider-a", "確認済みの名前"))
+        val updated = store.snapshot().tabs.first { it.id == a }
+        assertEquals("確認済みの名前", updated.title)
+        assertEquals("編集中の下書き", updated.draft)
+        assertEquals(3, updated.caret)
+        assertEquals(AgentMode.ASK, updated.mode)
+        assertEquals("model-a", updated.modelId)
+        assertEquals(b.id, store.snapshot().selectedId)
+        assertEquals(selection, store.snapshot().selectionRevision)
+        assertEquals(SessionTab.NEW_AGENT_TITLE, store.snapshot().selected.title)
+        assertFalse(store.applyAcpTitle(a, "provider-a", "  "))
+        assertTrue(store.applyAcpTitle(a, "provider-a", null))
+        assertEquals(SessionTab.NEW_AGENT_TITLE, store.snapshot().tabs.first { it.id == a }.title)
+        store.rename(a, "自分の名前")
+        assertFalse(store.applyAcpTitle(a, "provider-a", "new provider title"))
+        assertFalse(store.applyAcpTitle(a, "provider-a", null))
+        assertEquals("自分の名前", store.snapshot().tabs.first { it.id == a }.title)
+        val print = store.open("provider-a")
+        assertFalse(store.applyAcpTitle(print.id, "provider-a", "ACP name"))
+        store.close(a)
+        assertFalse(store.applyAcpTitle(a, "provider-a", "after close"))
+    }
+
+    @Test
     fun `manual names survive later automatic names and empty names are ignored`() {
         val store = SessionTabs()
         val id = store.snapshot().selected.id

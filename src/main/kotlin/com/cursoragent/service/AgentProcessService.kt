@@ -96,13 +96,18 @@ class AgentProcessService(private val project: Project) : Disposable {
         )
     }
 
+    @Synchronized
+    fun isAcpSessionConnected(tabId: String, sessionId: String): Boolean =
+        !disposed && acpSessions[tabId]?.isConnectedTo(sessionId) == true
+
     /** Capture session ownership before scheduling, so a late task cannot recreate a closed tab. */
     @Synchronized
-    fun prepareAcpCommands(tabId: String, root: String, executable: String, conversationId: String, onImageSupport: (Boolean?) -> Unit = {}, onCommands: (CommandCatalog) -> Unit) {
+    fun prepareAcpCommands(tabId: String, root: String, executable: String, conversationId: String, onImageSupport: (Boolean?) -> Unit = {}, onTitle: (String, String?) -> Unit = { _, _ -> }, onCommands: (CommandCatalog) -> Unit) {
         if (disposed) return
         val session = acpSession(tabId, conversationId)
         session.observeCommands(onCommands)
         session.observeImageSupport(onImageSupport)
+        session.observeTitle(onTitle)
         com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
             val canonicalRoot = runCatching { RestoreTarget.capture(root, WorktreeMode.DEFAULT).rootPath }.getOrNull()
             val preparation = operations.tryPrepare()

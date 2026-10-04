@@ -172,6 +172,16 @@ class SessionTabs(
         return update(token.tabId) { it.copy(title = name) }
     }
 
+    /** Connection metadata outlives a turn; the caller also checks its connection generation/liveness on EDT. */
+    @Synchronized
+    fun applyAcpTitle(id: String, providerSessionId: String, title: String?): Boolean {
+        val tab = tabs.firstOrNull { it.id == id } ?: return false
+        if (tab.transport != AgentTransport.ACP || tab.chatId != providerSessionId || tab.renamedByUser) return false
+        val name = if (title == null) SessionTab.NEW_AGENT_TITLE else cleanTitle(title) ?: return false
+        if (tab.title == name) return false
+        return update(id) { it.copy(title = name) }
+    }
+
     /** Caller has verified that the initial ACP prompt was never dispatched. Metadata alone must not lock transport. */
     @Synchronized
     fun abortUnsentAcpTurn(token: SessionRunToken): Boolean {

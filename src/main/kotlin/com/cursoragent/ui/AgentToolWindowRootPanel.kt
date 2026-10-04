@@ -202,6 +202,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
                 tab.transport == com.cursoragent.service.AgentTransport.PRINT && tab.chatId == null && saved == null && !legacyOnly)
             val controller = AgentUiController(project, timeline, composer, sessions, tab.id, saved, legacyOnly,
                 onShowConversation = { if (!disposed && sessions.select(tab.id)) showSelected() },
+                onTitleChanged = { if (!disposed) refreshStrip() },
             )
             composer.onSend = controller::sendPrompt
             composer.onStop = controller::stopRun

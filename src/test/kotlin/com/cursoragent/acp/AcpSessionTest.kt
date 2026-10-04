@@ -85,6 +85,56 @@ class AcpSessionTest {
     }
 
     @Test
+    fun `title metadata binds before delivery survives prompt end and rejects invalid or foreign updates`() {
+        Harness(temp, "titles").use { h ->
+            val titles = CopyOnWriteArrayList<Pair<String, String?>>()
+            val bindingsAtDelivery = CopyOnWriteArrayList<List<String?>>()
+            h.session.observeTitle { id, title ->
+                bindingsAtDelivery += h.bindings.toList()
+                titles += id to title
+            }
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            awaitCondition { h.commands.last().containsCommand("title-prepared") }
+            assertTrue(titles.isEmpty(), "metadata alone must not bind or title an unsent conversation")
+            assertTrue(h.bindings.isEmpty())
+            Files.writeString(temp.resolve("release-title-result"), "")
+            h.send()
+            h.finish()
+            awaitCondition { titles.size >= 3 }
+            assertEquals(listOf("準備中の名前", "<html><b>" + "日本語👨‍👩‍👧‍👦".repeat(20) + "</b></html>", "応答完了後の名前"), titles.map { it.second })
+            assertTrue(titles.all { it.first == "session-one" })
+            assertTrue(bindingsAtDelivery.all { it == listOf("session-one") })
+            assertTrue(h.session.isConnectedTo("session-one"))
+            assertFalse(h.session.isConnectedTo("foreign-session"))
+            assertEquals(listOf("completed:0"), h.outcomes)
+            h.gate.tryRestore()!!.close()
+            Files.writeString(temp.resolve("release-title-idle"), "")
+            awaitCondition { h.commands.last().containsCommand("title-idle-done") }
+            assertEquals(listOf("準備中の名前", "<html><b>" + "日本語👨‍👩‍👧‍👦".repeat(20) + "</b></html>", "応答完了後の名前", null), titles.map { it.second })
+            assertFalse(h.gate.isUncertain)
+            h.processes.single().destroy()
+            awaitCondition { !h.session.isConnectedTo("session-one") }
+            assertFalse(h.gate.isUncertain, "idle metadata EOF must not rewrite a completed turn")
+        }
+    }
+
+    @Test
+    fun `queued title delivery is rejected after connection close`() {
+        Harness(temp, "titles").use { h ->
+            val queued = CopyOnWriteArrayList<() -> Unit>()
+            val delivered = CopyOnWriteArrayList<String?>()
+            h.session.observeTitle { id, title -> queued += { if (h.session.isConnectedTo(id)) delivered += title } }
+            Files.writeString(temp.resolve("release-title-result"), "")
+            h.send()
+            h.finish()
+            awaitCondition { queued.size >= 3 }
+            h.session.close()
+            queued.forEach { it() }
+            assertTrue(delivered.isEmpty())
+        }
+    }
+
+    @Test
     fun `only literal advertised true permits image blocks and rejection preserves the connection`() {
         val image = com.cursoragent.ui.composer.image.ImageInput.clipboard(java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB))
         for (scenario in listOf("image-true", "image-false", "image-string", "normal")) {

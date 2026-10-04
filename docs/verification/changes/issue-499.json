@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "issue": 499,
+  "gui_required": true,
+  "reason": "新規ACP会話のタイトル通知をタブへ接続し、tooltipの文字列描画を変更するため。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew buildPlugin verifyPluginStructure",
+    "AcpSessionTest / SessionTabsTest / AcpCommandConnectionTest / SessionTabStripTest",
+    "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
+    "固定HEAD/baseの独立レビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "issue": 499,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#499を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体を照合。通常IDE/認証を変更しない。元の実行ファイル/transport設定を控え、終了時に復元する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/499",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/66#issuecomment-5974770091"
+      ],
+      "id": "ACP-PROVIDER-TITLE",
+      "change": "新規ACP会話のprovider自動名を所有タブへ表示する",
+      "steps": [
+        "承認済みPro/Teamsの実CLI版を記録する。使い捨てprojectの新規ACP会話で送信前がNew Agentであることを確認し、固定の無編集Ask入力「ファイルやツールを操作せず、ACP_TITLE_OK とだけ返してください。」を1回送る。",
+        "providerから名前が通知された場合、対応タブの名前と全文tooltipを確認する。通知が来ない場合はNew Agentを維持した事実を記録し、実providerタイトル受入をpassにしない。私的wire/ID/titleは公開せず、許可された非公開証拠で同一sessionとの対応を照合する。",
+        "別の新規ACP会話Bでも同じ固定入力を送り、A/Bの識別と名前対応を確認する。応答待ちに別の未送信タブへ切り替え、日本語の下書きとcaretを置く。背景会話の名前更新で選択・draft・caret・本文が変わらないことを確認する。",
+        "各タブの切替・keyboard選択・移動・閉じるを確認する。provider名の一致、CLI版、全条件、Case ID、固定build、観察者/日時/非公開証拠を記録する。名称の似た別会話との対応が不明なら未確認として残す。"
+      ],
+      "expected": "初期/未取得はNew Agent。実際に通知されたprovider名だけを同じACP会話へ表示し、他tabや編集中の内容を変更しない。名前をpromptから生成しない。print/外部改名同期や保存/再起動復元の受入とは分ける。"
+    },
+    {
+      "issue": 499,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#499を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体を照合。通常IDE/認証を変更しない。元の実行ファイル/transport設定を控え、終了時に復元する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/499",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/66#issuecomment-5974770091"
+      ],
+      "id": "ACP-TITLE-LIFECYCLE",
+      "change": "タイトルの終端後通知・無効入力・接続寿命・Unicode表示を合成GUIで確認する",
+      "steps": [
+        "docs/development/acp-gui-fixture.mdのmarker/固定hash手順で新規の合成workspaceと --scenario titles のrunを作る。確認済みlauncherを指定して新規ACP会話を開き、準備中のtitle通知だけではNew Agentを維持することを確認する。ここでは実providerへ接続しない。",
+        "合成入力 SYNTHETIC を送信し、同PIDのcontrol/title-readyを待つ。長いHTML風の日本語/家族emoji名を9文字相当幅＋省略で表示し、tooltipにはタグも含む全文をliteralに表示する。異常型・空白・過大入力・省略・foreign IDの後も最後の有効名を保つことをcaptureと画面で照合する。",
+        "別の空タブを選択して日本語draft/caretを置く。同controlへrelease-title-resultを作り、正常応答後に元タブが応答完了後の名前になること、選択/draft/caret/本文/Editorが変わらないことを確認する。release-title-idleを作り、明示nullで元タブだけNew Agentへ戻り、その後の省略で変わらないことを確認する。",
+        "新run/会話でtitle-readyからStopし取消完了を確認する。接続metadataとrun停止を混同せず、既に表示済みの名前は保持する。別の新runではtitle-readyで対象タブを閉じ、所有PID終了を確認する。残るタブと新規タブに閉じた会話の名前が出ないことを確認する。未送信状態でACP→print→ACPと切り替える場合も古い準備titleが表示されないことを確認する。",
+        "狭いtool windowで長い名前のtooltip、選択・横スクロール・keyboard・ドラッグ・閉じるを確認する。元設定へ戻し所有process終了を照合して、Case ID・固定build・全操作結果・capture/画面の非公開参照を記録する。EDTへqueue済みの厳密な遅着窓とローカル改名保護は自動テストの証拠と区別し、GUIで未観察ならその旨を残す。"
+      ],
+      "expected": "型とsession identityが正しい現在接続のtitleだけが届き、応答完了後も更新する。nullはNew Agent、省略/異常値は変更なし。HTMLを解釈せず、Unicodeを壊さず省略する。閉鎖/置換した接続が別tabへ流れず、Editor/draft/選択と既存操作を保持する。合成通信/GUIと実provider Caseのpassは別判定。"
+    }
+  ]
+}

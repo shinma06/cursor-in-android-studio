@@ -33,6 +33,7 @@ class AgentUiController(
     private val restored: Conversation? = null,
     private val legacyOnly: Boolean = false,
     private val onShowConversation: () -> Unit = {},
+    private val onTitleChanged: () -> Unit = {},
 ) {
     private var turnGeneration = 0L
     private var disposed = false
@@ -229,6 +230,12 @@ class AgentUiController(
                 if (!disposed && !project.isDisposed && transportState().first == AgentTransport.ACP) {
                     commandConnection.updateImageSupport(generation, supported)
                 }
+            }
+        }, onTitle = { providerSessionId, title ->
+            runOnEdt {
+                if (!disposed && !project.isDisposed && commandConnection.isCurrent(generation) &&
+                    agentService.isAcpSessionConnected(tabId, providerSessionId) &&
+                    sessions.applyAcpTitle(tabId, providerSessionId, title)) onTitleChanged()
             }
         }) { state ->
             runOnEdt {

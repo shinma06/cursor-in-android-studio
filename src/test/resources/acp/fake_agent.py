@@ -12,7 +12,7 @@ capture = None
 control = root
 if len(sys.argv) != 3:
     try:
-        if len(sys.argv) != 5 or sys.argv[3] != "--capture" or scenario not in ("permission", "normal", "eof", "cancel", "child", "bad-config", "commands-delayed", "events", "questions", "plan"):
+        if len(sys.argv) != 5 or sys.argv[3] != "--capture" or scenario not in ("permission", "normal", "eof", "cancel", "child", "bad-config", "commands-delayed", "events", "questions", "plan", "titles"):
             raise ValueError("Unknown capture scenario")
         root = root.resolve(strict=True)
         marker = root / "ACP_SYNTHETIC_FIXTURE.json"
@@ -100,6 +100,9 @@ def new_session(identifier):
         if cancelled.is_set() or closed.is_set():
             return
         response(identifier, {"sessionId": "session-one", "configOptions": config})
+        if scenario == "titles":
+            update(sessionUpdate="session_info_update", title="準備中の名前")
+            update(sessionUpdate="available_commands_update", availableCommands=[{"name": "title-prepared", "description": "synthetic"}])
         if scenario in ("commands", "commands-delayed"):
             threading.Thread(target=command_updates, daemon=True).start()
 
@@ -110,6 +113,33 @@ def finish(reason="end_turn", identifier=None):
         identifier = prompt_id
         prompt_id, pending = None, None
         response(identifier, {"stopReason": reason})
+
+
+def title_updates(identifier, stop):
+    send({"method": "session/update", "params": {"sessionId": "foreign-session", "update": {"sessionUpdate": "session_info_update", "title": "foreign"}}})
+    update(sessionUpdate="session_info_update", title="<html><b>" + "日本語👨‍👩‍👧‍👦" * 20 + "</b></html>")
+    for title in (False, 42, {}, [], "", " ", "x" * 4097):
+        update(sessionUpdate="session_info_update", title=title)
+    update(sessionUpdate="session_info_update", updatedAt="synthetic")
+    (control / "title-ready").touch()
+    deadline = time.monotonic() + 300
+    while not (control / "release-title-result").exists():
+        if stop.is_set() or closed.wait(.01):
+            return
+        if time.monotonic() >= deadline:
+            finish("cancelled", identifier)
+            return
+    with wire_lock:
+        if stop.is_set() or closed.is_set() or prompt_id != identifier:
+            return
+        finish(identifier=identifier)
+        update(sessionUpdate="session_info_update", title="応答完了後の名前")
+    while not (control / "release-title-idle").exists():
+        if stop.is_set() or closed.wait(.01) or time.monotonic() >= deadline:
+            return
+    update(sessionUpdate="session_info_update", title=None)
+    update(sessionUpdate="session_info_update")
+    update(sessionUpdate="available_commands_update", availableCommands=[{"name": "title-idle-done", "description": "synthetic"}])
 
 
 def tool_events(identifier, stop):
@@ -173,7 +203,9 @@ for line in sys.stdin:
         prompt_id = request["id"]
         cancelled = threading.Event()
         pending = None
-        if scenario == "eof":
+        if scenario == "titles":
+            threading.Thread(target=title_updates, args=(prompt_id, cancelled), daemon=True).start()
+        elif scenario == "eof":
             sys.exit(0)
         elif scenario == "post-terminal-writer":
             # A completed execute tool may have started independent work; end_turn is not process exit.
