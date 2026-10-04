@@ -265,6 +265,7 @@ class AgentToolWindowRootPanel(
                     }
                 },
                 onFailure = { timeline.showStatus("エディターで会話を開けませんでした。パネルから続けて操作できます。") },
+                shortcutAllowed = { composer.canToggleEditorWithShortcut },
             )
             // Reparenting must not release the native input editor, its Undo history or its carets.
             composer.inputArea.setDisposedWith(presentation)

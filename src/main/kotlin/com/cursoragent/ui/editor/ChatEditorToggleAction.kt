@@ -8,7 +8,7 @@ import com.intellij.openapi.project.DumbAwareAction
 class ChatEditorToggleAction : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
     private fun target(event: AnActionEvent) = event.getData(ChatEditorPresentation.KEY)?.takeIf {
-        it.project === event.project && it.available
+        it.project === event.project && it.shortcutAvailable
     }
     override fun update(e: AnActionEvent) {
         val target = target(e)

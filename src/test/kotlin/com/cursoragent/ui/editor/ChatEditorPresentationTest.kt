@@ -134,7 +134,8 @@ class ChatEditorPresentationTest {
                 val field = composer.inputArea
                 var enabled = true
                 var failures = 0
-                val presentation = ChatEditorPresentation(fixture.project, composer, field, { enabled && composer.canMovePresentation }, {}, {}, { failures++ })
+                val presentation = ChatEditorPresentation(fixture.project, composer, field, { enabled && composer.canMovePresentation }, {}, {}, { failures++ },
+                    shortcutAllowed = { composer.canToggleEditorWithShortcut })
                 field.setDisposedWith(presentation)
                 try {
                     val prepared = presentation.createEditor()
@@ -176,6 +177,18 @@ class ChatEditorPresentationTest {
                     com.intellij.util.ui.UIUtil.dispatchAllInvocationEvents()
                     action.update(own)
                     assertTrue(own.presentation.isEnabled)
+                    composer.selection.mode = AgentMode.ASK
+                    action.update(own)
+                    assertFalse(own.presentation.isEnabled)
+                    presentation.toggle() // Explicit menu/back operations remain available in Ask.
+                    assertTrue(presentation.inEditor)
+                    action.actionPerformed(own)
+                    assertTrue(presentation.inEditor)
+                    presentation.returnToPanel(false)
+                    composer.selection.mode = AgentMode.PLAN
+                    action.update(own)
+                    assertTrue(own.presentation.isEnabled)
+                    composer.selection.mode = AgentMode.AGENT
                     val keymaps = com.intellij.openapi.keymap.ex.KeymapManagerEx.getInstanceEx()
                     val previous = keymaps.activeKeymap
                     val originalShortcuts = action.shortcutSet.shortcuts.toList()

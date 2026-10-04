@@ -141,7 +141,8 @@
       "steps": [
         "MacのCmd+D、Windows/LinuxのCtrl+Dを、会話inputと本文focusで実行する。通常コードeditorで同じキーを実行しIDE既存操作が維持されることを確認する。",
         "Keymapで「会話のパネル／エディター表示を切り替える」のキーを変更/解除し、panel/editor両方で反映と旧割当の解放を確認する。",
-        "日本語IME変換/確定中、@ / の候補popup、model/modeのmenuを開いた状態でキーを試す。変換・候補を壊したり裏で表示を移さないことを確認する。"
+        "日本語IME変換/確定中、@ / の候補popup、model/modeのmenuを開いた状態でキーを試す。変換・候補を壊したり裏で表示を移さないことを確認する。",
+        "Agent/Planでは切替キーが有効、Askでは無効なことを確認する。Askでも明示menuと戻すボタンから同じ会話を移せることを確認する。"
       ],
       "expected": "Actionは操作元の会話だけを選ぶ。Keymapに従い、別project/通常editor・IME/popupを奪わない。"
     },

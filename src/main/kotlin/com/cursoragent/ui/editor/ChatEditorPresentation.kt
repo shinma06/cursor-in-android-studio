@@ -32,6 +32,7 @@ internal class ChatEditorPresentation(
     private val selectOwner: () -> Unit,
     private val onReturn: (Boolean) -> Unit,
     private val onFailure: (Throwable?) -> Unit,
+    private val shortcutAllowed: () -> Boolean = { true },
 ) : Disposable {
     @Volatile private var disposed = false
     private var returning = false
@@ -40,6 +41,7 @@ internal class ChatEditorPresentation(
     val alive: Boolean get() = !disposed && !project.isDisposed
     val inEditor: Boolean get() = editors.isNotEmpty()
     val available: Boolean get() = alive && canMove()
+    val shortcutAvailable: Boolean get() = available && shortcutAllowed()
     private val shortcut = ActionManager.getInstance().getAction(ChatEditorToggleAction.ID)
     private val view = object : JPanel(BorderLayout()), UiDataProvider {
         override fun uiDataSnapshot(sink: DataSink) { if (alive) sink[KEY] = this@ChatEditorPresentation }
