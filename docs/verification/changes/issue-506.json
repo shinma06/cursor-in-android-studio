@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 506,
+  "gui_required": false,
+  "reason": "PR #505の共有規約2件・元受入JSONと本JSONのみをdevelopへ同期する。製品source・テスト・SDK・既存Case/観察結果は固定developと同一。GUI操作、#485の候補更新、製品main昇格、実データ監査は含めない。",
+  "cli_checks": [
+    "通常main mergeの親と固定SHAを記録し、固定developとの差分がPR #505の3ファイル増分と本JSONだけであることを照合する。過去squash同期に由来する競合は既存develop内容を保持する。",
+    "公開前確認・情報公開監査の本文と元受入JSONがmainと一致し、相互リンクとdevelop固有の承認・継続規約を保持することを確認する。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests、git diff --check、受入JSON schema、固定HEAD/baseの独立レビュー、4必須checks。",
+    "統合後はQAへのmain反映追跡・Project/native関係・所有cleanupを読み戻す。既存固定候補のGUI結果を変更しない。"
+  ],
+  "cases": []
+}
