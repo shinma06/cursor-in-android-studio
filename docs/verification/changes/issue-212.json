@@ -11,6 +11,7 @@
     "RecentChatsTest: 訪問順/10件上限、閉じた保存会話と更新日時fallback、open metadata優先、PRINT/ACP/旧履歴のID分離、Keymapの修飾解放/複数stroke",
     "RecentChatsTest: 単一tabの全履歴更新日時順/循環/10件超、本文/legacyの識別、run token/保留作業/手動名の置換拒否",
     "AllChatsTest: 全履歴の検索後200件上限、名前/冒頭文の曖昧検索と一致位置、sidebar更新順、metadata優先/PRINT重複識別、端のhighlightとControl/Meta解放/Keymap",
+    "SidebarChatsTest: local日付/DST/7日30日境界、pin優先と6件/More、折畳み候補除外、部分一致とpopup曖昧検索の区別、75件の有効pin上限と型付き保存/不正値",
     "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks"
   ],
   "cases": [
@@ -416,13 +417,60 @@
       "id": "KEYMAP-SIDEBAR-NAVIGATION",
       "change": "sidebar表示中の候補highlight・解放確定・取消",
       "steps": [
-        "一覧表示中に選択中chatからM+A+左右を押す。会話本体は確定まで変わらず、表示候補を前後highlightして先頭/末尾で止まる。選択中chatがfilter外なら次で先頭、前で末尾へ進む。検索後も一覧は更新日時順を保持する。",
+        "一覧表示中に選択中chatからM+A+左右を押す。会話本体は確定まで変わらず、表示候補を前後highlightして先頭/末尾で止まる。選択中chatがfilter外なら次で先頭、前で末尾へ進む。検索後も区分内は更新日時順を保持し、折り畳んだ区分と見出しを除く。Moreを確定すると6件追加し、会話は切り替えない。",
         "Altだけを離した時は未確定、Control/Metaが両方離れた時だけ対象chatを開く。設定変更後の単一修飾キーと複数stroke/Enterも確認する。Esc、root外へのfocus、別window、hide/disposeで取り消し、取消後にkeyupしても開かない。",
         "IME変換・候補・子popup中は既存入力処理を優先する。navigationの途中に検索結果更新/候補削除/別tab選択/別projectへ移動しても古い対象を開かない。繰り返し開始/取消/破棄後にdispatcherが重複・残留せず、一般editorのkeyup/Enter/Escを奪わない。",
         "実行/準備/下書き/画像/context/command/queue/保存失敗があるchatから確定しても元viewを保持し、Stop・送信・本文書換えを起こさない。sidebarを隠すと修飾左右が従来のtab/全履歴循環に戻る。",
-        "固定Cursorのpin/日付section/折畳み/More、Cloud、Find with Agent、transient/editor-groupへの表示を含む候補順と比較する。現行local一覧との差と未接続を記録し、通常chatのhighlight成功だけで全候補をpassにしない。"
+        "pin/日付section/折畳み/Moreの順序と6件追加を専用Caseで照合する。固定CursorのArchived/復元・Cloud・Find with Agent・transient/editor-groupへの表示を含む拡張候補との差と未接続を記録し、通常chatのhighlight成功だけで全候補をpassにしない。"
       ],
       "expected": "sidebar表示中は候補highlightと確定を分離し、非表示時のtab循環と混同しない。対象root内だけでキーを処理し、全終了経路で解除する。未接続候補は残作業にする。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-SIDEBAR-SECTIONS",
+      "change": "一覧のpin・日付区分・折り畳み・More",
+      "steps": [
+        "今日/昨日/7日以内/30日以内/それ以前の会話と、古いpinを用意する。固定したチャットが先頭区分に一度だけ出て、各区分内は更新日時降順になる。日本語/英語の名前・冒頭文で検索し、sidebarは部分一致、popupは曖昧検索になる違いを確認する。空区分を表示せず、検索解除後に各区分へ戻る。",
+        "同区分に13件以上を用意し、初期6件+More、確定ごとの6件追加と最終More消失を確認する。Moreのクリック/Enter/修飾解放で会話本体・run・draftを変えず、追加された先頭の候補が見える。表示候補だけを前後highlightし、Moreへ移動/確定できる。見出しはmodifier navigation候補に入らない。",
+        "区分見出しをクリック/Enterで折り畳み・展開する。折り畳んだ会話とMoreへキー移動せず、全部折り畳みなら候補移動は何もしない。project別の状態とIDE再起動後の復元、一覧を作り直すと表示上限が6件へ戻ることを確認する。スクリーンリーダーで区分名/件数/操作とMoreの対象を識別できる。",
+        "一覧に固定/固定解除を行い、移動先の区分が折り畳み中なら別会話をpin対象にしない。75件目まで追加でき、76件目は理由付きで無効、解除後は追加できる。削除済み等の残ったpin metadataは有効件数に数えず、同じ文字列の本文IDと旧print IDを混同しない。pinから本文/空会話を作らず、未保存draftの再起動復元を保証しない。",
+        "履歴の読込み待ち/失敗/破損中は新規pinを無効にし、既存の解除を可能にする。検索待ち・IME変換中・古い結果でpin/Moreを実行しない。別projectと破棄済みviewを操作せず、pin/折り畳み/MoreでStop・送信・履歴削除を発生させない。",
+        "local日付の0時越え、DSTで昨日が24時間と一致しない場合、7日/30日の境界を確認する。表示中の1分更新で区分が変わり、選択/対象IDを取り違えない。固定Cursorと同条件で比較し、未接続のArchived/復元・Cloud・editor sticky等を別の残作業として記録する。"
+      ],
+      "expected": "表示区分とnavigation候補が一致し、折り畳み/Moreは会話の所有や実行を変えない。pinの上限・ID・状態保持を守り、GUI未検証/未接続の拡張能力を省略しない。"
     },
     {
       "gpt": {

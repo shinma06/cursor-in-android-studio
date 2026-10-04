@@ -39,7 +39,7 @@ class AllChatsTest {
         val exact = entry("exact", "Build", 1)
         val recent = entry("recent", "Long older prefix Build suffix", 100)
         assertEquals(exact, searchAllChats(listOf(recent, exact), "Build").first().entry)
-        assertEquals(listOf(recent, exact), searchAllChats(listOf(exact, recent), "Build", Int.MAX_VALUE, rankMatches = false).map { it.entry })
+        assertEquals(listOf(recent, exact), searchSidebarChats(listOf(exact, recent), "Build").map { it.entry })
     }
 
     @Test

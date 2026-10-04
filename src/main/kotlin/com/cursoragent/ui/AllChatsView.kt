@@ -2,6 +2,7 @@ package com.cursoragent.ui
 
 import com.cursoragent.history.ConversationHistory
 import com.cursoragent.settings.ChatHistoryState
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
@@ -17,8 +18,12 @@ import java.awt.event.InputMethodEvent
 import java.awt.event.InputMethodListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.Future
 import javax.swing.DefaultListModel
+import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JList
@@ -41,14 +46,38 @@ internal class AllChatsView(
     private val limit = if (quickAccess) 200 else Int.MAX_VALUE
     private val store = project.getService(ConversationHistory::class.java)
     private val search = SearchTextField()
-    private val model = DefaultListModel<AllChatHit>()
+    private val properties by lazy { PropertiesComponent.getInstance(project) }
+    private var pinned = if (quickAccess) emptySet() else properties.getList("CursorAgent.pinnedChats").orEmpty().mapNotNull(::pinnedChatId).toSet()
+    private val collapsed = if (quickAccess) mutableSetOf() else ChatSection.entries.filter {
+        properties.getBoolean("CursorAgent.chatSection.${it.key}.collapsed", false)
+    }.toMutableSet()
+    private val sectionLimits = mutableMapOf<ChatSection, Int>()
+    private val model = DefaultListModel<AllChatRow>()
     private val list = JBList(model).apply {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
         accessibleContext.accessibleName = "すべてのチャット"
         emptyText.text = "履歴を読み込み中…"
-        cellRenderer = object : ColoredListCellRenderer<AllChatHit>() {
-            override fun customizeCellRenderer(list: JList<out AllChatHit>, value: AllChatHit?, index: Int, selected: Boolean, hasFocus: Boolean) {
-                val hit = value ?: return
+        cellRenderer = object : ColoredListCellRenderer<AllChatRow>() {
+            override fun customizeCellRenderer(list: JList<out AllChatRow>, value: AllChatRow?, index: Int, selected: Boolean, hasFocus: Boolean) {
+                toolTipText = when (value) {
+                    is AllChatRow.Section -> "${value.section.label}、${value.count}件。Enterで${if (value.collapsed) "展開" else "折り畳み"}。"
+                    is AllChatRow.More -> "${value.section.label}を6件追加表示します。"
+                    is AllChatRow.Chat -> value.hit.entry.title
+                    null -> null
+                }
+                accessibleContext.accessibleName = toolTipText
+                val hit = when (value) {
+                    is AllChatRow.Chat -> value.hit
+                    is AllChatRow.Section -> {
+                        append("${if (value.collapsed) "▸" else "▾"} ${value.section.label} (${value.count})", SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                        return
+                    }
+                    is AllChatRow.More -> {
+                        append("さらに表示（${value.section.label}）", SimpleTextAttributes.LINK_ATTRIBUTES)
+                        return
+                    }
+                    null -> return
+                }
                 var offset = 0
                 hit.highlights.forEach { range ->
                     append(hit.entry.title.substring(offset, range.startOffset), SimpleTextAttributes.REGULAR_ATTRIBUTES)
@@ -64,17 +93,25 @@ internal class AllChatsView(
         }
     }
     private val status = JLabel(" ")
+    private val pinButton = JButton("一覧に固定").apply { addActionListener { togglePin() } }
+    private var renderedDate = LocalDate.now()
+    private val dateRefresh = Timer(60_000) {
+        if (!quickAccess && !disposed && valid() && ready && !isComposing && LocalDate.now() != renderedDate) rebuildRows()
+    }
     private val debounce = Timer(150) { runSearch() }.apply { isRepeats = false }
     private var worker: Future<*>? = null
     private var stored = emptyList<RecentChatEntry>()
     private var entries = emptyList<RecentChatEntry>()
+    private var hits = emptyList<AllChatHit>()
+    private var rows = emptyList<AllChatRow>()
+    private var historyComplete = false
     private var loadGeneration = 0
     private var searchGeneration = 0
     private var disposed = false
     private var ready = false
     private var appliedQuery = ""
     private var loadStatus = ""
-    private var navigationId: RecentChatId? = null
+    private var navigationTarget: SidebarChatTarget? = null
     var isComposing = false
         private set
     val focusComponent: JComponent get() = search.textEditor
@@ -85,9 +122,15 @@ internal class AllChatsView(
         search.textEditor.toolTipText = "名前・冒頭文で検索します。"
         add(search, BorderLayout.NORTH)
         add(JBScrollPane(list), BorderLayout.CENTER)
-        add(status, BorderLayout.SOUTH)
+        add(JPanel(BorderLayout()).apply {
+            add(status, BorderLayout.CENTER)
+            if (!quickAccess) add(pinButton, BorderLayout.EAST)
+        }, BorderLayout.SOUTH)
+        if (!quickAccess) dateRefresh.start()
+        list.addListSelectionListener { updatePinButton() }
+        updatePinButton()
         search.textEditor.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) = scheduleSearch()
+            override fun textChanged(e: DocumentEvent) { navigationTarget = null; scheduleSearch() }
         })
         search.textEditor.addInputMethodListener(object : InputMethodListener {
             override fun inputMethodTextChanged(event: InputMethodEvent) {
@@ -97,13 +140,14 @@ internal class AllChatsView(
             override fun caretPositionChanged(event: InputMethodEvent) = Unit
         })
         for (component in listOf(search.textEditor, list)) {
-            component.registerKeyboardAction({ choose() }, KeyStroke.getKeyStroke("ENTER"), JComponent.WHEN_FOCUSED)
+            component.registerKeyboardAction({ choose(allowSection = component === list) }, KeyStroke.getKeyStroke("ENTER"), JComponent.WHEN_FOCUSED)
         }
         for ((key, offset) in listOf("UP" to -1, "DOWN" to 1)) {
             search.textEditor.registerKeyboardAction({
                 if (!isComposing && ready && !model.isEmpty) {
-                    list.selectedIndex = (list.selectedIndex + offset).coerceIn(0, model.size() - 1)
-                    list.ensureIndexIsVisible(list.selectedIndex)
+                    val next = adjacentSidebarChat(rows.mapNotNull { it.target }, list.selectedValue?.target, null, offset < 0)
+                    list.selectedIndex = rows.indexOfFirst { it.target != null && it.target == next }
+                    if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
                 }
             }, KeyStroke.getKeyStroke(key), JComponent.WHEN_FOCUSED)
         }
@@ -118,9 +162,12 @@ internal class AllChatsView(
     fun reload() {
         if (disposed || !valid()) return
         val ticket = ++loadGeneration
+        historyComplete = false
+        updatePinButton()
         store.load { result -> SwingUtilities.invokeLater {
             if (disposed || !valid() || ticket != loadGeneration) return@invokeLater
             val loaded = result.getOrNull()
+            historyComplete = loaded != null && loaded.unreadable == 0
             stored = availableChatEntries(emptyList(), loaded?.conversations.orEmpty().filterNot { store.isDeleted(it.id) }, emptyList())
             loadStatus = when {
                 loaded == null -> "保存履歴を読み込めませんでした。"
@@ -141,6 +188,7 @@ internal class AllChatsView(
     private fun scheduleSearch() {
         searchGeneration++
         ready = false
+        updatePinButton()
         worker?.cancel(true)
         debounce.stop()
         if (!disposed && valid() && !isComposing) debounce.restart()
@@ -151,50 +199,115 @@ internal class AllChatsView(
         val ticket = searchGeneration
         val query = search.text
         val snapshot = entries
-        val selection = list.selectedValue?.entry?.id ?: selectedId()
+        val selection = list.selectedValue?.target ?: selectedId()?.let(SidebarChatTarget::Chat)
         worker = ApplicationManager.getApplication().executeOnPooledThread {
-            val hits = searchAllChats(snapshot, query, limit, rankMatches = quickAccess)
+            val found = if (quickAccess) searchAllChats(snapshot, query) else searchSidebarChats(snapshot, query)
             SwingUtilities.invokeLater {
                 if (disposed || !valid() || isComposing || ticket != searchGeneration) return@invokeLater
-                if (navigationId != null && hits.none { it.entry.id == navigationId }) navigationId = null
+                hits = found
                 appliedQuery = query
                 ready = true
-                model.clear()
-                hits.forEach(model::addElement)
-                list.emptyText.text = if (query.isBlank()) "表示できるチャットはありません" else "一致するチャットはありません"
-                if (!model.isEmpty) list.selectedIndex = hits.indexOfFirst { it.entry.id == (navigationId ?: selection) }.coerceAtLeast(0)
-                if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
-                status.text = loadStatus.ifBlank { if (hits.size == limit) "先頭${limit}件を表示・検索で絞り込めます" else "${hits.size}件" }
+                rebuildRows(selection)
             }
         }
     }
 
+    private fun rebuildRows(preferred: SidebarChatTarget? = list.selectedValue?.target) {
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        renderedDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        rows = if (quickAccess) hits.map(AllChatRow::Chat) else
+            sidebarChatRows(hits, pinned, collapsed, sectionLimits, now, zone)
+        if (navigationTarget != null && rows.none { it.target == navigationTarget }) navigationTarget = null
+        model.clear()
+        rows.forEach(model::addElement)
+        list.emptyText.text = if (appliedQuery.isBlank()) "表示できるチャットはありません" else "一致するチャットはありません"
+        val target = navigationTarget ?: preferred ?: selectedId()?.let(SidebarChatTarget::Chat)
+        val index = rows.indexOfFirst { it.target != null && it.target == target }
+        list.selectedIndex = if (index >= 0) index else rows.indexOfFirst { it.target != null }
+        if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
+        status.text = loadStatus.ifBlank {
+            if (quickAccess && hits.size == limit) "先頭${limit}件を表示・検索で絞り込めます" else "${hits.size}件"
+        }
+        updatePinButton()
+    }
+
     fun navigate(reverse: Boolean): Boolean {
         if (disposed || !valid() || isComposing || !ready) return false
-        val ids = (0 until model.size()).map { model[it].entry.id }
-        val next = adjacentSidebarChat(ids, selectedId(), navigationId, reverse) ?: return false
-        navigationId = next
-        list.selectedIndex = ids.indexOf(next)
+        val next = adjacentSidebarChat(rows.mapNotNull { it.target }, selectedId()?.let(SidebarChatTarget::Chat), navigationTarget, reverse) ?: return false
+        navigationTarget = next
+        list.selectedIndex = rows.indexOfFirst { it.target == next }
         list.ensureIndexIsVisible(list.selectedIndex)
         return true
     }
 
     fun confirmNavigation() {
-        val id = navigationId
-        navigationId = null
-        if (!disposed && valid() && !isComposing && ready && appliedQuery == search.text &&
-            id != null && (0 until model.size()).any { model[it].entry.id == id }) onChoose(id)
+        val target = navigationTarget
+        navigationTarget = null
+        if (!disposed && valid() && !isComposing && ready && appliedQuery == search.text && target != null)
+            rows.firstOrNull { it.target == target }?.let(::activate)
     }
 
     fun cancelNavigation() {
-        navigationId = null
-        val current = selectedId()
-        list.selectedIndex = (0 until model.size()).firstOrNull { model[it].entry.id == current } ?: -1
+        navigationTarget = null
+        val current = selectedId()?.let(SidebarChatTarget::Chat)
+        list.selectedIndex = rows.indexOfFirst { it.target != null && it.target == current }
     }
 
-    private fun choose() {
+    private fun choose(allowSection: Boolean = true) {
         if (disposed || !valid() || isComposing || !ready || appliedQuery != search.text) return
-        list.selectedValue?.entry?.id?.let(onChoose)
+        val row = list.selectedValue ?: return
+        if (allowSection || row !is AllChatRow.Section) activate(row)
+    }
+
+    private fun activate(row: AllChatRow) {
+        navigationTarget = null
+        when (row) {
+            is AllChatRow.Chat -> onChoose(row.hit.entry.id)
+            is AllChatRow.More -> {
+                val firstAdded = rows.indexOf(row)
+                sectionLimits[row.section] = (sectionLimits[row.section] ?: 6) + 6
+                rebuildRows(selectedId()?.let(SidebarChatTarget::Chat))
+                if (firstAdded in rows.indices) list.ensureIndexIsVisible(firstAdded)
+            }
+            is AllChatRow.Section -> {
+                if (!collapsed.remove(row.section)) collapsed.add(row.section)
+                properties.setValue("CursorAgent.chatSection.${row.section.key}.collapsed", row.section in collapsed, false)
+                rebuildRows()
+                list.selectedIndex = rows.indexOfFirst { it is AllChatRow.Section && it.section == row.section }
+            }
+        }
+    }
+
+    private fun updatePinButton() {
+        if (quickAccess) return
+        val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry
+        val alreadyPinned = entry?.id in pinned
+        val available = entries.map { it.id }.toSet()
+        val belowLimit = pinned.count { it in available } < 75
+        pinButton.text = if (alreadyPinned) "固定を解除" else "一覧に固定"
+        pinButton.isEnabled = !disposed && valid() && ready && !isComposing && entry != null &&
+            (alreadyPinned || historyComplete && belowLimit)
+        pinButton.toolTipText = when {
+            alreadyPinned -> "このチャットの一覧への固定を解除します。"
+            !historyComplete -> "履歴の読込みが完了してから固定できます。"
+            !belowLimit -> "固定できるチャットは75件までです。"
+            else -> "このチャットを一覧の先頭の区分に固定します。"
+        }
+    }
+
+    private fun togglePin() {
+        if (disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return
+        val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return
+        if (entry.id !in pinned && !historyComplete) return
+        val updated = togglePinnedChat(pinned, entry.id, entries.map { it.id }.toSet()) ?: return
+        pinned = updated
+        properties.setList("CursorAgent.pinnedChats", pinned.map(::pinnedChatKey))
+        navigationTarget = null
+        val target = SidebarChatTarget.Chat(entry.id)
+        rebuildRows(target)
+        // A collapsed destination must not leave the pin button targeting a different chat.
+        list.selectedIndex = rows.indexOfFirst { it.target == target }
     }
 
     override fun dispose() {
@@ -202,7 +315,10 @@ internal class AllChatsView(
         loadGeneration++
         searchGeneration++
         debounce.stop()
+        dateRefresh.stop()
         worker?.cancel(true)
+        hits = emptyList()
+        rows = emptyList()
         stored = emptyList()
         entries = emptyList()
         model.clear()

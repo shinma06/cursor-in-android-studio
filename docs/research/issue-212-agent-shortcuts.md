@@ -157,11 +157,15 @@ Pluginは1タブ時に保存履歴を背景読込みし、現行tab・世代・I
 
 All Agentsは固定版の`workbench.action.openAgentsView` / `chat:` providerを確認した。Agent paneにfocusがありsidebarが見えている場合だけsidebarを隠す。それ以外はsidebarを表示して検索pickerを開く。Pluginは独立したチャット一覧と検索popupへ接続し、ToolWindowや会話本体は閉じない。一覧の表示状態をprojectごとに保持する。新規projectでは非表示から始めるPluginの初期状態と、ToolWindow内の分割配置は固定版の独立sidebarとGUI比較する。MacはControl+Shift+S、Windows/LinuxはCtrl+Shift+/。Windowsのmodel parameter優先（P10）は未接続として残す。
 
-候補は開いた会話・保存本文・旧print metadataを型付きIDで統合し、開いたviewの手動名/冒頭文を優先する。pickerは空検索なら更新日時降順、入力時は名前/冒頭文の一致順位で最大200件。全候補を検索してから件数を制限し、古い会話を検索対象から落とさない。IDE native matcherによる曖昧検索と一致強調を使い、Cursor内部のscore値・同順位の順序との完全一致は主張しない。sidebarは検索後も更新日時順を保つ。本文全文検索は従来の履歴検索であり、この入口へ混ぜない。読込み/検索を背景処理し、IME中や結果待ちは確定を拒否する。保持するのはmetadataで、閉じた候補の本文/削除を確定時に再読込みする。
+候補は開いた会話・保存本文・旧print metadataを型付きIDで統合し、開いたviewの手動名/冒頭文を優先する。pickerは空検索なら更新日時降順、入力時は名前/冒頭文の一致順位で最大200件。全候補を検索してから件数を制限し、古い会話を検索対象から落とさない。IDE native matcherによる曖昧検索と一致強調を使い、Cursor内部のscore値・同順位の順序との完全一致は主張しない。sidebarは大文字小文字を区別しない部分一致で検索し、区分内の更新日時順を保つ。popupの曖昧検索と混同しない。本文全文検索は従来の履歴検索であり、この入口へ混ぜない。読込み/検索を背景処理し、IME中や結果待ちは確定を拒否する。保持するのはmetadataで、閉じた候補の本文/削除を確定時に再読込みする。
 
-sidebar表示中のM+A+左右は選択中chatから前後の表示候補をhighlightし、端で止まる。Control/Metaの両方が離れた時に確定し、Altだけの解放では開かない。変更済みKeymapでControl/Metaを使わない場合は設定した修飾キーへ従い、複数strokeはEnterで確定する。Esc、root外へのfocus移動、window blur、非表示/破棄は取消。子入力のkeyupを受けるdispatcherはnavigation中だけ登録し、対象root内だけで処理して全終了経路で解除する。最近使用popupの解放方式とは分離する。候補選択は既存の会話を保持して対象を開くため、暗黙の送信・Stop・既存tab置換はしない。
+sidebar表示中のM+A+左右は選択中chatから前後の表示候補（会話・More）をhighlightし、端で止まる。見出しと折り畳んだ区分の会話/Moreはnavigation候補から除く。Control/Metaの両方が離れた時に確定し、Altだけの解放では開かない。変更済みKeymapでControl/Metaを使わない場合は設定した修飾キーへ従い、複数strokeはEnterで確定する。Esc、root外へのfocus移動、window blur、非表示/破棄は取消。子入力のkeyupを受けるdispatcherはnavigation中だけ登録し、対象root内だけで処理して全終了経路で解除する。最近使用popupの解放方式とは分離する。候補選択は既存の会話を保持して対象を開くため、暗黙の送信・Stop・既存tab置換はしない。
 
-固定版sidebarにはpin/日付section・折り畳み・More、Cloud候補、検索語からのFind with Agent、transient/editor-groupへの表示もある。現行はproject内local一覧とそのnavigationを接続した段階で、これらの拡張候補・表示条件は未接続/未確定として全対象照合に残す。公開されたCloud取得/操作契約や既存能力を確認せず、local background実行と同じものにしない。ソース根拠は固定版のproviderの候補除外/重複統合/検索上限、sidebarのnavigation候補と確定handler、SDK native matcher/popup/splitter。実GUIは未実施。
+固定版sidebarのpin・日付section・折り畳み・Moreを下記のlocal候補へ接続する。Archived/復元、Cloud候補、検索語からのFind with Agent、transient/editor-groupへの表示は未接続/未確定として全対象照合に残す。公開されたCloud取得/操作契約や既存能力を確認せず、local background実行と同じものにしない。ソース根拠は固定版のproviderの候補除外/重複統合/検索上限、sidebarのnavigation候補と確定handler、SDK native matcher/popup/splitter。実GUIは未実施。
+
+local候補は固定したチャット、今日、昨日、過去7日間、過去30日間、それ以前の区分へ分ける。固定候補は日付区分と重複させず、区分内は更新日時降順。今日/昨日はlocal calendar、7/30日の境界は経過時間を使い、DSTでも「昨日」を24時間差と同一視しない。1分ごとにlocal日付の変更を確認して区分を再評価する。日付が同じ間は再描画でscroll位置を戻さない。空区分を表示せず、各区分は初期6件・Moreごとに6件追加する。Moreの確定では会話を開かず、追加された候補を表示する。表示件数は一覧を作り直すと6件へ戻る。折り畳み状態とpinはproject単位で保存し、区分見出しのクリック/Enterと「一覧に固定 / 固定を解除」で変更する。
+
+pinは固定版の有効候補75件上限に合わせる。削除済み等の現在存在しないIDは上限に数えず、残るpin metadataから本文や空会話を生成しない。本文UUIDと旧print provider IDを区別した保存値を使い、名前から同一会話を推測しない。履歴読込み失敗/不明候補がある間は新規pinを無効にし、既存pinの解除は可能にする。未保存draftをpinすることは本文保存やIDE再起動復元の保証ではない。pin/折り畳み/MoreでStop・送信・履歴削除は発生しない。根拠は固定版の`SGn` / `o4p` / `TQt=6` / `expandMore` / `I4p`とpin storageの75件判定。editor sticky同期とArchivedの扱いはP07/残作業に残し、固定buildのkeyboard/scroll/accessibilityと再起動での状態保持はGUI Caseで確認する。
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。

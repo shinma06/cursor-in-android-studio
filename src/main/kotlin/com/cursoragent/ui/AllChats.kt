@@ -7,7 +7,7 @@ import com.intellij.psi.codeStyle.NameUtil
 internal data class AllChatHit(val entry: RecentChatEntry, val highlights: List<MatchedFragment> = emptyList())
 
 /** Quick access searches every candidate before its 200-result cap; it does not use MRU order. */
-internal fun searchAllChats(entries: List<RecentChatEntry>, query: String, limit: Int = 200, rankMatches: Boolean = true): List<AllChatHit> {
+internal fun searchAllChats(entries: List<RecentChatEntry>, query: String, limit: Int = 200): List<AllChatHit> {
     val text = query.trim()
     if (text.isEmpty()) return entries.sortedByDescending { it.updatedMs }.take(limit).map(::AllChatHit)
     val matcher = NameUtil.buildMatcher("*$text", MatchingMode.IGNORE_CASE)
@@ -22,6 +22,5 @@ internal fun searchAllChats(entries: List<RecentChatEntry>, query: String, limit
         )
         AllChatHit(entry, fragments?.toList().orEmpty()) to score
     }
-    return (if (rankMatches) hits.sortedByDescending { it.second } else hits.sortedByDescending { it.first.entry.updatedMs })
-        .take(limit).map { it.first }
+    return hits.sortedByDescending { it.second }.take(limit).map { it.first }
 }

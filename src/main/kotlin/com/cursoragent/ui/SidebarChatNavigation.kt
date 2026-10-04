@@ -71,7 +71,7 @@ internal fun acceptsSidebarChatRelease(event: KeyEvent, shortcuts: List<Keyboard
     }
 }
 
-internal fun adjacentSidebarChat(ids: List<RecentChatId>, current: RecentChatId?, highlighted: RecentChatId?, reverse: Boolean): RecentChatId? {
+internal fun <T> adjacentSidebarChat(ids: List<T>, current: T?, highlighted: T?, reverse: Boolean): T? {
     if (ids.isEmpty()) return null
     val index = ids.indexOf(highlighted ?: current)
     return ids[if (index < 0) { if (reverse) ids.lastIndex else 0 } else (index + if (reverse) -1 else 1).coerceIn(0, ids.lastIndex)]
