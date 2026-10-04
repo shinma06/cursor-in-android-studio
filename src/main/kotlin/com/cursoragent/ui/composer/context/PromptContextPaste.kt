@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.IdeActions
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.Key
@@ -35,6 +36,8 @@ class PromptPlainPasteAction : DumbAwareAction() {
     override fun update(event: AnActionEvent) { event.presentation.isEnabled = available(event) }
 
     override fun actionPerformed(event: AnActionEvent) {
-        if (available(event)) ActionManager.getInstance().getAction(IdeActions.ACTION_EDITOR_PASTE_SIMPLE)?.actionPerformed(event)
+        if (available(event)) ActionManager.getInstance().getAction(IdeActions.ACTION_EDITOR_PASTE_SIMPLE)?.let {
+            ActionUtil.performAction(it, event)
+        }
     }
 }
