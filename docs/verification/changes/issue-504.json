@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 504,
+  "gui_required": false,
+  "reason": "Git監査とGitHub公開前確認の共有規約文書のみ。製品コード・画面・保存・通信・実行toolingは変更しない。実データの全監査や漏えい対応は今回の受入に含めない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests",
+    "git diff --check、相互リンク/アンカー、Case JSON schemaを確認",
+    "旧要件（発火条件・承認/所有・公開禁止・baseline・既存gate）と、ソース履歴/closed Issue/PR/添付/Actions/Release等の追加範囲を照合",
+    "実token・未承認個人情報・合成fixture・公開承認済み著者情報・未取得添付・残存PR refsの6例で適用条件と報告境界を机上照合"
+  ],
+  "cases": []
+}
