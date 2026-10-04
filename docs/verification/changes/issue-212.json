@@ -1195,9 +1195,59 @@
         "アーカイブ済み区分をEnter/クリックで展開・検索する。sidebarの6件/More、ヘッダー履歴の通常/アーカイブ各20件/Moreと検索変更での件数リセット、部分一致とpin優先/更新順、IME中・検索待ち・古い結果・非表示後の操作拒否を確認する。native focus/読み上げで区分・件数・操作名を識別する。",
         "sidebarの実行中会話では確認を取消すと停止/区分変更がないこと、確認中に対象/run/検索/metadataが変わると中止することを確認する。選択中会話は検索済み全区分（折り畳み/Moreの非表示候補を含む）の次、末尾なら直前へ進む。隣がarchived/不明なら新規会話になる。閉じた候補の遅い読込み中に別会話/非表示へ移動した場合は戻されない。履歴メニューでは現在view維持。sidebarはpin解除、履歴メニューではpin metadata保持と上限からの除外。復元で送信やqueue再開・自動表示が起きず、明示表示で元draft/画像/予約が保持される。",
         "保存済み本文を含むprojectをIDE再起動し、同じ本文ID/旧履歴IDの区分と復元後の更新順を確認する。本文/会話再開/Revertの既存制限を維持し、未保存draftの再起動保存は期待しない。別projectの同名会話に影響しない。",
-        "Cursor 3.23.12のin-IDE local archive/restoreと比較し、ヘッダー履歴の20件追加/配置・sidebarの確認と全区分からの隣候補選択・global All Agents検索の通常200件を入口別に記録する。一括archiveとCloud/Find with Agent/transient/editor-groupは残作業のまま区別する。Cloud/private RPCや通常の履歴削除の合格へ読み替えない。"
+        "Cursor 3.23.12のin-IDE local archive/restoreと比較し、ヘッダー履歴の20件追加/配置・sidebarの確認と全区分からの隣候補選択・global All Agents検索の通常200件を入口別に記録する。Archive Prior ChatsはKEYMAP-ARCHIVE-PRIORで照合し、sectionのArchive Allの到達条件とCloud/Find with Agent/transient/editor-groupは残作業のまま区別する。Cloud/private RPCや通常の履歴削除の合格へ読み替えない。"
       ],
       "expected": "対象会話だけを停止要求し、本文を削除せず区分を変更する。遅い終了/保存でownerや区分を取り違えず、復元は自動送信しない。入力/画像/予約はproject内の同じownerへ戻り、保存済み本文と区分は再起動後も保持される。操作条件と残る表示差を固定buildで記録する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://cursor.com/docs/agent/overview",
+        "https://www.jetbrains.com/help/ai-assistant/chat-mode.html"
+      ],
+      "id": "KEYMAP-ARCHIVE-PRIOR",
+      "change": "検索結果内の古い未固定会話を一括アーカイブ",
+      "steps": [
+        "使い捨てproject/profileで保存済みPRINT/ACP・旧print履歴・未送信draft/画像/予約付き会話を用意する。基準会話より古い候補、同時刻、新しい候補、pin、archive済み、検索対象外を混在させ、日付区分を折り畳み、同区分に13件以上を置いてMoreの外にも対象を作る。sidebarの検索後に基準行を右クリックし「これより前のチャットをアーカイブ」を選ぶ。厳密に古い未pin/未archiveの検索一致候補だけが移り、非表示候補も含まれる。",
+        "一覧へkeyboard focusを移し、IDE KeymapのShowPopupMenuを既定/変更後/解除後で比較する。「…」ボタンへTabで移動してSpaceで同じメニューへ到達し、上下/Enter/Escapeの選択/取消と読み上げを確認する。見出し/More/空白の右クリックから別の会話を対象にせず、ヘッダー履歴/global検索にはこの操作を置かない。メニューを開いた後に行・検索・pin・IME・履歴読込み状態が変わった場合、古いActionを実行しない。",
+        "複数の実行中対象と非対象を合成fixtureで用意し、一括操作を実行する。個別確認dialogや表示会話の移動/pin解除を発生させず、対象だけにStopを要求する。元view/draft/画像/予約を保持し、物理終了前にrun所有を解放しない。停止失敗の対象はarchiveせず、成功/失敗件数を表示して他対象の結果を区別する。復元だけで送信/予約を再開しない。",
+        "遅い履歴読込み中にpin/検索/表示会話を変更、一覧を隠す、projectを破棄する場合を確認する。保存本文が行表示後に更新/削除された場合、古い更新時刻で処理しない。読込み失敗/破損があれば一括処理を開始せず、同じActionの連打/古いメニューの再実行でも別runや対象外へ影響しない。",
+        "保存済み本文の区分は同じprojectのIDE再起動後に確認する。Cursor 3.23.12のArchive Prior Chatsと同じ検索/pin/時刻/実行中条件で比較し、Cloud/linked backgroundとsectionのArchive Allは別の未確認契約として記録する。未保存draftの再起動復元を保証せず、部分/合成passを全対象GUI合格にしない。"
+      ],
+      "expected": "検索済み全候補から厳密に古い未pin/未archiveだけを処理する。停止と物理終了を分け、表示中会話・未送信作業・pinと失敗対象を保持する。古い検索/メニュー/履歴応答は拒否し、本文削除や自動送信を行わない。"
     }
   ]
 }

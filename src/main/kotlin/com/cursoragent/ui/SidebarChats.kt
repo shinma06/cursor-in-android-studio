@@ -139,3 +139,7 @@ internal fun archiveNeighbor(entries: List<RecentChatEntry>, current: RecentChat
     if (index < 0) return null
     return (entries.getOrNull(index + 1) ?: entries.getOrNull(index - 1))?.takeUnless { it.archived }
 }
+
+/** Prior means strictly older in the filtered list, independent of section visibility and paging. */
+internal fun priorArchiveCandidates(entries: List<RecentChatEntry>, beforeMs: Long, pinned: Set<RecentChatId>): List<RecentChatEntry> =
+    entries.filter { it.updatedMs < beforeMs && !it.archived && it.id !in pinned }.distinctBy { it.id }

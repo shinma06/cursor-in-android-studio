@@ -9,6 +9,18 @@ import java.time.ZonedDateTime
 
 class SidebarChatsTest {
     @Test
+    fun `prior archive uses strict timestamps and excludes pins archived and duplicate identities`() {
+        val older = hit("older", 9).entry
+        val legacy = older.copy(id = RecentChatId.LegacyPrint("older"))
+        val pinned = hit("pin", 1).entry
+        val candidates = listOf(hit("equal", 10).entry, hit("newer", 11).entry, older, older,
+            pinned, hit("archived", 1).entry.copy(archived = true), legacy)
+        assertEquals(listOf(older, legacy), priorArchiveCandidates(candidates, 10, setOf(pinned.id)))
+        assertEquals(listOf(legacy), priorArchiveCandidates(candidates, 10, setOf(pinned.id, older.id)))
+        assertTrue(priorArchiveCandidates(candidates, 0, emptySet()).isEmpty())
+    }
+
+    @Test
     fun `archive grouping wins over pins and header history has a separate collapsed section`() {
         val normal = hit("normal", now - 1)
         val archived = (1..8).map { hit("archive-$it", now + it).let { hit -> hit.copy(entry = hit.entry.copy(archived = true)) } }

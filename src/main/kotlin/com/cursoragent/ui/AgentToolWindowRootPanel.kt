@@ -328,6 +328,7 @@ class AgentToolWindowRootPanel(
                 valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebarVisible },
                 onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it, allowArchived = true) } },
                 onArchive = ::archiveChat,
+                onArchivePrior = ::archivePriorChats,
             )
             allChatsSidebar = view
             val header = JPanel(BorderLayout()).apply {
@@ -587,6 +588,55 @@ class AgentToolWindowRootPanel(
         }
         allChatsSidebar?.refreshOpenEntries()
         historyMenuView?.refreshOpenEntries()
+    }
+
+    private fun archivePriorChats(request: ChatArchivePriorRequest) {
+        val ticket = chatFocusGeneration
+        val properties = PropertiesComponent.getInstance(project)
+        fun current() = !disposed && !project.isDisposed && ticket == chatFocusGeneration && request.isCurrent() &&
+            properties.getList("CursorAgent.pinnedChats").orEmpty().mapNotNull(::pinnedChatId).toSet() == request.pinned
+        if (!current() || priorArchiveCandidates(request.candidates, request.anchor.updatedMs, request.pinned).isEmpty()) return
+        val store = project.getService(ConversationHistory::class.java)
+        // A closed row may have been saved/deleted since the menu opened. Re-read off EDT before stopping anything.
+        store.load { result -> SwingUtilities.invokeLater {
+            if (!current()) return@invokeLater
+            val loaded = result.getOrNull()
+            if (loaded == null || loaded.unreadable != 0) {
+                selectedView?.timeline?.showStatus("履歴を確認できなかったため、一括アーカイブしませんでした。")
+                return@invokeLater
+            }
+            val available = chatArchive.apply(availableChatEntries(openRecentEntries(),
+                loaded.conversations.filterNot { store.isDeleted(it.id) }, ChatHistoryState.getInstance(project).list()))
+            val anchor = available.firstOrNull { it.id == request.anchor.id } ?: return@invokeLater
+            if (anchor.updatedMs != request.anchor.updatedMs || !chatArchive.matches(request.anchor)) return@invokeLater
+            val requestedIds = request.candidates.map { it.id }.toSet()
+            val candidates = priorArchiveCandidates(searchSidebarChats(available, request.query)
+                .map { it.entry }.filter { it.id in requestedIds }, anchor.updatedMs, request.pinned)
+            val now = System.currentTimeMillis()
+            var failed = 0
+            var archived = 0
+            for (entry in candidates) {
+                if (!current()) break
+                if (!chatArchive.matches(entry) || entry.id is RecentChatId.Body && store.isDeleted(entry.id.id) ||
+                    entry.id is RecentChatId.LegacyPrint && ChatHistoryState.getInstance(project).list().none { it.chatId == entry.id.id }) continue
+                val target = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == entry.id } == true }
+                val view = target?.let { views[it.id] }
+                val live = chatArchive.apply(openRecentEntries()).firstOrNull { it.id == entry.id }
+                if (live != null && live.updatedMs != entry.updatedMs) continue
+                try { view?.controller?.stopRun() } catch (_: Exception) { failed++; continue }
+                if (!current()) break
+                // Stop may synchronously finish/close a run. Never apply its result to a replacement owner/run.
+                val after = target?.let { previous -> sessions.snapshot().tabs.firstOrNull { it.id == previous.id } }
+                if (target != null && (views[target.id] !== view || after == null || after.run != null && after.run != target.run)) continue
+                if (entry.id is RecentChatId.Body && store.isDeleted(entry.id.id) ||
+                    entry.id is RecentChatId.LegacyPrint && ChatHistoryState.getInstance(project).list().none { it.chatId == entry.id.id }) continue
+                if (chatArchive.set(entry, true, now)) archived++ else failed++
+            }
+            if (failed > 0 && !disposed && !project.isDisposed)
+                selectedView?.timeline?.showStatus("${archived}件をアーカイブしました。${failed}件は停止または状態更新に失敗したため保持しました。")
+            allChatsSidebar?.refreshOpenEntries()
+            historyMenuView?.refreshOpenEntries()
+        } }
     }
 
     private fun openAfterArchive(candidate: RecentChatEntry?, previousId: String) {

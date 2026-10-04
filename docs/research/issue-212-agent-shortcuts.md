@@ -207,9 +207,16 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 Pluginのglobal検索は通常候補だけの200件上限とし、ヘッダー履歴にpin・アーカイブ/復元・初期折り畳み区分を接続する。履歴メニューは各20件/More・部分一致・pin優先を使い、検索変更で追加件数を戻す。sidebarは既存の6件/Moreを使う。本文の検索/削除/書出しは履歴メニューの「保存した会話を検索…」から既存dialogへ進む。非modalメニューの所有とcloseは`PastChatsCoordinator`の同じ会話/世代へ紐づけ、連打や古いcloseで新しい表示要求を消費しない。表示時に同じActionの可視header buttonを解決し、SDKのpopup toggle componentへ登録する。globalキーから開いた場合も同じheader clickが閉鎖直後の再表示にならず、icon非表示ならtab stripを表示位置に使う。metadataはproject内の型付きIDと変更時刻を使い、検索/選択callback・pin変更時には現在値を照合する。古い結果/削除済み候補、IME中・非表示・破棄後の操作を拒否する。最近使用10件の補完と単一tabの履歴循環でも、本文とlegacyの重複統合後にアーカイブを除外する。
 
-アーカイブ時は該当controllerだけにStopを要求してqueueを一時停止する。sidebarの実行中候補は確認を挟み、確認中の対象/run/metadata/検索世代変更では停止・変更を中止する。表示中の会話がアーカイブ済みなら上記の全区分の隣へ移り、閉じた候補の本文を背景再読込みする。読込み後はowner/選択/世代/削除/区分を確認し、無効な候補は新しい会話へ進む。元owner/view/controller・draft/画像/queueと終了待ちtokenは保持する。ヘッダー履歴からの操作は表示中viewとpin metadataを保持し、sidebarからはpinを解除する。アーカイブ済みpinは有効75件の上限に含めない。復元だけでは表示選択や送信・queue再開を発生させない。アーカイブ済み会話を明示的に表示しても、復元を選ぶまで区分は維持する。未送信draftはproject寿命内の保持であり、IDE再起動保存の保証ではない。sidebarの一括archive、Cloud/Find with Agent、transient/editor-groupの表示、hover/配置/accessibilityは残る照合対象である。
+個別アーカイブ時は該当controllerだけにStopを要求してqueueを一時停止する。sidebarの実行中候補は確認を挟み、確認中の対象/run/metadata/検索世代変更では停止・変更を中止する。表示中の会話がアーカイブ済みなら上記の全区分の隣へ移り、閉じた候補の本文を背景再読込みする。読込み後はowner/選択/世代/削除/区分を確認し、無効な候補は新しい会話へ進む。元owner/view/controller・draft/画像/queueと終了待ちtokenは保持する。ヘッダー履歴からの操作は表示中viewとpin metadataを保持し、sidebarからはpinを解除する。アーカイブ済みpinは有効75件の上限に含めない。復元だけでは表示選択や送信・queue再開を発生させない。アーカイブ済み会話を明示的に表示しても、復元を選ぶまで区分は維持する。未送信draftはproject寿命内の保持であり、IDE再起動保存の保証ではない。Cloud/Find with Agent、transient/editor-groupの表示、hover/配置/accessibilityは残る照合対象である。
 
 [Cursor Agent概要](https://cursor.com/docs/agent/overview)と[JetBrainsの会話管理](https://www.jetbrains.com/help/ai-assistant/chat-mode.html)、[ACP連携](https://www.jetbrains.com/help/ai-assistant/acp.html)を比較入口とする。JetBrainsもproject別履歴の保持・過去会話の再開/削除を提供しており、履歴管理自体を独自機能とは呼ばない。強構成のIDE/MCP連携も維持する。今回の直接統合は、Plugin内の同じ会話ownerにStop/保留入力/Keymapの条件を適用し、ローカル区分変更で本文・provider再開条件を壊さない点にある。[Cursor SDK](https://cursor.com/docs/sdk/typescript)の`Agent.archive/unarchive`は別のagent/store APIであり、このfixed in-IDEのlocal IDや既存print/ACP会話との対応は未確認。新しいSDKへの転送・Cloudの同期や未確認のACP RPCを追加しない。GUIの同等以上判定、再起動後の保存済み本文/区分、OS/accessibilityは`KEYMAP-ALL-CHATS-ARCHIVE`で未確認として追う。
+
+
+sidebarの「これより前のチャットをアーカイブ」は、固定版の`iwS` context menu → `handleArchiveEarlierThan` → `GSS`を根拠とする。現在の検索済み全区分から、基準会話の更新時刻より厳密に古く、未アーカイブ・未pinの候補を選ぶ。折り畳み/Moreの非表示候補も含み、同時刻・新しい候補・検索対象外は除く。固定版のこのhandlerはlocal候補を停止要求して同じ時刻でarchive metadataを更新し、個別操作の確認dialog・pin解除・現在viewの移動は呼ばない。Cloud/linked backgroundの別処理はPluginのlocal runへ置換しない。section部品の「Archive All」は文字列と任意callbackだけでは現行sidebarからの到達を証明できず、同じ操作として追加しない。
+
+Pluginはsidebar行の右クリックと「…」からnative Action popupを開く。IDEの`ShowPopupMenu`はfocus先へのpopup triggerを使うため、既存Keymapの変更/解除を継承し、専用の固定キーや全体listenerを足さない。メニューは元の行・検索世代・pin集合を保持し、同じActionの再実行、IME、未読込み/失敗、非表示/破棄と選択変更を拒否する。実行時に保存履歴を背景再読込みし、現在のlive ownerを優先して候補を照合する。古い行から更新済み/削除済み本文をアーカイブせず、読込み中に対象範囲が変わったら停止前に中止する。成功対象のmetadataだけを変更し、停止失敗は保持して件数を表示する。現在view、pin、draft/画像/queue、終了待ちtokenを保持し、送信・本文削除・別runへの切替は行わない。
+
+根拠は上記固定sourceとSDKの`PopupHandler` / `ShowPopupMenuAction`、実list Action・履歴writer・controller/AgentRunを通る`ChatArchiveTest`と境界の`SidebarChatsTest`である。keyboard/右クリック/読み上げ・合成停止失敗・遅い保存/終了と再起動は`KEYMAP-ARCHIVE-PRIOR`の固定build GUIで確認する。JetBrainsの既存会話管理やCursor ACP連携との差は[比較基準](#根拠数え方比較)に沿って検証し、この接続を独自機能や全対象の受入完了とは呼ばない。
 
 ## 入力欄のEscapeと作業場所への復帰
 

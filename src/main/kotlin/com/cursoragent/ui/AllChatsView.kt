@@ -5,16 +5,24 @@ import com.cursoragent.history.ConversationStore
 import com.cursoragent.settings.ChatHistoryState
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.Component
 import java.awt.Point
 import java.awt.event.InputMethodEvent
 import java.awt.event.InputMethodListener
@@ -45,6 +53,14 @@ internal data class ChatArchiveRequest(
     val isCurrent: () -> Boolean,
 )
 
+internal data class ChatArchivePriorRequest(
+    val anchor: RecentChatEntry,
+    val candidates: List<RecentChatEntry>,
+    val query: String,
+    val pinned: Set<RecentChatId>,
+    val isCurrent: () -> Boolean,
+)
+
 /** Metadata-only views; the owning window reloads a selected body. */
 internal class AllChatsView(
     private val project: Project,
@@ -55,6 +71,7 @@ internal class AllChatsView(
     private val onChoose: (RecentChatId) -> Unit,
     private val onArchive: (ChatArchiveRequest) -> Unit,
     private val onManage: (() -> Unit)? = null,
+    private val onArchivePrior: ((ChatArchivePriorRequest) -> Unit)? = null,
 ) : JPanel(BorderLayout(0, JBUI.scale(4))), Disposable {
     private val pageSize = if (mode == ChatListMode.HISTORY) 20 else 6
     private val store = project.getService(ConversationHistory::class.java)
@@ -112,6 +129,11 @@ internal class AllChatsView(
     private val status = JLabel(" ")
     private val pinButton = JButton("一覧に固定").apply { addActionListener { togglePin() } }
     private val archiveButton = JButton("アーカイブ").apply { addActionListener { toggleArchive() } }
+    private val moreButton = JButton("…").apply {
+        accessibleContext.accessibleName = "選択したチャットのその他の操作"
+        toolTipText = "選択したチャットのその他の操作"
+        addActionListener { showChatMenu(this, 0, height) }
+    }
     private var renderedDate = LocalDate.now()
     private val dateRefresh = Timer(60_000) {
         if (mode == ChatListMode.SIDEBAR && !disposed && valid() && ready && !isComposing && LocalDate.now() != renderedDate) rebuildRows()
@@ -146,6 +168,7 @@ internal class AllChatsView(
                 if (mode != ChatListMode.QUICK_ACCESS) {
                     add(pinButton)
                     add(archiveButton)
+                    if (mode == ChatListMode.SIDEBAR && onArchivePrior != null) add(moreButton)
                 }
                 onManage?.let { manage -> add(JButton("保存した会話を検索…").apply {
                     addActionListener { if (!disposed && valid() && !isComposing) manage() }
@@ -185,6 +208,14 @@ internal class AllChatsView(
             override fun mouseClicked(event: MouseEvent) {
                 if (SwingUtilities.isLeftMouseButton(event) && list.selectedIndex >= 0 &&
                     list.getCellBounds(list.selectedIndex, list.selectedIndex)?.contains(event.point) == true) choose()
+            }
+        })
+        if (mode == ChatListMode.SIDEBAR && onArchivePrior != null) list.addMouseListener(object : PopupHandler() {
+            override fun invokePopup(component: Component, x: Int, y: Int) {
+                val index = list.locationToIndex(Point(x, y))
+                if (index < 0 || list.getCellBounds(index, index)?.contains(x, y) != true || model[index] !is AllChatRow.Chat) return
+                list.selectedIndex = index
+                showChatMenu(list, x, y)
             }
         })
     }
@@ -331,6 +362,7 @@ internal class AllChatsView(
         archiveButton.text = if (entry?.archived == true) "復元" else "アーカイブ"
         archiveButton.toolTipText = if (entry?.archived == true) "通常の一覧へ戻します。会話の送信は再開しません。" else "この会話の実行を停止し、本文を保持してアーカイブへ移します。"
         archiveButton.isEnabled = actionable && mode != ChatListMode.QUICK_ACCESS
+        moreButton.isEnabled = actionable && historyComplete && mode == ChatListMode.SIDEBAR && onArchivePrior != null
         if (mode == ChatListMode.QUICK_ACCESS) return
         val alreadyPinned = entry?.id in pinned
         val available = entries.filterNot { it.archived }.map { it.id }.toSet()
@@ -384,6 +416,37 @@ internal class AllChatsView(
         }
         navigationTarget = null
         refreshOpenEntries()
+    }
+
+    private fun showChatMenu(component: JComponent, x: Int, y: Int) {
+        val action = archivePriorAction() ?: return
+        ActionManager.getInstance().createActionPopupMenu("CursorAgent.ChatSidebar", DefaultActionGroup(action))
+            .component.show(component, x, y)
+    }
+
+    private fun archivePriorAction(): AnAction? {
+        val archivePrior = onArchivePrior ?: return null
+        if (mode != ChatListMode.SIDEBAR || disposed || !valid() || !ready || !historyComplete || isComposing || appliedQuery != search.text) return null
+        val anchor = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return null
+        if (!entryAvailable(anchor)) return null
+        val ticket = searchGeneration
+        val pins = readPins()
+        val request = ChatArchivePriorRequest(anchor, hits.map { it.entry }, appliedQuery, pins) {
+            !disposed && valid() && ready && historyComplete && !isComposing && ticket == searchGeneration &&
+                appliedQuery == search.text && readPins() == pins &&
+                (list.selectedValue as? AllChatRow.Chat)?.hit?.entry == anchor && entryAvailable(anchor)
+        }
+        return object : DumbAwareAction("これより前のチャットをアーカイブ", "検索結果のうち、この会話より古い未固定の会話を停止してアーカイブします。", null) {
+            private var used = false
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            override fun update(e: AnActionEvent) { e.presentation.isEnabled = !used && request.isCurrent() }
+            override fun actionPerformed(e: AnActionEvent) {
+                if (used || !request.isCurrent()) return
+                used = true
+                navigationTarget = null
+                archivePrior(request)
+            }
+        }
     }
 
     /** Hiding retains the query, rows and expansion state, but rejects every callback from the old display. */

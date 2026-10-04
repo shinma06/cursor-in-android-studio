@@ -32,6 +32,231 @@ class ChatArchiveTest {
     private fun entry(id: String = UUID.randomUUID().toString()) = RecentChatEntry(RecentChatId.Body(id), "Android Build", 10, AgentTransport.PRINT)
 
     @Test
+    fun `prior archive menu captures all search hits beyond collapsed pages and refuses stale replay`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("prior archive menu").fixture
+        fixture.setUp()
+        val properties = PropertiesComponent.getInstance(fixture.project)
+        val previousPins = properties.getList("CursorAgent.pinnedChats")
+        val anchor = entry().copy(updatedMs = System.currentTimeMillis())
+        val old = (1..14).map { entry().copy(updatedMs = it.toLong()) }
+        val unrelated = entry().copy(title = "Kotlin unrelated")
+        val requests = mutableListOf<ChatArchivePriorRequest>()
+        val views = mutableListOf<AllChatsView>()
+        var valid = true
+        fun searchNow(view: AllChatsView) {
+            lateinit var worker: Future<*>
+            runInEdtAndWait {
+                (get(view, "debounce") as Timer).stop()
+                invoke(view, "runSearch")
+                worker = get(view, "worker") as Future<*>
+            }
+            worker.get(10, TimeUnit.SECONDS)
+            SwingUtilities.invokeAndWait {}
+        }
+        fun action(view: AllChatsView) = invoke(view, "archivePriorAction") as? com.intellij.openapi.actionSystem.AnAction
+        fun perform(action: com.intellij.openapi.actionSystem.AnAction) = action.actionPerformed(
+            com.intellij.openapi.actionSystem.AnActionEvent.createFromAnAction(action, null, "test", com.intellij.openapi.actionSystem.DataContext.EMPTY_CONTEXT))
+        try {
+            runInEdtAndWait {
+                properties.setList("CursorAgent.pinnedChats", listOf(pinnedChatKey(old.first().id)))
+                for (mode in ChatListMode.entries) {
+                    views += AllChatsView(fixture.project, mode, { old + anchor + unrelated }, { anchor.id }, { valid }, {}, {},
+                        onArchivePrior = requests::add).apply {
+                        useLoadedHistory(com.cursoragent.history.ConversationStore.Loaded(emptyList(), 0))
+                        (get(this, "search") as SearchTextField).text = "Android"
+                    }
+                }
+            }
+            views.forEach(::searchNow)
+            val sidebar = views.first()
+            runInEdtAndWait {
+                views.drop(1).forEach { assertNull(action(it)); assertNull((get(it, "moreButton") as JButton).parent) }
+                val list = get(sidebar, "list") as JList<*>
+                assertTrue(list.mouseListeners.any { it is com.intellij.ui.PopupHandler }, "native ShowPopupMenu delivers its mouse trigger here")
+                @Suppress("UNCHECKED_CAST")
+                (get(sidebar, "collapsed") as MutableSet<ChatSection>).add(ChatSection.OLDER)
+                sidebar.javaClass.getDeclaredMethod("rebuildRows", SidebarChatTarget::class.java).apply { isAccessible = true }
+                    .invoke(sidebar, SidebarChatTarget.Chat(anchor.id))
+                assertEquals(2, (0 until list.model.size).count { list.model.getElementAt(it) is AllChatRow.Chat })
+                // Retained hits are authoritative even when only the anchor and pinned section remain visible.
+                val menu = requireNotNull(action(sidebar))
+                assertEquals(com.intellij.openapi.actionSystem.ActionUpdateThread.EDT, menu.actionUpdateThread)
+                perform(menu)
+                perform(menu)
+                assertEquals(1, requests.size)
+                assertEquals(15, requests.single().candidates.size, "all 14 older matches plus the anchor, not six rendered rows")
+                assertEquals(old.drop(1).map { it.id }.toSet(), priorArchiveCandidates(requests.single().candidates,
+                    anchor.updatedMs, requests.single().pinned).map { it.id }.toSet())
+                val stale = requireNotNull(action(sidebar))
+                properties.setList("CursorAgent.pinnedChats", emptyList())
+                assertFalse(requests.single().isCurrent())
+                perform(stale)
+                assertEquals(1, requests.size)
+                properties.setList("CursorAgent.pinnedChats", listOf(pinnedChatKey(old.first().id)))
+                val beforeQuery = requireNotNull(action(sidebar))
+                (get(sidebar, "search") as SearchTextField).text = "Kotlin"
+                perform(beforeQuery)
+                assertNull(action(sidebar))
+                assertEquals(1, requests.size)
+                (get(sidebar, "search") as SearchTextField).text = "Android"
+            }
+            searchNow(sidebar)
+            runInEdtAndWait {
+                val beforeIme = requireNotNull(action(sidebar))
+                field(sidebar, "isComposing").set(sidebar, true)
+                perform(beforeIme)
+                assertNull(action(sidebar))
+                field(sidebar, "isComposing").set(sidebar, false)
+                valid = false
+                perform(beforeIme)
+                valid = true
+                sidebar.suspendUpdates()
+                perform(beforeIme)
+                sidebar.dispose()
+                perform(beforeIme)
+                assertEquals(1, requests.size)
+            }
+        } finally {
+            runInEdtAndWait {
+                views.forEach(AllChatsView::dispose)
+                if (previousPins == null) properties.unsetValue("CursorAgent.pinnedChats") else properties.setList("CursorAgent.pinnedChats", previousPins)
+                fixture.tearDown()
+            }
+        }
+    }
+
+    @Test
+    fun `prior archive rereads history and preserves active owner draft queue and failed targets`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("prior archive owner").fixture
+        fixture.setUp()
+        val settings = AgentSettingsState.getInstance()
+        val executable = settings.agentExecutablePath
+        settings.agentExecutablePath = java.nio.file.Path.of(fixture.project.basePath!!, "missing-prior-agent-${UUID.randomUUID()}").toString()
+        val properties = PropertiesComponent.getInstance(fixture.project)
+        val previousPins = properties.getList("CursorAgent.pinnedChats")
+        val store = fixture.project.getService(com.cursoragent.history.ConversationHistory::class.java)
+        val saved = com.cursoragent.history.Conversation(updatedMs = 5)
+        val keys = mutableListOf<String>()
+        val metadata = mutableListOf<Future<*>>()
+        var root: AgentToolWindowRootPanel? = null
+        lateinit var request: ChatArchivePriorRequest
+        lateinit var state: ChatArchiveState
+        lateinit var sessions: SessionTabs
+        lateinit var composer: ComposerPanel
+        lateinit var queue: PromptQueue
+        lateinit var run: AgentRun
+        lateinit var target: com.cursoragent.session.SessionTab
+        lateinit var entries: List<RecentChatEntry>
+        var stops = 0
+        var failedStops = 0
+        var valid = true
+        var previousDialog: TestDialog? = null
+        fun drain() {
+            val completed = java.util.concurrent.CompletableFuture<Unit>()
+            store.load { completed.complete(Unit) }
+            completed.get(10, TimeUnit.SECONDS)
+            SwingUtilities.invokeAndWait {}
+        }
+        fun archive() = root!!.javaClass.getDeclaredMethod("archivePriorChats", ChatArchivePriorRequest::class.java)
+            .apply { isAccessible = true }.invoke(root, request)
+        try {
+            runInEdtAndWait {
+                val panel = AgentToolWindowRootPanel(fixture.project) {}
+                root = panel
+                sessions = get(panel, "sessions") as SessionTabs
+                val views = get(panel, "views") as Map<*, *>
+                fun show() = panel.javaClass.getDeclaredMethod("showSelected", com.cursoragent.history.Conversation::class.java,
+                    Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(panel, null, false)
+                fun controller() = get(views[sessions.snapshot().selectedId]!!, "controller") as AgentUiController
+                fun time(value: Long) {
+                    val recorder = get(controller(), "recorder") as com.cursoragent.history.ConversationRecorder
+                    recorder.conversation = recorder.conversation.copy(updatedMs = value)
+                }
+                target = sessions.snapshot().selected
+                time(10)
+                val firstView = views[target.id]!!
+                val first = controller()
+                composer = get(firstView, "composer") as ComposerPanel
+                composer.inputArea.text = "keep this draft"
+                queue = get(first, "queue") as PromptQueue
+                queue.add("queued", AgentMode.PLAN, "exact-model")
+                sessions.updateComposer(target.id, AgentMode.AGENT, "model", "run", 0)
+                val token = sessions.beginTurn(target.id)!!.token
+                run = AgentRun(object : AgentProcessListener {
+                    override fun onStopped() { sessions.finishTurn(token) }
+                }).apply { attachCancellation { stops++ } }
+                field(first, "activeRun").set(first, run)
+                sessions.open(); show(); time(20)
+                val pinnedId = RecentChatId.Body(sessions.snapshot().selected.conversationId)
+                sessions.open(); show(); time(30)
+                field(controller(), "activeRun").set(controller(), AgentRun(object : AgentProcessListener {}).apply {
+                    attachCancellation { failedStops++; throw java.io.IOException("synthetic stop failure") }
+                })
+                sessions.open(); show(); time(100)
+                val anchorId = RecentChatId.Body(sessions.snapshot().selected.conversationId)
+                sessions.open(); show(); time(100)
+                sessions.select(target.id); show()
+                state = ChatArchiveState(properties)
+                entries = (invoke(panel, "openRecentEntries") as List<*>).filterIsInstance<RecentChatEntry>()
+                properties.setList("CursorAgent.pinnedChats", listOf(pinnedChatKey(pinnedId)))
+                request = ChatArchivePriorRequest(entries.first { it.id == anchorId }, entries + RecentChatEntry(RecentChatId.Body(saved.id), "saved", 5, AgentTransport.PRINT),
+                    "", setOf(pinnedId)) { valid }
+                keys += request.candidates.map { "CursorAgent.chatArchive." + pinnedChatKey(it.id) }
+                // The disk writer must flush a newer closed body before the bulk action chooses its targets.
+                store.save(saved.copy(updatedMs = 101)) {}
+                archive()
+                valid = false
+            }
+            drain()
+            runInEdtAndWait {
+                assertEquals(0, stops, "late load does not stop anything after the originating menu is invalid")
+                valid = true
+                archive()
+                properties.setList("CursorAgent.pinnedChats", emptyList())
+            }
+            drain()
+            runInEdtAndWait {
+                assertEquals(0, stops, "pin changes while loading invalidate the whole request")
+                properties.setList("CursorAgent.pinnedChats", request.pinned.map(::pinnedChatKey))
+                previousDialog = TestDialogManager.setTestDialog { fail("bulk archive does not use the per-chat confirmation") }
+                archive()
+            }
+            drain()
+            runInEdtAndWait {
+                assertEquals(1, stops)
+                assertEquals(1, failedStops)
+                assertEquals(listOf(10L), entries.filter { state.apply(it).archived }.map { it.updatedMs })
+                assertFalse(state.apply(request.candidates.last()).archived, "the newer disk body is not archived from its old row timestamp")
+                assertEquals(target.id, sessions.snapshot().selectedId, "bulk archive keeps the current view")
+                assertEquals("keep this draft", composer.inputArea.text)
+                assertEquals(listOf("queued"), queue.snapshot().map { it.text })
+                assertTrue(queue.paused)
+                assertNotNull(sessions.snapshot().selected.run, "requesting Stop does not release run ownership")
+                run.complete(0)
+                assertNull(sessions.snapshot().selected.run)
+                assertEquals(target.id, sessions.snapshot().selectedId)
+                assertEquals(request.pinned.map(::pinnedChatKey), properties.getList("CursorAgent.pinnedChats"))
+                val views = get(root!!, "views") as Map<*, *>
+                views.values.filterNotNull().forEach {
+                    (get(get(get(it, "controller")!!, "modelLoader")!!, "pending") as Future<*>?)?.let(metadata::add)
+                }
+            }
+        } finally {
+            metadata.forEach { it.get(10, TimeUnit.SECONDS) }
+            store.delete(saved.id) {}
+            drain()
+            runInEdtAndWait {
+                previousDialog?.let(TestDialogManager::setTestDialog)
+                root?.dispose()
+                keys.forEach(properties::unsetValue)
+                if (previousPins == null) properties.unsetValue("CursorAgent.pinnedChats") else properties.setList("CursorAgent.pinnedChats", previousPins)
+            }
+            settings.agentExecutablePath = executable
+            runInEdtAndWait { fixture.tearDown() }
+        }
+    }
+
+    @Test
     fun `archive metadata roundtrips independently of bodies pins and legacy namespaces`() {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("archive metadata").fixture
         fixture.setUp()
