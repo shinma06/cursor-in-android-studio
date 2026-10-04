@@ -43,6 +43,6 @@ internal class ChatFocusReturn(
                 it.contentManagerIfCreated?.contentCount?.let { count -> count > 0 } != true
         } else null
         // Do not initialize an empty Terminal or start a replacement process just to return focus.
-        if (target != null) target.activate(null, false) else activateEditor()
+        if (target != null) target.activate(null, true) else activateEditor()
     }
 }

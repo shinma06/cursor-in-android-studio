@@ -103,7 +103,12 @@ class ChatFocusReturnTest {
                 "isDisposed" -> disposed
                 "isAvailable" -> available
                 "getContentManagerIfCreated" -> if (contentCreated) contents else null
-                "activate" -> { assertNull(args!![0]); assertEquals(false, args[1]); activations++; null }
+                "activate" -> {
+                    assertNull(args!![0])
+                    assertEquals(true, args[1], "returning to Terminal must also focus its content")
+                    activations++
+                    null
+                }
                 else -> error("Unexpected ToolWindow call: ${method.name}")
             }
         } as ToolWindow
