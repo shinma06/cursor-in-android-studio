@@ -1,5 +1,6 @@
 package com.cursoragent.ui.composer.context
 
+import com.cursoragent.ui.composer.mention.Mention
 import com.intellij.codeInsight.editorActions.CopyPastePostProcessor
 import com.intellij.codeInsight.editorActions.TextBlockTransferableData
 import com.intellij.openapi.editor.Editor
@@ -17,8 +18,17 @@ class ClipboardContextData internal constructor(
     val text: String,
     selections: List<SelectionContext> = emptyList(),
     val terminal: TerminalContext? = null,
+    val mention: Mention? = null,
+    val copiedAttachment: Boolean = false,
 ) : TextBlockTransferableData {
     val selections = selections.toList()
+
+    internal val sourceText: String
+        get() = if (copiedAttachment) {
+            selections.singleOrNull()?.label ?: terminal?.label ?: mention?.displayLabel.orEmpty()
+        } else {
+            terminal?.text ?: selections.joinToString("\n") { it.text }
+        }
 
     override fun getFlavor(): DataFlavor = FLAVOR
 
@@ -63,9 +73,12 @@ internal fun clipboardContext(value: Transferable, project: Project): ClipboardC
         val text = value.getTransferData(DataFlavor.stringFlavor) as? String
         data?.takeIf {
             text != null && it.projectLocation == project.locationHash &&
-                normalizedClipboardText(text).contains('\n') && normalizedClipboardText(text) == normalizedClipboardText(it.text) &&
-                (it.selections.isNotEmpty() != (it.terminal != null)) &&
-                normalizedClipboardText(it.terminal?.text ?: it.selections.joinToString("\n") { selection -> selection.text }) == normalizedClipboardText(it.text) &&
+                (it.copiedAttachment || normalizedClipboardText(text).contains('\n')) &&
+                normalizedClipboardText(text) == normalizedClipboardText(it.text) &&
+                listOf(it.selections.isNotEmpty(), it.terminal != null, it.mention != null).count { present -> present } == 1 &&
+                (!it.copiedAttachment || it.selections.size <= 1) &&
+                (it.mention == null || it.copiedAttachment && it.mention.insertToken.isNotBlank() && it.mention.displayLabel.isNotBlank()) &&
+                normalizedClipboardText(it.sourceText) == normalizedClipboardText(it.text) &&
                 it.selections.all(EditorContextReader::isCurrent)
         }
     }

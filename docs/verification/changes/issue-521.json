@@ -311,6 +311,50 @@
         "https://github.com/shinma06/cursor-in-android-studio/issues/521",
         "https://github.com/shinma06/cursor-in-android-studio/issues/212"
       ]
+    },
+    {
+      "id": "PASTE-521-RICH",
+      "issue": 521,
+      "change": "添付行のnative Copy・ボタンと別会話への型付き再貼付け",
+      "preconditions": "指定GUI担当・host lease・使い捨てproject/制御fixtureを用意し、#521を含む固定候補SHA/ZIP SHA-256/ロードJAR/Rabbit SDK・JBRを照合する。OS/JIS配列/IME/Keymap/Terminal有無を記録する。",
+      "steps": [
+        "コード（単一行/複数行）、Terminal snapshot、空白/日本語pathを含むfile/folder、git/branch/Terminal/Docs/Webの型付き参照を添付する。行内のpreview/変更/削除/コピーbuttonへfocusし、IDE標準Copy（初期Cmd/Ctrl+CおよびKeymap変更後）と「コピー」buttonの両方を使う。",
+        "別会話へ通常pasteし、出典・範囲・本文・mention kind/完全な参照identityを照合する。plain pasteでは表示名だけになり、元の添付/他の本文が変わらないことを確認する。",
+        "コピー後に元添付を削除・元コードを変更・元Terminalを閉鎖する。新しいpasteと受理済み予約snapshotを分けて確認する。別project、clipboard history、外部アプリやCursorのrich clipboardを試す。"
+      ],
+      "expected": "同一projectの自前添付はsnapshot/型付き参照として再追加でき、単一行でもcontextを失わない。plainは表示名だけ。コード変更stampの検証を迂回せず、不明/別project/外部richはnative本文になる。Terminalの受理済み本文は後続出力/閉鎖で置換しない。native CopyのKeymapと行内focus、スクリーンリーダーの対象識別を保持する。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "固定buildの実GUI未実施。native Actionの隔離fixture成功を実機passに代用しない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗を専用修正Issue/PRへ記録し、新しい固定候補で本Caseと関連Caseを再確認する。",
+      "next_action": "PMが固定候補と指定GUI担当を手配する。未実装受入と独立reviewを照合し、develop統合時に全Caseとmain追跡をQAへ双方向移譲する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/521",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ]
     }
   ]
 }

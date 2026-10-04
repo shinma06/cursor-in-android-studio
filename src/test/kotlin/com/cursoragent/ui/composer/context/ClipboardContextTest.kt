@@ -1,6 +1,9 @@
 package com.cursoragent.ui.composer.context
 
 import com.cursoragent.ui.composer.ComposerPanel
+import com.cursoragent.ui.composer.mention.Mention
+import com.cursoragent.ui.composer.mention.MentionKind
+import com.intellij.openapi.actionSystem.impl.Utils
 import com.intellij.codeInsight.editorActions.CopyHandler
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUiKind
@@ -34,6 +37,9 @@ import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
 import java.lang.reflect.Proxy
+import java.awt.Container
+import javax.swing.JButton
+import javax.swing.JScrollPane
 import java.awt.event.InputMethodEvent
 import java.awt.image.BufferedImage
 import java.text.AttributedString
@@ -74,10 +80,14 @@ class ClipboardContextTest {
             assertEquals(listOf("first", "日本語 second"), ranges.map { it.text })
             assertEquals(listOf(1, 2), ranges.map { it.startLine })
             editor.caretModel.removeSecondaryCarets()
+            val rich = ClipboardContextData(project.locationHash, ranges.first().label, listOf(ranges.first()), copiedAttachment = true)
+            val richValue = ContextTransferable(StringSelection(rich.text), rich)
+            assertEquals(listOf(ranges.first()), requireNotNull(clipboardContext(richValue, project)).selections)
             val draft = PromptContextDraft().apply { add(copied.selections.single()) }
             val queued = draft.snapshot(EditorContextReader::isCurrent)
             WriteCommandAction.runWriteCommandAction(project) { document.insertString(0, "changed ") }
             assertNull(clipboardContext(transfer, project), "new paste cannot silently attach a changed file")
+            assertNull(clipboardContext(richValue, project), "copying a chip must not bypass source validation")
             assertEquals(copied.text, queued.selections.single().text, "accepted queue context remains its own snapshot")
             assertEquals(copied.text, transfer.getTransferData(DataFlavor.stringFlavor))
             assertThrows(IllegalArgumentException::class.java) { draft.snapshot(EditorContextReader::isCurrent) }
@@ -181,6 +191,55 @@ class ClipboardContextTest {
             EditorFactory.getInstance().releaseEditor(ordinary)
             Disposer.dispose(lifetime)
         }
+    }
+
+    @Test
+    fun `copied attachment preserves typed mention and terminal across chats with native Copy and plain label fallback`() = withFixture { project, clipboard ->
+        val lifetime = Disposer.newDisposable()
+        val source = ComposerPanel(project)
+        val destination = ComposerPanel(project)
+        source.inputArea.setDisposedWith(lifetime)
+        destination.inputArea.setDisposedWith(lifetime)
+        try {
+            val mention = Mention(MentionKind.FILE, "日本語 file.kt", "folder/日本語 file.kt")
+            val terminal = TerminalContext("rich-copy", "Build", 1, 1, "single line output")
+            source.promptContext.addMention(mention)
+            source.promptContext.addTerminal(terminal)
+            val rows = source.promptContext.components.filterIsInstance<JScrollPane>().single().viewport.view as Container
+            val sourceRows = rows.components.filterIsInstance<Container>()
+            val nativeCopy = requireNotNull(ActionManager.getInstance().getAction("\$Copy"))
+            val row = sourceRows.first()
+            // Native action dispatch snapshots UiDataProvider before executing Copy.
+            val copyEvent = AnActionEvent(Utils.createAsyncDataContext(row), nativeCopy.templatePresentation.clone(),
+                "test", ActionUiKind.NONE, null, 0, ActionManager.getInstance())
+            assertNotNull(copyEvent.getData(PlatformDataKeys.COPY_PROVIDER), "attachment row must expose the native Copy provider")
+            ActionUtil.performAction(nativeCopy, copyEvent)
+            assertEquals(mention.displayLabel, clipboard.contents!!.getTransferData(DataFlavor.stringFlavor))
+            assertEquals(mention, requireNotNull(clipboardContext(clipboard.contents!!, project)).mention)
+            val editor = requireNotNull(destination.inputArea.getEditor(true))
+            val paste = requireNotNull(ActionManager.getInstance().getAction("EditorPaste"))
+            paste.actionPerformed(event(paste, project, editor))
+            assertEquals(listOf(mention), destination.promptContext.snapshot().mentions)
+            assertEquals("", destination.inputArea.text)
+            val plain = requireNotNull(ActionManager.getInstance().getAction("CursorAgent.PastePlain"))
+            plain.actionPerformed(event(plain, project, editor))
+            assertEquals(mention.displayLabel, destination.inputArea.text)
+            assertEquals(listOf(mention), destination.promptContext.snapshot().mentions)
+
+            val terminalCopy = sourceRows.last().components.filterIsInstance<Container>()
+                .flatMap { it.components.filterIsInstance<JButton>() }.single { it.text == "コピー" }
+            terminalCopy.doClick()
+            source.promptContext.clearExplicit()
+            paste.actionPerformed(event(paste, project, editor))
+            assertEquals(listOf(terminal), destination.promptContext.snapshot().terminals)
+            assertEquals(mention.displayLabel, destination.inputArea.text)
+            val queued = destination.promptContext.snapshot()
+            val destinationRows = destination.promptContext.components.filterIsInstance<JScrollPane>().single().viewport.view as Container
+            destinationRows.components.filterIsInstance<Container>().last().components.filterIsInstance<Container>()
+                .flatMap { it.components.filterIsInstance<JButton>() }.single { it.text == "×" }.doClick()
+            assertTrue(destination.promptContext.snapshot().terminals.isEmpty())
+            assertEquals(listOf(terminal), queued.terminals)
+        } finally { Disposer.dispose(lifetime) }
     }
 
     @Test
