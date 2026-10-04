@@ -17,6 +17,20 @@ import javax.swing.KeyStroke
 
 class RecentChatsTest {
     @Test
+    fun `archived visits cannot consume the MRU cap or resurface as legacy aliases`() {
+        val saved = (1..15).map { conversation("$it", it.toLong()).copy(providerId = "provider-$it") }
+        val merged = availableChatEntries(emptyList(), saved, listOf(ChatHistoryRecord("provider-15", "legacy", 999)))
+            .map { it.copy(archived = it.updatedMs >= 12) }
+        val visits = merged.sortedByDescending { it.updatedMs }.map { it.id }
+        val recent = recentChatEntries(visits, merged)
+        assertEquals((11 downTo 2).map { RecentChatId.Body("$it") }, recent.map { it.id })
+        assertEquals(RecentChatId.Body("1"), adjacentSavedChat(merged, RecentChatId.Body("11"), true))
+        assertEquals(RecentChatId.Body("11"), adjacentSavedChat(merged, RecentChatId.Body("1"), false))
+        assertNull(adjacentSavedChat(merged, RecentChatId.Body("15"), false))
+        assertEquals(15, searchAllChats(merged, "").size, "All Agents still exposes archived metadata")
+    }
+
+    @Test
     fun `visit order is distinct from tab order bounded and detached`() {
         val visits = RecentChatVisits()
         val ids = (0..11).map { RecentChatId.Body("chat-$it") }

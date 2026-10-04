@@ -187,17 +187,27 @@ All Agentsは固定版の`workbench.action.openAgentsView` / `chat:` providerを
 
 sidebar表示中のM+A+左右は選択中chatから前後の表示候補（会話・More）をhighlightし、端で止まる。見出しと折り畳んだ区分の会話/Moreはnavigation候補から除く。Control/Metaの両方が離れた時に確定し、Altだけの解放では開かない。変更済みKeymapでControl/Metaを使わない場合は設定した修飾キーへ従い、複数strokeはEnterで確定する。Esc、root外へのfocus移動、window blur、非表示/破棄は取消。子入力のkeyupを受けるdispatcherはnavigation中だけ登録し、対象root内だけで処理して全終了経路で解除する。最近使用popupの解放方式とは分離する。候補選択は既存の会話を保持して対象を開くため、暗黙の送信・Stop・既存tab置換はしない。
 
-固定版sidebarのpin・日付section・折り畳み・Moreを下記のlocal候補へ接続する。Archived/復元、Cloud候補、検索語からのFind with Agent、transient/editor-groupへの表示は未接続/未確定として全対象照合に残す。公開されたCloud取得/操作契約や既存能力を確認せず、local background実行と同じものにしない。ソース根拠は固定版のproviderの候補除外/重複統合/検索上限、sidebarのnavigation候補と確定handler、SDK native matcher/popup/splitter。実GUIは未実施。
+固定版sidebarのpin・日付section・折り畳み・Moreを下記のlocal候補へ接続する。Archived/復元は下記のproject内metadataへ接続した。Cloud候補、検索語からのFind with Agent、transient/editor-groupへの表示は未接続/未確定として全対象照合に残す。公開されたCloud取得/操作契約や既存能力を確認せず、local background実行と同じものにしない。ソース根拠は固定版のproviderの候補除外/重複統合/検索上限、sidebarのnavigation候補と確定handler、SDK native matcher/popup/splitter。実GUIは未実施。
 
 local候補は固定したチャット、今日、昨日、過去7日間、過去30日間、それ以前の区分へ分ける。固定候補は日付区分と重複させず、区分内は更新日時降順。今日/昨日はlocal calendar、7/30日の境界は経過時間を使い、DSTでも「昨日」を24時間差と同一視しない。1分ごとにlocal日付の変更を確認して区分を再評価する。日付が同じ間は再描画でscroll位置を戻さない。空区分を表示せず、各区分は初期6件・Moreごとに6件追加する。Moreの確定では会話を開かず、追加された候補を表示する。表示切替では同じviewを保持し、検索語・追加表示件数・scroll位置を戻す。表示件数はIDE再起動等でcontentを作り直した時に6件へ戻る。折り畳み状態とpinはproject単位で保存し、区分見出しのクリック/Enterと「一覧に固定 / 固定を解除」で変更する。
 
 固定版の`xQt`は通常の`setUnifiedSidebarHidden`でgridの可視状態だけを変更し、rendererを破棄しない。layout mode切替やpartのdisposeでは破棄する。Pluginもsidebarの有無をviewの生存と分け、非表示時は読込み/検索の世代を無効にしてworkerと日付timerを止める。同じviewで再表示する時は新しい履歴を読み、旧表示のcallbackを反映しない。非表示中のsidebar IME状態は他の入口/履歴循環を妨げない。内容の保持と実scroll復元は固定build GUIで照合する。
 
-pinは固定版の有効候補75件上限に合わせる。削除済み等の現在存在しないIDは上限に数えず、残るpin metadataから本文や空会話を生成しない。本文UUIDと旧print provider IDを区別した保存値を使い、名前から同一会話を推測しない。履歴読込み失敗/不明候補がある間は新規pinを無効にし、既存pinの解除は可能にする。未保存draftをpinすることは本文保存やIDE再起動復元の保証ではない。pin/折り畳み/MoreでStop・送信・履歴削除は発生しない。根拠は固定版の`SGn` / `o4p` / `TQt=6` / `expandMore` / `I4p`とpin storageの75件判定。editor sticky同期とArchivedの扱いはP07/残作業に残し、固定buildのkeyboard/scroll/accessibilityと再起動での状態保持はGUI Caseで確認する。
+pinは固定版の有効候補75件上限に合わせる。削除済み等の現在存在しないIDは上限に数えず、残るpin metadataから本文や空会話を生成しない。本文UUIDと旧print provider IDを区別した保存値を使い、名前から同一会話を推測しない。履歴読込み失敗/不明候補がある間は新規pinを無効にし、既存pinの解除は可能にする。未保存draftをpinすることは本文保存やIDE再起動復元の保証ではない。pin/折り畳み/MoreでStop・送信・履歴削除は発生しない。根拠は固定版の`SGn` / `o4p` / `TQt=6` / `expandMore` / `I4p`とpin storageの75件判定。editor sticky同期はP07/残作業に残し、Archivedは下記の別区分として扱う。固定buildのkeyboard/scroll/accessibilityと再起動での状態保持はGUI Caseで確認する。
 
 1. 固定版Keyboard Shortcutsと入力/各popupを全件照合し、43登録行・17入力群・未確定共有/公式候補の所属、OS、focus、mode条件を確定する。
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
 3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用19 Actionとglobal8 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
+
+## All Agentsのアーカイブと復元
+
+2026-10-05に上記固定版のlocal経路を確認した。`KKb` providerは`isArchived`で通常/Archivedを分離し、localのarchive handlerは対象`cancelChat`と`isArchived=true`/更新日時を設定する。restore handlerはflag/更新日時だけを戻す。pickerからの会話表示自体は復元を意味しない。sidebarのlocal cardはpin解除を伴い、選択中の場合は次の会話を選ぶか新規会話を作成して元viewを閉じる。Cloudのprivate RPCとは別経路であり、Pluginはこれを呼ばない。
+
+PluginはAll Agentsの下部に「アーカイブ」/「復元」を置き、初期は折り畳んだ「アーカイブ済み」区分へ接続する。sidebarは既存の6件/More、popupは通常/アーカイブを個別に検索して各200件まで表示する。固定版popupの区分ごとの20件追加表示とは異なり、追加表示単位と配置/hover操作の同等性はGUIで未確認。本文の削除/書出しは既存履歴の操作として残す。metadataはproject内の型付きIDと変更時刻を使い、検索/選択callback・pin変更時には現在値を照合する。古い検索結果や削除済み候補からの変更、IME中・非表示・破棄後の操作を拒否する。最近使用10件の補完と単一tabの履歴循環では、本文とlegacyの重複統合後にアーカイブを除外する。
+
+アーカイブ時は該当controllerだけにStopを要求してqueueを一時停止する。sidebarで選択中の場合、Pluginは隣のvisible tab、なければ空tabへ移り、元owner/view/controller・draft/画像/queueと終了待ちtokenを保持する。固定版のsidebar候補からの次会話選択とは差があり、画面上の移動先をCaseで比較する。popupからのアーカイブは表示中viewとpin metadataを保持し、sidebarからはpinを解除する。アーカイブ済みpinは有効75件の上限に含めない。復元だけでは表示選択や送信・queue再開を発生させない。アーカイブ済み会話を明示的に表示しても、復元を選ぶまで区分は維持する。未送信draftはproject寿命内の保持であり、IDE再起動保存の保証ではない。
+
+[Cursor Agent概要](https://cursor.com/docs/agent/overview)と[JetBrainsの会話管理](https://www.jetbrains.com/help/ai-assistant/chat-mode.html)、[ACP連携](https://www.jetbrains.com/help/ai-assistant/acp.html)を比較入口とする。JetBrainsもproject別履歴の保持・過去会話の再開/削除を提供しており、履歴管理自体を独自機能とは呼ばない。強構成のIDE/MCP連携も維持する。今回の直接統合は、Plugin内の同じ会話ownerにStop/保留入力/Keymapの条件を適用し、ローカル区分変更で本文・provider再開条件を壊さない点にある。[Cursor SDK](https://cursor.com/docs/sdk/typescript)の`Agent.archive/unarchive`は別のagent/store APIであり、このfixed in-IDEのlocal IDや既存print/ACP会話との対応は未確認。新しいSDKへの転送・Cloudの同期や未確認のACP RPCを追加しない。GUIの同等以上判定、再起動後の保存済み本文/区分、OS/accessibilityは`KEYMAP-ALL-CHATS-ARCHIVE`で未確認として追う。
 
 ## 入力欄のEscapeと作業場所への復帰
 
@@ -290,7 +300,7 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 
 対象は選択中会話の入力欄かtimeline内のfocus。非空draft、command/画像、import中、予約編集、入力不可、IME/候補/子popup、失効token・破棄後は実行しない。Enterではfocus中のnative buttonを置き換えず、Space/ボタンの既存操作を保つ。送信とfocus解除は同じ入力componentで候補を集め、tool確認の現在のKeymapと一致し、かつ返信可能な時だけ譲る。キー解除/再割当で元操作へ戻り、複数strokeの先頭もKeymapに従う。承認/拒否後の長押しは既存の一時dispatcherで解放まで消費し、後続要求・送信・改行・focus解除へ流さない。返信そのものは既存card/buttonと一度だけのrequest処理を使い、全runを止めない。
 
-`ToolReviewShortcutsTest`は実Composer/native Editor・timeline・requestで空入力/添付/予約編集/IME/入力再生成、曖昧・古いカード・別focus、Keymap変更/解除と通常送信/解除との優先を確認する。`RequestShortcutsTest`の実listener/tokenによる失効試験とキー解放試験も維持する。native画面の優先・OS配送・accessibilityは`KEYMAP-TOOL-REVIEW`で未GUIとして追う。CursorのShift+Enterはallowlist候補/設定変更も扱う別操作で、ACPの`allow_always`と同一視せず未接続に残す。group/notificationもこの2 Actionで実装済みとはしない。
+`ToolReviewShortcutsTest`は実Composer/native Editor・timeline・requestで空入力/添付/予約編集/IME/入力再生成、曖昧・古いカード・別focus、Keymap変更/解除と通常送信/解除との優先を確認する。`RequestShortcutsTest`の実listener/tokenによる失効試験と、`ToolReviewShortcutsTest`のキー解放試験も維持する。native画面の優先・OS配送・accessibilityは`KEYMAP-TOOL-REVIEW`で未GUIとして追う。CursorのShift+Enterはallowlist候補/設定変更も扱う別操作で、ACPの`allow_always`と同一視せず未接続に残す。group/notificationもこの2 Actionで実装済みとはしない。
 
 `RequestShortcutsTest`は実カード/ボタン・timeline・turn listenerと実SessionTabs tokenで、一意/曖昧/focus失効、返信の一度性、質問選択、Stop/close/token更新/project破棄/terminal後の拒否、設定/OSとキー解放を検証する。`AgentPanelActionTest`と`ComposerSubmissionTest`はAction/XMLと入力componentへの登録/破棄時解除を確認する。これは合成入力のCLI検証であり、固定版Cursorや[JetBrains ACPの承認UI](https://www.jetbrains.com/help/ai-assistant/acp.html)と実GUIを比較した合格ではない。直接IDE統合の追加価値は、同じ会話ownerとIDE Keymapから既存の提示済み要求へ返信する接続にある。
 

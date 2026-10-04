@@ -43,14 +43,17 @@ internal class AllChatsView(
     private val selectedId: () -> RecentChatId?,
     private val valid: () -> Boolean,
     private val onChoose: (RecentChatId) -> Unit,
+    private val onArchive: (RecentChatEntry) -> Unit,
 ) : JPanel(BorderLayout(0, JBUI.scale(4))), Disposable {
     private val limit = if (quickAccess) 200 else Int.MAX_VALUE
     private val store = project.getService(ConversationHistory::class.java)
     private val search = SearchTextField()
     private val properties by lazy { PropertiesComponent.getInstance(project) }
-    private var pinned = if (quickAccess) emptySet() else properties.getList("CursorAgent.pinnedChats").orEmpty().mapNotNull(::pinnedChatId).toSet()
-    private val collapsed = if (quickAccess) mutableSetOf() else ChatSection.entries.filter {
-        properties.getBoolean("CursorAgent.chatSection.${it.key}.collapsed", false)
+    private val archive by lazy { ChatArchiveState(properties) }
+    private fun readPins() = properties.getList("CursorAgent.pinnedChats").orEmpty().mapNotNull(::pinnedChatId).toSet()
+    private var pinned = readPins()
+    private val collapsed = if (quickAccess) mutableSetOf(ChatSection.ARCHIVED) else ChatSection.entries.filter {
+        properties.getBoolean("CursorAgent.chatSection.${it.key}.collapsed", it == ChatSection.ARCHIVED)
     }.toMutableSet()
     private val sectionLimits = mutableMapOf<ChatSection, Int>()
     private val model = DefaultListModel<AllChatRow>()
@@ -66,7 +69,7 @@ internal class AllChatsView(
                     is AllChatRow.Chat -> value.hit.entry.title
                     null -> null
                 }
-                accessibleContext.accessibleName = toolTipText
+                getAccessibleContext().accessibleName = toolTipText
                 val hit = when (value) {
                     is AllChatRow.Chat -> value.hit
                     is AllChatRow.Section -> {
@@ -97,6 +100,7 @@ internal class AllChatsView(
     private var suspendedPosition: Point? = null
     private val status = JLabel(" ")
     private val pinButton = JButton("一覧に固定").apply { addActionListener { togglePin() } }
+    private val archiveButton = JButton("アーカイブ").apply { addActionListener { toggleArchive() } }
     private var renderedDate = LocalDate.now()
     private val dateRefresh = Timer(60_000) {
         if (!quickAccess && !disposed && valid() && ready && !isComposing && LocalDate.now() != renderedDate) rebuildRows()
@@ -127,7 +131,10 @@ internal class AllChatsView(
         add(scroll, BorderLayout.CENTER)
         add(JPanel(BorderLayout()).apply {
             add(status, BorderLayout.CENTER)
-            if (!quickAccess) add(pinButton, BorderLayout.EAST)
+            add(JPanel().apply {
+                if (!quickAccess) add(pinButton)
+                add(archiveButton)
+            }, BorderLayout.EAST)
         }, BorderLayout.SOUTH)
         list.addListSelectionListener { updatePinButton() }
         updatePinButton()
@@ -185,7 +192,8 @@ internal class AllChatsView(
     fun refreshOpenEntries() {
         if (disposed || !valid()) return
         val live = availableChatEntries(openEntries(), emptyList(), ChatHistoryState.getInstance(project).list())
-        entries = mergeChatEntries(live, stored.filterNot { it.id is RecentChatId.Body && store.isDeleted(it.id.id) })
+        pinned = readPins()
+        entries = archive.apply(mergeChatEntries(live, stored.filterNot { it.id is RecentChatId.Body && store.isDeleted(it.id.id) }))
         scheduleSearch()
     }
 
@@ -205,7 +213,9 @@ internal class AllChatsView(
         val snapshot = entries
         val selection = list.selectedValue?.target ?: selectedId()?.let(SidebarChatTarget::Chat)
         worker = ApplicationManager.getApplication().executeOnPooledThread {
-            val found = if (quickAccess) searchAllChats(snapshot, query) else searchSidebarChats(snapshot, query)
+            val found = if (quickAccess) {
+                searchAllChats(snapshot.filterNot { it.archived }, query) + searchAllChats(snapshot.filter { it.archived }, query)
+            } else searchSidebarChats(snapshot, query)
             SwingUtilities.invokeLater {
                 if (disposed || !valid() || isComposing || ticket != searchGeneration) return@invokeLater
                 hits = found
@@ -220,7 +230,7 @@ internal class AllChatsView(
         val now = System.currentTimeMillis()
         val zone = ZoneId.systemDefault()
         renderedDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        rows = if (quickAccess) hits.map(AllChatRow::Chat) else
+        rows = if (quickAccess) quickAccessChatRows(hits, ChatSection.ARCHIVED in collapsed) else
             sidebarChatRows(hits, pinned, collapsed, sectionLimits, now, zone)
         if (navigationTarget != null && rows.none { it.target == navigationTarget }) navigationTarget = null
         model.clear()
@@ -234,7 +244,7 @@ internal class AllChatsView(
         if (previousPosition != null) scroll.viewport.viewPosition = previousPosition
         else if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
         status.text = loadStatus.ifBlank {
-            if (quickAccess && hits.size == limit) "先頭${limit}件を表示・検索で絞り込めます" else "${hits.size}件"
+            if (quickAccess && (hits.count { !it.entry.archived } == limit || hits.count { it.entry.archived } == limit)) "通常・アーカイブ各${limit}件まで表示・検索で絞り込めます" else "${hits.size}件"
         }
         updatePinButton()
     }
@@ -270,7 +280,9 @@ internal class AllChatsView(
     private fun activate(row: AllChatRow) {
         navigationTarget = null
         when (row) {
-            is AllChatRow.Chat -> onChoose(row.hit.entry.id)
+            is AllChatRow.Chat -> {
+                if (entryAvailable(row.hit.entry)) onChoose(row.hit.entry.id) else refreshOpenEntries()
+            }
             is AllChatRow.More -> {
                 val firstAdded = rows.indexOf(row)
                 sectionLimits[row.section] = (sectionLimits[row.section] ?: 6) + 6
@@ -279,7 +291,7 @@ internal class AllChatsView(
             }
             is AllChatRow.Section -> {
                 if (!collapsed.remove(row.section)) collapsed.add(row.section)
-                properties.setValue("CursorAgent.chatSection.${row.section.key}.collapsed", row.section in collapsed, false)
+                if (!quickAccess) properties.setValue("CursorAgent.chatSection.${row.section.key}.collapsed", row.section in collapsed, row.section == ChatSection.ARCHIVED)
                 rebuildRows()
                 list.selectedIndex = rows.indexOfFirst { it is AllChatRow.Section && it.section == row.section }
             }
@@ -287,13 +299,17 @@ internal class AllChatsView(
     }
 
     private fun updatePinButton() {
-        if (quickAccess) return
         val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry
+        val actionable = !disposed && valid() && ready && !isComposing && appliedQuery == search.text && entry != null && entryAvailable(entry)
+        archiveButton.text = if (entry?.archived == true) "復元" else "アーカイブ"
+        archiveButton.toolTipText = if (entry?.archived == true) "通常の一覧へ戻します。会話の送信は再開しません。" else "この会話の実行を停止し、本文を保持してアーカイブへ移します。"
+        archiveButton.isEnabled = actionable
+        if (quickAccess) return
         val alreadyPinned = entry?.id in pinned
-        val available = entries.map { it.id }.toSet()
+        val available = entries.filterNot { it.archived }.map { it.id }.toSet()
         val belowLimit = pinned.count { it in available } < 75
         pinButton.text = if (alreadyPinned) "固定を解除" else "一覧に固定"
-        pinButton.isEnabled = !disposed && valid() && ready && !isComposing && entry != null &&
+        pinButton.isEnabled = actionable && !entry.archived &&
             (alreadyPinned || historyComplete && belowLimit)
         pinButton.toolTipText = when {
             alreadyPinned -> "このチャットの一覧への固定を解除します。"
@@ -306,8 +322,10 @@ internal class AllChatsView(
     private fun togglePin() {
         if (disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return
         val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return
+        if (!entryAvailable(entry) || entry.archived) { refreshOpenEntries(); return }
+        pinned = readPins()
         if (entry.id !in pinned && !historyComplete) return
-        val updated = togglePinnedChat(pinned, entry.id, entries.map { it.id }.toSet()) ?: return
+        val updated = togglePinnedChat(pinned, entry.id, entries.filterNot { it.archived }.map { it.id }.toSet()) ?: return
         pinned = updated
         properties.setList("CursorAgent.pinnedChats", pinned.map(::pinnedChatKey))
         navigationTarget = null
@@ -315,6 +333,18 @@ internal class AllChatsView(
         rebuildRows(target)
         // A collapsed destination must not leave the pin button targeting a different chat.
         list.selectedIndex = rows.indexOfFirst { it.target == target }
+    }
+
+    private fun entryAvailable(entry: RecentChatEntry): Boolean = archive.matches(entry) &&
+        !(entry.id is RecentChatId.Body && store.isDeleted(entry.id.id)) &&
+        (entry.id !is RecentChatId.LegacyPrint || ChatHistoryState.getInstance(project).list().any { it.chatId == entry.id.id })
+
+    private fun toggleArchive() {
+        if (disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return
+        val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return
+        if (entryAvailable(entry)) onArchive(entry)
+        navigationTarget = null
+        refreshOpenEntries()
     }
 
     /** Hiding retains the query, rows and expansion state, but rejects every callback from the old display. */

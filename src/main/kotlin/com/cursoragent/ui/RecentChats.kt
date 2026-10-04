@@ -23,6 +23,8 @@ internal data class RecentChatEntry(
     val open: Boolean = false,
     val running: Boolean = false,
     val description: String = "",
+    val archived: Boolean = false,
+    val archiveChangedMs: Long = 0,
 ) {
     val label: String get() = " ${title.replace('\n', ' ').replace('\r', ' ').take(120)} " +
         (if (updatedMs > 0) "(${SimpleDateFormat("MM/dd HH:mm").format(Date(updatedMs))}) " else "") +
@@ -67,8 +69,10 @@ internal fun recentChatEntries(
     open: List<RecentChatEntry>,
     saved: List<Conversation>,
     legacy: List<ChatHistoryRecord>,
-): List<RecentChatEntry> {
-    val entries = availableChatEntries(open, saved, legacy).associateBy { it.id }
+): List<RecentChatEntry> = recentChatEntries(visits, availableChatEntries(open, saved, legacy))
+
+internal fun recentChatEntries(visits: List<RecentChatId>, available: List<RecentChatEntry>): List<RecentChatEntry> {
+    val entries = available.filterNot { it.archived }.associateBy { it.id }
     val visited = visits.mapNotNull(entries::get)
     val seen = visited.map { it.id }.toSet()
     return (visited + entries.values.filter { it.id !in seen }.sortedByDescending { it.updatedMs }).take(10)
@@ -76,7 +80,7 @@ internal fun recentChatEntries(
 
 /** One visible tab navigates all available history by update time, not the ten-item visit list. */
 internal fun adjacentSavedChat(entries: List<RecentChatEntry>, selected: RecentChatId, reverse: Boolean): RecentChatId? {
-    val ordered = entries.sortedByDescending { it.updatedMs }
+    val ordered = entries.filterNot { it.archived }.sortedByDescending { it.updatedMs }
     val index = ordered.indexOfFirst { it.id == selected }
     if (index < 0 || ordered.size < 2) return null
     return ordered[Math.floorMod(index + if (reverse) -1 else 1, ordered.size)].id

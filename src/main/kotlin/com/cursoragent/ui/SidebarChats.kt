@@ -12,6 +12,7 @@ internal enum class ChatSection(val key: String, val label: String) {
     LAST_7_DAYS("last_7_days", "過去7日間"),
     LAST_30_DAYS("last_30_days", "過去30日間"),
     OLDER("older", "それ以前"),
+    ARCHIVED("archived", "アーカイブ済み"),
 }
 
 internal sealed interface SidebarChatTarget {
@@ -61,7 +62,13 @@ internal fun sidebarChatRows(
     nowMs: Long,
     zone: ZoneId,
 ): List<AllChatRow> {
-    val groups = hits.groupBy { if (it.entry.id in pinned) ChatSection.PINNED else chatDateSection(it.entry.updatedMs, nowMs, zone) }
+    val groups = hits.groupBy {
+        when {
+            it.entry.archived -> ChatSection.ARCHIVED
+            it.entry.id in pinned -> ChatSection.PINNED
+            else -> chatDateSection(it.entry.updatedMs, nowMs, zone)
+        }
+    }
     return buildList {
         ChatSection.entries.forEach { section ->
             val entries = groups[section]?.sortedByDescending { it.entry.updatedMs } ?: return@forEach
@@ -102,3 +109,13 @@ internal fun pinnedChatId(value: String): RecentChatId? = try {
     }
     decoded?.takeIf { pinnedChatKey(it) == value }
 } catch (_: IllegalArgumentException) { null }
+
+/** Archived results have their own search budget and disclosure, so they cannot crowd out normal chats. */
+internal fun quickAccessChatRows(hits: List<AllChatHit>, collapsed: Boolean): List<AllChatRow> = buildList {
+    hits.filterNot { it.entry.archived }.forEach { add(AllChatRow.Chat(it)) }
+    val archived = hits.filter { it.entry.archived }
+    if (archived.isNotEmpty()) {
+        add(AllChatRow.Section(ChatSection.ARCHIVED, archived.size, collapsed))
+        if (!collapsed) archived.forEach { add(AllChatRow.Chat(it)) }
+    }
+}

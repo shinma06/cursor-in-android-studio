@@ -8,6 +8,20 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 class SidebarChatsTest {
+    @Test
+    fun `archive grouping wins over pins and quick access has a separate collapsed section`() {
+        val normal = hit("normal", now - 1)
+        val archived = (1..8).map { hit("archive-$it", now + it).let { hit -> hit.copy(entry = hit.entry.copy(archived = true)) } }
+        val rows = rows(listOf(normal) + archived, pinned = archived.map { it.entry.id }.toSet(), collapsed = setOf(ChatSection.ARCHIVED))
+        assertEquals(listOf(ChatSection.TODAY, ChatSection.ARCHIVED), rows.filterIsInstance<AllChatRow.Section>().map { it.section })
+        assertEquals(listOf(normal), rows.filterIsInstance<AllChatRow.Chat>().map { it.hit })
+        assertEquals(AllChatRow.Section(ChatSection.ARCHIVED, 8, true), rows.last())
+        assertEquals(6, rows(archived).filterIsInstance<AllChatRow.Chat>().size)
+        val hits = archived + normal
+        assertEquals(listOf(AllChatRow.Chat(normal), AllChatRow.Section(ChatSection.ARCHIVED, 8, true)), quickAccessChatRows(hits, true))
+        assertEquals(listOf(normal) + archived, quickAccessChatRows(hits, false).filterIsInstance<AllChatRow.Chat>().map { it.hit })
+    }
+
     private val utc = ZoneId.of("UTC")
     private val now = Instant.parse("2026-10-04T12:00:00Z").toEpochMilli()
     private val day = 86_400_000L

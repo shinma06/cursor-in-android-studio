@@ -4,6 +4,7 @@ import com.cursoragent.actions.AgentPanelActions
 import com.cursoragent.actions.AgentPanelCommand
 import com.cursoragent.history.ConversationHistory
 import com.cursoragent.settings.ChatHistoryState
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -34,6 +35,7 @@ internal class RecentChatsPopup(
     private val valid: () -> Boolean,
     private val onChoose: (RecentChatId) -> Unit,
 ) : Disposable {
+    private val archive = ChatArchiveState(PropertiesComponent.getInstance(project))
     private val model = DefaultListModel<RecentChatEntry>()
     private val list = JBList(model).apply {
         selectionMode = ListSelectionModel.SINGLE_SELECTION
@@ -105,7 +107,7 @@ internal class RecentChatsPopup(
         project.getService(ConversationHistory::class.java).load { result -> SwingUtilities.invokeLater {
             if (disposed || !valid()) { dispose(); return@invokeLater }
             val loaded = result.getOrNull()
-            val entries = recentChatEntries(visits, openEntries(), loaded?.conversations.orEmpty(), ChatHistoryState.getInstance(project).list())
+            val entries = recentChatEntries(visits, archive.apply(availableChatEntries(openEntries(), loaded?.conversations.orEmpty().filterNot { project.getService(ConversationHistory::class.java).isDeleted(it.id) }, ChatHistoryState.getInstance(project).list())))
             entries.forEach(model::addElement)
             if (!model.isEmpty) {
                 list.selectedIndex = if (reverse) model.size() - 1 else minOf(1, model.size() - 1)
@@ -122,7 +124,7 @@ internal class RecentChatsPopup(
 
     private fun choose() {
         val entry = list.selectedValue ?: return
-        if (disposed || !valid()) { dispose(); return }
+        if (disposed || !valid() || !archive.matches(entry)) { dispose(); return }
         popup.cancel()
         onChoose(entry.id)
     }

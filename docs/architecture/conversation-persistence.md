@@ -33,6 +33,8 @@ IDE config配下のcursor-agent-conversations/project.locationHashへ1会話1フ
 
 #212の入力欄からの新規会話への表示置換では、元の会話owner/view/controllerをproject内メモリに保持する。これはディスク保存とは別で、JSON v1や旧XML、未送信draftの保存範囲は変更しない。All Agents/最近使用一覧から同じownerへ戻る場合は、保持中のdraft・queue・接続を再利用し、保存本文からprovider sessionやRevert権限を復活させない。明示closeとproject/root破棄で通常の解放処理を行う。表示から外れたownerも、破棄するまで履歴の削除保護対象となる。
 
+All Agentsのアーカイブ区分はprojectの`PropertiesComponent`に本文UUID/旧print IDを区別して保存する。本文を移動・削除せず、JSON v1と旧XMLの互換性を保つ。アーカイブ後の遅い本文保存で通常一覧へ戻らず、復元でprovider再開やRevertの可否を変更しない。sidebarで現在viewを隠す場合も上記のowner保持を使い、対象runへStopを要求してqueueを一時停止する。Stop要求と実終了は別で、復元だけでqueueを再開しない。metadataから未保存draftや欠落した本文を再生成しない。
+
 ## 本文・再開・Revertを別々に判定
 
 | 来歴 | 本文表示 | provider再開 | 保存カードのRevert |

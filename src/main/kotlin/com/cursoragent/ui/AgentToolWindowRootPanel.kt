@@ -278,6 +278,8 @@ class AgentToolWindowRootPanel(
         if (view.controller.conversationSnapshot() == null && tab.chatId != null) RecentChatId.LegacyPrint(tab.chatId)
         else RecentChatId.Body(tab.conversationId)
 
+    private val chatArchive by lazy { ChatArchiveState(PropertiesComponent.getInstance(project)) }
+
     private fun openRecentEntries(): List<RecentChatEntry> = sessions.snapshot().tabs.map { tab ->
         val view = views.getValue(tab.id)
         val conversation = view.controller.conversationSnapshot()
@@ -318,7 +320,8 @@ class AgentToolWindowRootPanel(
             val view = AllChatsView(project, false, ::openRecentEntries,
                 selectedId = { selectedView?.let { recentChatId(sessions.snapshot().selected, it) } },
                 valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebarVisible },
-                onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it) } },
+                onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it, allowArchived = true) } },
+                onArchive = { archiveChat(it, fromSidebar = true) },
             )
             allChatsSidebar = view
             val header = JPanel(BorderLayout()).apply {
@@ -345,7 +348,8 @@ class AgentToolWindowRootPanel(
         lateinit var popup: JBPopup
         val view = AllChatsView(project, true, ::openRecentEntries, selectedId = { null },
             valid = { !disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration && allChatsPopup === popup },
-            onChoose = { id -> popup.cancel(); openRecentChat(id) },
+            onChoose = { id -> popup.cancel(); openRecentChat(id, allowArchived = true) },
+            onArchive = { archiveChat(it, fromSidebar = false) },
         )
         view.preferredSize = JBUI.size(560, 340)
         popup = JBPopupFactory.getInstance().createComponentPopupBuilder(view, view.focusComponent)
@@ -412,7 +416,7 @@ class AgentToolWindowRootPanel(
             }
             val saved = loaded.conversations.filterNot { store.isDeleted(it.id) }
             val legacy = ChatHistoryState.getInstance(project).list()
-            val target = adjacentSavedChat(availableChatEntries(openRecentEntries(), saved, legacy), selected, reverse)
+            val target = adjacentSavedChat(chatArchive.apply(availableChatEntries(openRecentEntries(), saved, legacy)), selected, reverse)
             when (target) {
                 is RecentChatId.Body -> saved.firstOrNull { it.id == target.id }?.let { openNavigatedChat(it, null, snapshot.selectedId) }
                 is RecentChatId.LegacyPrint -> if (legacy.any { it.chatId == target.id }) openNavigatedChat(null, target.id, snapshot.selectedId)
@@ -438,14 +442,16 @@ class AgentToolWindowRootPanel(
             openEntries = ::openRecentEntries,
             valid = { !disposed && !project.isDisposed && isShowing && ticket == chatFocusGeneration &&
                 selectedView?.composer?.panelShortcutAvailable == true },
-            onChoose = ::openRecentChat,
+            onChoose = { openRecentChat(it) },
         )
         recentChatsPopup = popup
         popup.show(event)
     }
 
-    private fun openRecentChat(id: RecentChatId) {
+    private fun openRecentChat(id: RecentChatId, allowArchived: Boolean = false) {
         if (disposed || project.isDisposed || !isShowing || !windowShortcutAvailable) return
+        val metadata = chatArchive.apply(RecentChatEntry(id, "", 0, null))
+        if (metadata.archived && !allowArchived) return
         val open = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == id } == true }
         if (open != null) {
             if (sessions.select(open.id)) showSelected()
@@ -455,7 +461,7 @@ class AgentToolWindowRootPanel(
         val ticket = ++chatFocusGeneration
         val store = project.getService(ConversationHistory::class.java)
         store.load { result -> SwingUtilities.invokeLater {
-            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration || !windowShortcutAvailable) return@invokeLater
+            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration || !windowShortcutAvailable || !chatArchive.matches(metadata)) return@invokeLater
             val loaded = result.getOrNull()
             if (loaded == null) {
                 selectedView?.timeline?.showStatus("履歴を読み込めませんでした。保存先の権限を確認してください。")
@@ -472,6 +478,35 @@ class AgentToolWindowRootPanel(
                 openSavedChat(null, id.id)
             else selectedView?.timeline?.showStatus("この会話は削除済みか、本文を読み込めませんでした。")
         } }
+    }
+
+    private fun archiveChat(entry: RecentChatEntry, fromSidebar: Boolean) {
+        if (disposed || project.isDisposed || !chatArchive.matches(entry)) return
+        val store = project.getService(ConversationHistory::class.java)
+        if (entry.id is RecentChatId.Body && store.isDeleted(entry.id.id)) return
+        if (entry.id is RecentChatId.LegacyPrint && ChatHistoryState.getInstance(project).list().none { it.chatId == entry.id.id }) return
+        val target = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == entry.id } == true }
+        if (!entry.archived) {
+            // Stop is a request. Keep the owner alive until its real completion, with its unsent work.
+            try {
+                target?.let { views.getValue(it.id).controller.stopRun() }
+            } catch (_: Exception) {
+                selectedView?.timeline?.showStatus("この会話を停止できなかったため、アーカイブしませんでした。")
+                return
+            }
+        }
+        if (!chatArchive.set(entry, !entry.archived)) return
+        if (!entry.archived && fromSidebar) {
+            val properties = PropertiesComponent.getInstance(project)
+            val pins = properties.getList("CursorAgent.pinnedChats").orEmpty()
+            properties.setList("CursorAgent.pinnedChats", pins.filterNot { pinnedChatId(it) == entry.id })
+            if (target != null && sessions.snapshot().selectedId == target.id) {
+                sessions.hide(target.id)
+                showSelected()
+                return
+            }
+        }
+        allChatsSidebar?.refreshOpenEntries()
     }
 
     private fun openSavedChat(conversation: Conversation?, legacyId: String?) {

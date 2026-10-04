@@ -6,6 +6,37 @@ import org.junit.jupiter.api.Test
 
 class SessionTabsTest {
     @Test
+    fun `hiding selected owners chooses a visible neighbor without disposing live work`() {
+        val tabs = SessionTabs()
+        val first = tabs.snapshot().selectedId
+        tabs.updateComposer(first, AgentMode.PLAN, "model", "request", 3)
+        val token = tabs.beginTurn(first)!!.token
+        tabs.updateComposer(first, AgentMode.ASK, "model", "draft", 4)
+        val before = tabs.snapshot().selected
+        val second = tabs.open().id
+        val third = tabs.open().id
+        tabs.select(first)
+        assertTrue(tabs.hide(first))
+        assertEquals(second, tabs.snapshot().selectedId)
+        assertEquals(before.copy(visible = false), tabs.snapshot().tabs.first { it.id == first })
+        assertTrue(tabs.accepts(token))
+        assertFalse(tabs.hide(first))
+        assertFalse(tabs.hide("missing"))
+        assertTrue(tabs.hide(third))
+        assertEquals(second, tabs.snapshot().selectedId)
+        assertTrue(tabs.hide(second))
+        val fresh = tabs.snapshot().selectedId
+        assertEquals(4, tabs.snapshot().tabs.size)
+        assertEquals(listOf(fresh), tabs.snapshot().visibleTabs.map { it.id })
+        assertTrue(tabs.finishTurn(token))
+        assertEquals(fresh, tabs.snapshot().selectedId)
+        assertTrue(tabs.select(first))
+        assertEquals(before.copy(run = null), tabs.snapshot().selected)
+        assertTrue(tabs.hide(first))
+        assertEquals(fresh, tabs.snapshot().selectedId)
+    }
+
+    @Test
     fun `replacing a view retains its owner token draft and identity until explicit close`() {
         val store = SessionTabs()
         val first = store.snapshot().selectedId

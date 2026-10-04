@@ -106,6 +106,21 @@ class SessionTabs(
         return next
     }
 
+    /** Hide only the view; draft and run identity remain available for late completion and reopening. */
+    @Synchronized
+    fun hide(id: String): Boolean {
+        val visible = tabs.filter { it.visible }
+        val index = visible.indexOfFirst { it.id == id }
+        if (index < 0) return false
+        update(id) { it.copy(visible = false) }
+        if (selectedId == id) {
+            val remaining = tabs.filter { it.visible }
+            if (remaining.isEmpty()) open()
+            else selectedId = remaining[index.coerceAtMost(remaining.lastIndex)].id
+        }
+        return true
+    }
+
     /**
      * Invalidates callbacks BEFORE returning. The caller must then cancel preparation and
      * destroy only the returned tab's process (including a process still being created).
