@@ -1,7 +1,5 @@
 package com.cursoragent.ui
 
-import com.cursoragent.actions.AgentQueueCommand
-import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -25,7 +23,7 @@ internal class PromptQueueDialog(
     private val list: PromptQueueList = PromptQueueList(queue,
         isCurrent = { !isDisposed && isCurrent() },
         shortcutAvailable = { listHasFocus() },
-        onEdit = ::edit,
+        onEdit = { editQueuedPrompt(project, queue, isCurrent, it) },
         onChanged = { isOKActionEnabled = queue.size > 0; onChanged() },
         onReturnToInput = { close(CANCEL_EXIT_CODE) },
     )
@@ -44,12 +42,9 @@ internal class PromptQueueDialog(
         // Enter on a selected queue row must not silently resume every queued prompt.
         getOKAction().putValue(DEFAULT_ACTION, null)
         init()
-        AgentQueueCommand.entries.forEach { command ->
-            ActionManager.getInstance().getAction(command.actionId)?.let { action ->
-                action.registerCustomShortcutSet(action.shortcutSet, list, disposable)
-            }
-        }
+        list.installShortcuts(disposable)
         list.refresh()
+        isOKActionEnabled = queue.size > 0
     }
 
     override fun getPreferredFocusedComponent(): JComponent = list
@@ -59,7 +54,7 @@ internal class PromptQueueDialog(
         add(JLabel("明示選択・添付は登録時に固定。自動context・参照内容・実行設定は送信開始時です。"), BorderLayout.NORTH)
         add(JBScrollPane(list), BorderLayout.CENTER)
         add(JPanel(java.awt.GridLayout(0, 3, JBUI.scale(6), JBUI.scale(6))).apply {
-            add(button("編集…", ::edit))
+            add(button("編集…") { editQueuedPrompt(project, queue, isCurrent, it) })
             add(button("context…") { entry ->
                 val snapshot = entry.context
                 val details = buildString {
@@ -97,30 +92,33 @@ internal class PromptQueueDialog(
         }, BorderLayout.SOUTH)
     }
 
-    private fun edit(entry: QueuedPrompt) {
-        object : DialogWrapper(project, false) {
-            private val text = JBTextArea(entry.text, 8, 50).apply { lineWrap = true; wrapStyleWord = true }
-            init {
-                title = "予約した入力を編集" + (entry.command?.let { "（/$it の引数）" } ?: "")
-                setOKButtonText("保存")
-                setCancelButtonText("キャンセル")
-                init()
-            }
-            override fun createCenterPanel(): JComponent = JBScrollPane(text)
-            override fun doOKAction() {
-                if (!isCurrent()) return
-                if (text.text.isBlank() && entry.command == null && entry.image == null) {
-                    com.intellij.openapi.ui.Messages.showInfoMessage(project, "空の入力は予約できません。削除する場合は一覧の「削除」を使ってください。", "予約した入力")
-                    return
-                }
-                if (queue.edit(entry.id, text.text)) super.doOKAction()
-            }
-        }.show()
-    }
-
     override fun doOKAction() {
         if (!isCurrent()) return
         close(OK_EXIT_CODE)
         onResume()
     }
+}
+
+/** Inline and management lists share the same queue mutation and fixed attachment ownership. */
+internal fun editQueuedPrompt(project: Project, queue: PromptQueue, isCurrent: () -> Boolean, entry: QueuedPrompt) {
+    if (!isCurrent() || queue.snapshot().none { it.id == entry.id }) return
+    object : DialogWrapper(project, false) {
+        private val text = JBTextArea(entry.text, 8, 50).apply { lineWrap = true; wrapStyleWord = true }
+        init {
+            title = "予約した入力を編集" + (entry.command?.let { "（/$it の引数）" } ?: "")
+            setOKButtonText("保存")
+            setCancelButtonText("キャンセル")
+            init()
+        }
+        override fun getPreferredFocusedComponent(): JComponent = text
+        override fun createCenterPanel(): JComponent = JBScrollPane(text)
+        override fun doOKAction() {
+            if (!isCurrent()) return
+            if (text.text.isBlank() && entry.command == null && entry.image == null) {
+                com.intellij.openapi.ui.Messages.showInfoMessage(project, "空の入力は予約できません。削除する場合は一覧の「削除」を使ってください。", "予約した入力")
+                return
+            }
+            if (queue.edit(entry.id, text.text)) super.doOKAction()
+        }
+    }.show()
 }

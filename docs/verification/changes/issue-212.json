@@ -510,13 +510,59 @@
       "id": "KEYMAP-QUEUE",
       "change": "予約一覧の選択・編集・削除・入力への復帰",
       "steps": [
-        "実行中のPRINT/ACP各会話に、異なる本文/mode/model/command/contextと画像を持つ予約を3件登録する。予約一覧を開くと一時停止し、一覧にfocusする。上下キーで移動し、先頭では止まり、末尾の下キーとEscapeでは一時停止を保って同じ会話の入力へ戻る。空一覧からもEscapeで戻れる。",
+        "実行中のPRINT/ACP各会話に、異なる本文/mode/model/command/contextと画像を持つ予約を3件登録する。予約管理一覧を開くと一時停止し、一覧にfocusする。上下キーで移動し、先頭では止まり、末尾の下キーとEscapeでは一時停止を保って同じ会話の入力へ戻る。空一覧からもEscapeで戻れる。",
         "Right/Spaceで選択した予約を編集し、保存/取消/空入力の拒否、IME確定と改行を確認する。登録時のmode/model/command/context/画像を保持する。編集dialogの上下/Right/SpaceやIME確定を親一覧の操作として処理しない。",
         "MacのCmd+Backspace、Windows/LinuxのCtrl+Deleteで選択1件だけを削除する。隣接行の選択と画像所有の解放を確認する。他の修飾キーを加えた組合せ、入力欄や他projectでは同じ削除を起こさない。別会話への変更・破棄・子popup中は遅いActionも拒否する。",
         "予約一覧にfocusしてEnterを押しても全件再開しない。再開ボタンを明示操作すると従来どおり予約を送る。編集/削除/一覧を閉じる操作ではStop・再送・古い送信ticketの復活を起こさない。選択1件の送信/steer/interruptは未実装として記録し、全件再開をQUEUE-SUBMITのpassにしない。",
-        "IDE Keymapで専用5 Actionを変更/解除して再配送を確認する。解除後に残るnative一覧の上下選択と標準dialog Escapeを区別する。dialog破棄でlocal登録を解除する。Cursorのinline queue/編集・入力境界からの入口は未接続として記録する。"
+        "IDE Keymapで専用5 Actionを変更/解除して再配送を確認する。解除後に残るnative一覧の上下選択と標準dialog Escapeを区別する。dialog破棄でlocal登録を解除する。inline一覧と空入力からの入口は専用Caseで照合する。Cursorの入力欄を使うqueue編集は未接続として記録する。"
       ],
-      "expected": "予約一覧に限定したActionが最新ID/会話所有と固定contextを保ち、入力へ戻っても勝手に再開・送信しない。未実装のinline/送信分岐を全対応と扱わない。"
+      "expected": "予約一覧に限定したActionが最新ID/会話所有と固定contextを保ち、入力へ戻っても勝手に再開・送信しない。未実装の入力欄での編集/送信分岐を全対応と扱わない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE-ENTRY",
+      "change": "入力欄上の予約一覧と空入力境界からの移動",
+      "steps": [
+        "PRINT/ACPそれぞれで複数予約を作り、入力欄上の一覧・3行程度の高さとscroll・管理dialogとの同じ対象IDを確認する。空入力の先頭で上キーを押すと末尾へ、末尾で下キーを押すと2番目（1件ならその項目）へfocusする。予約なしでは通常入力を保つ。",
+        "inline一覧で上下/Right/Space/OS別削除/Escapeを試し、末尾の下移動とEscapeで同じ入力へ戻る。単なるfocus移動でpause/resumeしない。編集では既存dialogを開いてpauseし、mode/model/command/context/画像を保持する。最後の項目削除で一覧が消えれば入力へ戻る。",
+        "本文、空白/改行だけの入力、途中caret、範囲選択、複数caret、未送信command/画像と画像import中を用意する。本文や途中位置等でqueueへ移らず、通常の上下移動・選択を保つ。IME未確定/確定直後、command/mention候補と子popupでもqueueへ移らない。通常ファイルeditorで上下キーを奪わない。",
+        "応答の終了による予約の自動送信と一覧操作を近接させる。消えたIDや古い表示を別項目の編集/削除に使わず、二重送信/古いticket復活を起こさない。別tab/project・ToolWindow非表示・controller破棄後は元入力へ遅れてfocusしない。",
+        "IDE KeymapのEditorUp/EditorDownおよび一覧専用Actionを変更/解除し、native配送を確認する。Cursorの固定版と空白/改行境界・視覚行・下方向の初期候補を比較する。過去human message/review候補、入力欄でのqueue編集、選択1件の送信/steeringの未接続をこの入口の成功でpass扱いにしない。"
+      ],
+      "expected": "空入力の対象条件でinline予約一覧へ移り、native入力/IMEと会話・予約ID所有を保つ。focusだけでは送信状態を変えず、実装済み入口と残る分岐を分けて判定する。"
     },
     {
       "gpt": {

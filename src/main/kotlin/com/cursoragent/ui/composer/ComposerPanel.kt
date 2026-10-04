@@ -20,6 +20,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     var onStop: () -> Unit = {}
     var onEnqueue: (String) -> Unit = {}
     var onShowQueue: () -> Unit = {}
+    internal var onFocusQueue: (Boolean) -> Boolean = { false }
     var isRunning = false
         private set
     private var acp = false
@@ -73,10 +74,21 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         toolTipText = "予約を一時停止して一覧・編集・削除・順序を確認します。"
         addActionListener { onShowQueue() }
     }
+    private val queueContainer = JPanel(BorderLayout()).apply { isOpaque = false; isVisible = false }
+
+    internal fun installQueueList(list: com.cursoragent.ui.PromptQueueList) {
+        list.fixedCellHeight = JBUI.scale(28)
+        list.visibleRowCount = 3
+        queueContainer.add(com.intellij.ui.components.JBScrollPane(list).apply {
+            horizontalScrollBarPolicy = javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+            minimumSize = JBUI.size(0, 28)
+        })
+    }
 
     fun showQueueState(count: Int, paused: Boolean) {
         queueButton.text = "予約 $count 件" + if (paused) "（停止中）" else ""
         queueButton.isVisible = count > 0
+        queueContainer.isVisible = count > 0
         accessoryPanel.isVisible = isRunning || count > 0
         revalidate()
         repaint()
@@ -96,6 +108,11 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     init {
         border = JBUI.Borders.empty(5, 12, 8, 12)
         isOpaque = false
+        inputArea.onQueueNavigate = { reverse ->
+            panelShortcutAvailable && !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this) &&
+                commands.selectedName == null && images?.hasUnsent != true &&
+                onFocusQueue(reverse)
+        }
 
         val inputWrapper = RoundedSurface(AgentUiColors.composerBackground).apply {
             border = AgentUiColors.RoundedBorder()
@@ -107,6 +124,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
             add(queueButton)
             add(enqueueButton)
         })
+        accessoryPanel.add(queueContainer, BorderLayout.NORTH)
         mentionPopupController.install()
         promptContext.onAddMention = { mentionPopupController.showPopup() }
         inputWrapper.add(JPanel(BorderLayout()).apply {

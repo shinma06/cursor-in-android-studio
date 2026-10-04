@@ -2,6 +2,8 @@ package com.cursoragent.ui
 
 import com.cursoragent.actions.AgentQueueActions
 import com.cursoragent.actions.AgentQueueCommand
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.ui.SimpleListCellRenderer
@@ -40,6 +42,24 @@ internal class PromptQueueList(
         if (isFocusOwner && isCurrent()) sink[AgentQueueActions.KEY] = actions
     }
 
+    fun installShortcuts(parent: Disposable) {
+        AgentQueueCommand.entries.forEach { command ->
+            ActionManager.getInstance().getAction(command.actionId)?.let { action ->
+                action.registerCustomShortcutSet(action.shortcutSet, this, parent)
+            }
+        }
+    }
+
+    /** Up enters at the last queued item; Down enters at the second, or the only item. */
+    fun selectFromPrompt(reverse: Boolean): Boolean {
+        if (!isCurrent()) return false
+        refresh()
+        if (rows.isEmpty) return false
+        selectedIndex = if (reverse) rows.size() - 1 else minOf(1, rows.size() - 1)
+        ensureIndexIsVisible(selectedIndex)
+        return true
+    }
+
     fun refresh() {
         val selected = selectedValue?.id
         val oldIndex = selectedIndex
@@ -51,13 +71,12 @@ internal class PromptQueueList(
             selectedIndex = if (retained >= 0) retained else oldIndex.coerceIn(0, snapshot.lastIndex)
             ensureIndexIsVisible(selectedIndex)
         }
-        onChanged()
     }
 
     fun withSelected(action: (QueuedPrompt) -> Unit) {
         if (!isCurrent()) return
         currentEntry()?.let(action)
-        if (isCurrent()) refresh()
+        if (isCurrent()) { refresh(); onChanged() }
     }
 
     private fun currentEntry(): QueuedPrompt? = selectedValue?.id?.let { id -> queue.snapshot().find { it.id == id } }

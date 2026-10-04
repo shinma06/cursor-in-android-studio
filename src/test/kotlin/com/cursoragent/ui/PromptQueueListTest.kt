@@ -16,6 +16,29 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class PromptQueueListTest {
     @Test
+    fun `entry from an empty prompt selects last for up and second or only item for down`() = SwingUtilities.invokeAndWait {
+        val queue = PromptQueue("owner")
+        var current = true
+        var changes = 0
+        val list = PromptQueueList(queue, { current }, { true }, {}, { changes++ }, {})
+        assertFalse(list.selectFromPrompt(true))
+        queue.add("one", AgentMode.AGENT, "model")
+        assertTrue(list.selectFromPrompt(false))
+        assertEquals(0, list.selectedIndex)
+        repeat(2) { queue.add("next-$it", AgentMode.AGENT, "model") }
+        val ticket = queue.ticket(1)
+        assertTrue(list.selectFromPrompt(true))
+        assertEquals(queue.snapshot().last().id, list.selectedValue.id)
+        assertTrue(list.selectFromPrompt(false))
+        assertEquals(queue.snapshot()[1].id, list.selectedValue.id)
+        assertEquals(0, changes, "refreshing an inline view must not recursively notify queue mutations")
+        assertEquals(ticket, queue.ticket(1), "focus navigation alone does not pause or resume automatic queue dispatch")
+        current = false
+        assertFalse(list.selectFromPrompt(true))
+        assertEquals(1, list.selectedIndex)
+    }
+
+    @Test
     fun `queue actions retain identity across navigation edits and deletion and never resume sends`() = SwingUtilities.invokeAndWait {
         val queue = PromptQueue("owner")
         val context = PromptContextSnapshot(emptyList(), emptyList(), false)

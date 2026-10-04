@@ -22,6 +22,7 @@ import javax.swing.SwingUtilities
 /** Grow by actual editor visual lines (including soft wraps), then let the editor scroll. */
 class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
+    internal var onQueueNavigate: (Boolean) -> Boolean = { false }
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
@@ -55,6 +56,9 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         // Use prompt-local shortcuts as well: selection indentation ignores this flag.
         editor.isEmbeddedIntoDialogWrapper = true
         installPromptFocusTraversal(editor.contentComponent)
+        installPromptQueueNavigation(editor) { reverse ->
+            isEnabled && !isComposing && onQueueNavigate(reverse)
+        }
         com.cursoragent.ui.composer.image.installPromptImageInput(editor) { value ->
             if (!isEnabled || isComposing) true else onImageTransfer?.invoke(value) ?: false
         }

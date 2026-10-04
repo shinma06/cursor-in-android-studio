@@ -77,6 +77,20 @@ class AgentUiController(
     }
     private val queue = PromptQueue(recorder.conversation.id, agentService::releaseImage)
     private var queueDialog: PromptQueueDialog? = null
+    private val queueUiLifetime = com.intellij.openapi.util.Disposer.newDisposable()
+    private val inlineQueue: PromptQueueList = PromptQueueList(queue,
+        isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
+        shortcutAvailable = {
+            composer.isShowing && inlineQueue.isFocusOwner &&
+                !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(inlineQueue)
+        },
+        onEdit = { entry ->
+            pauseQueue()
+            editQueuedPrompt(project, queue, { !disposed && !project.isDisposed && isSelectedConversation() }, entry)
+        },
+        onChanged = ::refreshQueue,
+        onReturnToInput = { inlineQueue.clearSelection(); composer.inputArea.requestFocusInWindow() },
+    )
     val hasQueuedPrompts: Boolean get() = queue.size > 0
 
     fun enqueuePrompt(text: String) {
@@ -106,7 +120,17 @@ class AgentUiController(
     }
 
     fun pauseQueue() { queue.pause(); refreshQueue() }
-    private fun refreshQueue() { composer.showQueueState(queue.size, queue.paused) }
+    private fun refreshQueue() {
+        val returnToInput = inlineQueue.isFocusOwner && queue.size == 0 && isSelectedConversation()
+        inlineQueue.refresh()
+        composer.showQueueState(queue.size, queue.paused)
+        if (returnToInput && !disposed && !project.isDisposed) composer.inputArea.requestFocusInWindow()
+    }
+
+    private fun focusQueue(reverse: Boolean): Boolean {
+        if (disposed || project.isDisposed || !isSelectedConversation() || !composer.isShowing || queue.size == 0) return false
+        return inlineQueue.selectFromPrompt(reverse) && inlineQueue.requestFocusInWindow()
+    }
 
     fun showQueue() {
         if (disposed || project.isDisposed || !isSelectedConversation() || queueDialog != null) return
@@ -194,6 +218,9 @@ class AgentUiController(
     )
 
     init {
+        composer.installQueueList(inlineQueue)
+        inlineQueue.installShortcuts(queueUiLifetime)
+        composer.onFocusQueue = ::focusQueue
         imagePanel = composer.installImages(imageDraft)
         checkpointService.pruneExpired()
         composer.modelSelector.onRetry = modelLoader::load
@@ -280,6 +307,8 @@ class AgentUiController(
     fun dispose() {
         recorder.finish("interrupted")
         disposed = true
+        composer.onFocusQueue = { false }
+        com.intellij.openapi.util.Disposer.dispose(queueUiLifetime)
         timeline.runStatus.dispose()
         activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
         sessions.clearRequestId(tabId)

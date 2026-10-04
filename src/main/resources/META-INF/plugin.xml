@@ -18,6 +18,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <editorActionHandler action="EditorPaste" implementationClass="com.cursoragent.ui.composer.image.PromptImagePasteHandler"/>
+        <editorActionHandler action="EditorUp" implementationClass="com.cursoragent.ui.composer.PromptQueueNavigation$Up"/>
+        <editorActionHandler action="EditorDown" implementationClass="com.cursoragent.ui.composer.PromptQueueNavigation$Down"/>
         <!-- Keep persisted IDs stable when renaming the product. -->
         <notificationGroup id="Cursor Agent" displayType="BALLOON"
                            bundle="messages.CursorAgentBundle" key="notification.group.name"/>
