@@ -116,6 +116,7 @@ class SessionTabStrip : JPanel(BorderLayout()) {
                     cancelDrag()
                     refreshHoveredTab()
                     revalidate()
+                    revealSelectedTab()
                 }
             }
         })
@@ -136,9 +137,9 @@ class SessionTabStrip : JPanel(BorderLayout()) {
         listOf(this, scrollPane, scrollPane.viewport, scrollPane.horizontalScrollBar).forEach {
             it.addMouseListener(areaListener)
         }
-        // Use the same horizontal behavior over the canvas and the overlaid bar.
+        // Scroll wrapped rows vertically, retaining the one-row horizontal wheel behavior.
         val wheelListener = java.awt.event.MouseWheelListener { e ->
-            val bar = scrollPane.horizontalScrollBar
+            val bar = if (wrapTabs) scrollPane.verticalScrollBar else scrollPane.horizontalScrollBar
             if (bar.isVisible) {
                 bar.value += (e.preciseWheelRotation * bar.unitIncrement * e.scrollAmount).toInt()
                 e.consume()
@@ -155,6 +156,9 @@ class SessionTabStrip : JPanel(BorderLayout()) {
         scrollPane.horizontalScrollBarPolicy = if (enabled) {
             JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
         } else JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        scrollPane.verticalScrollBarPolicy = if (enabled) {
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+        } else JScrollPane.VERTICAL_SCROLLBAR_NEVER
         scrollPane.viewport.viewPosition = Point()
         refreshHoveredTab()
         canvas.revalidate()
@@ -196,7 +200,10 @@ class SessionTabStrip : JPanel(BorderLayout()) {
 
     private fun tabBounds(): List<Pair<SessionTabPresentation, Rectangle>> {
         val metrics = canvas.getFontMetrics(canvas.font)
-        val availableWidth = (width - (toolbar()?.preferredSize?.width ?: 0)).coerceAtLeast(1)
+        val scrollbarWidth = if (wrapTabs && scrollPane.verticalScrollBar.isVisible) {
+            scrollPane.verticalScrollBar.preferredSize.width
+        } else 0
+        val availableWidth = (width - (toolbar()?.preferredSize?.width ?: 0) - scrollbarWidth).coerceAtLeast(1)
         var x = 0
         var y = 0
         return tabs.map { tab ->
@@ -253,12 +260,15 @@ class SessionTabStrip : JPanel(BorderLayout()) {
 
     private fun scrollDragEdge() {
         if (!dragging) return
+        val bar = if (wrapTabs) scrollPane.verticalScrollBar else scrollPane.horizontalScrollBar
+        val pointer = if (wrapTabs) dragViewportPoint.y else dragViewportPoint.x
+        val extent = if (wrapTabs) scrollPane.viewport.height else scrollPane.viewport.width
         val direction = when {
-            dragViewportPoint.x < edgeWidth -> -1
-            dragViewportPoint.x > scrollPane.viewport.width - edgeWidth -> 1
+            pointer < edgeWidth -> -1
+            pointer > extent - edgeWidth -> 1
             else -> 0
         }
-        scrollPane.horizontalScrollBar.value += direction * JBUI.scale(12)
+        bar.value += direction * JBUI.scale(12)
         updateDropTarget()
     }
 
@@ -268,7 +278,13 @@ class SessionTabStrip : JPanel(BorderLayout()) {
     override fun getPreferredSize(): Dimension {
         val toolbar = toolbar()?.preferredSize
         val rowsHeight = tabBounds().lastOrNull()?.second?.let { it.y + it.height } ?: tabHeight
-        return Dimension(JBUI.scale(320) + (toolbar?.width ?: 0), maxOf(rowsHeight, toolbar?.height ?: 0))
+        val naturalHeight = maxOf(rowsHeight, toolbar?.height ?: 0)
+        // Leave at least half of the tool window for the chat and composer; scroll the remaining rows.
+        val availableHeight = parent?.takeIf {
+            (it.layout as? BorderLayout)?.getLayoutComponent(BorderLayout.NORTH) === this
+        }?.let { it.height - it.insets.top - it.insets.bottom } ?: 0
+        val height = if (wrapTabs && availableHeight > 0) minOf(naturalHeight, availableHeight / 2) else naturalHeight
+        return Dimension(JBUI.scale(320) + (toolbar?.width ?: 0), height)
     }
 
     override fun paintChildren(g: Graphics) {
@@ -325,7 +341,7 @@ class SessionTabStrip : JPanel(BorderLayout()) {
                     dragging = true
                     dragViewportPoint = SwingUtilities.convertPoint(this@TabCanvas, e.point, scrollPane.viewport)
                     updateDropTarget()
-                    if (!wrapTabs && !edgeTimer.isRunning) edgeTimer.start()
+                    if ((!wrapTabs || scrollPane.verticalScrollBar.isVisible) && !edgeTimer.isRunning) edgeTimer.start()
                 }
                 override fun mouseReleased(e: MouseEvent) {
                     if (!SwingUtilities.isLeftMouseButton(e)) return
@@ -397,9 +413,10 @@ class SessionTabStrip : JPanel(BorderLayout()) {
         }
         override fun getPreferredScrollableViewportSize() = preferredSize
         override fun getScrollableTracksViewportWidth() = wrapTabs
-        override fun getScrollableTracksViewportHeight() = true
+        override fun getScrollableTracksViewportHeight() = !wrapTabs
         override fun getScrollableUnitIncrement(r: Rectangle, orientation: Int, direction: Int) = JBUI.scale(28)
-        override fun getScrollableBlockIncrement(r: Rectangle, orientation: Int, direction: Int) = r.width.coerceAtLeast(1)
+        override fun getScrollableBlockIncrement(r: Rectangle, orientation: Int, direction: Int) =
+            (if (orientation == javax.swing.SwingConstants.VERTICAL) r.height else r.width).coerceAtLeast(1)
 
         override fun paintComponent(g: Graphics) {
             super.paintComponent(g)

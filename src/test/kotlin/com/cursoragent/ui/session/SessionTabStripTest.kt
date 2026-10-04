@@ -463,6 +463,138 @@ class SessionTabStripTest {
     }
 
     @Test
+    fun `fixed parent retains chat and composer while every wrapped row remains reachable`() {
+        lateinit var strip: SessionTabStrip
+        lateinit var root: JPanel
+        lateinit var chat: JPanel
+        lateinit var composer: JPanel
+        val tabs = (0 until 20).map { SessionTabPresentation("tab-$it") }
+        val actions = mutableListOf<String>()
+        fun layoutRoot() {
+            root.doLayout()
+            layout(strip)
+            chat.doLayout()
+        }
+        onEdt {
+            strip = SessionTabStrip().apply {
+                add(JPanel(BorderLayout()).apply {
+                    add(JPanel().apply { preferredSize = Dimension(108, 34) }, BorderLayout.NORTH)
+                }, BorderLayout.EAST)
+                setTabs(tabs, "tab-0")
+                setWrapTabs(true)
+                onSelect = { setTabs(tabs, it) }
+                onClose = { actions += "close:$it" }
+                onMove = { id, index -> actions += "move:$id:$index" }
+            }
+            composer = JPanel().apply { preferredSize = Dimension(100, 100) }
+            chat = JPanel(BorderLayout()).apply {
+                add(JPanel(), BorderLayout.CENTER)
+                add(composer, BorderLayout.SOUTH)
+            }
+            root = JPanel(BorderLayout()).apply {
+                add(strip, BorderLayout.NORTH)
+                add(chat, BorderLayout.CENTER)
+                setSize(320, 500)
+            }
+            layoutRoot()
+        }
+        // Selection is deferred to the next EDT turn, as in the real tool window.
+        for (height in listOf(500, 300, 700)) {
+            onEdt {
+                root.setSize(320, height)
+                layoutRoot()
+                assertTrue(strip.height <= height / 2)
+                assertTrue(chat.height >= height / 2)
+                assertEquals(100, composer.height)
+                assertTrue(composer.y >= 0)
+                assertTrue(strip.scrollPane.verticalScrollBar.isVisible)
+                assertFalse(strip.scrollPane.horizontalScrollBar.isVisible)
+            }
+            for (tab in tabs) {
+                onEdt { strip.setTabs(tabs, tab.id); layoutRoot() }
+                onEdt {
+                    assertTrue(strip.scrollPane.viewport.viewRect.contains(strip.boundsFor(tab.id)), tab.id)
+                    assertTrue(strip.boundsFor(tab.id)!!.maxX <= strip.scrollPane.viewport.width)
+                }
+            }
+        }
+        onEdt {
+            val pane = strip.scrollPane
+            val bar = pane.verticalScrollBar
+            val before = bar.value
+            val wheel = MouseWheelEvent(strip.eventTarget, MouseEvent.MOUSE_WHEEL, 0, 0, 40, 10, 0, false,
+                MouseWheelEvent.WHEEL_UNIT_SCROLL, 3, -1)
+            strip.eventTarget.dispatchEvent(wheel)
+            assertTrue(wheel.isConsumed)
+            assertTrue(bar.value < before)
+            val point = Point(40, 10)
+            mouse(strip.eventTarget, MouseEvent.MOUSE_MOVED,
+                SwingUtilities.convertPoint(pane.viewport, point, strip.eventTarget))
+            val hovered = tabs.single { strip.boundsFor(it.id)!!.contains(Point(point.x, point.y + bar.value)) }
+            assertTrue(strip.closeVisible(hovered.id))
+            strip.eventTarget.scrollRectToVisible(strip.boundsFor(hovered.id)!!)
+            val close = strip.closeBoundsFor(hovered.id)!!
+            click(strip.eventTarget, Point(close.x + close.width / 2, close.y + close.height / 2))
+            strip.eventTarget.actionMap.get("close").actionPerformed(null)
+            strip.eventTarget.actionMap.get("moveLeft").actionPerformed(null)
+            assertEquals(listOf("close:${hovered.id}", "close:tab-19", "move:tab-19:18"), actions)
+            strip.setWrapTabs(false)
+            layoutRoot()
+            assertEquals(strip.boundsFor("tab-0")!!.height, strip.height)
+            assertEquals(0, pane.viewport.viewPosition.y)
+            assertFalse(bar.isVisible)
+            assertTrue(pane.horizontalScrollBar.isVisible)
+        }
+        onEdt { assertTrue(strip.scrollPane.viewport.viewRect.contains(strip.boundsFor("tab-19"))) }
+    }
+
+    @Test
+    fun `wrapped drag scrolls beyond the viewport and releases against visible row IDs`() {
+        lateinit var strip: SessionTabStrip
+        val moves = mutableListOf<Pair<String, Int>>()
+        onEdt {
+            strip = SessionTabStrip().apply {
+                setTabs((0 until 20).map { SessionTabPresentation("tab-$it") }, "tab-0")
+                setWrapTabs(true)
+                onMove = { id, index -> moves += id to index }
+            }
+            JPanel(BorderLayout()).apply {
+                add(strip, BorderLayout.NORTH)
+                add(JPanel(), BorderLayout.CENTER)
+                setSize(200, 200)
+                doLayout()
+            }
+            layout(strip)
+        }
+        onEdt {
+            mouse(strip.eventTarget, MouseEvent.MOUSE_PRESSED, center(strip, "tab-0"))
+            mouse(strip.eventTarget, MouseEvent.MOUSE_DRAGGED, Point(40, strip.scrollPane.viewport.height - 2))
+            assertTrue(strip.dragAutoScrollRunning)
+        }
+        try {
+            val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+            var scrolled = false
+            while (!scrolled && System.nanoTime() < deadline) {
+                Thread.sleep(25)
+                onEdt { scrolled = strip.scrollPane.viewport.viewPosition.y > 0 }
+            }
+            assertTrue(scrolled, "Dragging at the bottom must scroll wrapped rows")
+            onEdt {
+                strip.scrollPane.verticalScrollBar.value = Int.MAX_VALUE
+                val last = strip.boundsFor("tab-19")!!
+                val end = Point(last.x + last.width - 2, last.y + last.height / 2)
+                assertTrue(strip.scrollPane.viewport.viewRect.contains(end))
+                mouse(strip.eventTarget, MouseEvent.MOUSE_DRAGGED, end)
+                mouse(strip.eventTarget, MouseEvent.MOUSE_RELEASED, end)
+                assertEquals(listOf("tab-0" to 19), moves)
+                assertFalse(strip.dragAutoScrollRunning)
+            }
+        } finally {
+            onEdt { strip.eventTarget.actionMap.get("cancelDrag").actionPerformed(null) }
+        }
+    }
+
+    @Test
     fun `wrapped rows follow available width and tab additions without horizontal scrolling`() = onEdt {
         val strip = SessionTabStrip()
         val tabs = ('a'..'e').map { SessionTabPresentation(it.toString()) }
