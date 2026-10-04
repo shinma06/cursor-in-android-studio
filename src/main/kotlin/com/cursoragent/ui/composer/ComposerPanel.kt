@@ -214,6 +214,10 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         commands.clearSelection()
     }
 
+    internal val canMovePresentation: Boolean
+        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
+
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {

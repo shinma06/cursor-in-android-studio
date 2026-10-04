@@ -46,6 +46,7 @@ internal class ToolWindowChatActions(
     private val settingsUnavailableReason: (PermissionMode, SandboxMode, WorktreeMode) -> String? = { _, _, _ -> null },
     requestIdSnapshot: () -> com.cursoragent.session.SessionTabsSnapshot? = { null },
     onRequestIdCopyFeedback: (String) -> Unit = {},
+    onToggleEditor: () -> Unit = {},
 ) {
     val titleActions = listOf(
         action("新規チャット", "新しいタブでチャットを開始します。", AllIcons.General.Add, toolbarVisible = { settings.showNewChatIcon }) { onNewChat() },
@@ -53,6 +54,7 @@ internal class ToolWindowChatActions(
     )
 
     val gearActions = DefaultActionGroup(titleActions + listOf(
+        action("会話のパネル／エディター表示を切り替える", "同じ会話・下書き・実行を保持したまま表示先を切り替えます。") { onToggleEditor() },
         action("会話を書き出す…", "選択中の会話の現在までの本文をMarkdownへ保存します。") { onExport() },
         action("ファイルの変更…", "選択中の会話で受信した差分を、会話全体・ターンごとに確認します。") { onChanges() },
         action("開いているチャット…", "このウィンドウの会話タブを検索して切り替えます。", perform = onOpenedChats),

@@ -45,9 +45,10 @@ class AgentToolWindowRootPanel(
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
-    private data class TabView(val panel: JPanel, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
+    private data class TabView(val presentation: com.cursoragent.ui.editor.ChatEditorPresentation, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
+    private var projectClosing = false
     private var openedChatsPopup: JBPopup? = null
     private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
@@ -92,6 +93,7 @@ class AgentToolWindowRootPanel(
         },
         requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
         onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
+        onToggleEditor = { selectedView?.presentation?.toggle() },
     )
     private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
         onChatResumed = { conversation, legacyId, match, query ->
@@ -117,6 +119,11 @@ class AgentToolWindowRootPanel(
         isOpaque = true
         background = AgentUiColors.panelBackground
         strip.setWrapTabs(!UISettings.getInstance().scrollTabLayoutInEditor)
+        uiSettingsConnection.subscribe(com.intellij.openapi.project.ProjectManager.TOPIC, object : com.intellij.openapi.project.ProjectManagerListener {
+            override fun projectClosing(closingProject: Project) {
+                if (closingProject === project) projectClosing = true
+            }
+        })
         uiSettingsConnection.subscribe(UISettingsListener.TOPIC, UISettingsListener { settings ->
             if (!disposed && !project.isDisposed) strip.setWrapTabs(!settings.scrollTabLayoutInEditor)
         })
@@ -135,7 +142,12 @@ class AgentToolWindowRootPanel(
         return { selection ->
             if (!disposed && !project.isDisposed && views[id] === owner) {
                 owner.composer.promptContext.addSelection(selection)
-                owner.composer.inputArea.requestFocusInWindow()
+                if (owner.presentation.inEditor) owner.presentation.focus()
+                else com.intellij.openapi.wm.ToolWindowManager.getInstance(project).getToolWindow("Cursor Agent")?.activate {
+                    if (!disposed && !projectClosing && !project.isDisposed && views[id] === owner && sessions.snapshot().selectedId == id) {
+                        owner.presentation.focus()
+                    }
+                }
             }
         }
     }
@@ -197,7 +209,8 @@ class AgentToolWindowRootPanel(
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
                 view.controller.dispose()
-                cards.remove(view.panel)
+                cards.remove(view.presentation.panel)
+                Disposer.dispose(view.presentation)
             }
         }
         showSelected()
@@ -210,8 +223,8 @@ class AgentToolWindowRootPanel(
         showSelected()
     }
 
-    private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false) {
-        if (disposed) return
+    private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false, focus: Boolean = true) {
+        if (disposed || projectClosing || project.isDisposed) return
         val tab = sessions.snapshot().selected
         val view = views.getOrPut(tab.id) {
             val timeline = ChatTimelinePanel()
@@ -237,8 +250,26 @@ class AgentToolWindowRootPanel(
                 add(timeline, BorderLayout.CENTER)
                 add(composer, BorderLayout.SOUTH)
             }
-            cards.add(panel, tab.id)
-            TabView(panel, composer, timeline, controller)
+            val presentation = com.cursoragent.ui.editor.ChatEditorPresentation(
+                project, panel, composer.inputArea,
+                canMove = { !disposed && !projectClosing && composer.canMovePresentation },
+                selectOwner = { if (!disposed && sessions.select(tab.id)) showSelected(focus = false) },
+                onReturn = { focusInput ->
+                    if (!disposed && !projectClosing && !project.isDisposed) {
+                        val window = com.intellij.openapi.wm.ToolWindowManager.getInstance(project).getToolWindow("Cursor Agent")
+                        if (focusInput) window?.activate {
+                            if (!disposed && !projectClosing && !project.isDisposed && sessions.snapshot().selectedId == tab.id) {
+                                views[tab.id]?.composer?.inputArea?.requestFocusInWindow()
+                            }
+                        } else window?.show(null)
+                    }
+                },
+                onFailure = { timeline.showStatus("エディターで会話を開けませんでした。パネルから続けて操作できます。") },
+            )
+            // Reparenting must not release the native input editor, its Undo history or its carets.
+            composer.inputArea.setDisposedWith(presentation)
+            cards.add(presentation.panel, tab.id)
+            TabView(presentation, composer, timeline, controller)
         }
         views.forEach { (id, other) ->
             other.timeline.isActiveTab = id == tab.id
@@ -246,12 +277,13 @@ class AgentToolWindowRootPanel(
         }
         (cards.layout as CardLayout).show(cards, tab.id)
         refreshStrip()
-        view.composer.inputArea.requestFocusInWindow()
+        if (focus) view.presentation.focus()
     }
 
     private fun refreshStrip() {
         val snapshot = sessions.snapshot()
         strip.setTabs(snapshot.tabs.map { SessionTabPresentation(it.id, it.title) }, snapshot.selectedId)
+        snapshot.tabs.forEach { views[it.id]?.presentation?.updateTitle(it.title) }
     }
 
     override fun dispose() {
@@ -262,7 +294,7 @@ class AgentToolWindowRootPanel(
         openedChatsPopup = null
         history.dispose()
         sessions.stopAll()
-        views.values.forEach { it.controller.dispose() }
+        views.values.forEach { it.controller.dispose(); Disposer.dispose(it.presentation) }
         views.clear()
         cards.removeAll()
     }
