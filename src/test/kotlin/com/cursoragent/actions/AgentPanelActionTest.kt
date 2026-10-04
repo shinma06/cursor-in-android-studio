@@ -75,12 +75,20 @@ class AgentPanelActionTest {
             val byKeymap = (0 until shortcuts.length).map { shortcuts.item(it) as org.w3c.dom.Element }
                 .groupBy { it.getAttribute("keymap") }
             assertEquals(setOf("\$default", "Mac OS X", "Mac OS X 10.5+"), byKeymap.keys)
+            if (command == AgentPanelCommand.STOP) {
+                assertEquals(listOf("control shift BACK_SPACE"), byKeymap.getValue("\$default").map { it.getAttribute("first-keystroke") })
+                listOf("Mac OS X", "Mac OS X 10.5+").forEach { keymap ->
+                    assertEquals(listOf("meta shift BACK_SPACE", "control C"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
+                }
+            }
             byKeymap.forEach { (keymap, keys) ->
                 if (keymap != "\$default") assertEquals("true", keys.first().getAttribute("replace-all"))
                 keys.forEach { key ->
                     val stroke = KeyStroke.getKeyStroke(key.getAttribute("first-keystroke"))
                     assertNotNull(stroke, key.getAttribute("first-keystroke"))
-                    val modifier = if (keymap == "\$default") java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
+                    val macControlStop = command == AgentPanelCommand.STOP && keymap != "\$default" &&
+                        key.getAttribute("first-keystroke") == "control C"
+                    val modifier = if (keymap == "\$default" || macControlStop) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
                     assertTrue(stroke.modifiers and modifier != 0)
                 }
             }
