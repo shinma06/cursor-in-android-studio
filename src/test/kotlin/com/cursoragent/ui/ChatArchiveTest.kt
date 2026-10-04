@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit
 import javax.swing.JButton
 import javax.swing.JList
 import javax.swing.Timer
+import javax.swing.SwingUtilities
 
 class ChatArchiveTest {
     private fun field(owner: Any, name: String) = owner.javaClass.getDeclaredField(name).apply { isAccessible = true }
@@ -89,7 +90,8 @@ class ChatArchiveTest {
                 worker = get(view, "worker") as Future<*>?
             }
             worker?.get(10, TimeUnit.SECONDS)
-            runInEdtAndWait { }
+            // Match the producer's Swing queue; the IDE invocation queue can overtake its callback.
+            SwingUtilities.invokeAndWait { }
         }
         try {
             runInEdtAndWait {
