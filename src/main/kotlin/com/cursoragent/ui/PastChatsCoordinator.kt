@@ -23,7 +23,7 @@ class PastChatsCoordinator(
     private var disposed = false
     private var generation = 0
 
-    init { owner.addHierarchyListener { if (!owner.isShowing) { generation++; dialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE) } } }
+    init { owner.addHierarchyListener { if (!owner.isShowing) cancel() } }
 
     fun showPopup(event: AnActionEvent) {
         if (disposed || project.isDisposed || !owner.isShowing) return
@@ -42,7 +42,7 @@ class PastChatsCoordinator(
             val next = HistorySearchDialog(project, entries, loaded.unreadable,
                 onOpen = { hit, query ->
                     val entry = hit.entry
-                    if (!disposed && !project.isDisposed && (entry.conversation == null || !history.isDeleted(entry.conversation.id))) {
+                    if (!disposed && !project.isDisposed && ticket == generation && owner.isShowing && (entry.conversation == null || !history.isDeleted(entry.conversation.id))) {
                         onChatResumed(entry.conversation, entry.legacyId, hit.match, query)
                     }
                 }, onDelete = ::delete, onExport = TranscriptExport(project)::export,
@@ -73,5 +73,12 @@ class PastChatsCoordinator(
         } }
     }
 
-    override fun dispose() { disposed = true; generation++; dialog?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE); dialog = null }
+    fun cancel() {
+        generation++
+        val previous = dialog
+        dialog = null
+        previous?.close(com.intellij.openapi.ui.DialogWrapper.CANCEL_EXIT_CODE)
+    }
+
+    override fun dispose() { disposed = true; cancel() }
 }

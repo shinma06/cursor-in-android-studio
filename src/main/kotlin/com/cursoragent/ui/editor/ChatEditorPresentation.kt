@@ -18,10 +18,13 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.Component
+import java.awt.KeyboardFocusManager
 import java.beans.PropertyChangeListener
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
 /** One live view, independent of the number of native editor splits displaying its handle. EDT only. */
 internal class ChatEditorPresentation(
@@ -33,6 +36,7 @@ internal class ChatEditorPresentation(
     private val onReturn: (Boolean) -> Unit,
     private val onFailure: (Throwable?) -> Unit,
     private val shortcutAllowed: () -> Boolean = { true },
+    private val headerActions: () -> List<com.intellij.openapi.actionSystem.AnAction> = { emptyList() },
 ) : Disposable {
     @Volatile private var disposed = false
     private var returning = false
@@ -51,7 +55,19 @@ internal class ChatEditorPresentation(
     }
     val panel = JPanel(BorderLayout()).apply { isOpaque = false; add(view) }
 
-    init { shortcut?.registerCustomShortcutSet(shortcut.shortcutSet, view) }
+    // Returning focus from the tool window to the already selected native editor has no selectNotify.
+    private val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
+    private val focusListener = PropertyChangeListener { event ->
+        val target = event.newValue as? Component
+        if (alive && !returning && target != null && editors.any { SwingUtilities.isDescendingFrom(target, it.component) }) selectOwner()
+    }
+
+    init {
+        shortcut?.registerCustomShortcutSet(shortcut.shortcutSet, view)
+        focusManager.addPropertyChangeListener("focusOwner", focusListener)
+    }
+
+    fun focusInEditor() { if (available) open() }
 
     fun toggle() {
         if (!available) return
@@ -131,6 +147,7 @@ internal class ChatEditorPresentation(
         if (disposed) return
         disposed = true
         shortcut?.unregisterCustomShortcutSet(view)
+        focusManager.removePropertyChangeListener("focusOwner", focusListener)
         try {
             if (!project.isDisposed) FileEditorManager.getInstance(project).closeFile(file)
         } finally {
@@ -145,7 +162,9 @@ internal class ChatEditorPresentation(
     private inner class ChatFileEditor : UserDataHolderBase(), FileEditor {
         @Volatile private var closed = false
         val body = JPanel(BorderLayout()).apply { isOpaque = false }
-        private val component = JPanel(BorderLayout()).apply {
+        private val component = object : JPanel(BorderLayout()), UiDataProvider {
+            override fun uiDataSnapshot(sink: DataSink) { if (alive && !closed) sink[KEY] = this@ChatEditorPresentation }
+        }.apply {
             isOpaque = false
             val back = JButton("Agentパネルに戻す").apply {
                 toolTipText = "会話・下書き・実行を保持したままパネルへ戻します。"
@@ -154,6 +173,14 @@ internal class ChatEditorPresentation(
             add(JPanel(BorderLayout()).apply {
                 isOpaque = false
                 border = JBUI.Borders.empty(4)
+                val actions = headerActions()
+                if (actions.isNotEmpty()) {
+                    val toolbar = ActionManager.getInstance().createActionToolbar(
+                        "CursorAgent.ChatEditor", com.intellij.openapi.actionSystem.DefaultActionGroup(actions), true,
+                    )
+                    toolbar.targetComponent = this
+                    add(toolbar.component, BorderLayout.WEST)
+                }
                 add(back, BorderLayout.EAST)
             }, BorderLayout.NORTH)
             add(body)
@@ -166,7 +193,7 @@ internal class ChatEditorPresentation(
             body.revalidate()
             body.repaint()
         }
-        override fun getComponent() = component
+        override fun getComponent(): JComponent = component
         override fun getPreferredFocusedComponent() = preferredFocus
         override fun getName() = "Agent"
         override fun getFile(): VirtualFile = this@ChatEditorPresentation.file

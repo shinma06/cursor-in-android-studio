@@ -32,6 +32,8 @@ class ChatEditorPresentationTest {
                 val content = JPanel(BorderLayout()).apply { add(field) }
                 var returned = 0
                 var selected = 0
+                val focusManager = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                val previousListeners = focusManager.getPropertyChangeListeners("focusOwner").toSet()
                 val presentation = ChatEditorPresentation(project, content, field, { true }, { selected++ }, { returned++ }, { fail("editor failed") })
                 field.setDisposedWith(presentation)
                 try {
@@ -53,6 +55,11 @@ class ChatEditorPresentationTest {
                     assertFalse(provider.accept(project, LightVirtualFile("ordinary.kt", "val x = 1")))
                     val second = provider.createEditor(project, file)
                     assertEquals(0, selected, "Constructing a background split must not select its chat")
+                    val listener = (focusManager.getPropertyChangeListeners("focusOwner").toSet() - previousListeners).single()
+                    listener.propertyChange(java.beans.PropertyChangeEvent(focusManager, "focusOwner", null, JPanel()))
+                    assertEquals(0, selected, "An ordinary IDE component must not change the selected chat")
+                    listener.propertyChange(java.beans.PropertyChangeEvent(focusManager, "focusOwner", null, field))
+                    assertEquals(1, selected, "Returning focus to an already selected editor must select its owning chat")
                     assertTrue(SwingUtilities.isDescendingFrom(content, first.component))
                     second.selectNotify()
                     assertTrue(SwingUtilities.isDescendingFrom(content, second.component))
@@ -78,13 +85,16 @@ class ChatEditorPresentationTest {
                     undo.redo(textEditor)
                     assertEquals("日本語の下書き\nsecond line", field.text)
                     assertEquals(AgentTransport.PRINT, sessions.snapshot().selected.transport)
-                    assertEquals(2, selected)
+                    assertEquals(3, selected)
                     Disposer.dispose(presentation)
                     com.intellij.util.ui.UIUtil.dispatchAllInvocationEvents()
                     assertTrue(native.isDisposed)
                     assertFalse(provider.accept(project, file))
                     assertFalse(first.isValid)
                     assertFalse(file.isValid)
+                    assertFalse(focusManager.getPropertyChangeListeners("focusOwner").contains(listener))
+                    listener.propertyChange(java.beans.PropertyChangeEvent(focusManager, "focusOwner", null, field))
+                    assertEquals(3, selected, "Late focus events cannot select a disposed chat")
                     first.selectNotify()
                     first.dispose()
                     assertEquals(1, returned)
@@ -215,6 +225,47 @@ class ChatEditorPresentationTest {
                     action.actionPerformed(own)
                     assertFalse(file.isValid)
                     assertEquals(0, failures)
+                } finally { if (presentation.alive) Disposer.dispose(presentation) }
+            }
+        } finally { runInEdtAndWait { fixture.tearDown() } }
+    }
+
+    @Test
+    fun `editor header uses its own live data context in every split`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("chat header ownership").fixture
+        fixture.setUp()
+        try {
+            runInEdtAndWait {
+                val field = GrowingPromptField(fixture.project)
+                var invoked: ChatEditorPresentation? = null
+                val action = object : com.intellij.openapi.project.DumbAwareAction("Owner") {
+                    override fun actionPerformed(e: com.intellij.openapi.actionSystem.AnActionEvent) {
+                        invoked = e.getData(ChatEditorPresentation.KEY)
+                    }
+                }
+                val presentation = ChatEditorPresentation(fixture.project, field, field, { true }, {}, {}, {},
+                    headerActions = { listOf(action) })
+                field.setDisposedWith(presentation)
+                try {
+                    val first = presentation.createEditor()
+                    val second = presentation.createEditor()
+                    fun invokeHeader(editor: com.intellij.openapi.fileEditor.FileEditor) {
+                        val header = (editor.component as JPanel).components.first { it is JPanel && (it.layout as? BorderLayout)?.getLayoutComponent(BorderLayout.WEST) != null } as JPanel
+                        val context = com.intellij.openapi.actionSystem.impl.Utils.createAsyncDataContext(header)
+                        action.actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent.createEvent(
+                            context, null, "test", com.intellij.openapi.actionSystem.ActionUiKind.NONE, null))
+                    }
+                    invokeHeader(first)
+                    assertSame(presentation, invoked)
+                    invokeHeader(second)
+                    assertSame(presentation, invoked)
+                    second.dispose()
+                    invokeHeader(second)
+                    assertNull(invoked, "A closed split cannot expose its former owner")
+                    first.dispose()
+                    Disposer.dispose(presentation)
+                    invokeHeader(first)
+                    assertNull(invoked)
                 } finally { if (presentation.alive) Disposer.dispose(presentation) }
             }
         } finally { runInEdtAndWait { fixture.tearDown() } }

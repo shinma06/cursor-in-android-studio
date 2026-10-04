@@ -20,7 +20,7 @@ import com.intellij.util.IconUtil
 import java.awt.Component
 import javax.swing.Icon
 
-/** ToolWindow-local actions. Read the selected tab at update AND invocation, never capture a tab. */
+/** Shared chat actions. Resolve the live owner at update AND invocation; never retain a closed view. */
 internal class ToolWindowChatActions(
     private val settings: AgentSettingsState,
     private val available: () -> Boolean,

@@ -45,74 +45,89 @@ class AgentToolWindowRootPanel(
     private val sessions = SessionTabs()
     private val strip = SessionTabStrip()
     private val cards = JPanel(CardLayout()).apply { isOpaque = false }
-    private data class TabView(val presentation: com.cursoragent.ui.editor.ChatEditorPresentation, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController)
+    private data class TabView(val presentation: com.cursoragent.ui.editor.ChatEditorPresentation, val composer: ComposerPanel, val timeline: ChatTimelinePanel, val controller: AgentUiController, val history: PastChatsCoordinator)
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
     private var projectClosing = false
     private var openedChatsPopup: JBPopup? = null
+    private var openedChatsOwner: JComponent? = null
     private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
     private val selectedView: TabView?
         get() = if (disposed || project.isDisposed) null else views[sessions.snapshot().selectedId]
 
-    internal val actions = ToolWindowChatActions(
-        settings = AgentSettingsState.getInstance(),
-        available = { selectedView != null },
-        running = { selectedView?.composer?.isRunning ?: false },
-        transportState = { selectedView?.controller?.transportState() ?: (AgentTransport.PRINT to true) },
-        onTransport = { selectedView?.controller?.selectTransport(it) },
-        onSummarize = { selectedView?.controller?.sendPrompt("/summarize") },
-        onNewChat = { open() },
-        onHistory = { event -> selectedView?.controller?.pauseQueue(); history.showPopup(event) },
-        onMcp = { McpServersDialog(project).show() },
-        onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
-        onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
-        onOpenedChats = ::showOpenedChats,
-        onCloseAllChats = ::confirmCloseAllChats,
-        onFeedback = { BrowserUtil.browse(it) },
-        previewEnabled = { UISettings.getInstance().openInPreviewTabIfPossible },
-        onPreview = { enabled ->
-            UISettings.getInstance().apply {
-                openInPreviewTabIfPossible = enabled
-                fireUISettingsChanged()
-            }
-        },
-        onEditorSettings = {
-            ShowSettingsUtil.getInstance().showSettingsDialog(
-                project, { (it as? SearchableConfigurable)?.id == "editor.preferences.tabs" }, null,
-            )
-        },
-        onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
-        onBrowser = { ManualBrowser.open(project) },
-        onExport = { TranscriptExport(project).export(selectedView?.controller?.conversationSnapshot()) },
-        onChanges = { selectedView?.controller?.showChanges() },
-        settingsUnavailableReason = { permission, sandbox, worktree ->
-            project.getService(AgentProcessService::class.java).settingsUnavailableReason(
-                AgentTransport.ACP, TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
-            )
-        },
-        requestIdSnapshot = { if (selectedView == null) null else sessions.snapshot() },
-        onRequestIdCopyFeedback = { selectedView?.timeline?.showStatus(it) },
-        onToggleEditor = { selectedView?.presentation?.toggle() },
-    )
-    private val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), this,
-        onChatResumed = { conversation, legacyId, match, query ->
-            if (conversation != null) {
-                sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
-            } else {
-                sessions.open(legacyId)
-            }
-            showSelected(conversation, legacyId != null)
-            if (match != null) {
-                val view = selectedView
-                javax.swing.SwingUtilities.invokeLater {
-                    val current = view?.controller?.conversationSnapshot()
-                    if (current != null) view.timeline.scrollToHistoryMatch(current, match.messageId, query)
+    internal val actions = chatActions()
+
+    private fun chatActions(tabId: String? = null): ToolWindowChatActions {
+        fun target() = if (disposed || projectClosing || project.isDisposed) null
+            else if (tabId == null) selectedView else views[tabId]
+        return ToolWindowChatActions(
+            settings = AgentSettingsState.getInstance(),
+            available = { target() != null },
+            running = { target()?.composer?.isRunning ?: false },
+            transportState = { target()?.controller?.transportState() ?: (AgentTransport.PRINT to true) },
+            onTransport = { target()?.controller?.selectTransport(it) },
+            onSummarize = { target()?.controller?.sendPrompt("/summarize") },
+            onNewChat = { open(inEditor = target()?.presentation?.inEditor == true) },
+            onHistory = { event -> target()?.let { it.controller.pauseQueue(); it.history.showPopup(event) } },
+            onMcp = { McpServersDialog(project).show() },
+            onSettings = { ShowSettingsUtil.getInstance().showSettingsDialog(project, AgentSettingsConfigurable::class.java) },
+            onEditNotice = { Messages.showInfoMessage(project, ImmediateEditNotice().text, "ファイル編集について") },
+            onOpenedChats = { event -> target()?.let { showOpenedChats(event, it.composer, tabId ?: sessions.snapshot().selectedId) } },
+            onCloseAllChats = ::confirmCloseAllChats,
+            onFeedback = { BrowserUtil.browse(it) },
+            previewEnabled = { UISettings.getInstance().openInPreviewTabIfPossible },
+            onPreview = { enabled ->
+                UISettings.getInstance().apply {
+                    openInPreviewTabIfPossible = enabled
+                    fireUISettingsChanged()
                 }
+            },
+            onEditorSettings = {
+                ShowSettingsUtil.getInstance().showSettingsDialog(
+                    project, { (it as? SearchableConfigurable)?.id == "editor.preferences.tabs" }, null,
+                )
+            },
+            onIconVisibilityChanged = { ActivityTracker.getInstance().inc() },
+            onBrowser = { ManualBrowser.open(project) },
+            onExport = { TranscriptExport(project).export(target()?.controller?.conversationSnapshot()) },
+            onChanges = { target()?.controller?.showChanges() },
+            settingsUnavailableReason = { permission, sandbox, worktree ->
+                project.getService(AgentProcessService::class.java).settingsUnavailableReason(
+                    AgentTransport.ACP, TurnSettings("", "", AgentMode.AGENT, permission, sandbox), worktree,
+                )
+            },
+            requestIdSnapshot = { if (target() == null) null else sessions.snapshot().let { if (tabId == null) it else it.copy(selectedId = tabId) } },
+            onRequestIdCopyFeedback = { target()?.timeline?.showStatus(it) },
+            onToggleEditor = { target()?.presentation?.toggle() },
+        )
+    }
+
+    private fun resumeHistory(
+        origin: String,
+        conversation: com.cursoragent.history.Conversation?,
+        legacyId: String?,
+        match: com.cursoragent.history.ConversationMatch?,
+        query: String,
+    ) {
+        val source = views[origin] ?: return
+        if (disposed || projectClosing || project.isDisposed) return
+        val inEditor = source.presentation.inEditor
+        if (conversation != null) {
+            sessions.open(conversation.providerId, conversationId = conversation.id, transport = conversation.transport)
+        } else {
+            sessions.open(legacyId)
+        }
+        showSelected(conversation, legacyId != null, focus = !inEditor)
+        if (inEditor) selectedView?.presentation?.focusInEditor()
+        if (match != null) {
+            val view = selectedView
+            javax.swing.SwingUtilities.invokeLater {
+                val current = if (!disposed && !projectClosing && !project.isDisposed && view === selectedView) view?.controller?.conversationSnapshot() else null
+                if (current != null) view?.timeline?.scrollToHistoryMatch(current, match.messageId, query)
             }
-        },
-        isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
-    )
+        }
+    }
 
     init {
         border = JBUI.Borders.empty()
@@ -129,7 +144,7 @@ class AgentToolWindowRootPanel(
         })
         strip.onSelect = { id -> if (sessions.select(id)) showSelected() }
         strip.onClose = { id -> closeTabs(listOf(id)) }
-        addHierarchyListener { if (!isShowing) openedChatsPopup?.cancel() }
+        addHierarchyListener { if (openedChatsOwner?.isShowing == false) openedChatsPopup?.cancel() }
         strip.onMove = { id, index -> if (sessions.move(id, index)) refreshStrip() }
         add(strip, BorderLayout.NORTH)
         add(cards, BorderLayout.CENTER)
@@ -159,10 +174,11 @@ class AgentToolWindowRootPanel(
         }, BorderLayout.EAST)
     }
 
-    private fun showOpenedChats(event: AnActionEvent) {
-        if (disposed || project.isDisposed || !isShowing) return
+    private fun showOpenedChats(event: AnActionEvent, owner: JComponent, ownerId: String) {
+        if (disposed || projectClosing || project.isDisposed || !owner.isShowing) return
         openedChatsPopup?.takeUnless { it.isDisposed }?.let { it.cancel(); return }
-        val snapshot = sessions.snapshot()
+        val snapshot = sessions.snapshot().copy(selectedId = ownerId)
+        val fromEditor = views[ownerId]?.presentation?.inEditor == true
         val entries = openedChatEntries(snapshot)
         val next = JBPopupFactory.getInstance().createPopupChooserBuilder(entries)
             .setTitle("開いているチャット")
@@ -172,12 +188,16 @@ class AgentToolWindowRootPanel(
             .setRenderer(SimpleListCellRenderer.create("") { it: Pair<String, String> -> it.second })
             .setSelectedValue(entries.first { it.first == snapshot.selectedId }, true)
             .setItemChosenCallback { entry ->
-                if (!disposed && !project.isDisposed && sessions.select(entry.first)) showSelected()
+                if (!disposed && !projectClosing && !project.isDisposed && views.containsKey(ownerId) && sessions.select(entry.first)) {
+                    showSelected(focus = !fromEditor)
+                    if (fromEditor) selectedView?.presentation?.focusInEditor()
+                }
             }
             .setCancelOnWindowDeactivation(true)
             .createPopup()
         openedChatsPopup = next
-        Disposer.register(next, Disposable { if (openedChatsPopup === next) openedChatsPopup = null })
+        openedChatsOwner = owner
+        Disposer.register(next, Disposable { if (openedChatsPopup === next) { openedChatsPopup = null; openedChatsOwner = null } })
         next.showInBestPositionFor(event.dataContext)
     }
 
@@ -208,6 +228,7 @@ class AgentToolWindowRootPanel(
         val closesAllTabs = sessions.snapshot().tabs.all { it.id in ids }
         sessions.closeAll(ids).forEach { tab ->
             views.remove(tab.id)?.let { view ->
+                view.history.dispose()
                 view.controller.dispose()
                 cards.remove(view.presentation.panel)
                 Disposer.dispose(view.presentation)
@@ -217,10 +238,11 @@ class AgentToolWindowRootPanel(
         if (closesAllTabs) onLastTabClosed()
     }
 
-    private fun open(chatId: String? = null) {
-        if (disposed) return
+    private fun open(chatId: String? = null, inEditor: Boolean = false) {
+        if (disposed || projectClosing || project.isDisposed) return
         sessions.open(chatId)
-        showSelected()
+        showSelected(focus = !inEditor)
+        if (inEditor) selectedView?.presentation?.focusInEditor()
     }
 
     private fun showSelected(saved: com.cursoragent.history.Conversation? = null, legacyOnly: Boolean = false, focus: Boolean = true) {
@@ -253,7 +275,7 @@ class AgentToolWindowRootPanel(
             val presentation = com.cursoragent.ui.editor.ChatEditorPresentation(
                 project, panel, composer.inputArea,
                 canMove = { !disposed && !projectClosing && composer.canMovePresentation },
-                selectOwner = { if (!disposed && sessions.select(tab.id)) showSelected(focus = false) },
+                selectOwner = { if (!disposed && sessions.snapshot().selectedId != tab.id && sessions.select(tab.id)) showSelected(focus = false) },
                 onReturn = { focusInput ->
                     if (!disposed && !projectClosing && !project.isDisposed) {
                         val window = com.intellij.openapi.wm.ToolWindowManager.getInstance(project).getToolWindow("Cursor Agent")
@@ -266,15 +288,24 @@ class AgentToolWindowRootPanel(
                 },
                 onFailure = { timeline.showStatus("エディターで会話を開けませんでした。パネルから続けて操作できます。") },
                 shortcutAllowed = { composer.canToggleEditorWithShortcut },
+                headerActions = {
+                    val editorActions = chatActions(tab.id)
+                    editorActions.titleActions + com.cursoragent.ui.header.ChatOptionsActionGroup(editorActions.gearActions)
+                },
             )
             // Reparenting must not release the native input editor, its Undo history or its carets.
             composer.inputArea.setDisposedWith(presentation)
             cards.add(presentation.panel, tab.id)
-            TabView(presentation, composer, timeline, controller)
+            val history = PastChatsCoordinator(project, ChatHistoryState.getInstance(project), panel,
+                onChatResumed = { conversation, legacyId, match, query -> resumeHistory(tab.id, conversation, legacyId, match, query) },
+                isOpen = { id -> sessions.snapshot().tabs.any { it.conversationId == id } },
+            )
+            panel.addHierarchyListener { if (openedChatsOwner === composer && !composer.isShowing) openedChatsPopup?.cancel() }
+            TabView(presentation, composer, timeline, controller, history)
         }
         views.forEach { (id, other) ->
             other.timeline.isActiveTab = id == tab.id
-            if (id != tab.id) other.controller.pauseQueue()
+            if (id != tab.id) { other.controller.pauseQueue(); other.history.cancel() }
         }
         (cards.layout as CardLayout).show(cards, tab.id)
         refreshStrip()
@@ -293,9 +324,8 @@ class AgentToolWindowRootPanel(
         uiSettingsConnection.disconnect()
         openedChatsPopup?.cancel()
         openedChatsPopup = null
-        history.dispose()
         sessions.stopAll()
-        views.values.forEach { it.controller.dispose(); Disposer.dispose(it.presentation) }
+        views.values.forEach { it.history.dispose(); it.controller.dispose(); Disposer.dispose(it.presentation) }
         views.clear()
         cards.removeAll()
     }

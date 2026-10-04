@@ -5,7 +5,7 @@
   "reason": "同じ会話をToolWindowとnative editor間で移すため、focus/Keymap/IME・実行/下書き・分割/閉鎖・破棄を固定buildの実画面で確認する。CLI fixtureは実GUI合格ではない。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（Kotlin/workflow/loopの必要suite）",
-    "ChatEditorPresentationTest: 公開FileEditorProviderとSDK FileEditorManagerのfixture、入力editor/caret/Undo/owner保持、通常ファイル拒否・native閉鎖・分割",
+    "ChatEditorPresentationTest: 公開FileEditorProviderとSDK FileEditorManagerのfixture、入力editor/caret/Undo/owner保持、通常ファイル拒否・native閉鎖・分割、headerの所有DataContext・focus復帰と閉鎖後listener解除",
     "標準./gradlew buildPlugin、ZIP構造/identity、固定Rabbit/JBRのPlugin Verifier",
     "git diff --check、Case schema、固定HEAD/baseの別session独立レビュー、4必須checks"
   ],
@@ -187,7 +187,9 @@
       "steps": [
         "同名の会話A/Bに別draftと実行を用意し、A/Bをそれぞれnative editorへ開く。片方はsplit/detachし、各editorとpanelを交互に選ぶ。",
         "同じ会話をsplitした場合、選択側へ同じviewが移り、他方の表示リンクで取り戻せることを確認する。2つの入力・同じproviderへの二重送信を作らない。",
-        "別projectの会話も開き、切替・Stop・添付・要求回答・title更新が会話UUIDとprojectの境界を越えないことを確認する。"
+        "別projectの会話も開き、切替・Stop・添付・要求回答・title更新が会話UUIDとprojectの境界を越えないことを確認する。",
+        "会話Aをeditor、Bをpanelで選択した後、nativeタブを切り替えずAの入力へfocusを戻す。Aへ選択コードを追加し、AのheaderからRequest IDコピー・書出し・差分・接続設定を操作する。BのID/本文/状態を参照・変更せず、閉鎖後の遅着focusでも復活しないことを確認する。",
+        "ToolWindowを隠したままeditorの履歴を読み込み、保存済み会話・新規チャット・開いているチャットを選択する。選んだ会話をeditorに表示し、履歴読込中の別会話選択/閉鎖では古いdialogを開かず、自動送信もしないことを確認する。"
       ],
       "expected": "同名でも識別が混ざらず、同じ会話の実viewは1つ。split/detachはsession複製ではない。"
     },
@@ -320,7 +322,7 @@
       "id": "CHAT-EDITOR-UI",
       "change": "狭幅・テーマ・キーボードfocus",
       "steps": [
-        "Light/Dark、狭幅/通常幅、IDE倍率とJIS/US配列で表示切替を試す。editorのtitleと戻すボタン・本文・inputが見切れず操作できることを確認する。",
+        "Light/Dark、狭幅/通常幅、IDE倍率とJIS/US配列で表示切替を試す。editorのtitleと戻すボタン・本文・inputが見切れず操作できることを確認する。 新規チャット・履歴・その他menuを狭幅でも開き、panel側と同じ設定/会話操作に到達することを確認する。",
         "キーボードだけでmenu、切替、戻す、入力、添付、要求cardへ移動する。スクロールを保持し、別会話や非表示の元editorにfocusを置かないことを確認する。",
         "Cursor固定版の同じ課題と比較し、native editor閉鎖は会話をpanelへ保持して戻す本Pluginの差を記録する。未確認のOS/状態を他の成功で代替しない。"
       ],
