@@ -32,6 +32,111 @@ class ChatArchiveTest {
     private fun entry(id: String = UUID.randomUUID().toString()) = RecentChatEntry(RecentChatId.Body(id), "Android Build", 10, AgentTransport.PRINT)
 
     @Test
+    fun `sidebar pin menu shares buttons and rejects stale actions without restoring archived chats`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("sidebar pin menu").fixture
+        fixture.setUp()
+        val properties = PropertiesComponent.getInstance(fixture.project)
+        val previousPins = properties.getList("CursorAgent.pinnedChats")
+        val target = entry()
+        val other = entry().copy(updatedMs = 1)
+        val archive = ChatArchiveState(properties)
+        val archiveKey = "CursorAgent.chatArchive." + pinnedChatKey(target.id)
+        val views = mutableListOf<AllChatsView>()
+        var valid = true
+        fun pins() = properties.getList("CursorAgent.pinnedChats").orEmpty().mapNotNull(::pinnedChatId).toSet()
+        fun action(view: AllChatsView) = invoke(view, "pinAction") as? com.intellij.openapi.actionSystem.AnAction
+        fun perform(action: com.intellij.openapi.actionSystem.AnAction) {
+            action.actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent.createFromAnAction(
+                action, null, "test", com.intellij.openapi.actionSystem.DataContext.EMPTY_CONTEXT))
+        }
+        fun searchNow(view: AllChatsView) {
+            lateinit var worker: Future<*>
+            runInEdtAndWait {
+                (get(view, "debounce") as Timer).stop()
+                invoke(view, "runSearch")
+                worker = get(view, "worker") as Future<*>
+            }
+            worker.get(10, TimeUnit.SECONDS)
+            SwingUtilities.invokeAndWait {}
+        }
+        try {
+            runInEdtAndWait {
+                properties.setList("CursorAgent.pinnedChats", emptyList())
+                for (mode in ChatListMode.entries) views += AllChatsView(fixture.project, mode,
+                    { listOf(target, other) }, { target.id }, { valid }, { fail("pin must not open a chat") },
+                    { fail("pin must not archive or restore") }).apply {
+                    useLoadedHistory(com.cursoragent.history.ConversationStore.Loaded(emptyList(), 0))
+                }
+            }
+            views.forEach(::searchNow)
+            val sidebar = views.first()
+            runInEdtAndWait {
+                views.drop(1).forEach { assertNull(action(it)) }
+                assertNotNull((get(sidebar, "moreButton") as JButton).parent, "menu also works without bulk archive callback")
+                val pin = requireNotNull(action(sidebar))
+                assertEquals("一覧に固定", pin.templatePresentation.text)
+                perform(pin)
+                perform(pin)
+                assertEquals(setOf(target.id), pins())
+                assertEquals("固定を解除", requireNotNull(action(sidebar)).templatePresentation.text)
+                (get(sidebar, "pinButton") as JButton).doClick()
+                assertTrue(pins().isEmpty())
+                val beforePins = requireNotNull(action(sidebar))
+                properties.setList("CursorAgent.pinnedChats", listOf(pinnedChatKey(other.id)))
+                perform(beforePins)
+                assertEquals(setOf(other.id), pins())
+                val beforeSelection = requireNotNull(action(sidebar))
+                val list = get(sidebar, "list") as JList<*>
+                val oldIndex = list.selectedIndex
+                list.clearSelection()
+                perform(beforeSelection)
+                list.selectedIndex = oldIndex
+                assertEquals(setOf(other.id), pins())
+                val beforeIme = requireNotNull(action(sidebar))
+                field(sidebar, "isComposing").set(sidebar, true)
+                perform(beforeIme)
+                field(sidebar, "isComposing").set(sidebar, false)
+                valid = false
+                perform(beforeIme)
+                valid = true
+                val beforeQuery = requireNotNull(action(sidebar))
+                (get(sidebar, "search") as SearchTextField).text = "different"
+                perform(beforeQuery)
+                assertEquals(setOf(other.id), pins())
+                (get(sidebar, "search") as SearchTextField).text = ""
+                assertTrue(archive.set(target, true, 30))
+                @Suppress("UNCHECKED_CAST")
+                (get(sidebar, "collapsed") as MutableSet<ChatSection>).remove(ChatSection.ARCHIVED)
+                sidebar.refreshOpenEntries()
+            }
+            searchNow(sidebar)
+            runInEdtAndWait {
+                val list = get(sidebar, "list") as JList<*>
+                list.selectedIndex = (0 until list.model.size).first {
+                    (list.model.getElementAt(it) as? AllChatRow.Chat)?.hit?.entry?.id == target.id
+                }
+                perform(requireNotNull(action(sidebar)))
+                assertEquals(setOf(other.id, target.id), pins())
+                assertTrue(archive.apply(target).archived)
+                assertEquals(ChatSection.ARCHIVED, (get(sidebar, "rows") as List<*>).filterIsInstance<AllChatRow.Section>().last().section)
+                val stale = requireNotNull(action(sidebar))
+                sidebar.suspendUpdates()
+                perform(stale)
+                sidebar.dispose()
+                perform(stale)
+                assertEquals(setOf(other.id, target.id), pins())
+            }
+        } finally {
+            runInEdtAndWait {
+                views.forEach(AllChatsView::dispose)
+                properties.unsetValue(archiveKey)
+                if (previousPins == null) properties.unsetValue("CursorAgent.pinnedChats") else properties.setList("CursorAgent.pinnedChats", previousPins)
+                fixture.tearDown()
+            }
+        }
+    }
+
+    @Test
     fun `prior archive menu captures all search hits beyond collapsed pages and refuses stale replay`() {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("prior archive menu").fixture
         fixture.setUp()

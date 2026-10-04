@@ -83,11 +83,16 @@ internal fun sidebarChatRows(
     }
 }
 
-/** Count only available chats; stale stored pins do not create conversations or consume the active limit. */
-internal fun togglePinnedChat(pinned: Set<RecentChatId>, id: RecentChatId, available: Set<RecentChatId>): Set<RecentChatId>? = when {
+/** Archived chats can retain pins; only existing, unarchived pins consume the active limit. */
+internal fun togglePinnedChat(
+    pinned: Set<RecentChatId>,
+    id: RecentChatId,
+    available: Set<RecentChatId>,
+    active: Set<RecentChatId> = available,
+): Set<RecentChatId>? = when {
     id !in available -> null
     id in pinned -> pinned - id
-    pinned.count { it in available } >= 75 -> null
+    pinned.count { it in active } >= 75 -> null
     else -> pinned + id
 }
 

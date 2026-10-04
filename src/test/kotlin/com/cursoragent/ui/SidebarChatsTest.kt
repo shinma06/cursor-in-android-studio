@@ -154,6 +154,12 @@ class SidebarChatsTest {
         val body = RecentChatId.Body("same")
         val legacy = RecentChatId.LegacyPrint("same")
         assertEquals(setOf(body, legacy), togglePinnedChat(setOf(body), legacy, setOf(body, legacy)))
+        val archived = RecentChatId.Body("archived")
+        assertNull(togglePinnedChat(first75, archived, available + archived, available))
+        val mixed = first75 + archived
+        assertEquals(first75, togglePinnedChat(mixed, archived, available + archived, available))
+        assertEquals(unpinned + archived, togglePinnedChat(unpinned, archived, available + archived, available))
+        assertEquals(unpinned + archived + next, togglePinnedChat(unpinned + archived, next, available + archived, available))
     }
 
     @Test

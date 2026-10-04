@@ -199,6 +199,12 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 2. A1〜A3を既存経路へ接続し、確定した不足能力を具体Issueとnative関係へ分割する。無反応のダミーActionは追加しない。
 3. [Case正本](../verification/changes/issue-212.json)で全対象の実装・条件・競合・固定build GUI証拠・main未反映を追跡する。現行panel専用19 Actionとglobal8 Actionや静的件数だけで#212を閉じない。[Milestone 8](https://github.com/shinma06/cursor-in-android-studio/milestone/8)はCursor 3.23.12のIDE内Agent全ショートカットを固定範囲とし、対象全件の確定・不足能力の実装・固定build GUI・main反映までを到達条件とする。未確定行や公開契約待ちを省略しない。
 
+### Sidebarの固定メニュー
+
+固定版のlocal item menu `bzt` → `pinComposerToSidebar`は通常/Archivedのどちらにも固定・解除を提供する。pin storageの上限判定は現存する未archiveのpinだけを数え、75件なら新規追加を拒否する。archivedのpin自体はarchive解除や開く操作ではなく、復元後の区分へ反映する。Pluginは既存ボタンと同じ保存処理をnative右クリック/「…」/IDE `ShowPopupMenu`へ接続し、menuの上下/Enter/Escapeはnative実装へ委ねる。メニューの選択・検索世代・metadata・pin集合が変わった時とIME/非表示/破棄後は実行せず、同じActionの再実行も拒否する。未読/新規tab/fork等をこの2項目の実装で完了とはしない。Renameは固定版の入力とEnter確定/Escape取消を確認したが、[#66](https://github.com/shinma06/cursor-in-android-studio/issues/66)のprovider改名同期と代替命名の保留を維持する。
+
+`ChatArchiveTest`は実list Actionと既存ボタンの共有、古い選択/pin/検索/IME/非表示/破棄、archiveを保ったpinを確認し、`SidebarChatsTest`は有効75件とarchived/stale IDの境界を確認する。実キー配送・取消・読み上げ・再起動は`KEYMAP-SIDEBAR-SECTIONS`に残す。[JetBrains AI Chat](https://www.jetbrains.com/help/ai-assistant/ai-chat.html)の会話管理と[Cursor ACP連携](https://cursor.com/docs/integrations/jetbrains)を比較対象にし、独自機能とは呼ばない。直接IDE統合では同じprojectのtyped会話ID/Keymapと既存保存metadataを使い、providerやrunへ操作を転送しない。現行Cursorの公式overviewはこのpin細部を列挙していないため、上記の固定配布版の静的経路を根拠とし、GUI同等性は未確認である。
+
 ## All Agentsのアーカイブと復元
 
 固定版の`chat:` provider（`EGo` / `TGo`）はglobal All Agents検索に属し、local/Cloudの通常候補を曖昧検索して200件まで返す。`KKb`はヘッダー履歴メニュー（`zKb`）のproviderであり、global検索とは別経路である。履歴は名前/冒頭文の部分一致、通常候補のpin優先/更新順とアーカイブの更新順、`qKb`の各20件/Moreを使う。検索変更とメニュー再表示で件数を戻し、Archivedは初期折り畳みとする。両経路を同じpopupとみなした以前の比較は適用しない。Cloudのprivate RPCはPluginから呼ばない。

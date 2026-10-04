@@ -169,7 +169,7 @@ internal class AllChatsView(
                 if (mode != ChatListMode.QUICK_ACCESS) {
                     add(pinButton)
                     add(archiveButton)
-                    if (mode == ChatListMode.SIDEBAR && onArchivePrior != null) add(moreButton)
+                    if (mode == ChatListMode.SIDEBAR) add(moreButton)
                 }
                 onManage?.let { manage -> add(JButton("保存した会話を検索…").apply {
                     addActionListener { if (!disposed && valid() && !isComposing) manage() }
@@ -212,7 +212,7 @@ internal class AllChatsView(
                     list.getCellBounds(list.selectedIndex, list.selectedIndex)?.contains(event.point) == true) choose()
             }
         })
-        if (mode == ChatListMode.SIDEBAR && onArchivePrior != null) list.addMouseListener(object : PopupHandler() {
+        if (mode == ChatListMode.SIDEBAR) list.addMouseListener(object : PopupHandler() {
             override fun invokePopup(component: Component, x: Int, y: Int) {
                 val index = list.locationToIndex(Point(x, y))
                 if (index < 0 || list.getCellBounds(index, index)?.contains(x, y) != true || model[index] !is AllChatRow.Chat) return
@@ -364,18 +364,19 @@ internal class AllChatsView(
         archiveButton.text = if (entry?.archived == true) "復元" else "アーカイブ"
         archiveButton.toolTipText = if (entry?.archived == true) "通常の一覧へ戻します。会話の送信は再開しません。" else "この会話の実行を停止し、本文を保持してアーカイブへ移します。"
         archiveButton.isEnabled = actionable && mode != ChatListMode.QUICK_ACCESS
-        moreButton.isEnabled = actionable && historyComplete && mode == ChatListMode.SIDEBAR && onArchivePrior != null
+        moreButton.isEnabled = actionable && mode == ChatListMode.SIDEBAR
         if (mode == ChatListMode.QUICK_ACCESS) return
         val alreadyPinned = entry?.id in pinned
         val available = entries.filterNot { it.archived }.map { it.id }.toSet()
         val belowLimit = pinned.count { it in available } < 75
         pinButton.text = if (alreadyPinned) "固定を解除" else "一覧に固定"
-        pinButton.isEnabled = actionable && !entry.archived &&
+        pinButton.isEnabled = actionable &&
             (alreadyPinned || historyComplete && belowLimit)
         pinButton.toolTipText = when {
             alreadyPinned -> "このチャットの一覧への固定を解除します。"
             !historyComplete -> "履歴の読込みが完了してから固定できます。"
             !belowLimit -> "固定できるチャットは75件までです。"
+            entry?.archived == true -> "固定状態だけを変更します。アーカイブは解除しません。"
             else -> "このチャットを一覧の先頭の区分に固定します。"
         }
     }
@@ -384,10 +385,11 @@ internal class AllChatsView(
         if (mode == ChatListMode.QUICK_ACCESS) return
         if (disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return
         val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return
-        if (!entryAvailable(entry) || entry.archived) { refreshOpenEntries(); return }
+        if (!entryAvailable(entry)) { refreshOpenEntries(); return }
         pinned = readPins()
         if (entry.id !in pinned && !historyComplete) return
-        val updated = togglePinnedChat(pinned, entry.id, entries.filterNot { it.archived }.map { it.id }.toSet()) ?: return
+        val updated = togglePinnedChat(pinned, entry.id, entries.map { it.id }.toSet(),
+            entries.filterNot { it.archived }.map { it.id }.toSet()) ?: return
         pinned = updated
         properties.setList("CursorAgent.pinnedChats", pinned.map(::pinnedChatKey))
         navigationTarget = null
@@ -421,9 +423,35 @@ internal class AllChatsView(
     }
 
     private fun showChatMenu(component: JComponent, x: Int, y: Int) {
-        val action = archivePriorAction() ?: return
-        ActionManager.getInstance().createActionPopupMenu("CursorAgent.ChatSidebar", DefaultActionGroup(action))
+        val actions = chatMenuActions()
+        if (actions.isEmpty()) return
+        ActionManager.getInstance().createActionPopupMenu("CursorAgent.ChatSidebar", DefaultActionGroup(actions))
             .component.show(component, x, y)
+    }
+
+    private fun chatMenuActions(): List<AnAction> = listOfNotNull(pinAction(), archivePriorAction())
+
+    private fun pinAction(): AnAction? {
+        if (mode != ChatListMode.SIDEBAR || disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return null
+        val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return null
+        if (!entryAvailable(entry)) return null
+        val ticket = searchGeneration
+        val pins = readPins()
+        fun isCurrent() = !disposed && valid() && ready && !isComposing && ticket == searchGeneration &&
+            appliedQuery == search.text && readPins() == pins &&
+            (list.selectedValue as? AllChatRow.Chat)?.hit?.entry == entry && entryAvailable(entry)
+        fun canPin() = (entry.id in pins || historyComplete) && togglePinnedChat(pins, entry.id,
+            entries.map { it.id }.toSet(), entries.filterNot { it.archived }.map { it.id }.toSet()) != null
+        return object : DumbAwareAction(if (entry.id in pins) "固定を解除" else "一覧に固定") {
+            private var used = false
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            override fun update(e: AnActionEvent) { e.presentation.isEnabled = !used && isCurrent() && canPin() }
+            override fun actionPerformed(e: AnActionEvent) {
+                if (used || !isCurrent() || !canPin()) return
+                used = true
+                togglePin()
+            }
+        }
     }
 
     private fun archivePriorAction(): AnAction? {
