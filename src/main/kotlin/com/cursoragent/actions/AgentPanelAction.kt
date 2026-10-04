@@ -27,6 +27,7 @@ internal enum class AgentPanelCommand(val actionId: String) {
     RECENT_CHAT("CursorAgent.RecentChat"),
     LEAST_RECENT_CHAT("CursorAgent.LeastRecentChat"),
     STOP("CursorAgent.Stop"),
+    ACCEPT_PENDING("CursorAgent.AcceptPending"),
     MODE_MENU("CursorAgent.ModeMenu"),
     MODEL_MENU("CursorAgent.ModelMenu"),
     ADD_CONTEXT("CursorAgent.AddContext"),
@@ -58,9 +59,29 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
     class RecentChat : AgentPanelAction(AgentPanelCommand.RECENT_CHAT)
     class LeastRecentChat : AgentPanelAction(AgentPanelCommand.LEAST_RECENT_CHAT)
     class Stop : AgentPanelAction(AgentPanelCommand.STOP)
+    class AcceptPending : AgentPanelAction(AgentPanelCommand.ACCEPT_PENDING) {
+        private fun accepts(e: AnActionEvent): Boolean {
+            val key = e.inputEvent as? java.awt.event.KeyEvent ?: return true
+            return acceptsPendingShortcut(key, com.cursoragent.settings.AgentSettingsState.getInstance().sendKeyMode,
+                com.intellij.openapi.util.SystemInfo.isMac)
+        }
+        override fun update(e: AnActionEvent) { super.update(e); e.presentation.isEnabled = e.presentation.isEnabled && accepts(e) }
+        override fun actionPerformed(e: AnActionEvent) { if (accepts(e)) super.actionPerformed(e) }
+    }
     class ModeMenu : AgentPanelAction(AgentPanelCommand.MODE_MENU)
     class ModelMenu : AgentPanelAction(AgentPanelCommand.MODEL_MENU)
     class AddContext : AgentPanelAction(AgentPanelCommand.ADD_CONTEXT)
     class History : AgentPanelAction(AgentPanelCommand.HISTORY)
     class Changes : AgentPanelAction(AgentPanelCommand.CHANGES)
+}
+
+/** The default acceptance key changes with send mode; unrelated user remaps remain usable. */
+internal fun acceptsPendingShortcut(key: java.awt.event.KeyEvent, mode: com.cursoragent.settings.SendKeyMode, isMac: Boolean): Boolean {
+    if (key.keyCode != java.awt.event.KeyEvent.VK_ENTER) return true
+    val primary = if (isMac) java.awt.event.InputEvent.META_DOWN_MASK else java.awt.event.InputEvent.CTRL_DOWN_MASK
+    return when (key.modifiersEx) {
+        primary -> mode == com.cursoragent.settings.SendKeyMode.ENTER
+        primary or java.awt.event.InputEvent.ALT_DOWN_MASK -> mode == com.cursoragent.settings.SendKeyMode.MODIFIER_ENTER
+        else -> true
+    }
 }

@@ -159,12 +159,21 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control shift TAB" replace-all="true"/>
             </action>
             <action id="CursorAgent.Stop" class="com.cursoragent.actions.AgentPanelAction$Stop"
-                    text="応答を停止" description="現在のチャットの実行を停止します。">
+                    text="保留要求を拒否・応答を停止" description="対象を特定できる保留要求を拒否し、保留要求がなければ現在の実行を停止します。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control shift BACK_SPACE"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift BACK_SPACE" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X" first-keystroke="control C"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift BACK_SPACE" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control C"/>
+            </action>
+            <action id="CursorAgent.AcceptPending" class="com.cursoragent.actions.AgentPanelAction$AcceptPending"
+                    text="保留要求に回答" description="対象を特定できる要求を今回だけ許可、計画を承認、または選択済みの質問への回答を送信します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta ENTER" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta ENTER" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt ENTER"/>
             </action>
             <action id="CursorAgent.ModeMenu" class="com.cursoragent.actions.AgentPanelAction$ModeMenu"
                     text="Modeを選ぶ" description="現在のチャットのMode選択を開きます。">

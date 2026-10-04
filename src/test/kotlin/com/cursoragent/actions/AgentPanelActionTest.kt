@@ -90,6 +90,12 @@ class AgentPanelActionTest {
                     assertEquals(listOf("meta shift BACK_SPACE", "control C"), byKeymap.getValue(keymap).map { it.getAttribute("first-keystroke") })
                 }
             }
+            if (command == AgentPanelCommand.ACCEPT_PENDING) {
+                byKeymap.forEach { (keymap, keys) ->
+                    val modifier = if (keymap == "\$default") "control" else "meta"
+                    assertEquals(listOf("$modifier ENTER", "$modifier alt ENTER"), keys.map { it.getAttribute("first-keystroke") })
+                }
+            }
             if (command == AgentPanelCommand.RESET_CHAT) {
                 assertEquals(listOf("control R"), byKeymap.getValue("\$default").map { it.getAttribute("first-keystroke") })
                 listOf("Mac OS X", "Mac OS X 10.5+").forEach { keymap ->
@@ -138,6 +144,7 @@ class AgentPanelActionTest {
         AgentPanelCommand.RECENT_CHAT to AgentPanelAction.RecentChat(),
         AgentPanelCommand.LEAST_RECENT_CHAT to AgentPanelAction.LeastRecentChat(),
         AgentPanelCommand.STOP to AgentPanelAction.Stop(),
+        AgentPanelCommand.ACCEPT_PENDING to AgentPanelAction.AcceptPending(),
         AgentPanelCommand.MODE_MENU to AgentPanelAction.ModeMenu(),
         AgentPanelCommand.MODEL_MENU to AgentPanelAction.ModelMenu(),
         AgentPanelCommand.ADD_CONTEXT to AgentPanelAction.AddContext(),

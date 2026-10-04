@@ -75,6 +75,7 @@ class AgentToolWindowRootPanel(
     private var disposed = false
     private var chatFocusGeneration = 0L
     private val inputFocusReturn = ChatFocusReturn(project)
+    private val requestShortcutKeys = RequestShortcutKeys()
     private var openedChatsPopup: JBPopup? = null
     private val recentVisits = RecentChatVisits()
     private var recentChatsPopup: RecentChatsPopup? = null
@@ -102,10 +103,17 @@ class AgentToolWindowRootPanel(
     private fun shortcutAvailable(command: AgentPanelCommand): Boolean {
         val composer = selectedView?.composer ?: return false
         if (!isShowing || !windowShortcutAvailable) return false
+        val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+        if (command in setOf(AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP) &&
+            (focus == null || !focus.isShowing || !SwingUtilities.isDescendingFrom(focus, this))) return false
         return when (command) {
             AgentPanelCommand.RESET_CHAT -> composer.canResetFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.UNFOCUS_INPUT -> composer.canUnfocusFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
-            AgentPanelCommand.STOP -> composer.isRunning
+            AgentPanelCommand.ACCEPT_PENDING -> selectedView?.timeline?.pendingInput(focus)?.canRespond(true) == true
+            AgentPanelCommand.STOP -> selectedView?.timeline?.let { timeline ->
+                if (timeline.hasPendingInput) timeline.pendingInput(focus)?.canRespond(false) == true
+                else composer.isRunning
+            } == true
             AgentPanelCommand.MODE_MENU -> composer.modeSelector.isEnabled
             AgentPanelCommand.MODEL_MENU -> composer.modelSelector.isEnabled
             AgentPanelCommand.ADD_CONTEXT -> composer.inputArea.isEnabled
@@ -127,7 +135,13 @@ class AgentToolWindowRootPanel(
                 else navigateSidebar(command)
             }
             AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT -> showRecentChats(command, event)
-            AgentPanelCommand.STOP -> view.controller.stopRun()
+            AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP -> {
+                if (!requestShortcutKeys.accept(event.inputEvent as? java.awt.event.KeyEvent)) return
+                if (view.timeline.hasPendingInput) {
+                    view.timeline.pendingInput(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
+                        ?.respond(command == AgentPanelCommand.ACCEPT_PENDING)
+                } else if (command == AgentPanelCommand.STOP) view.controller.stopRun()
+            }
             AgentPanelCommand.MODE_MENU -> view.composer.modeSelector.doClick()
             AgentPanelCommand.MODEL_MENU -> view.composer.modelSelector.doClick()
             AgentPanelCommand.ADD_CONTEXT -> view.composer.promptContext.onAddMention()
@@ -650,6 +664,7 @@ class AgentToolWindowRootPanel(
     override fun dispose() {
         if (disposed) return
         disposed = true
+        requestShortcutKeys.dispose()
         registeredShortcuts.forEach { it.unregisterCustomShortcutSet(this) }
         registeredShortcuts.clear()
         uiSettingsConnection.disconnect()

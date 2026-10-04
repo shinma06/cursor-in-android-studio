@@ -114,7 +114,10 @@ internal class AgentTurnListenerFactory(
                             recorder.tool(displayed.id, if (displayed.task != null) taskSavedSummary(displayed)
                                 else "ツール: ${safeToolKind(displayed.kind)} (${safeToolStatus(displayed.status)})" + safeContentSummary(displayed))
                         }
-                        is AgentEvent.Input -> { activity(RunPhase.RUNNING); timeline.addInputRequest(event.request) }
+                        is AgentEvent.Input -> {
+                            activity(RunPhase.RUNNING)
+                            timeline.addInputRequest(event.request) { !project.isDisposed && !terminal && isCurrent() && !isStopped() }
+                        }
                         is AgentEvent.Plan -> { activity(RunPhase.RUNNING); timeline.showPlan(event.entries) }
                         is AgentEvent.Configuration -> onConfiguration(event)
                     }

@@ -44,11 +44,12 @@ class ComposerSubmissionTest {
                     val inputActions = listOf(
                         ActionManager.getInstance().getAction(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId),
                         ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.UNFOCUS_INPUT.actionId),
+                        ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.ACCEPT_PENDING.actionId),
                     )
-                    assertTrue(inputActions.all { it != null }, "registered plugin Escape actions must be available")
+                    assertTrue(inputActions.all { it != null }, "registered plugin input actions must be available")
                     composer.installInputShortcuts(lifetime)
                     val localActions = com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(composer.inputArea)
-                    assertTrue(localActions.containsAll(inputActions), "both Escape operations must be candidates at the same input component")
+                    assertTrue(localActions.containsAll(inputActions), "Escape and pending acceptance must be candidates at the same input component as send")
                     var editor = requireNotNull(composer.inputArea.getEditor(true))
                     val images = ImageDraft(Executor { work.add(it) }, { it() }, { store }, {})
                     composer.installImages(images)
