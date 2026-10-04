@@ -1,6 +1,9 @@
 package com.cursoragent.ui.composer
 
+import com.cursoragent.actions.AgentPanelCommand
+import com.cursoragent.actions.toolReviewOwnsShortcut
 import com.cursoragent.settings.SendKeyMode
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
@@ -13,7 +16,14 @@ import javax.swing.KeyStroke
 internal class PromptSendShortcut(private val submit: () -> Unit) : AnAction() {
     private var enterPressed = false
 
+    override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabled = !toolReviewOwnsShortcut(e, AgentPanelCommand.APPROVE_TOOL)
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
+        if (toolReviewOwnsShortcut(e, AgentPanelCommand.APPROVE_TOOL)) return
         val key = e.inputEvent as? KeyEvent
         if (key?.id == KeyEvent.KEY_PRESSED && key.keyCode == KeyEvent.VK_ENTER) {
             if (enterPressed) return

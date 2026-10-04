@@ -172,6 +172,18 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift BACK_SPACE" replace-all="true"/>
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control C"/>
             </action>
+            <action id="CursorAgent.ApproveTool" class="com.cursoragent.actions.AgentPanelAction$ApproveTool"
+                    text="確認中の操作を今回だけ許可" description="空の入力欄または会話本文から、対象が一意な操作確認に返信します">
+                <keyboard-shortcut keymap="$default" first-keystroke="ENTER"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="ENTER" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ENTER" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.SkipTool" class="com.cursoragent.actions.AgentPanelAction$SkipTool"
+                    text="確認中の操作を今回は拒否" description="空の入力欄または会話本文から、対象が一意な操作確認に返信します">
+                <keyboard-shortcut keymap="$default" first-keystroke="ESCAPE"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="ESCAPE" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ESCAPE" replace-all="true"/>
+            </action>
             <action id="CursorAgent.AcceptPending" class="com.cursoragent.actions.AgentPanelAction$AcceptPending"
                     text="保留要求に回答" description="対象を特定できる要求を今回だけ許可、計画を承認、または選択済みの質問への回答を送信します。">
                 <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>

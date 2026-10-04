@@ -120,8 +120,11 @@ class AgentPanelActionTest {
                 val expected = if (command == AgentPanelCommand.RECENT_CHAT) "control TAB" else "control shift TAB"
                 byKeymap.values.forEach { keys -> assertEquals(listOf(expected), keys.map { it.getAttribute("first-keystroke") }) }
             }
-            if (command == AgentPanelCommand.UNFOCUS_INPUT) {
+            if (command in setOf(AgentPanelCommand.UNFOCUS_INPUT, AgentPanelCommand.SKIP_TOOL)) {
                 byKeymap.values.forEach { keys -> assertEquals(listOf("ESCAPE"), keys.map { it.getAttribute("first-keystroke") }) }
+            }
+            if (command == AgentPanelCommand.APPROVE_TOOL) {
+                byKeymap.values.forEach { keys -> assertEquals(listOf("ENTER"), keys.map { it.getAttribute("first-keystroke") }) }
             }
             if (command in setOf(AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT)) {
                 val key = if (command == AgentPanelCommand.PREVIOUS_AGENT) "LEFT" else "RIGHT"
@@ -138,7 +141,7 @@ class AgentPanelActionTest {
                     val macControlStop = command == AgentPanelCommand.STOP && keymap != "\$default" &&
                         key.getAttribute("first-keystroke") == "control C"
                     val modifier = if (keymap == "\$default" || keymap == "Default for XWin" || macControlStop || recent) java.awt.event.InputEvent.CTRL_DOWN_MASK else java.awt.event.InputEvent.META_DOWN_MASK
-                    if (command == AgentPanelCommand.UNFOCUS_INPUT) assertEquals(0, stroke.modifiers)
+                    if (command in setOf(AgentPanelCommand.UNFOCUS_INPUT, AgentPanelCommand.APPROVE_TOOL, AgentPanelCommand.SKIP_TOOL)) assertEquals(0, stroke.modifiers)
                     else if (command == AgentPanelCommand.MODE_MENU && stroke.keyCode == java.awt.event.KeyEvent.VK_TAB) {
                         assertEquals(KeyStroke.getKeyStroke("shift TAB"), stroke)
                     } else assertTrue(stroke.modifiers and modifier != 0)
@@ -161,6 +164,8 @@ class AgentPanelActionTest {
         AgentPanelCommand.LEAST_RECENT_CHAT to AgentPanelAction.LeastRecentChat(),
         AgentPanelCommand.STOP to AgentPanelAction.Stop(),
         AgentPanelCommand.ACCEPT_PENDING to AgentPanelAction.AcceptPending(),
+        AgentPanelCommand.APPROVE_TOOL to AgentPanelAction.ApproveTool(),
+        AgentPanelCommand.SKIP_TOOL to AgentPanelAction.SkipTool(),
         AgentPanelCommand.MODE_MENU to AgentPanelAction.ModeMenu(),
         AgentPanelCommand.MODEL_MENU to AgentPanelAction.ModelMenu(),
         AgentPanelCommand.ADD_CONTEXT to AgentPanelAction.AddContext(),

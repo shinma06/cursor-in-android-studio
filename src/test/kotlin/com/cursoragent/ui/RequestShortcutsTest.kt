@@ -46,6 +46,7 @@ class RequestShortcutsTest {
             })
         val once = listOf(PermissionOption("opaque-yes", "Allow", "allow_once"), PermissionOption("opaque-no", "No", "reject_once"))
         val allow = permission(once)
+        assertTrue(allow.isToolPermission)
         assertTrue(allow.canRespond(true))
         allow.respond(true)
         allow.respond(false)
@@ -91,6 +92,7 @@ class RequestShortcutsTest {
         var current = true
         val request = AgentInputRequest(AgentInput.Plan("Plan", null, "合成内容")) { replies.add(it); it }
         val plan = AgentRequestCard(request) { current }
+        assertFalse(plan.isToolPermission)
         assertTrue(plan.canRespond(true))
         current = false
         plan.respond(true)
@@ -137,15 +139,19 @@ class RequestShortcutsTest {
         val keys = RequestShortcutKeys()
         try {
             assertTrue(keys.accept(key(KeyEvent.VK_ENTER)))
+            assertTrue(keys.dispatchKeyEvent(key(KeyEvent.VK_ENTER)), "a held approval must not reach native newline or another send action")
             assertFalse(keys.accept(key(KeyEvent.VK_ENTER)))
             assertTrue(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
             assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
             keys.dispatchKeyEvent(key(KeyEvent.VK_CONTROL, release = true))
             assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
             keys.dispatchKeyEvent(key(KeyEvent.VK_ENTER, release = true))
+            assertFalse(keys.dispatchKeyEvent(key(KeyEvent.VK_ENTER)))
             assertTrue(keys.accept(key(KeyEvent.VK_ENTER)))
             assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
             assertTrue(keys.accept(null), "a separate explicit menu invocation is not a keyboard repeat")
+            assertTrue(keys.accept(key(KeyEvent.VK_ESCAPE)))
+            assertTrue(keys.dispatchKeyEvent(key(KeyEvent.VK_ESCAPE)), "a held rejection must not fall through to focus return")
             keys.dispose()
             assertTrue(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
         } finally { keys.dispose() }

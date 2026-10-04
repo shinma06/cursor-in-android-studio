@@ -23,6 +23,7 @@ import com.cursoragent.ui.mcp.McpServersDialog
 import com.cursoragent.ui.session.SessionTabPresentation
 import com.cursoragent.ui.session.SessionTabStrip
 import com.cursoragent.ui.timeline.ChatTimelinePanel
+import com.cursoragent.ui.timeline.AgentRequestCard
 import com.intellij.ide.ActivityTracker
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.ide.BrowserUtil
@@ -47,9 +48,11 @@ import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.CardLayout
+import java.awt.Component
 import java.awt.KeyboardFocusManager
 import java.awt.event.HierarchyEvent
 import javax.swing.JButton
+import javax.swing.AbstractButton
 import javax.swing.JLabel
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -104,7 +107,10 @@ class AgentToolWindowRootPanel(
         val composer = selectedView?.composer ?: return false
         if (!isShowing || !windowShortcutAvailable) return false
         val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-        if (command in setOf(AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP) &&
+        if (command in setOf(
+                AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP,
+                AgentPanelCommand.APPROVE_TOOL, AgentPanelCommand.SKIP_TOOL,
+            ) &&
             (focus == null || !focus.isShowing || !SwingUtilities.isDescendingFrom(focus, this))) return false
         return when (command) {
             AgentPanelCommand.SUBMIT_INITIAL -> composer.canSubmitInitial && sessions.snapshot().selected.run == null &&
@@ -112,6 +118,9 @@ class AgentToolWindowRootPanel(
             AgentPanelCommand.RESET_CHAT -> composer.canResetFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.UNFOCUS_INPUT -> composer.canUnfocusFrom(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
             AgentPanelCommand.ACCEPT_PENDING -> selectedView?.timeline?.pendingInput(focus)?.canRespond(true) == true
+            AgentPanelCommand.APPROVE_TOOL, AgentPanelCommand.SKIP_TOOL -> selectedView?.let { view ->
+                toolReviewTarget(composer, view.timeline, focus, command == AgentPanelCommand.APPROVE_TOOL)
+            } != null
             AgentPanelCommand.STOP -> selectedView?.timeline?.let { timeline ->
                 if (timeline.hasPendingInput) timeline.pendingInput(focus)?.canRespond(false) == true
                 else composer.isRunning
@@ -138,11 +147,12 @@ class AgentToolWindowRootPanel(
                 else navigateSidebar(command)
             }
             AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT -> showRecentChats(command, event)
-            AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP -> {
+            AgentPanelCommand.ACCEPT_PENDING, AgentPanelCommand.STOP,
+            AgentPanelCommand.APPROVE_TOOL, AgentPanelCommand.SKIP_TOOL -> {
                 if (!requestShortcutKeys.accept(event.inputEvent as? java.awt.event.KeyEvent)) return
                 if (view.timeline.hasPendingInput) {
                     view.timeline.pendingInput(KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner)
-                        ?.respond(command == AgentPanelCommand.ACCEPT_PENDING)
+                        ?.respond(command == AgentPanelCommand.ACCEPT_PENDING || command == AgentPanelCommand.APPROVE_TOOL)
                 } else if (command == AgentPanelCommand.STOP) view.controller.stopRun()
             }
             AgentPanelCommand.MODE_MENU -> view.composer.cycleMode()
@@ -698,6 +708,20 @@ class AgentToolWindowRootPanel(
         views.clear()
         cards.removeAll()
     }
+}
+
+/** Empty-draft review keys target one current permission; ordinary controls keep their own keys. */
+internal fun toolReviewTarget(
+    composer: ComposerPanel,
+    timeline: ChatTimelinePanel,
+    focus: Component?,
+    accept: Boolean,
+): AgentRequestCard? {
+    if (!composer.toolReviewInputAvailable || focus == null ||
+        !(SwingUtilities.isDescendingFrom(focus, composer.inputArea) || SwingUtilities.isDescendingFrom(focus, timeline)) ||
+        accept && focus is AbstractButton) return null
+    // Buttons keep their native activation; an empty input cannot choose a permission group.
+    return timeline.pendingInput(focus)?.takeIf { it.isToolPermission && it.canRespond(accept) }
 }
 
 /** Position distinguishes equal titles without renaming a chat or using an index as identity. */

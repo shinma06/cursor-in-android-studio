@@ -3,7 +3,10 @@ package com.cursoragent.actions
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
+import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.project.DumbAwareAction
+import java.awt.event.KeyEvent
+import javax.swing.KeyStroke
 
 /** A panel supplies live availability and dispatch; application actions never retain a project. */
 internal class AgentPanelActions(
@@ -29,6 +32,8 @@ internal enum class AgentPanelCommand(val actionId: String) {
     LEAST_RECENT_CHAT("CursorAgent.LeastRecentChat"),
     STOP("CursorAgent.Stop"),
     ACCEPT_PENDING("CursorAgent.AcceptPending"),
+    APPROVE_TOOL("CursorAgent.ApproveTool"),
+    SKIP_TOOL("CursorAgent.SkipTool"),
     MODE_MENU("CursorAgent.ModeMenu"),
     MODEL_MENU("CursorAgent.ModelMenu"),
     ADD_CONTEXT("CursorAgent.AddContext"),
@@ -51,7 +56,15 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
     class NewChat : AgentPanelAction(AgentPanelCommand.NEW_CHAT)
     class ResetChat : AgentPanelAction(AgentPanelCommand.RESET_CHAT)
     class SubmitInitialChat : AgentPanelAction(AgentPanelCommand.SUBMIT_INITIAL)
-    class UnfocusInput : AgentPanelAction(AgentPanelCommand.UNFOCUS_INPUT)
+    class UnfocusInput : AgentPanelAction(AgentPanelCommand.UNFOCUS_INPUT) {
+        override fun update(e: AnActionEvent) {
+            super.update(e)
+            e.presentation.isEnabled = e.presentation.isEnabled && !toolReviewOwnsShortcut(e, AgentPanelCommand.SKIP_TOOL)
+        }
+        override fun actionPerformed(e: AnActionEvent) {
+            if (!toolReviewOwnsShortcut(e, AgentPanelCommand.SKIP_TOOL)) super.actionPerformed(e)
+        }
+    }
     class CloseChat : AgentPanelAction(AgentPanelCommand.CLOSE_CHAT)
     class PreviousChat : AgentPanelAction(AgentPanelCommand.PREVIOUS_CHAT)
     class NextChat : AgentPanelAction(AgentPanelCommand.NEXT_CHAT)
@@ -60,6 +73,8 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
     class RecentChat : AgentPanelAction(AgentPanelCommand.RECENT_CHAT)
     class LeastRecentChat : AgentPanelAction(AgentPanelCommand.LEAST_RECENT_CHAT)
     class Stop : AgentPanelAction(AgentPanelCommand.STOP)
+    class ApproveTool : AgentPanelAction(AgentPanelCommand.APPROVE_TOOL)
+    class SkipTool : AgentPanelAction(AgentPanelCommand.SKIP_TOOL)
     class AcceptPending : AgentPanelAction(AgentPanelCommand.ACCEPT_PENDING) {
         private fun accepts(e: AnActionEvent): Boolean {
             val key = e.inputEvent as? java.awt.event.KeyEvent ?: return true
@@ -73,6 +88,16 @@ abstract class AgentPanelAction internal constructor(private val command: AgentP
     class ModelMenu : AgentPanelAction(AgentPanelCommand.MODEL_MENU)
     class AddContext : AgentPanelAction(AgentPanelCommand.ADD_CONTEXT)
     class Changes : AgentPanelAction(AgentPanelCommand.CHANGES)
+}
+
+/** Only a live review and its current Keymap can take a key from send or focus return. */
+internal fun toolReviewOwnsShortcut(e: AnActionEvent, command: AgentPanelCommand): Boolean {
+    val key = e.inputEvent as? KeyEvent ?: return false
+    val action = e.actionManager.getAction(command.actionId) ?: return false
+    val stroke = KeyStroke.getKeyStrokeForEvent(key)
+    return action.shortcutSet.shortcuts.filterIsInstance<KeyboardShortcut>().any {
+        it.firstKeyStroke == stroke
+    } && e.getData(AgentPanelActions.KEY)?.available?.invoke(command) == true
 }
 
 /** The default acceptance key changes with send mode; unrelated user remaps remain usable. */

@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 212,
   "gui_required": true,
-  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用17操作とglobal入口8操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用19操作とglobal入口8操作だけでは全ショートカット受入は未達。今回はGUIなし。",
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
     "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
@@ -21,7 +21,8 @@
     "PastChatsCoordinatorTest/AgentWindowActionTest: 非表示中の会話別要求、sidebarとheader取消、反復キー、読込み世代、古い選択callback・close/破棄後拒否、実rootでcontent未生成/非表示維持とAction登録/解除",
     "SelectorInitializationTest/PromptFocusTraversalTest/ComposerSubmissionTest: 最新modeからの循環・別会話/共有設定保持、Shift+Tabと逆focusのKeymap排他、実Editor再生成、本文/選択保持、ACP busyと入力不可",
     "ComposerSubmissionTest/AgentPanelActionTest: 初回送信のnative Action登録・OS別既定キー・実行時owner再確認、空白/run/予約編集/入力不可/IME拒否、通常送信とEnter長押し共有・解放後再送・破棄時解除",
-    "PromptQueueSubmissionTest/PromptQueueListTest/RunProgressDispatchTest: 実AgentRun・listener・SessionTabsの確定終端/finally後に選択1件だけ送信、終了不確定/失敗・取消/世代/行更新/編集・画像lease、native Actionと送信設定/長押し/登録解除"
+    "PromptQueueSubmissionTest/PromptQueueListTest/RunProgressDispatchTest: 実AgentRun・listener・SessionTabsの確定終端/finally後に選択1件だけ送信、終了不確定/失敗・取消/世代/行更新/編集・画像lease、native Actionと送信設定/長押し/登録解除",
+    "ToolReviewShortcutsTest/RequestShortcutsTest: 実Composer・Editor・timeline・permissionの空入力/command/画像/import/予約編集/IME/失効、Keymapの変更/解除/複数stroke先頭とsend/Escape排他、返信後の長押し配送抑止"
   ],
   "cases": [
     {
@@ -858,9 +859,59 @@
         "許可/拒否キーを押したまま次の要求を届ける。次の要求に連続返信せず、拒否後にrun Stopへfall throughしない。対象キーを解放してから次を実行できること、modifier先行解放・別キー・focus/window移動・アプリ外keyup・root破棄を確認する。",
         "キーupdate後やカード表示後にタブclose、token更新、Stop、project破棄、turn終了を発生させる。キーとマウスの古いカードから返信できず、返信競合が一度だけ解決される。",
         "IME変換、mention/slash候補、子popup、非表示view/別領域focusで操作が拒否されることを確認する。Keymapでdefault以外のキーへ再割当/解除し、panel内と入力局所で同じ設定を使い、通常送信/予約編集を保つ。",
-        "Cursor固定版のgroup全件操作・通知・shell Enter/Shift+Enter/Escapeと今回の個別返信との差を記録する。group/allowlistや未接続submitの合格をこのCaseから推定せず、全対象照合の残作業として追う。"
+        "Cursor固定版のgroup全件操作・通知・shell Shift+Enterと今回の個別返信との差を記録する。空入力のEnter/EscapeはKEYMAP-TOOL-REVIEWで検証し、group/allowlistや未接続submitの合格を推定せず全対象照合の残作業として追う。"
       ],
       "expected": "提示済みの個別要求だけを既存ボタンと同じtyped replyで一度だけ解決する。once optionの推測・永続許可への昇格・別要求/別ownerへの転送なし。古いUI、IME/popup、長押しの連続返信を拒否する。保留要求への拒否と全run Stopを区別する。通常送信/予約/下書きと既存のMouse操作を維持し、group/allowlist/通知などの未対応をpassにしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://agentclientprotocol.com/protocol/v1/tool-calls"
+      ],
+      "id": "KEYMAP-TOOL-REVIEW",
+      "change": "空入力時のtool許可/拒否キーと既存送信・focus解除の優先",
+      "steps": [
+        "固定buildのACP合成fixtureで、対象情報と一意なallow_once/reject_onceを持つpermissionを提示する。空入力からEnterで今回だけ許可、別要求にEscapeで今回は拒否を1回ずつ返信する。両送信キー設定で確認し、run Stop・通常送信・次turn予約に変わらないことを照合する。",
+        "本文、commandだけ、画像だけ、画像import、予約編集中、入力不可、IME/mention/slash/子popupの各状態で確認キーを押す。誤承認せず、既存の送信/予約編集/改行/候補操作を保つ。別会話、非表示panel、sidebar、別projectから返信しない。",
+        "対象情報なし、once option重複、alwaysだけ、未知kind、Plan/質問、複数permissionを提示する。空入力から推測して返信せず、特定cardの本文へfocusした場合だけそのpermissionを対象にする。ボタンfocusのEnter/Spaceは元ボタンの操作を保ち、解決済みcardから別要求に転送しない。",
+        "KeymapでApproveTool/SkipToolを別キーへ変更または解除する。Enterの送信/改行とEscapeのfocus解除が元へ戻り、変更したキーは同じ要求にだけ作用する。複数stroke設定の先頭入力、Mac/Windows/Linux、US/JISと同じ入力componentでの競合を確認する。",
+        "Enter/Escapeを長押ししたまま要求を解決し、次のpermission・復元draft・run終了を発生させる。次の返信/送信/改行/Stop/focus解除に進まず、解放後だけ次の明示操作が成立する。focus/window変更とアプリ外keyup、root破棄後も確認する。",
+        "有効表示後にStop、token更新、会話close、project破棄、terminal完了を発生させ、古いキー/カードから返信しない。Cursor固定版のrun/skipと操作差を記録し、Shift+Enterのallowlist、group、notificationは未対応として別に残す。"
+      ],
+      "expected": "入力が空で対象が明確な時だけ、現在のpermissionの提示済みonce optionへ一度返信する。無関係な操作や永続設定を変更せず、Keymapを尊重して送信/改行/focus解除と排他にする。長押し・IME/popup・添付・予約編集・失効・別ownerによる誤返信を防ぐ。合成テストやこの個別操作から全group/allowlist/GUI受入を推定しない。"
     },
     {
       "gpt": {

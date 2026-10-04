@@ -18,6 +18,7 @@ internal class RequestShortcutKeys : KeyEventDispatcher, Disposable {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.id == KeyEvent.KEY_PRESSED && event.keyCode in pressed) return true
         if (event.id == KeyEvent.KEY_RELEASED && pressed.remove(event.keyCode) && pressed.isEmpty()) {
             manager.removeKeyEventDispatcher(this)
         }

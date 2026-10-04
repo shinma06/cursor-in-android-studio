@@ -24,6 +24,7 @@ class AgentRequestCard(private val request: AgentInputRequest, private val isCur
     private var acceptButton: JButton? = null
     private var rejectButton: JButton? = null
     internal val isPending: Boolean get() = isCurrent() && request.isPending
+    internal val isToolPermission: Boolean get() = request.input is AgentInput.Permission
 
     internal fun canRespond(accept: Boolean): Boolean = isPending && (if (accept) acceptButton else rejectButton)?.isEnabled == true
 

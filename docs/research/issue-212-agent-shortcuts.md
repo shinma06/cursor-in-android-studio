@@ -35,9 +35,9 @@
 | `composer.closeComposerTab` | Cmd+W | Ctrl+W | Ctrl+W | composerまたはaichat viewにfocusし、一般editor textにfocusなし。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `composer.cancelComposerStep` | Cmd+Shift+Backspace | Ctrl+Shift+Backspace | Ctrl+Shift+Backspace | panel/viewにfocus。保留decision拒否→実行中run取消→表示中の変更却下の順に分岐。Pluginは一意/明示focusの保留要求への拒否をStopより優先する。groupと変更却下は未達。 | in-IDE静的確認 / 要求返信へ部分接続・GUI pending / A3 |
 | `composer.acceptComposerStep` | Cmd+Enter / Cmd+Option+Enter | Ctrl+Enter / Ctrl+Alt+Enter | Ctrl+Enter / Ctrl+Alt+Enter | panel/viewにfocus。送信がM+Enter設定ならM+A+Enter、それ以外ならM+Enter。保留decision groupまたはnotificationを受理する。Pluginは一意/明示focusの既存要求カードへの返信に接続し、group/notificationは未接続。 | in-IDE静的確認 / 要求返信へ部分接続・GUI pending / A3 |
-| `composer.approvePendingShellToolDecision` | Enter | Enter | Enter | isGlass=falseかつshell decision用contextが有効。providerの提示した許可optionだけに対応する。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
+| `composer.approvePendingShellToolDecision` | Enter | Enter | Enter | isGlass=falseかつshell decision用contextが有効。providerの提示した許可optionだけに対応する。 | in-IDE静的確認 / 空入力の個別allow_onceへ接続・GUI pending / A3 |
 | `composer.approvePendingShellToolDecisionAllowlist` | Shift+Enter | Shift+Enter | Shift+Enter | shell allowlist用contextが有効。ACP allow_alwaysとCursor shell allowlistの意味を同一化しない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
-| `composer.skipPendingShellToolDecision` | Escape | Escape | Escape | isGlass=falseかつshell decision用contextが有効。拒否と取消の意味を保ち、一般Escapeを奪わない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A3 |
+| `composer.skipPendingShellToolDecision` | Escape | Escape | Escape | isGlass=falseかつshell decision用contextが有効。拒否と取消の意味を保ち、一般Escapeを奪わない。 | in-IDE静的確認 / 空入力の個別reject_onceへ接続・GUI pending / A3 |
 | `composer.cancelComposerStepInputFocused` | Control+C | Ctrl+Shift+Backspace | Ctrl+Shift+Backspace | panel/view条件で取消可能な実行を止める。名称から入力部品focus限定とは推測しない。macOSだけControl+C。Pluginは既存Stopの副キーとして接続し、選択中runとIME/popup保護を再利用。 | in-IDE静的確認 / 一部接続済み / A3 |
 | `composer.cancelTerminalToolCall` | Shift+Backspace | Shift+Backspace | Shift+Backspace | panel/viewの選択中composer。保留terminal decisionを拒否するかterminal streamだけを取り消す。全run Stopと別。 | in-IDE静的確認 / 能力未実装 / P05 |
 | `composer.triggerCreateWorktreeButton` | Cmd+Shift+Enter | Ctrl+Shift+Enter | Ctrl+Shift+Enter | composerにfocus、空会話かつ非空draft。初回submitを呼ぶ登録であり、named worktree作成を保証しない。 | in-IDE静的確認 / 初回送信を接続・GUI pending、branch/native worktree選択は未実装 / P06 |
@@ -62,7 +62,7 @@
 | `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 
-panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、AcceptPendingとSubmitInitialChatも加えてpanel専用は計17 Action、Settings/Historyは同じIDを保って7/8つ目のglobal Actionへ移す。Settings/Historyは引き続きpanelにもlocal登録する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
+panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、AcceptPendingとSubmitInitialChat、ApproveTool/SkipToolも加えてpanel専用は計19 Action、Settings/Historyは同じIDを保って7/8つ目のglobal Actionへ移す。Settings/Historyは引き続きpanelにもlocal登録する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
 ## 入力部品内の操作
 
@@ -161,9 +161,9 @@ provider会話の編集/実行中入力契約は別に検証する。ここで�
 
 ## Keymap・競合・完了条件
 
-panel内17 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
+panel内19 Actionの既定キーは`plugin.xml`でWindows/Linux、旧Mac OS X、Mac OS X 10.5+に定義する。model menuはWindowsの`$default`にCtrl+/、Linuxの`Default for XWin`にCtrl+/とCtrl+Alt+/を定義し、GNOME/KDEはXWinから継承する。固定SDK `AI-262.9437.185.2621.16467767`の同梱Keymap XMLと`DefaultKeymap.getDefaultKeymapName`で、この親子関係とOS別の既定選択を確認した。ユーザーが別OS系Keymapを選んだ場合は選択したKeymapに従い、OS判定でユーザー割当を強制変更しない。MacのCtrl継承を置換し、panel-local登録も同じActionのshortcut setを使う。ユーザーのKeymap変更/削除を尊重する。OS差の静的照合だけでは全対応・GUI合格とは呼ばない。
 
-M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。16個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）、MacのControl+Shift+S / Windows・LinuxのCtrl+Shift+/（All Agents）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
+M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。18個のpanel内local Actionは一般editorの操作を奪わない。M+A+J（表示切替）、M+E（左右移動）、M+L/I（開く）、M+Y（WindowsはCtrl+Shift+Y、入力へ戻る）、M+Shift+L/I（New Agent）、MacのControl+Shift+S / Windows・LinuxのCtrl+Shift+/（All Agents）はproject内のglobal入口で、M+EのRecent FilesやM+L/I/Y等のIDE操作とは意図した割当競合が生じる。IDE Keymapで変更/解除でき、別projectのToolWindowを操作しない。IME、候補、子popupでは既存入力処理を優先し、selected tab/run、ACP busy、破棄済みpanel、late event、未保存確認を保持する。OS/US-JIS配列、custom Keymap変更、実際の優先はGUIで照合する。
 
 表示切替はToolWindowのvisible状態を基準にし、会話・draft・runを生成/終了せずnative show/hideへ接続する。左右移動はnative anchorのLEFT/RIGHTを反転し、TOP/BOTTOMからはLEFTへ移して表示する。ToolWindowのtype・split・他のIDEパネルは変更しない。固定SDKの標準ToolWindow移動もanchorを変更する経路であり、Floating/Windowed時の実配置と、Cursorのunified sidebar/auxiliary/editor全体とのUX差はGUI照合に残す。単一Agent ToolWindowへの対応だけで、Cursorの全配置が同じと主張しない。
 
@@ -211,7 +211,7 @@ OpenChat/FollowUp/NewAgent/All Agentsのglobal入口ではcontent生成・activa
 
 ## 予約一覧のキー操作と残る送信能力
 
-固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput` / `QueueSubmit`の6 Actionを接続する。panel専用17操作・global8入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
+固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput` / `QueueSubmit`の6 Actionを接続する。panel専用19操作・global8入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
 
 管理dialogを開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
 
@@ -285,6 +285,12 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 要求cardには受信したturnのproject・token/generation・Stop・terminal条件を渡す。キーとマウスの両経路が返信直前にこの寿命と`isPending`を照合し、`AgentInputRequest`とACP側の既存の一度だけ返信/Stop競合処理を維持する。押下中のキーcodeだけをroot単位に保持し、解放まで次の要求への返信や拒否後のrun Stopを抑止する。keyupを受け取るdispatcherは押下後から解放までだけ登録し、root破棄でも解除する。OSがアプリ外のkeyupを配送しない場合を含め、focus遷移・長押しの実動作はGUI Caseで確認する。
 
 固定版の`f6t`は現在のpending decision groupの全`accept`、`Kft`/`j5e`の`$dp`はgroupの全`reject`を通常run取消より優先する。groupは単なる全pending集合ではなく、terminal優先・類似tool・質問の状態を使う。shell用`U8o`はreview modelとallowlist候補・設定gateを参照し、一部経路では確認dialogと共有自動実行設定変更を伴う。現在の[ACP permission](https://agentclientprotocol.com/protocol/v1/tool-calls#requesting-permission)受信経路は個別option IDを扱い、この内部group・allowlist候補を提供しない。そのため、今回の個別返信をgroup全件、shell allowlistや通知の対応と呼ばず、A3の残作業として保持する。`allow_always`とshell allowlistを同一化しない。
+
+空入力のtool確認は`ApproveTool`（Enter）と`SkipTool`（Escape）を追加した。固定版の`eYb/J4t/U8o`は、空draft・画像/動画なし・過去入力編集中ではないblocking reviewからrun/skipを選ぶ。対象にはterminalだけでなくMCP、編集、削除、Web検索/取得もある。PluginはACPの実際のpermission要求と、一意な`allow_once` / `reject_once`を使う。kindやtool名から許可を生成せず、対象情報不足では許可できない。ACPにdecision groupの識別情報がないため、空入力から複数要求の最後を推定せず、focusしたカードまたは一意の要求だけを対象とする。
+
+対象は選択中会話の入力欄かtimeline内のfocus。非空draft、command/画像、import中、予約編集、入力不可、IME/候補/子popup、失効token・破棄後は実行しない。Enterではfocus中のnative buttonを置き換えず、Space/ボタンの既存操作を保つ。送信とfocus解除は同じ入力componentで候補を集め、tool確認の現在のKeymapと一致し、かつ返信可能な時だけ譲る。キー解除/再割当で元操作へ戻り、複数strokeの先頭もKeymapに従う。承認/拒否後の長押しは既存の一時dispatcherで解放まで消費し、後続要求・送信・改行・focus解除へ流さない。返信そのものは既存card/buttonと一度だけのrequest処理を使い、全runを止めない。
+
+`ToolReviewShortcutsTest`は実Composer/native Editor・timeline・requestで空入力/添付/予約編集/IME/入力再生成、曖昧・古いカード・別focus、Keymap変更/解除と通常送信/解除との優先を確認する。`RequestShortcutsTest`の実listener/tokenによる失効試験とキー解放試験も維持する。native画面の優先・OS配送・accessibilityは`KEYMAP-TOOL-REVIEW`で未GUIとして追う。CursorのShift+Enterはallowlist候補/設定変更も扱う別操作で、ACPの`allow_always`と同一視せず未接続に残す。group/notificationもこの2 Actionで実装済みとはしない。
 
 `RequestShortcutsTest`は実カード/ボタン・timeline・turn listenerと実SessionTabs tokenで、一意/曖昧/focus失効、返信の一度性、質問選択、Stop/close/token更新/project破棄/terminal後の拒否、設定/OSとキー解放を検証する。`AgentPanelActionTest`と`ComposerSubmissionTest`はAction/XMLと入力componentへの登録/破棄時解除を確認する。これは合成入力のCLI検証であり、固定版Cursorや[JetBrains ACPの承認UI](https://www.jetbrains.com/help/ai-assistant/acp.html)と実GUIを比較した合格ではない。直接IDE統合の追加価値は、同じ会話ownerとIDE Keymapから既存の提示済み要求へ返信する接続にある。
 

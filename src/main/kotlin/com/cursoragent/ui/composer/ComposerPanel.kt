@@ -70,6 +70,10 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     internal fun canUnfocusFrom(focus: java.awt.Component?): Boolean =
         inputShortcutAvailable(focus) && !isQueueEditing
 
+    internal val toolReviewInputAvailable: Boolean
+        get() = inputArea.isEnabled && panelShortcutAvailable && !isQueueEditing && inputArea.text.isBlank() &&
+            commands.selectedName == null && images?.attachment == null && images?.importing != true
+
     internal val canSubmitInitial: Boolean
         get() = !isRunning && !isQueueEditing && inputArea.isEnabled && panelShortcutAvailable &&
             inputArea.text.isNotBlank() && images?.importing != true &&
@@ -87,6 +91,8 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         listOf(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId,
             com.cursoragent.actions.AgentPanelCommand.UNFOCUS_INPUT.actionId,
             com.cursoragent.actions.AgentPanelCommand.ACCEPT_PENDING.actionId,
+            com.cursoragent.actions.AgentPanelCommand.APPROVE_TOOL.actionId,
+            com.cursoragent.actions.AgentPanelCommand.SKIP_TOOL.actionId,
             com.cursoragent.actions.AgentPanelCommand.SUBMIT_INITIAL.actionId).forEach { id ->
             com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction(id)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, inputArea, parent)
