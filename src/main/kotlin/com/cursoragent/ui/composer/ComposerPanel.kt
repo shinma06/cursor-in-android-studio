@@ -65,6 +65,17 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     internal fun canUnfocusFrom(focus: java.awt.Component?): Boolean =
         inputShortcutAvailable(focus) && !isQueueEditing
 
+    internal fun installInputShortcuts(parent: com.intellij.openapi.Disposable) {
+        // The IDE collects local matches from the nearest component before checking availability.
+        // Keep both Escape operations here so a disabled queue action cannot hide the parent action.
+        listOf(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId,
+            com.cursoragent.actions.AgentPanelCommand.UNFOCUS_INPUT.actionId).forEach { id ->
+            com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction(id)?.let { action ->
+                action.registerCustomShortcutSet(action.shortcutSet, inputArea, parent)
+            }
+        }
+    }
+
     internal val queueEditAvailable: Boolean
         get() = isQueueEditing && inputArea.isEnabled && panelShortcutAvailable &&
             !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)

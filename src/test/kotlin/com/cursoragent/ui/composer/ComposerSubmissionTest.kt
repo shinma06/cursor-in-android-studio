@@ -41,6 +41,14 @@ class ComposerSubmissionTest {
                     val lifetime = Disposer.newDisposable()
                     val composer = ComposerPanel(fixture.project)
                     composer.inputArea.setDisposedWith(lifetime)
+                    val inputActions = listOf(
+                        ActionManager.getInstance().getAction(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId),
+                        ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.UNFOCUS_INPUT.actionId),
+                    )
+                    assertTrue(inputActions.all { it != null }, "registered plugin Escape actions must be available")
+                    composer.installInputShortcuts(lifetime)
+                    val localActions = com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(composer.inputArea)
+                    assertTrue(localActions.containsAll(inputActions), "both Escape operations must be candidates at the same input component")
                     var editor = requireNotNull(composer.inputArea.getEditor(true))
                     val images = ImageDraft(Executor { work.add(it) }, { it() }, { store }, {})
                     composer.installImages(images)
@@ -138,7 +146,11 @@ class ComposerSubmissionTest {
                         submit(heldEnter)
                         assertEquals(listOf("idle draft", "after completion"), sent)
                         release()
-                    } finally { images.close(); Disposer.dispose(lifetime) }
+                    } finally {
+                        images.close()
+                        Disposer.dispose(lifetime)
+                        assertTrue(com.intellij.openapi.actionSystem.ex.ActionUtil.getActions(composer.inputArea).none { it in inputActions })
+                    }
                 }
                 while (work.isNotEmpty()) work.remove().run()
             }

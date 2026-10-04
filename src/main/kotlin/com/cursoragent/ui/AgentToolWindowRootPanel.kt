@@ -216,7 +216,7 @@ class AgentToolWindowRootPanel(
         add(contentSplitter, BorderLayout.CENTER)
         showSelected()
         if (PropertiesComponent.getInstance(project).getBoolean("CursorAgent.allChatsSidebar", false)) setAllChatsVisible(true)
-        AgentPanelCommand.entries.forEach { command ->
+        AgentPanelCommand.entries.filterNot { it == AgentPanelCommand.UNFOCUS_INPUT }.forEach { command ->
             ActionManager.getInstance().getAction(command.actionId)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, this)
                 registeredShortcuts.add(action)

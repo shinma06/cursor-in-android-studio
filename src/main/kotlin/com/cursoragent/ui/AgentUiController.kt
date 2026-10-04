@@ -231,10 +231,7 @@ class AgentUiController(
         composer.onFocusQueue = ::focusQueue
         composer.onSubmitQueueEdit = queueEditor::submit
         composer.onCancelQueueEdit = queueEditor::cancel
-        com.intellij.openapi.actionSystem.ActionManager.getInstance()
-            .getAction(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT.actionId)?.let { action ->
-                action.registerCustomShortcutSet(action.shortcutSet, composer.inputArea, queueUiLifetime)
-            }
+        composer.installInputShortcuts(queueUiLifetime)
         imagePanel = composer.installImages(imageDraft)
         checkpointService.pruneExpired()
         composer.modelSelector.onRetry = modelLoader::load
