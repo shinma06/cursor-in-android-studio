@@ -19,7 +19,7 @@ GPTがIssue #1の推奨順と#20のコメントを確認し、P0 #20を選択し
 | `20260906-issue20-r1` | `c20d0a5c638cd3dfa0a347543fc08f5ccb8304e1` | `325c8f8017494c02ed443673fecf513fe51c63f71f4a68a40d3659980a39f290` | 修正前。両面MV-024/021/023を事前宣言。fixture切替がblocked |
 | `20260906-issue20-r2` | `66fd0e957458018c66fc325cc372763813c24be1` | `b3c5dc67d91ca99e1a92618bed2a54592d89f9303fef7ed4b07cc16335361cd3` | 修正後。前記にplugin MV-037を追加。runIde起動後のGUI取得がblocked |
 
-環境: Cursor 3.19.7、Android Studio 2026.1（AI-261.26222.65.2614.16204760）。CLI `/Users/shinma/.local/bin/agent` は `2026.09.02-c22c1a3`。通常版プラグインの画面はAgent/Autoを表示していたが、起動中ソースSHA、fixture上のモデル・権限・sandbox・worktreeは未確認。モデル条件を揃えた比較ではない。
+環境: Cursor 3.19.7、Android Studio 2026.1（AI-261.26222.65.2614.16204760）。CLI `agent`（端末内の配置情報は非公開証拠 `ISSUE-514-LOCAL-01` で管理） は `2026.09.02-c22c1a3`。通常版プラグインの画面はAgent/Autoを表示していたが、起動中ソースSHA、fixture上のモデル・権限・sandbox・worktreeは未確認。モデル条件を揃えた比較ではない。
 
 修正後ZIP中のプラグインJARと`build/idea-sandbox/.../plugins/cursor-agent-plugin/lib/`のJARはSHA-256 `43499cc73f7ad5ac8e13163c85dff7b424492c93db23983a0afc0b3f4e40f27f`で一致した。これは準備したsandbox実体の一致だけで、GUIでロード中の同一性確認を代替しない。新しいsandbox IDEは`runIde --args=<r2/pluginの絶対パス>`で起動し、再開用に残している。
 
