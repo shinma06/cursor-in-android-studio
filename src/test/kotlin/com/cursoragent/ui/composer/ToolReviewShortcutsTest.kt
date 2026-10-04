@@ -39,6 +39,64 @@ class ToolReviewShortcutsTest {
     )
 
     @Test
+    fun `accepted key holds intercept IDE dispatch and typed events until release`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("tool review key hold").fixture
+        fixture.setUp()
+        try {
+            runInEdtAndWait {
+                val queue = com.intellij.ide.IdeEventQueue.getInstance()
+                val keys = com.cursoragent.ui.RequestShortcutKeys()
+                val lifetime = Disposer.newDisposable()
+                val forwarded = mutableListOf<java.awt.AWTEvent>()
+                val probe = object : com.intellij.ide.IdeEventQueue.NonLockedEventDispatcher {
+                    override fun dispatch(e: java.awt.AWTEvent): Boolean { forwarded.add(e); return true }
+                }
+                val source = JButton()
+                fun key(code: Int, id: Int = KeyEvent.KEY_PRESSED) = KeyEvent(source, id, 1, 0, code, KeyEvent.CHAR_UNDEFINED)
+                fun typed(char: Char) = KeyEvent(source, KeyEvent.KEY_TYPED, 1, 0, KeyEvent.VK_UNDEFINED, char)
+                fun dispatch(event: KeyEvent, expected: Boolean) {
+                    forwarded.clear()
+                    queue.dispatchEvent(event)
+                    assertEquals(expected, event in forwarded, "event ${event.id}/${event.keyCode}/${event.keyChar.code}")
+                }
+                try {
+                    assertTrue(keys.accept(key(KeyEvent.VK_ENTER)))
+                    queue.addDispatcher(probe, lifetime)
+                    dispatch(typed('\n'), false)
+                    dispatch(key(KeyEvent.VK_ENTER), false)
+                    assertFalse(keys.accept(key(KeyEvent.VK_ENTER)))
+                    dispatch(typed('\n'), false)
+                    dispatch(key(KeyEvent.VK_A), true)
+                    dispatch(typed('a'), true)
+                    assertTrue(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
+                    dispatch(key(KeyEvent.VK_CONTROL, KeyEvent.KEY_RELEASED), true)
+                    assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
+                    dispatch(key(KeyEvent.VK_BACK_SPACE), false)
+                    dispatch(typed('\b'), false)
+                    dispatch(key(KeyEvent.VK_ENTER, KeyEvent.KEY_RELEASED), true)
+                    dispatch(key(KeyEvent.VK_ENTER), true)
+                    dispatch(typed('\n'), true)
+                    assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
+                    assertTrue(keys.accept(null), "explicit menu invocation is not a keyboard repeat")
+                    assertTrue(keys.accept(key(KeyEvent.VK_ESCAPE)))
+                    dispatch(key(KeyEvent.VK_ESCAPE), false)
+                    keys.dispose()
+                    dispatch(key(KeyEvent.VK_ESCAPE), true)
+                    assertFalse(queue.containsDispatcher(keys))
+                    assertTrue(keys.accept(key(KeyEvent.VK_F9)))
+                    assertTrue(queue.containsDispatcher(keys))
+                    // After re-registration the probe precedes the guard, so inspect release directly.
+                    assertFalse(keys.dispatch(key(KeyEvent.VK_F9, KeyEvent.KEY_RELEASED)))
+                    assertFalse(queue.containsDispatcher(keys))
+                } finally {
+                    keys.dispose()
+                    Disposer.dispose(lifetime)
+                }
+            }
+        } finally { runInEdtAndWait { fixture.tearDown() } }
+    }
+
+    @Test
     fun `real composer and timeline only allow an empty unambiguous current tool review`(@TempDir parent: Path) {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("tool review context").fixture
         fixture.setUp()

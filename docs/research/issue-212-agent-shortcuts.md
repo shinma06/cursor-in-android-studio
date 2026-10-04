@@ -282,7 +282,7 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 
 `Stop` ActionのM+Shift+BackspaceとMac Control+Cは、対象を特定できる保留要求があれば拒否/スキップを優先する。保留要求があるのに対象/拒否optionが曖昧な場合は全run停止へfall throughしない。保留がなければ従来のStopへ進む。停止ボタン自体は従来どおりrun停止を行う。返信対象とinput focusは実行時に確認し、IME/候補/子popup、別領域/別projectのfocus、非表示viewからは実行しない。
 
-要求cardには受信したturnのproject・token/generation・Stop・terminal条件を渡す。キーとマウスの両経路が返信直前にこの寿命と`isPending`を照合し、`AgentInputRequest`とACP側の既存の一度だけ返信/Stop競合処理を維持する。押下中のキーcodeだけをroot単位に保持し、解放まで次の要求への返信や拒否後のrun Stopを抑止する。keyupを受け取るdispatcherは押下後から解放までだけ登録し、root破棄でも解除する。OSがアプリ外のkeyupを配送しない場合を含め、focus遷移・長押しの実動作はGUI Caseで確認する。
+要求cardには受信したturnのproject・token/generation・Stop・terminal条件を渡す。キーとマウスの両経路が返信直前にこの寿命と`isPending`を照合し、`AgentInputRequest`とACP側の既存の一度だけ返信/Stop競合処理を維持する。押下中のキーcodeだけをroot単位に保持し、解放まで次の要求への返信や拒否後のrun Stopを抑止する。`IdeEventQueue.NonLockedEventDispatcher`は押下後から解放までだけ登録し、IDEのAction処理より前に同じキーの反復と後続のtypedイベントを消費する。他キーの押下/入力とkeyupは通し、root破棄でも解除する。OSがアプリ外のkeyupを配送しない場合を含め、focus遷移・長押しの実動作はGUI Caseで確認する。
 
 固定版の`f6t`は現在のpending decision groupの全`accept`、`Kft`/`j5e`の`$dp`はgroupの全`reject`を通常run取消より優先する。groupは単なる全pending集合ではなく、terminal優先・類似tool・質問の状態を使う。shell用`U8o`はreview modelとallowlist候補・設定gateを参照し、一部経路では確認dialogと共有自動実行設定変更を伴う。現在の[ACP permission](https://agentclientprotocol.com/protocol/v1/tool-calls#requesting-permission)受信経路は個別option IDを扱い、この内部group・allowlist候補を提供しない。そのため、今回の個別返信をgroup全件、shell allowlistや通知の対応と呼ばず、A3の残作業として保持する。`allow_always`とshell allowlistを同一化しない。
 

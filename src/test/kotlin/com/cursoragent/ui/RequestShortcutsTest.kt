@@ -135,29 +135,6 @@ class RequestShortcutsTest {
     }
 
     @Test
-    fun `held keys cannot reply again or fall through to Stop until their own release`() = SwingUtilities.invokeAndWait {
-        val keys = RequestShortcutKeys()
-        try {
-            assertTrue(keys.accept(key(KeyEvent.VK_ENTER)))
-            assertTrue(keys.dispatchKeyEvent(key(KeyEvent.VK_ENTER)), "a held approval must not reach native newline or another send action")
-            assertFalse(keys.accept(key(KeyEvent.VK_ENTER)))
-            assertTrue(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
-            assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
-            keys.dispatchKeyEvent(key(KeyEvent.VK_CONTROL, release = true))
-            assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
-            keys.dispatchKeyEvent(key(KeyEvent.VK_ENTER, release = true))
-            assertFalse(keys.dispatchKeyEvent(key(KeyEvent.VK_ENTER)))
-            assertTrue(keys.accept(key(KeyEvent.VK_ENTER)))
-            assertFalse(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
-            assertTrue(keys.accept(null), "a separate explicit menu invocation is not a keyboard repeat")
-            assertTrue(keys.accept(key(KeyEvent.VK_ESCAPE)))
-            assertTrue(keys.dispatchKeyEvent(key(KeyEvent.VK_ESCAPE)), "a held rejection must not fall through to focus return")
-            keys.dispose()
-            assertTrue(keys.accept(key(KeyEvent.VK_BACK_SPACE)))
-        } finally { keys.dispose() }
-    }
-
-    @Test
     fun `real turn listener invalidates existing request controls on close replacement Stop project disposal and terminal completion`() = SwingUtilities.invokeAndWait {
         for (change in listOf("close", "replace", "stop", "dispose", "terminal")) {
             val tabs = com.cursoragent.session.SessionTabs()
