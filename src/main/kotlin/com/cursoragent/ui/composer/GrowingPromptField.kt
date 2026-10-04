@@ -26,6 +26,28 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
+    internal var isReplacingDraft = false
+        private set
+    internal var draftGeneration = 0L
+        private set
+
+    /** Text and attachments change together; native Undo must not cross between distinct drafts. */
+    internal fun replaceDraftText(value: String, carets: List<com.intellij.openapi.editor.CaretState>?) {
+        draftGeneration++
+        isReplacingDraft = true
+        try {
+            WriteCommandAction.runWriteCommandAction(project) {
+                document.setText(value)
+                UndoManager.getInstance(project).nonundoableActionPerformed(
+                    DocumentReferenceManager.getInstance().create(document), false,
+                )
+            }
+            editor?.caretModel?.let { model ->
+                if (carets != null) model.caretsAndSelections = carets
+                else { model.removeSecondaryCarets(); model.moveToOffset(value.length); editor?.selectionModel?.removeSelection() }
+            }
+        } finally { isReplacingDraft = false }
+    }
 
     init {
         // Keep the PSI-backed document, but create it before composer listeners are registered.

@@ -25,6 +25,24 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
 class PromptQueueTest {
+    @Test
+    fun `replacing a queued snapshot requires current identity and never revives an earlier ticket`() {
+        val queue = PromptQueue("owner")
+        queue.add("queued", AgentMode.ASK, "model-a")
+        val entry = queue.snapshot().single()
+        val ticket = queue.ticket(1)!!
+        assertFalse(queue.replace(entry, entry.copy(id = "another")))
+        assertFalse(queue.replace(entry, entry.copy(text = " ")))
+        val replacement = entry.copy(text = "edited", mode = AgentMode.PLAN, model = "model-b")
+        assertTrue(queue.replace(entry, replacement))
+        assertFalse(queue.replace(entry, entry.copy(text = "stale")))
+        assertTrue(queue.paused)
+        queue.resume()
+        assertFalse(queue.dispatch(ticket, 1, true) { error("stale ticket") })
+        assertTrue(queue.dispatch(queue.ticket(1)!!, 1, true) { assertSame(replacement, it); true })
+        assertFalse(queue.replace(replacement, replacement))
+    }
+
     @org.junit.jupiter.api.Test
     fun `explicit attachment snapshot belongs to queue item across draft edits and dispatch`() {
         val draft = com.cursoragent.ui.composer.context.PromptContextDraft()

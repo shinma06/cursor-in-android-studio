@@ -557,12 +557,58 @@
       "change": "入力欄上の予約一覧と空入力境界からの移動",
       "steps": [
         "PRINT/ACPそれぞれで複数予約を作り、入力欄上の一覧・3行程度の高さとscroll・管理dialogとの同じ対象IDを確認する。空入力の先頭で上キーを押すと末尾へ、末尾で下キーを押すと2番目（1件ならその項目）へfocusする。予約なしでは通常入力を保つ。",
-        "inline一覧で上下/Right/Space/OS別削除/Escapeを試し、末尾の下移動とEscapeで同じ入力へ戻る。単なるfocus移動でpause/resumeしない。編集では既存dialogを開いてpauseし、mode/model/command/context/画像を保持する。最後の項目削除で一覧が消えれば入力へ戻る。",
+        "inline一覧で上下/Right/Space/OS別削除/Escapeを試し、末尾の下移動とEscapeで同じ入力へ戻る。単なるfocus移動でpause/resumeしない。編集では入力欄へ読み込んでpauseし、mode/model/command/context/画像を保持する。保存/取消の詳細はKEYMAP-QUEUE-EDITで確認する。最後の項目削除で一覧が消えれば入力へ戻る。",
         "本文、空白/改行だけの入力、途中caret、範囲選択、複数caret、未送信command/画像と画像import中を用意する。本文や途中位置等でqueueへ移らず、通常の上下移動・選択を保つ。IME未確定/確定直後、command/mention候補と子popupでもqueueへ移らない。通常ファイルeditorで上下キーを奪わない。",
         "応答の終了による予約の自動送信と一覧操作を近接させる。消えたIDや古い表示を別項目の編集/削除に使わず、二重送信/古いticket復活を起こさない。別tab/project・ToolWindow非表示・controller破棄後は元入力へ遅れてfocusしない。",
-        "IDE KeymapのEditorUp/EditorDownおよび一覧専用Actionを変更/解除し、native配送を確認する。Cursorの固定版と空白/改行境界・視覚行・下方向の初期候補を比較する。過去human message/review候補、入力欄でのqueue編集、選択1件の送信/steeringの未接続をこの入口の成功でpass扱いにしない。"
+        "IDE KeymapのEditorUp/EditorDownおよび一覧専用Actionを変更/解除し、native配送を確認する。Cursorの固定版と空白/改行境界・視覚行・下方向の初期候補を比較する。過去human message/review候補、選択1件の送信/steeringの未接続をこの入口の成功でpass扱いにしない。"
       ],
       "expected": "空入力の対象条件でinline予約一覧へ移り、native入力/IMEと会話・予約ID所有を保つ。focusだけでは送信状態を変えず、実装済み入口と残る分岐を分けて判定する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE-EDIT",
+      "change": "入力欄での予約編集・取消と元の下書きの復元",
+      "steps": [
+        "PRINT/ACPで実行中に複数予約を作り、元の入力欄に日本語/複数行本文、複数caret/選択、mode/model、command、明示context/自動設定、画像を用意する。inline一覧でRight/Spaceを使い、選択予約が同じ入力欄へ読み込まれ、予約が一時停止することを確認する。画像import中やIME中は元の下書きを差し替えない。",
+        "予約の本文・mode/model・command/context・画像を変更し、設定済み送信キーと保存ボタンをそれぞれ使う。対象IDの1件だけが更新され、順番を変えず、通常送信/同一turn入力や他予約の再開を起こさない。実行中のStopは同じrunに効く。既存の選択snapshotは登録時の本文を保持し、追加/差替えた後でDocumentを変更した選択は保存を拒否する。",
+        "保存、Escape、キャンセルで元の本文・全caret/選択・mode/model・command/context/自動設定・画像が戻ることを確認する。画像削除/変更が退避draftや未保存の元予約へ漏れず、取消でpending importが後から戻らない。切替前へのUndoはdraft境界で止まり、復元後の文字入力はUndo/Redoできる。本文が@や/のみ、同じ本文同士の切替でも古い候補が開かない。",
+        "IME未確定/確定直後、command/mention/modelのpopup、別tab/project、ToolWindow非表示と再表示、run終端/ACP設定通知/Stopを組み合わせる。変換・候補を優先し、送信設定に沿った保存とKeymap変更/解除後の取消を確認する。編集中のmode/modelをrunの通知で上書きしない。別会話で元編集を保存/取消せず、タブの明示破棄では未保存作業の確認と画像解放を保つ。",
+        "古い予約ID/変更済み予約への保存を拒否し、編集本文をコピー・取消可能なまま残す。狭い幅で編集中の表示・保存/取消と画像プレビューを操作できる。保存/取消だけでqueueを再開せず、管理dialogで明示再開した後の新ticketだけが次turnを開始する。Cursor固定版の入力編集/取消と状態差を照合し、選択1件の送信/steeringの未接続を合格扱いにしない。"
+      ],
+      "expected": "予約編集と通常送信を分け、元draftと対象予約の本文・設定・context・画像・会話所有を保持する。保存/取消/破棄で二重送信、古いticket復活、他draftへの入力や画像の混入を起こさない。"
     },
     {
       "gpt": {

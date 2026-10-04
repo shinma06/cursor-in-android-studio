@@ -45,12 +45,14 @@ class CommandInputPanel(private val project: Project, private val field: Growing
         field.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {
                 popup?.cancel()
-                if (field.isComposing || event.newLength != 1 || event.newFragment.toString() != "/") return
+                if (field.isComposing || field.isReplacingDraft || event.newLength != 1 || event.newFragment.toString() != "/") return
                 val offset = event.offset
                 if (offset > 0 && !field.document.charsSequence[offset - 1].isWhitespace()) return
                 val stamp = field.document.modificationStamp
+                val generation = field.draftGeneration
                 SwingUtilities.invokeLater {
-                    if (!project.isDisposed && field.isShowing && !field.isComposing && field.document.modificationStamp == stamp) showPopup(offset)
+                    if (!project.isDisposed && field.isShowing && !field.isComposing && generation == field.draftGeneration &&
+                        field.document.modificationStamp == stamp) showPopup(offset)
                 }
             }
         })

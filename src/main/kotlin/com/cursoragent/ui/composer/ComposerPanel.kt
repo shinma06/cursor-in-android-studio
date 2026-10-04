@@ -15,12 +15,16 @@ import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.JPanel
 
-class ComposerPanel(private val project: Project, newPrintConversation: Boolean = true) : JPanel(BorderLayout()) {
+class ComposerPanel(private val project: Project, newPrintConversation: Boolean = true) : JPanel(BorderLayout()), com.intellij.openapi.actionSystem.UiDataProvider {
     var onSend: (String) -> Unit = {}
     var onStop: () -> Unit = {}
     var onEnqueue: (String) -> Unit = {}
     var onShowQueue: () -> Unit = {}
     internal var onFocusQueue: (Boolean) -> Boolean = { false }
+    internal var onSaveQueueEdit: () -> Unit = {}
+    internal var onCancelQueueEdit: () -> Unit = {}
+    internal var isQueueEditing = false
+        private set
     var isRunning = false
         private set
     private var acp = false
@@ -50,6 +54,26 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     internal val panelShortcutAvailable: Boolean
         get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen
 
+    internal val queueEditAvailable: Boolean
+        get() = isQueueEditing && inputArea.isEnabled && panelShortcutAvailable &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
+
+    private val queueEditActions = com.cursoragent.actions.AgentQueueActions(
+        available = { command ->
+            command == com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT && isShowing && queueEditAvailable &&
+                java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner?.let {
+                    javax.swing.SwingUtilities.isDescendingFrom(it, inputArea)
+                } == true
+        },
+        perform = { if (queueEditAvailable) onCancelQueueEdit() },
+    )
+
+    override fun uiDataSnapshot(sink: com.intellij.openapi.actionSystem.DataSink) {
+        if (queueEditActions.available(com.cursoragent.actions.AgentQueueCommand.RETURN_TO_INPUT)) {
+            sink[com.cursoragent.actions.AgentQueueActions.KEY] = queueEditActions
+        }
+    }
+
     private val sendButton = SelectorButton().apply {
         text = "↑"
         horizontalAlignment = javax.swing.SwingConstants.CENTER
@@ -75,6 +99,41 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         addActionListener { onShowQueue() }
     }
     private val queueContainer = JPanel(BorderLayout()).apply { isOpaque = false; isVisible = false }
+    private val queueEditBanner = JPanel(FlowLayout(FlowLayout.LEFT, JBUI.scale(4), 0)).apply {
+        isOpaque = false
+        isVisible = false
+        add(javax.swing.JLabel("予約した入力を編集中"))
+        add(javax.swing.JButton("保存").apply { addActionListener { if (queueEditAvailable) onSaveQueueEdit() } })
+        add(javax.swing.JButton("キャンセル").apply { addActionListener { if (queueEditAvailable) onCancelQueueEdit() } })
+    }
+
+    internal fun showQueueEdit(editing: Boolean) {
+        isQueueEditing = editing
+        queueEditBanner.isVisible = editing
+        queueButton.isEnabled = !editing
+        enqueueButton.isVisible = isRunning && !editing
+        accessoryPanel.isVisible = editing || isRunning || queueButton.isVisible
+        updateSendLabel()
+        revalidate()
+        repaint()
+    }
+
+    /** Capturing retains an image lease; restoring consumes it, disposal must release an unused one. */
+    internal fun captureDraft() = ComposerDraft(
+        inputArea.text, inputArea.editor?.caretModel?.caretsAndSelections,
+        selection.mode, selection.selectedModel, promptContext.draft.snapshot(), commands.selectedName,
+        images?.retain(), images?.preview,
+    )
+
+    internal fun restoreDraft(draft: ComposerDraft) {
+        images?.restore(draft.image, draft.imagePreview)
+        promptContext.restore(draft.context)
+        commands.clearSelection()
+        draft.command?.let(commands::restoreSelection)
+        modeSelector.selectMode(draft.mode)
+        modelSelector.restoreSelection(draft.model)
+        inputArea.replaceDraftText(draft.text, draft.carets)
+    }
 
     internal fun installQueueList(list: com.cursoragent.ui.PromptQueueList) {
         list.fixedCellHeight = JBUI.scale(28)
@@ -89,7 +148,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         queueButton.text = "予約 $count 件" + if (paused) "（停止中）" else ""
         queueButton.isVisible = count > 0
         queueContainer.isVisible = count > 0
-        accessoryPanel.isVisible = isRunning || count > 0
+        accessoryPanel.isVisible = isQueueEditing || isRunning || count > 0
         revalidate()
         repaint()
     }
@@ -109,7 +168,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         border = JBUI.Borders.empty(5, 12, 8, 12)
         isOpaque = false
         inputArea.onQueueNavigate = { reverse ->
-            panelShortcutAvailable && !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this) &&
+            !isQueueEditing && panelShortcutAvailable && !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this) &&
                 commands.selectedName == null && images?.hasUnsent != true &&
                 onFocusQueue(reverse)
         }
@@ -158,6 +217,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
             add(actions, BorderLayout.EAST)
         }
         inputWrapper.add(controls, BorderLayout.SOUTH)
+        accessoryPanel.add(queueEditBanner, BorderLayout.SOUTH)
         add(JPanel(BorderLayout()).apply {
             isOpaque = false
             add(accessoryPanel, BorderLayout.NORTH)
@@ -189,7 +249,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     }
 
     private fun updateSendLabel() {
-        sendButton.toolTipText = if (isRunning) "停止" else sendLabel
+        sendButton.toolTipText = if (isRunning) "停止" else if (isQueueEditing) sendLabel.replace("送信", "予約を保存") else sendLabel
         sendButton.accessibleContext.accessibleName = sendButton.toolTipText
     }
 
@@ -202,8 +262,11 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
 
     fun showAcpConfiguration(state: AgentEvent.Configuration) {
         val mode = AgentMode.entries.firstOrNull { it.name.lowercase() == state.mode } ?: return
-        modeSelector.selectMode(mode)
+        val editingMode = selection.mode
+        val editingModel = selection.selectedModel
+        modeSelector.selectMode(if (isQueueEditing) editingMode else mode)
         modelSelector.setAcpModels(state.models, state.model)
+        if (isQueueEditing) modelSelector.restoreSelection(editingModel)
         modeSelector.isEnabled = !isRunning
         modelSelector.isEnabled = !isRunning && state.models.isNotEmpty()
     }
@@ -217,8 +280,8 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
 
     fun setRunning(running: Boolean) {
         isRunning = running
-        enqueueButton.isVisible = running
-        accessoryPanel.isVisible = running || queueButton.isVisible
+        enqueueButton.isVisible = running && !isQueueEditing
+        accessoryPanel.isVisible = isQueueEditing || running || queueButton.isVisible
         if (acp) {
             modeSelector.isEnabled = !running
             modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
@@ -238,7 +301,9 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (isRunning || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
+        if (!inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
+        if (isQueueEditing) { if (queueEditAvailable) onSaveQueueEdit(); return }
+        if (isRunning) return
         val text = inputText()
         if (images?.importing == true) return
         if (text.isNotEmpty() || commands.selectedName != null || images?.attachment != null) {
@@ -246,3 +311,14 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         }
     }
 }
+
+internal data class ComposerDraft(
+    val text: String,
+    val carets: List<com.intellij.openapi.editor.CaretState>?,
+    val mode: AgentMode,
+    val model: String,
+    val context: com.cursoragent.ui.composer.context.PromptContextSnapshot,
+    val command: String?,
+    val image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment?,
+    val imagePreview: java.awt.image.BufferedImage? = null,
+)

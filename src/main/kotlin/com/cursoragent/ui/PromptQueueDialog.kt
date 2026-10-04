@@ -99,7 +99,7 @@ internal class PromptQueueDialog(
     }
 }
 
-/** Inline and management lists share the same queue mutation and fixed attachment ownership. */
+/** Management keeps its simple text-only edit; the inline composer uses PromptQueueEditor. */
 internal fun editQueuedPrompt(project: Project, queue: PromptQueue, isCurrent: () -> Boolean, entry: QueuedPrompt) {
     if (!isCurrent() || queue.snapshot().none { it.id == entry.id }) return
     object : DialogWrapper(project, false) {

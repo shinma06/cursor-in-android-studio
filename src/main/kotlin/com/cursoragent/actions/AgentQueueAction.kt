@@ -13,7 +13,7 @@ internal enum class AgentQueueCommand(val actionId: String) {
     RETURN_TO_INPUT("CursorAgent.QueueReturnToInput"),
 }
 
-/** Supplied only by the focused queue list, never by its edit dialog or the prompt editor. */
+/** Supplied by the focused queue list, or for ReturnToInput alone by the inline edit prompt. */
 internal class AgentQueueActions(
     val available: (AgentQueueCommand) -> Boolean,
     val perform: (AgentQueueCommand) -> Unit,

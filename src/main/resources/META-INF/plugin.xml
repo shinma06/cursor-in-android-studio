@@ -220,7 +220,7 @@
                 <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta BACK_SPACE" replace-all="true"/>
             </action>
             <action id="CursorAgent.QueueReturnToInput" class="com.cursoragent.actions.AgentQueueAction$ReturnToInput"
-                    text="予約一覧から入力へ戻る" description="予約を一時停止したまま入力欄へ戻ります。">
+                    text="予約から入力へ戻る" description="予約一覧を離れるか、入力欄の予約編集を取り消して元の下書きへ戻ります。">
                 <keyboard-shortcut keymap="$default" first-keystroke="ESCAPE"/>
             </action>
         </group>

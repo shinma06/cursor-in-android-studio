@@ -80,6 +80,11 @@ class ModelSelector(
 
     fun closePopup() = popupController.close()
 
+    internal fun restoreSelection(id: String) {
+        settings.selectedModel = id
+        showSelection(models.firstOrNull { it.id == id } ?: ModelOption(id, id.ifEmpty { "既定モデル" }))
+    }
+
     fun waitForAcp() {
         if (!acp) printModelId = settings.selectedModel
         settings.selectedModel = ""

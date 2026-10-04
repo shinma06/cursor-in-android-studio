@@ -47,15 +47,15 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
         isVisible = false
     }
     private val refreshTimer = Timer(350) { refreshAutomatic() }
+    private val automaticToggle = JCheckBox("自動 context", true).apply {
+        isOpaque = false
+        toolTipText = "現在のファイルと選択範囲。送信開始時の内容を使います。"
+        addActionListener { draft.automaticEnabled = isSelected; refreshAutomatic() }
+    }
 
     init {
         isOpaque = false
         border = JBUI.Borders.empty(2, 6)
-        val automaticToggle = JCheckBox("自動 context", true).apply {
-            isOpaque = false
-            toolTipText = "現在のファイルと選択範囲。送信開始時の内容を使います。"
-            addActionListener { draft.automaticEnabled = isSelected; refreshAutomatic() }
-        }
         add(JPanel(BorderLayout()).apply {
             isOpaque = false
             add(JPanel(BorderLayout()).apply {
@@ -84,10 +84,20 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
     fun addMention(mention: Mention) { draft.add(mention); render() }
     fun clearExplicit() { draft.clearExplicit(); render() }
 
-    /** Validate once when sending/enqueuing. The returned value then belongs to that request. */
-    fun snapshot(): PromptContextSnapshot {
+    internal fun restore(snapshot: PromptContextSnapshot) {
+        draft.clearExplicit()
+        snapshot.selections.forEach(draft::add)
+        snapshot.mentions.forEach(draft::add)
+        draft.automaticEnabled = snapshot.automaticEnabled
+        automaticToggle.isSelected = snapshot.automaticEnabled
         refreshAutomatic()
-        return draft.snapshot(EditorContextReader::isCurrent)
+        render()
+    }
+
+    /** Validate once when sending/enqueuing. The returned value then belongs to that request. */
+    fun snapshot(fixedSelections: List<SelectionContext> = emptyList()): PromptContextSnapshot {
+        refreshAutomatic()
+        return draft.snapshot { it in fixedSelections || EditorContextReader.isCurrent(it) }
     }
 
     private fun addCurrentSelection(replace: String? = null) {

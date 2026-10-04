@@ -80,7 +80,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 | QUEUE-NAVIGATION | ArrowUp / ArrowDown | steering機能が有効でqueue list本体にfocus。上下の項目移動、末尾を越えたら入力へ戻る。 | in-IDE静的確認 / inline/管理一覧に接続 / A2 |
 | QUEUE-ESCAPE | Escape | 同じqueue listのfocus条件で入力へ戻る。 | in-IDE静的確認 / inline/管理一覧に接続 / A2 |
 | QUEUE-SUBMIT | Enter / M+Enter / M+Alt+Enter | Shiftなし。送信キー設定・主修飾キー・Altで送信とsteer/interruptの動作を分ける。Pluginの次turn予約で同一turn入力を代用しない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
-| QUEUE-EDIT | ArrowRight / Space | queue listにfocusし項目を選択、機能条件を満たすと編集へ入る。 | in-IDE静的確認 / 既存の予約編集へ接続・inline編集は残作業 / A2 |
+| QUEUE-EDIT | ArrowRight / Space | queue listにfocusし項目を選択、機能条件を満たすと編集へ入る。 | in-IDE静的確認 / inline入力欄と管理dialogの編集へ接続 / A2 |
 | QUEUE-REMOVE | macOS Cmd+Backspace; Windows/Linux Ctrl+Delete | 同じqueue条件、他の修飾キーなし。macOSはCmd+Backspace、Windows/LinuxはCtrl+Delete。 | in-IDE静的確認 / 既存の予約削除へ接続 / A2 |
 | INPUT-TRIGGERS | @ / / | 通常の入力文字とcaret/候補状態で処理する。global Actionに@や/を奪わせない。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A1 |
 | INPUT-NATIVE-TEXT | Select all / undo / redo / cut / copy / paste / newline / caret keys | 入力editorまたはfocus中native controlの選択・undo/redo・cut/copy/paste・改行・caret。既存部品を再利用し、キー組合せ総数とは数えない。 | in-IDE静的確認 / 既存native部品 / A1 |
@@ -175,11 +175,11 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 ## 予約一覧のキー操作と残る送信能力
 
-固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内15操作・global6入口とは別に、予約一覧のfocus contextだけで有効にし、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
+固定版のqueue list handler（`frb`）は一覧自体にfocusがある場合に上下移動、末尾から入力へ戻る操作、Escape、Right/Space編集、OS別削除を処理する。Pluginは既存の予約管理一覧へ`QueuePrevious` / `QueueNext` / `QueueEdit` / `QueueRemove` / `QueueReturnToInput`の5 Actionを接続する。panel内15操作・global6入口とは別に、予約一覧のfocus contextで有効にし（入力欄での編集取消は後述）、IDE Keymapの変更/解除を使用する。修飾キーなしの上下/右/Space/Escapeは標準Keymapを継承し、削除だけMacのCmd+Backspaceへ置換する。
 
-一覧を開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
+管理dialogを開くと予約を一時停止する既存契約を保持する。編集・削除は表示時snapshotではなく、選択IDから最新の予約を取得して既存操作へ渡す。前後移動は循環せず、先頭の上移動は先頭に留まり、末尾の下移動/Escapeは一時停止したまま一覧を閉じて現在の会話入力へ戻る。別会話/project、破棄後、編集dialogや子popupへのfocusでは一覧Actionを実行しない。削除時の画像解放、編集時のmode/model/command/context固定、世代/revisionによる古い送信ticketの拒否は既存queueへ委ねる。
 
-入力欄上のinline queueと空入力境界からの入口は下記へ接続した。Cursorの入力欄を使うqueue編集と、送信キー設定に応じた選択1件の送信・steer/interrupt分岐は未接続。既存の「予約送信を再開」は全予約の再開操作であり、QUEUE-SUBMITの代用にしない。そのボタンの既定Enterを外し、一覧でEnterを押しただけでは全件再開しない。再開ボタンの明示操作は残す。固定buildの実配送、IME中の編集、default button、focus復帰、Keymap変更と解除後のnative一覧/標準dialog Escの挙動はGUI Caseで照合する。
+入力欄上のinline queueと空入力境界からの入口は下記へ接続した。入力欄を使うqueue編集も後述の経路へ接続した。送信キー設定に応じた選択1件の送信・steer/interrupt分岐は未接続。既存の「予約送信を再開」は全予約の再開操作であり、QUEUE-SUBMITの代用にしない。そのボタンの既定Enterを外し、一覧でEnterを押しただけでは全件再開しない。再開ボタンの明示操作は残す。固定buildの実配送、IME中の編集、default button、focus復帰、Keymap変更と解除後のnative一覧/標準dialog Escの挙動はGUI Caseで照合する。
 
 ## モデル設定循環の接続条件
 
@@ -194,3 +194,16 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 `EditorUp` / `EditorDown`のnative handlerをprompt editorのmarkerで限定して包む。通常editorはmarker確認だけで元handlerへ渡し、IDE Keymapの変更/解除を継承する。選択範囲/複数caret/本文/境界外、無効な入力、IME（確定eventのEDT turnを含む）、command/mention・子popup、未送信command/画像ではqueueへ移らない。画像に加えてcommandを保護する条件はPluginの既存draft保護であり、Cursorの全分岐との同一性を未確認のまま主張しない。非空draftから過去human messageへ戻るP02、review候補等の別分岐は残る。
 
 inline一覧へのfocus・上下移動・入力への復帰だけでは予約のpause/resumeを変えない。編集と管理dialogを開く操作は既存どおりpauseし、再開は管理dialogの明示操作とする。自動送信で項目が変わっても、操作対象は最新IDから取り直す。最後の予約削除でinline一覧が消える場合は同じ生存中会話の入力へ戻す。表示中は最大3行を基本にscrollし、予約がなくなれば一覧を隠す。chat controllerの破棄でAction登録を解除し、focus callbackを無効化する。native Document/Caretと実promptのIME listenerを使う`PromptQueueNavigationTest`はguard/委譲を検証するが、実Keymap配送・幅・focusのGUI合格ではない。
+
+
+## 入力欄での予約編集と下書きの保持
+
+固定版の`PGh`は選択queueの本文・context・model/modeを入力欄へ読み込み、`GHh` / `sq_`が編集対象とsnapshotを保持する。`oq_`の取消にはrestore snapshotがある場合だけ復元する分岐があり、通常draftを無条件に保持する証拠とはしない。Pluginはinline一覧のRight/Spaceから既存入力欄を使う編集へ入り、元の下書きの本文・全caret/選択範囲・mode/model・command・明示context/自動設定・画像を別snapshotとして保持する。これは既存下書きの消失防止であり、Cursor全状態の同一動作を主張しない。管理dialogの簡易本文編集も残す。
+
+編集開始でqueueをpauseし、編集中は別予約の変更や予約管理への移動を抑止する。入力欄の送信キー（既存Enter/M+Enter設定）と「保存」は対象IDの予約を更新し、通常送信や実行中turnへの入力へ流さない。送信中のStopは同じrunを停止する操作のまま保持する。Escapeは同じ`QueueReturnToInput` Actionを入力欄にも接続して取消し、IME/候補popup/別focus/別会話では実行しない。保存・取消は元の下書きを復元し、予約はpauseのまま、再開は管理dialogの明示操作とする。現在の送信・steering未対応をこの保存操作で代替しない。
+
+画像はqueue・編集中入力・退避した下書きが別leaseを所有する。画像previewの読込み/解放は既存background workerを使い、取消や破棄で遅い結果を退避下書きへ上書きしない。登録済みの明示選択は固定snapshotとして保持し、新規/変更した選択だけ現行Documentと照合する。commandを変更した場合は現在のcatalog広告を確認する。開始後に対象予約が変更/削除された場合は保存を拒否し、編集本文はコピー・取消可能なまま残す。実行中turnのACP設定通知で編集中のmode/modelを差し替えない。
+
+native入力のdraft切替をUndo境界にし、本文だけを別draftから復活させない。それ以前のUndo履歴は引き継がず、復元後の文字入力は通常どおりUndo/Redoできる。全caret/選択範囲を復元し、本文が同じ場合もdraft世代を変えて古い`@` / `/`候補表示を拒否する。`PromptQueueEditorTest`は実入力欄・IME・送信Action、複数caret・snapshot/画像lease・古い予約・Undo境界を検証する。Keymapの実配送、IME確定直後、狭い幅、実run終了/Stopとの競合と同等UXは`KEYMAP-QUEUE-EDIT`の固定build GUIで照合する。
+
+2026-10-04に再確認した[Cursor in-IDE Agent概要](https://cursor.com/docs/agent/overview#queued-messages)は次turn queueと即時follow-upを区別する。[JetBrains AI Assistant + ACP](https://www.jetbrains.com/help/ai-assistant/acp.html)と[IntelliJ MCP Server](https://www.jetbrains.com/help/idea/mcp-server.html)は外部Agent・IDE toolの連携能力を持つ。Pluginの予約編集はこれらを独自能力と呼ばず、native editor/Keymap、tab所有・未保存draft・画像lease・送信ticketを直接結ぶ。公式概要だけでは他実装のqueue編集条件や同等以上の操作性を確定しない。

@@ -80,6 +80,16 @@ internal class PromptQueue(val conversationId: String,
         entries[index] = entries[index].copy(text = text)
         return true
     }
+    /** The editor owns replacement.image until this accepts it; stale edits never replace another item. */
+    fun replace(expected: QueuedPrompt, replacement: QueuedPrompt): Boolean {
+        val index = entries.indexOfFirst { it.id == expected.id }
+        if (index < 0 || entries[index] !== expected || replacement.id != expected.id ||
+            replacement.text.isBlank() && replacement.command == null && replacement.image == null) return false
+        pause()
+        entries[index] = replacement
+        if (expected.image !== replacement.image) expected.image?.let(releaseImage)
+        return true
+    }
     fun move(id: String, offset: Int) {
         val from = entries.indexOfFirst { it.id == id }
         val to = from + offset
