@@ -163,7 +163,9 @@ sidebar表示中のM+A+左右は選択中chatから前後の表示候補（会�
 
 固定版sidebarのpin・日付section・折り畳み・Moreを下記のlocal候補へ接続する。Archived/復元、Cloud候補、検索語からのFind with Agent、transient/editor-groupへの表示は未接続/未確定として全対象照合に残す。公開されたCloud取得/操作契約や既存能力を確認せず、local background実行と同じものにしない。ソース根拠は固定版のproviderの候補除外/重複統合/検索上限、sidebarのnavigation候補と確定handler、SDK native matcher/popup/splitter。実GUIは未実施。
 
-local候補は固定したチャット、今日、昨日、過去7日間、過去30日間、それ以前の区分へ分ける。固定候補は日付区分と重複させず、区分内は更新日時降順。今日/昨日はlocal calendar、7/30日の境界は経過時間を使い、DSTでも「昨日」を24時間差と同一視しない。1分ごとにlocal日付の変更を確認して区分を再評価する。日付が同じ間は再描画でscroll位置を戻さない。空区分を表示せず、各区分は初期6件・Moreごとに6件追加する。Moreの確定では会話を開かず、追加された候補を表示する。表示件数は一覧を作り直すと6件へ戻る。折り畳み状態とpinはproject単位で保存し、区分見出しのクリック/Enterと「一覧に固定 / 固定を解除」で変更する。
+local候補は固定したチャット、今日、昨日、過去7日間、過去30日間、それ以前の区分へ分ける。固定候補は日付区分と重複させず、区分内は更新日時降順。今日/昨日はlocal calendar、7/30日の境界は経過時間を使い、DSTでも「昨日」を24時間差と同一視しない。1分ごとにlocal日付の変更を確認して区分を再評価する。日付が同じ間は再描画でscroll位置を戻さない。空区分を表示せず、各区分は初期6件・Moreごとに6件追加する。Moreの確定では会話を開かず、追加された候補を表示する。表示切替では同じviewを保持し、検索語・追加表示件数・scroll位置を戻す。表示件数はIDE再起動等でcontentを作り直した時に6件へ戻る。折り畳み状態とpinはproject単位で保存し、区分見出しのクリック/Enterと「一覧に固定 / 固定を解除」で変更する。
+
+固定版の`xQt`は通常の`setUnifiedSidebarHidden`でgridの可視状態だけを変更し、rendererを破棄しない。layout mode切替やpartのdisposeでは破棄する。Pluginもsidebarの有無をviewの生存と分け、非表示時は読込み/検索の世代を無効にしてworkerと日付timerを止める。同じviewで再表示する時は新しい履歴を読み、旧表示のcallbackを反映しない。非表示中のsidebar IME状態は他の入口/履歴循環を妨げない。内容の保持と実scroll復元は固定build GUIで照合する。
 
 pinは固定版の有効候補75件上限に合わせる。削除済み等の現在存在しないIDは上限に数えず、残るpin metadataから本文や空会話を生成しない。本文UUIDと旧print provider IDを区別した保存値を使い、名前から同一会話を推測しない。履歴読込み失敗/不明候補がある間は新規pinを無効にし、既存pinの解除は可能にする。未保存draftをpinすることは本文保存やIDE再起動復元の保証ではない。pin/折り畳み/MoreでStop・送信・履歴削除は発生しない。根拠は固定版の`SGn` / `o4p` / `TQt=6` / `expandMore` / `I4p`とpin storageの75件判定。editor sticky同期とArchivedの扱いはP07/残作業に残し、固定buildのkeyboard/scroll/accessibilityと再起動での状態保持はGUI Caseで確認する。
 

@@ -79,6 +79,8 @@ class AgentToolWindowRootPanel(
     private var recentChatsPopup: RecentChatsPopup? = null
     private var allChatsPopup: JBPopup? = null
     private var allChatsSidebar: AllChatsView? = null
+    private val allChatsContainer = JPanel(BorderLayout())
+    private val allChatsSidebarVisible: Boolean get() = contentSplitter.firstComponent === allChatsContainer
     private var sidebarNavigation: SidebarChatNavigation? = null
     private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
@@ -93,7 +95,7 @@ class AgentToolWindowRootPanel(
     }
 
     internal val windowShortcutAvailable: Boolean
-        get() = selectedView?.composer?.panelShortcutAvailable == true && allChatsSidebar?.isComposing != true &&
+        get() = selectedView?.composer?.panelShortcutAvailable == true && (!isShowing || !allChatsSidebarVisible || allChatsSidebar?.isComposing != true) &&
             !JBPopupFactory.getInstance().isChildPopupFocused(this)
 
     private fun shortcutAvailable(command: AgentPanelCommand): Boolean {
@@ -116,7 +118,7 @@ class AgentToolWindowRootPanel(
             AgentPanelCommand.CLOSE_CHAT -> closeTabs(listOf(sessions.snapshot().selectedId))
             AgentPanelCommand.PREVIOUS_CHAT, AgentPanelCommand.NEXT_CHAT -> navigateChat(command == AgentPanelCommand.PREVIOUS_CHAT)
             AgentPanelCommand.PREVIOUS_AGENT, AgentPanelCommand.NEXT_AGENT -> {
-                if (allChatsSidebar == null) navigateChat(command == AgentPanelCommand.PREVIOUS_AGENT)
+                if (!allChatsSidebarVisible) navigateChat(command == AgentPanelCommand.PREVIOUS_AGENT)
                 else navigateSidebar(command)
             }
             AgentPanelCommand.RECENT_CHAT, AgentPanelCommand.LEAST_RECENT_CHAT -> showRecentChats(command, event)
@@ -199,6 +201,7 @@ class AgentToolWindowRootPanel(
                 recentChatsPopup?.dispose()
                 allChatsPopup?.cancel()
                 stopSidebarNavigation()
+                allChatsSidebar?.suspendUpdates()
                 if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) cancelPendingChatFocus()
             } else if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L) allChatsSidebar?.reload()
         }
@@ -244,7 +247,7 @@ class AgentToolWindowRootPanel(
         if (!windowShortcutAvailable || window.isDisposed || window.project !== project) return
         val focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         val focused = isShowing && focus != null && SwingUtilities.isDescendingFrom(focus, this)
-        if (allChatsSidebar != null && focused) {
+        if (allChatsSidebarVisible && focused) {
             setAllChatsVisible(false)
             selectedView?.composer?.inputArea?.requestFocusInWindow()
             return
@@ -253,7 +256,7 @@ class AgentToolWindowRootPanel(
         val ticket = ++chatFocusGeneration
         window.activate({
             if (!disposed && !project.isDisposed && !window.isDisposed && window.isAvailable && window.isVisible &&
-                isShowing && allChatsSidebar != null && ticket == chatFocusGeneration && windowShortcutAvailable) showAllChatsPicker()
+                isShowing && allChatsSidebarVisible && ticket == chatFocusGeneration && windowShortcutAvailable) showAllChatsPicker()
         }, false)
     }
 
@@ -262,13 +265,12 @@ class AgentToolWindowRootPanel(
         if (!visible) {
             cancelPendingChatFocus()
             allChatsPopup?.cancel()
-            allChatsSidebar?.dispose()
-            allChatsSidebar = null
+            allChatsSidebar?.suspendUpdates()
             contentSplitter.firstComponent = null
         } else if (allChatsSidebar == null) {
             val view = AllChatsView(project, false, ::openRecentEntries,
                 selectedId = { selectedView?.let { recentChatId(sessions.snapshot().selected, it) } },
-                valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebar != null },
+                valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebarVisible },
                 onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it) } },
             )
             allChatsSidebar = view
@@ -279,11 +281,10 @@ class AgentToolWindowRootPanel(
                     addActionListener { setAllChatsVisible(false); selectedView?.composer?.inputArea?.requestFocusInWindow() }
                 }, BorderLayout.EAST)
             }
-            contentSplitter.firstComponent = JPanel(BorderLayout()).apply {
-                add(header, BorderLayout.NORTH)
-                add(view, BorderLayout.CENTER)
-            }
+            allChatsContainer.add(header, BorderLayout.NORTH)
+            allChatsContainer.add(view, BorderLayout.CENTER)
         }
+        if (visible) contentSplitter.firstComponent = allChatsContainer
         PropertiesComponent.getInstance(project).setValue("CursorAgent.allChatsSidebar", visible, false)
         allChatsSidebar?.reload()
         revalidate()
@@ -325,7 +326,7 @@ class AgentToolWindowRootPanel(
         if (!view.navigate(command == AgentPanelCommand.PREVIOUS_AGENT)) return
         if (sidebarNavigation == null) {
             sidebarNavigation = SidebarChatNavigation(this,
-                valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebar === view && windowShortcutAvailable },
+                valid = { !disposed && !project.isDisposed && isShowing && allChatsSidebarVisible && allChatsSidebar === view && windowShortcutAvailable },
                 onFinish = { accept ->
                     sidebarNavigation = null
                     if (accept) view.confirmNavigation() else view.cancelNavigation()
@@ -612,6 +613,7 @@ class AgentToolWindowRootPanel(
         stopSidebarNavigation()
         allChatsSidebar?.dispose()
         allChatsSidebar = null
+        allChatsContainer.removeAll()
         history.dispose()
         sessions.stopAll()
         views.values.forEach { it.controller.dispose() }

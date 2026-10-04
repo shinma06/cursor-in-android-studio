@@ -14,6 +14,7 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.Point
 import java.awt.event.InputMethodEvent
 import java.awt.event.InputMethodListener
 import java.awt.event.MouseAdapter
@@ -92,6 +93,8 @@ internal class AllChatsView(
             }
         }
     }
+    private val scroll = JBScrollPane(list)
+    private var suspendedPosition: Point? = null
     private val status = JLabel(" ")
     private val pinButton = JButton("一覧に固定").apply { addActionListener { togglePin() } }
     private var renderedDate = LocalDate.now()
@@ -121,16 +124,15 @@ internal class AllChatsView(
         search.textEditor.accessibleContext.accessibleName = "チャットの名前・冒頭文を検索"
         search.textEditor.toolTipText = "名前・冒頭文で検索します。"
         add(search, BorderLayout.NORTH)
-        add(JBScrollPane(list), BorderLayout.CENTER)
+        add(scroll, BorderLayout.CENTER)
         add(JPanel(BorderLayout()).apply {
             add(status, BorderLayout.CENTER)
             if (!quickAccess) add(pinButton, BorderLayout.EAST)
         }, BorderLayout.SOUTH)
-        if (!quickAccess) dateRefresh.start()
         list.addListSelectionListener { updatePinButton() }
         updatePinButton()
         search.textEditor.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) { navigationTarget = null; scheduleSearch() }
+            override fun textChanged(e: DocumentEvent) { suspendedPosition = null; navigationTarget = null; scheduleSearch() }
         })
         search.textEditor.addInputMethodListener(object : InputMethodListener {
             override fun inputMethodTextChanged(event: InputMethodEvent) {
@@ -161,8 +163,10 @@ internal class AllChatsView(
 
     fun reload() {
         if (disposed || !valid()) return
+        if (!quickAccess) dateRefresh.start()
         val ticket = ++loadGeneration
         historyComplete = false
+        if (!ready) status.text = "履歴を読み込み中…"
         updatePinButton()
         store.load { result -> SwingUtilities.invokeLater {
             if (disposed || !valid() || ticket != loadGeneration) return@invokeLater
@@ -225,7 +229,10 @@ internal class AllChatsView(
         val target = navigationTarget ?: preferred ?: selectedId()?.let(SidebarChatTarget::Chat)
         val index = rows.indexOfFirst { it.target != null && it.target == target }
         list.selectedIndex = if (index >= 0) index else rows.indexOfFirst { it.target != null }
-        if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
+        val previousPosition = suspendedPosition
+        suspendedPosition = null
+        if (previousPosition != null) scroll.viewport.viewPosition = previousPosition
+        else if (list.selectedIndex >= 0) list.ensureIndexIsVisible(list.selectedIndex)
         status.text = loadStatus.ifBlank {
             if (quickAccess && hits.size == limit) "先頭${limit}件を表示・検索で絞り込めます" else "${hits.size}件"
         }
@@ -310,13 +317,24 @@ internal class AllChatsView(
         list.selectedIndex = rows.indexOfFirst { it.target == target }
     }
 
-    override fun dispose() {
-        disposed = true
+    /** Hiding retains the query, rows and expansion state, but rejects every callback from the old display. */
+    fun suspendUpdates() {
+        if (!quickAccess && ready) suspendedPosition = scroll.viewport.viewPosition
         loadGeneration++
         searchGeneration++
         debounce.stop()
         dateRefresh.stop()
         worker?.cancel(true)
+        worker = null
+        ready = false
+        navigationTarget = null
+        updatePinButton()
+    }
+
+    override fun dispose() {
+        disposed = true
+        suspendUpdates()
+        suspendedPosition = null
         hits = emptyList()
         rows = emptyList()
         stored = emptyList()
