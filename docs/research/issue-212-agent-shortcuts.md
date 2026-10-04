@@ -1,6 +1,6 @@
 # IDE内Agent panelのショートカット対応表
 
-[#212](https://github.com/shinma06/cursor-in-android-studio/issues/212)。ショートカットの追加・競合修正時に参照する、人間と開発者の共有資料。2026-10-04の固定版調査。**全対象の確定・全対応・GUI合格は未達**。初期の30件抽出にはAction IDの誤対応と漏れがあり、独立した静的監査で訂正した。未確定行を対象外やpassに置き換えない。
+[#212](https://github.com/shinma06/cursor-in-android-studio/issues/212)。ショートカットの追加・競合修正時に参照する、人間と開発者の共有資料。2026-10-04〜05の固定版調査。**全対象の確定・全対応・GUI合格は未達**。初期の30件抽出にはAction IDの誤対応と漏れがあり、独立した静的監査で訂正した。未確定行を対象外やpassに置き換えない。
 
 ## 根拠・数え方・比較
 
@@ -14,7 +14,7 @@
 
 ## 登録command
 
-`M`はmacOSのCmd、Windows/LinuxのCtrl、`A`はOption/Alt。表はOSを省略せず、macOSのControlとCmdも区別する。状態はPluginのソース上の接続状況で、同等UXの合格ではない。modeのM+A+.とPlugin設定のM+,は既存Actionの副キーへ追加した。A1〜A3/P01〜P11は後述の作業区分でありIssue番号ではない。
+`M`はmacOSのCmd、Windows/LinuxのCtrl、`A`はOption/Alt。表はOSを省略せず、macOSのControlとCmdも区別する。状態はこの親branchのソース上の接続状況で、同等UXの合格ではない。別branchの子実装は後述の「実装と不足能力の追跡」へ示す。親branchで未接続でも子Issueが未着手とは限らず、子PRの実装を親への統合済みとも扱わない。modeのM+A+.とPlugin設定のM+,は既存Actionの副キーへ追加した。A1〜A3/P01〜P11は後述の作業区分でありIssue番号ではない。
 
 | command ID | macOS | Windows | Linux | 有効条件・意味 | 所属 / Plugin / 次作業 |
 | --- | --- | --- | --- | --- | --- |
@@ -115,20 +115,20 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-P01は不足能力とin-IDE経路を確認し、[#518](https://github.com/shinma06/cursor-in-android-studio/issues/518)へ実分解した（native sub-issue、未実装）。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、親との合流・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
-| P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | #45の保存履歴検索と区別。大文字小文字/単語単位/正規表現、一致箇所の強調と位置/総数、長い本文/不正な式の応答性、stream・タブ所有、検索focusとIME/送信競合を検証。実装・GUIは未達。 |
+| P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | [PR #520](https://github.com/shinma06/cursor-in-android-studio/pull/520)に実装。#45の保存履歴検索と区別し、大文字小文字/単語単位/正規表現、一致強調と位置/総数、長い本文/不正な式、stream・owner・IME/focusを扱う。独立再レビュー後の統合操作はユーザー承認待ち。GUIは未達。 |
 | P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保持する。下記の履歴変更契約が未確定であり、末尾への通常再送に置換しない。 |
-| P03 | コピー元を識別できるcodeのcontext付き貼付け | #24/#343を再利用。公開clipboard形式で得られた出典だけを使い、path/range/versionを推測しない。 |
+| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。外部rich clipboardや複数inline nodeの一括copyとの差、独立review・親の予約編集との合流・8 GUI Caseは未達。 |
 | P04 | 同一実行turnへの即時入力 | #278のACP/print調査とSDKの公開`run.steer()`を区別する。下記の別方式候補を評価し、次turn queueやStop後再送を代替にしない。 |
 | P05 | 実行中terminal toolだけの取消 | #147/#297/#300のrun取消/permissionと区別。providerのtool ID付き取消契約が必要。 |
 | P06 | 初回draftのbranch/native Git worktree選択 | #301/#39のroot所有を保持。ISOLATED作業コピーをGit worktreeと呼ばず、公開起動・setup/cancel/cleanupを確定。 |
-| P07 | 同一Agent会話のToolWindow/editor表示切替 | #156/#213を再利用。chat ID/run/draft/contextを二重化せず、close/reopen/focus/別projectを検証。 |
+| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。独立review・親の新設Action/履歴/sidebarとの合流・split/close/focus等の7 GUI Caseは未達。 |
 | P08 | 保留変更の一括承認/却下とworktree適用 | #47/#308の事後Diff/Revertと分離。公開された未適用提案のsnapshot/所有契約が前提。 |
 | P09 | Agent Voiceの録音開始/停止/取消 | #99はOS dictation研究でありVoice実装ではない。録音権限、選択chat所有、失敗と保存寿命を含め採用経路を確定。 |
-| P10 | 広告されたmodel parameterの循環選択 | #43のexact variant IDを維持。広告された値/順序のみを使い、ACP busyとWindowsのキー優先を検証。 |
+| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、独立review・親のWindowsキー優先/予約editorとの合流・5 GUI Caseは未達。 |
 | P11 | 選択codeからcodebase検索付きchatを開く | #24の一般選択添付と区別。固定版の操作と公開検索意味を確定し、非公開flagや独自indexを発明しない。 |
 
 #48のqueue、#97の送信設定、#258/#404のSkills/command候補、#156のopened chats、#213の最後tab閉鎖等を再利用する。これらの実装Issueがclosedでも、対応QAやmain反映は未達の場合がある。SubComposerの所属未確定からside chat能力を推測して起票しない。
@@ -297,6 +297,10 @@ Pluginの`ResetChat`は入力focus、入力可、IME/候補/子popupなし、画
 要求cardには受信したturnのproject・token/generation・Stop・terminal条件を渡す。キーとマウスの両経路が返信直前にこの寿命と`isPending`を照合し、`AgentInputRequest`とACP側の既存の一度だけ返信/Stop競合処理を維持する。押下中のキーcodeだけをroot単位に保持し、解放まで次の要求への返信や拒否後のrun Stopを抑止する。`IdeEventQueue.NonLockedEventDispatcher`は押下後から解放までだけ登録し、IDEのAction処理より前に同じキーの反復と後続のtypedイベントを消費する。他キーの押下/入力とkeyupは通し、root破棄でも解除する。OSがアプリ外のkeyupを配送しない場合を含め、focus遷移・長押しの実動作はGUI Caseで確認する。
 
 固定版の`f6t`は現在のpending decision groupの全`accept`、`Kft`/`j5e`の`$dp`はgroupの全`reject`を通常run取消より優先する。groupは単なる全pending集合ではなく、terminal優先・類似tool・質問の状態を使う。shell用`U8o`はreview modelとallowlist候補・設定gateを参照し、一部経路では確認dialogと共有自動実行設定変更を伴う。現在の[ACP permission](https://agentclientprotocol.com/protocol/v1/tool-calls#requesting-permission)受信経路は個別option IDを扱い、この内部group・allowlist候補を提供しない。そのため、今回の個別返信をgroup全件、shell allowlistや通知の対応と呼ばず、A3の残作業として保持する。`allow_always`とshell allowlistを同一化しない。
+
+同じ固定版で、pending groupがない場合の`acceptNotification()`から入力部品の受信先まで追跡した。対象は入力欄に表示される通知の操作ボタンであり、IDEの通知バルーンではない。MCP追加、network access有効化、GitHub/GitLab接続、plugin追加提案、mode提案がそれぞれ固有のcallbackを持ち、表示条件を満たして実在するボタンだけをクリックする。通知serviceに値があるだけでは実行を保証せず、完了通知の表示や既存permissionの返信で代用しない。
+
+Pluginの`AgentNotificationService`は実行完了/停止や背景tool activityのIDE通知を担当し、この入力欄の操作契約を持たない。A3の通知分岐は、公開された対象能力・要求payload・表示条件・所有と実行結果を個別に対応付けてから接続する。認証、MCP追加、network設定の変更を一般的な承認キーへ推測接続せず、通知の種類と応答先が未確定の間は未対応として保持する。根拠は固定版のnotification service、入力部品の`onAcceptNotification`購読とrendered button callbackの静的照合であり、GUI到達や現在のACPで同じ通知を受信できることの証拠ではない。
 
 空入力のtool確認は`ApproveTool`（Enter）と`SkipTool`（Escape）を追加した。固定版の`eYb/J4t/U8o`は、空draft・画像/動画なし・過去入力編集中ではないblocking reviewからrun/skipを選ぶ。対象にはterminalだけでなくMCP、編集、削除、Web検索/取得もある。PluginはACPの実際のpermission要求と、一意な`allow_once` / `reject_once`を使う。kindやtool名から許可を生成せず、対象情報不足では許可できない。ACPにdecision groupの識別情報がないため、空入力から複数要求の最後を推定せず、focusしたカードまたは一意の要求だけを対象とする。
 
