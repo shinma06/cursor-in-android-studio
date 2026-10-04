@@ -12,6 +12,8 @@ import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.Rectangle
 import java.awt.RenderingHints
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import java.awt.event.HierarchyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -48,8 +50,9 @@ class SessionTabStrip : JPanel(BorderLayout()) {
     private var pressedClose = false
     private var pressPoint = Point()
     private var dragging = false
-    private var dragViewportX = 0
+    private var dragViewportPoint = Point()
     private var dropIndex = 0
+    private var wrapTabs = false
     private val tabHeight get() = JBUI.scale(34)
     private val edgeWidth get() = JBUI.scale(24)
     private val canvas = TabCanvas()
@@ -107,6 +110,15 @@ class SessionTabStrip : JPanel(BorderLayout()) {
         background = AgentUiColors.tabAreaBackground
         minimumSize = Dimension(0, tabHeight)
         add(scrollPane)
+        addComponentListener(object : ComponentAdapter() {
+            override fun componentResized(e: ComponentEvent) {
+                if (wrapTabs) {
+                    cancelDrag()
+                    refreshHoveredTab()
+                    revalidate()
+                }
+            }
+        })
         addHierarchyListener { event ->
             if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && !isShowing) {
                 cancelDrag()
@@ -136,6 +148,21 @@ class SessionTabStrip : JPanel(BorderLayout()) {
         scrollPane.horizontalScrollBar.addMouseWheelListener(wheelListener)
     }
 
+    fun setWrapTabs(enabled: Boolean) {
+        if (wrapTabs == enabled) return
+        wrapTabs = enabled
+        cancelDrag()
+        scrollPane.horizontalScrollBarPolicy = if (enabled) {
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        } else JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        scrollPane.viewport.viewPosition = Point()
+        refreshHoveredTab()
+        canvas.revalidate()
+        revalidate()
+        repaint()
+        revealSelectedTab()
+    }
+
     fun setTabs(tabs: List<SessionTabPresentation>, selectedId: String?) {
         require(tabs.map { it.id }.distinct().size == tabs.size) { "Duplicate tab ID" }
         require(tabs.none { it.id.isBlank() }) { "Blank tab ID" }
@@ -151,10 +178,13 @@ class SessionTabStrip : JPanel(BorderLayout()) {
             "セッションタブ: ${it.fullTitle}"
         } ?: "セッションタブ"
         canvas.revalidate()
+        revalidate()
         canvas.repaint()
-        if (revealSelection) SwingUtilities.invokeLater {
-            boundsFor(this.selectedId)?.let(canvas::scrollRectToVisible)
-        }
+        if (revealSelection) revealSelectedTab()
+    }
+
+    private fun revealSelectedTab() = SwingUtilities.invokeLater {
+        boundsFor(selectedId)?.let(canvas::scrollRectToVisible)
     }
 
     internal fun boundsFor(id: String?): Rectangle? = tabBounds().firstOrNull { it.first.id == id }?.second
@@ -166,16 +196,23 @@ class SessionTabStrip : JPanel(BorderLayout()) {
 
     private fun tabBounds(): List<Pair<SessionTabPresentation, Rectangle>> {
         val metrics = canvas.getFontMetrics(canvas.font)
+        val availableWidth = (width - (toolbar()?.preferredSize?.width ?: 0)).coerceAtLeast(1)
         var x = 0
+        var y = 0
         return tabs.map { tab ->
             val title = abbreviateSessionTitle(tab.fullTitle, metrics, sessionTitleWidth(metrics))
-            val width = (metrics.stringWidth(title) + JBUI.scale(66)).coerceAtLeast(JBUI.scale(112))
-            (tab to Rectangle(x, 0, width, tabHeight)).also { x += width }
+            val naturalWidth = (metrics.stringWidth(title) + JBUI.scale(66)).coerceAtLeast(JBUI.scale(112))
+            val tabWidth = if (wrapTabs) naturalWidth.coerceAtMost(availableWidth) else naturalWidth
+            if (wrapTabs && x > 0 && x + tabWidth > availableWidth) {
+                x = 0
+                y += tabHeight
+            }
+            (tab to Rectangle(x, y, tabWidth, tabHeight)).also { x += tabWidth }
         }
     }
 
     private fun closeBounds(bounds: Rectangle) = Rectangle(
-        bounds.x + bounds.width - JBUI.scale(28), JBUI.scale(7), JBUI.scale(22), JBUI.scale(22),
+        bounds.x + bounds.width - JBUI.scale(28), bounds.y + JBUI.scale(7), JBUI.scale(22), JBUI.scale(22),
     )
 
     private fun hit(point: Point): SessionTabPresentation? = tabBounds().firstOrNull { it.second.contains(point) }?.first
@@ -204,37 +241,46 @@ class SessionTabStrip : JPanel(BorderLayout()) {
     }
 
     private fun updateDropTarget() {
-        val x = dragViewportX + scrollPane.viewport.viewPosition.x
-        dropIndex = tabBounds().filter { it.first.id != pressedId }.count { (_, bounds) -> x > bounds.centerX }
+        val position = scrollPane.viewport.viewPosition
+        val point = Point(dragViewportPoint.x + position.x, dragViewportPoint.y + position.y)
+        dropIndex = tabBounds().filter { it.first.id != pressedId }.count { (_, bounds) ->
+            if (wrapTabs) {
+                point.y >= bounds.y + bounds.height || point.y >= bounds.y && point.x > bounds.centerX
+            } else point.x > bounds.centerX
+        }
         canvas.repaint()
     }
 
     private fun scrollDragEdge() {
         if (!dragging) return
         val direction = when {
-            dragViewportX < edgeWidth -> -1
-            dragViewportX > scrollPane.viewport.width - edgeWidth -> 1
+            dragViewportPoint.x < edgeWidth -> -1
+            dragViewportPoint.x > scrollPane.viewport.width - edgeWidth -> 1
             else -> 0
         }
         scrollPane.horizontalScrollBar.value += direction * JBUI.scale(12)
         updateDropTarget()
     }
 
+    private fun toolbar(): java.awt.Component? =
+        (layout as BorderLayout).getLayoutComponent(BorderLayout.EAST)?.takeIf { it.isVisible }
+
     override fun getPreferredSize(): Dimension {
-        val toolbar = (layout as BorderLayout).getLayoutComponent(BorderLayout.EAST)?.takeIf { it.isVisible }?.preferredSize
-        return Dimension(JBUI.scale(320) + (toolbar?.width ?: 0), maxOf(tabHeight, toolbar?.height ?: 0))
+        val toolbar = toolbar()?.preferredSize
+        val rowsHeight = tabBounds().lastOrNull()?.second?.let { it.y + it.height } ?: tabHeight
+        return Dimension(JBUI.scale(320) + (toolbar?.width ?: 0), maxOf(rowsHeight, toolbar?.height ?: 0))
     }
 
     override fun paintChildren(g: Graphics) {
         super.paintChildren(g)
         val toolbar = (layout as BorderLayout).getLayoutComponent(BorderLayout.EAST) ?: return
         val viewport = scrollPane.viewport
-        val tabEnd = tabBounds().lastOrNull()?.second?.let { it.x + it.width } ?: return
+        val tabEnd = tabBounds().filter { !wrapTabs || it.second.y == 0 }.lastOrNull()?.second?.let { it.x + it.width } ?: return
         if (toolbar.isVisible && viewport.width > 0 && tabEnd >= viewport.viewPosition.x + viewport.width) {
             val copy = g.create()
             try {
                 copy.color = AgentUiColors.bubbleBorder
-                copy.drawLine(toolbar.x, 0, toolbar.x, height - 1)
+                copy.drawLine(toolbar.x, 0, toolbar.x, (if (wrapTabs) tabHeight else height) - 1)
             } finally {
                 copy.dispose()
             }
@@ -277,9 +323,9 @@ class SessionTabStrip : JPanel(BorderLayout()) {
                     if (pressedId == null || pressedClose) return
                     if (!dragging && pressPoint.distance(e.point) < JBUI.scale(5)) return
                     dragging = true
-                    dragViewportX = e.x - scrollPane.viewport.viewPosition.x
+                    dragViewportPoint = SwingUtilities.convertPoint(this@TabCanvas, e.point, scrollPane.viewport)
                     updateDropTarget()
-                    if (!edgeTimer.isRunning) edgeTimer.start()
+                    if (!wrapTabs && !edgeTimer.isRunning) edgeTimer.start()
                 }
                 override fun mouseReleased(e: MouseEvent) {
                     if (!SwingUtilities.isLeftMouseButton(e)) return
@@ -345,9 +391,12 @@ class SessionTabStrip : JPanel(BorderLayout()) {
             } else tab.fullTitle
         }
 
-        override fun getPreferredSize() = Dimension(tabBounds().sumOf { it.second.width }, tabHeight)
+        override fun getPreferredSize(): Dimension {
+            val bounds = tabBounds().map { it.second }
+            return Dimension(bounds.maxOfOrNull { it.x + it.width } ?: 0, bounds.lastOrNull()?.let { it.y + it.height } ?: tabHeight)
+        }
         override fun getPreferredScrollableViewportSize() = preferredSize
-        override fun getScrollableTracksViewportWidth() = false
+        override fun getScrollableTracksViewportWidth() = wrapTabs
         override fun getScrollableTracksViewportHeight() = true
         override fun getScrollableUnitIncrement(r: Rectangle, orientation: Int, direction: Int) = JBUI.scale(28)
         override fun getScrollableBlockIncrement(r: Rectangle, orientation: Int, direction: Int) = r.width.coerceAtLeast(1)
@@ -360,34 +409,42 @@ class SessionTabStrip : JPanel(BorderLayout()) {
                 for ((tab, bounds) in tabBounds()) {
                     if (!copy.clipBounds.intersects(bounds)) continue
                     val active = tab.id == selectedId
+                    val paintedHeight = if (wrapTabs) bounds.height else height
+                    val clip = copy.clip
+                    copy.clipRect(bounds.x, bounds.y, bounds.width, paintedHeight)
                     copy.color = if (active) AgentUiColors.panelBackground else AgentUiColors.tabAreaBackground
-                    copy.fillRect(bounds.x, 0, bounds.width, height)
+                    copy.fillRect(bounds.x, bounds.y, bounds.width, paintedHeight)
                     copy.color = AgentUiColors.bubbleBorder
-                    copy.drawLine(bounds.x, 0, bounds.x, height)
-                    if (!active) copy.drawLine(bounds.x, height - 1, bounds.x + bounds.width, height - 1)
+                    copy.drawLine(bounds.x, bounds.y, bounds.x, bounds.y + paintedHeight)
+                    if (!active) copy.drawLine(bounds.x, bounds.y + paintedHeight - 1, bounds.x + bounds.width, bounds.y + paintedHeight - 1)
                     copy.color = if (active || tab.id == hoveredId) {
                         UIManager.getColor("Label.foreground") ?: AgentUiColors.mutedText
                     } else AgentUiColors.mutedText
                     val iconX = bounds.x + JBUI.scale(12)
-                    val iconY = (tabHeight - JBUI.scale(14)) / 2
+                    val iconY = bounds.y + (tabHeight - JBUI.scale(14)) / 2
                     copy.drawRoundRect(iconX, iconY, JBUI.scale(14), JBUI.scale(11), JBUI.scale(3), JBUI.scale(3))
                     copy.drawLine(iconX, iconY + JBUI.scale(9), iconX, iconY + JBUI.scale(15))
                     copy.drawLine(iconX, iconY + JBUI.scale(15), iconX + JBUI.scale(4), iconY + JBUI.scale(11))
                     val metrics = copy.fontMetrics
-                    val title = abbreviateSessionTitle(tab.fullTitle, metrics, sessionTitleWidth(metrics))
-                    copy.drawString(title, bounds.x + JBUI.scale(35), (tabHeight - metrics.height) / 2 + metrics.ascent)
+                    val title = abbreviateSessionTitle(tab.fullTitle, metrics,
+                        minOf(sessionTitleWidth(metrics), bounds.width - JBUI.scale(66)))
+                    copy.drawString(title, bounds.x + JBUI.scale(35), bounds.y + (tabHeight - metrics.height) / 2 + metrics.ascent)
                     if (closeVisible(tab.id)) {
                         val close = closeBounds(bounds)
                         val inset = JBUI.scale(7)
                         copy.drawLine(close.x + inset, close.y + inset, close.x + close.width - inset, close.y + close.height - inset)
                         copy.drawLine(close.x + close.width - inset, close.y + inset, close.x + inset, close.y + close.height - inset)
                     }
+                    copy.clip = clip
                 }
                 if (dragging) {
                     val others = tabBounds().filter { it.first.id != pressedId }
-                    val x = others.getOrNull(dropIndex)?.second?.x ?: others.lastOrNull()?.second?.let { it.x + it.width } ?: 0
+                    val next = others.getOrNull(dropIndex)?.second
+                    val last = others.lastOrNull()?.second
+                    val x = next?.x ?: last?.let { it.x + it.width } ?: 0
+                    val y = next?.y ?: last?.y ?: 0
                     copy.color = UIManager.getColor("Label.foreground") ?: AgentUiColors.mutedText
-                    copy.fillRect(x.coerceAtMost(width - JBUI.scale(2)), 0, JBUI.scale(2), height)
+                    copy.fillRect(x.coerceAtMost(width - JBUI.scale(2)), y, JBUI.scale(2), if (wrapTabs) tabHeight else height)
                 }
             } finally {
                 copy.dispose()

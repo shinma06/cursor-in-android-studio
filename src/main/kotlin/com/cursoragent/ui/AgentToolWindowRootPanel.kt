@@ -19,8 +19,10 @@ import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.ide.ActivityTracker
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.ui.UISettings
+import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
@@ -44,6 +46,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     private val views = mutableMapOf<String, TabView>()
     private var disposed = false
     private var openedChatsPopup: JBPopup? = null
+    private val uiSettingsConnection = ApplicationManager.getApplication().messageBus.connect(project)
 
     private val selectedView: TabView?
         get() = if (disposed || project.isDisposed) null else views[sessions.snapshot().selectedId]
@@ -110,6 +113,10 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
         border = JBUI.Borders.empty()
         isOpaque = true
         background = AgentUiColors.panelBackground
+        strip.setWrapTabs(!UISettings.getInstance().scrollTabLayoutInEditor)
+        uiSettingsConnection.subscribe(UISettingsListener.TOPIC, UISettingsListener { settings ->
+            if (!disposed && !project.isDisposed) strip.setWrapTabs(!settings.scrollTabLayoutInEditor)
+        })
         strip.onSelect = { id -> if (sessions.select(id)) showSelected() }
         strip.onClose = { id -> closeTabs(listOf(id)) }
         addHierarchyListener { if (!isShowing) openedChatsPopup?.cancel() }
@@ -131,7 +138,10 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     }
 
     internal fun installHeaderToolbar(toolbar: JComponent) {
-        strip.add(toolbar, BorderLayout.EAST)
+        strip.add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(toolbar, BorderLayout.NORTH)
+        }, BorderLayout.EAST)
     }
 
     private fun showOpenedChats(event: AnActionEvent) {
@@ -240,6 +250,7 @@ class AgentToolWindowRootPanel(private val project: Project) : JPanel(BorderLayo
     override fun dispose() {
         if (disposed) return
         disposed = true
+        uiSettingsConnection.disconnect()
         openedChatsPopup?.cancel()
         openedChatsPopup = null
         history.dispose()

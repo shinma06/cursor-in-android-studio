@@ -17,6 +17,14 @@
 
 対応ソース: [root](../../src/main/kotlin/com/cursoragent/ui/AgentToolWindowRootPanel.kt)、[状態](../../src/main/kotlin/com/cursoragent/session/SessionTabs.kt)、[controller](../../src/main/kotlin/com/cursoragent/ui/AgentUiController.kt)、[service](../../src/main/kotlin/com/cursoragent/service/AgentProcessService.kt)、[run](../../src/main/kotlin/com/cursoragent/service/AgentRun.kt)、[listener](../../src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt)。
 
+## 会話タブの折り返し
+
+会話タブはIDEの `Settings → Editor → General → Editor Tabs → Show tabs in` に連動する（#211）。`Multiple rows` は `UISettings.scrollTabLayoutInEditor == false`、`One row` は `true` で、Rabbit 1の既定値は `true`。設定はIDE全体に適用され、各panelは生成時と `UISettingsListener.TOPIC` のEDT通知で反映する。接続はprojectに登録し、panel破棄時にも明示的に切断する。製品独自の設定・永続化は増やさない。読み取りAPIと設定画面の値対応はRabbit 1 `AI-262.9437.185.2621.16467767` のSDKで確認した。[設定の公式説明](https://www.jetbrains.com/help/idea/using-code-editor.html) / [UISettings](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettings.kt) / [既定値](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettingsState.kt)。
+
+`SessionTabStrip`の既存描画・IDによる操作を保ち、右固定Actionを除いた幅で改行する。幅変更・追加・閉鎖で高さを更新し、各行で選択・閉じる・tooltip・DnDを同じtab IDへ送る。右固定Actionは先頭行の右側に置く。折り返し切替と複数行表示のresizeで進行中のdragを取消し、1行へ戻すと既存の自然幅・横スクロールを再使用する。IDEの `Squeeze tabs`、editorの配置/非表示/上限・pinは移植対象外で、1行指定はどちらの幅方針でも従来の横スクロールになる。会話・下書き・run・PRINT/ACPの接続には触れない。
+
+コンポーネントテストは複数行の配置・幅変更・切替・2行目の操作・行間DnD・背景とAction領域を確認する。IDEの設定画面との実連動、Dark/Light・多数タブ・複数projectでの固定build受入は[Case #211](../verification/changes/issue-211.json)へ残す。競合構成でもAI Chatをeditor tabとして開けるため、複数会話やIDEタブ設定自体を独自機能とは扱わない。本件は会話をAgentパネル内に保持したままIDEの表示選択を共有する。[JetBrains公式](https://www.jetbrains.com/help/ai-assistant/customize-ai-chat.html)。
+
 ## 入力文書と候補popupの境界
 
 この節は2026-09-24 / [PR #405](https://github.com/shinma06/cursor-in-android-studio/pull/405)で更新。先行Document生成とcommand対応の実装基準は`aa83b8f155cde6affe88a90c20467180246213e9`、Undo境界は同PRのレビュー修正。冒頭の全体照合基準とは別の追加実装であり、PRの固定commitとCaseを根拠とする。

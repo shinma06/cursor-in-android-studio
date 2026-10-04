@@ -462,6 +462,154 @@ class SessionTabStripTest {
         assertNull(strip.boundsFor("a"))
     }
 
+    @Test
+    fun `wrapped rows follow available width and tab additions without horizontal scrolling`() = onEdt {
+        val strip = SessionTabStrip()
+        val tabs = ('a'..'e').map { SessionTabPresentation(it.toString()) }
+        strip.setTabs(tabs, "a")
+        val tabWidth = strip.boundsFor("a")!!.width
+        val tabHeight = strip.boundsFor("a")!!.height
+        strip.setSize(tabWidth * 2, tabHeight)
+        strip.setWrapTabs(true)
+        strip.setSize(strip.width, strip.preferredSize.height)
+        layout(strip)
+        assertEquals(tabHeight * 3, strip.preferredSize.height)
+        assertEquals(Point(0, tabHeight), strip.boundsFor("c")!!.location)
+        assertEquals(Point(tabWidth, tabHeight), strip.boundsFor("d")!!.location)
+        assertFalse(strip.scrollPane.horizontalScrollBar.isVisible)
+        assertFalse(strip.scrollPane.verticalScrollBar.isVisible)
+        for (tab in tabs) assertTrue(strip.scrollPane.viewport.bounds.contains(strip.boundsFor(tab.id)))
+
+        strip.setSize(tabWidth * 3, strip.height)
+        strip.setSize(strip.width, strip.preferredSize.height)
+        layout(strip)
+        assertEquals(tabHeight * 2, strip.preferredSize.height)
+        assertEquals(Point(tabWidth * 2, 0), strip.boundsFor("c")!!.location)
+        strip.setTabs(tabs.take(2), "a")
+        assertEquals(tabHeight, strip.preferredSize.height)
+        strip.setTabs(tabs, "a")
+        assertEquals(tabHeight * 2, strip.preferredSize.height)
+
+        strip.setSize(tabWidth - 10, strip.height)
+        strip.setSize(strip.width, strip.preferredSize.height)
+        layout(strip)
+        assertEquals(tabHeight * tabs.size, strip.preferredSize.height)
+        assertTrue(tabs.all { strip.boundsFor(it.id)!!.width == strip.width })
+    }
+
+    @Test
+    fun `wrapping toggle resets scrolling and restores natural one row widths`() = onEdt {
+        val strip = fixture()
+        val naturalWidth = strip.boundsFor("b")!!.width
+        strip.scrollPane.horizontalScrollBar.value = 100
+        assertTrue(strip.scrollPane.viewport.viewPosition.x > 0)
+        strip.setWrapTabs(true)
+        strip.setSize(strip.width, strip.preferredSize.height)
+        layout(strip)
+        assertEquals(0, strip.scrollPane.viewport.viewPosition.x)
+        assertTrue(strip.boundsFor("c")!!.y > 0)
+        strip.setWrapTabs(false)
+        strip.setSize(strip.width, strip.preferredSize.height)
+        layout(strip)
+        assertEquals(0, strip.boundsFor("c")!!.y)
+        assertEquals(naturalWidth, strip.boundsFor("b")!!.width)
+        assertTrue(strip.scrollPane.horizontalScrollBar.isVisible)
+        assertTrue(strip.closeVisible("a"))
+    }
+
+    @Test
+    fun `returning to one row reveals the selected tab after layout`() {
+        lateinit var strip: SessionTabStrip
+        onEdt {
+            strip = wrappedFixture()
+            strip.setTabs(('a'..'d').map { SessionTabPresentation(it.toString()) }, "d")
+            strip.setWrapTabs(false)
+            strip.setSize(strip.width, strip.preferredSize.height)
+            layout(strip)
+        }
+        onEdt {
+            assertTrue(strip.scrollPane.viewport.viewRect.contains(strip.boundsFor("d")))
+            assertTrue(strip.closeVisible("d"))
+        }
+    }
+
+    @Test
+    fun `second row hit testing closing and keyboard actions retain tab IDs`() = onEdt {
+        val strip = wrappedFixture()
+        val actions = mutableListOf<String>()
+        strip.onSelect = { actions += "select:$it" }
+        strip.onClose = { actions += "close:$it" }
+        strip.onMove = { id, index -> actions += "move:$id:$index" }
+        click(strip.eventTarget, center(strip, "d"))
+        mouse(strip.eventTarget, MouseEvent.MOUSE_MOVED, center(strip, "c"))
+        val close = strip.closeBoundsFor("c")!!
+        assertTrue(close.y > strip.boundsFor("a")!!.height)
+        click(strip.eventTarget, Point(close.x + close.width / 2, close.y + close.height / 2))
+        strip.setTabs(('a'..'d').map { SessionTabPresentation(it.toString()) }, "c")
+        for (action in listOf("previous", "next", "close", "moveRight")) {
+            strip.eventTarget.actionMap.get(action).actionPerformed(null)
+        }
+        assertEquals(listOf("select:d", "close:c", "select:b", "select:d", "close:c", "move:c:3"), actions)
+    }
+
+    @Test
+    fun `dragging between rows uses both coordinates and wrapping changes cancel drag`() = onEdt {
+        val strip = wrappedFixture()
+        val moves = mutableListOf<Pair<String, Int>>()
+        strip.onMove = { id, index -> moves += id to index }
+        fun drag(id: String, destination: Point) {
+            mouse(strip.eventTarget, MouseEvent.MOUSE_PRESSED, center(strip, id))
+            mouse(strip.eventTarget, MouseEvent.MOUSE_DRAGGED, destination)
+            assertFalse(strip.dragAutoScrollRunning)
+            mouse(strip.eventTarget, MouseEvent.MOUSE_RELEASED, destination)
+        }
+        val last = strip.boundsFor("d")!!
+        drag("a", Point(last.x + last.width - 2, last.y + last.height / 2))
+        drag("d", Point(2, strip.boundsFor("a")!!.height / 2))
+        assertEquals(listOf("a" to 3, "d" to 0), moves)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_PRESSED, center(strip, "a"))
+        mouse(strip.eventTarget, MouseEvent.MOUSE_DRAGGED, center(strip, "d"))
+        strip.setWrapTabs(false)
+        mouse(strip.eventTarget, MouseEvent.MOUSE_RELEASED, center(strip, "d"))
+        assertEquals(2, moves.size)
+        assertFalse(strip.dragAutoScrollRunning)
+    }
+
+    @Test
+    fun `wrapped painting keeps the selected background in its row and reserves fixed actions`() = onEdt {
+        val strip = wrappedFixture()
+        val toolbar = JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(JPanel().apply { preferredSize = Dimension(80, 34) }, BorderLayout.NORTH)
+        }
+        strip.add(toolbar, BorderLayout.EAST)
+        strip.setSize(strip.width + toolbar.preferredSize.width, strip.height)
+        strip.setTabs(('a'..'d').map { SessionTabPresentation(it.toString()) }, "c")
+        layout(strip)
+        toolbar.doLayout()
+        val image = BufferedImage(strip.width, strip.height, BufferedImage.TYPE_INT_ARGB)
+        val graphics = image.createGraphics()
+        try {
+            strip.paint(graphics)
+            val selected = strip.boundsFor("c")!!
+            assertEquals(AgentUiColors.panelBackground.rgb, image.getRGB(selected.x + 4, selected.y + 4))
+            assertEquals(AgentUiColors.tabAreaBackground.rgb, image.getRGB(4, 4))
+            assertTrue(('a'..'d').all { strip.boundsFor(it.toString())!!.maxX <= toolbar.x })
+            assertEquals(0, toolbar.components.single().y)
+            assertEquals(34, toolbar.components.single().height)
+        } finally {
+            graphics.dispose()
+        }
+    }
+
+    private fun wrappedFixture(): SessionTabStrip = SessionTabStrip().apply {
+        setTabs(('a'..'d').map { SessionTabPresentation(it.toString()) }, "a")
+        setSize(boundsFor("a")!!.width * 2, preferredSize.height)
+        setWrapTabs(true)
+        setSize(width, preferredSize.height)
+        layout(this)
+    }
+
     private fun fixture(): SessionTabStrip = SessionTabStrip().apply {
         setTabs(listOf(SessionTabPresentation("a"), SessionTabPresentation("b", "いろはにほへとちりぬるを"), SessionTabPresentation("c")), "a")
         setSize(320, 40)
