@@ -1,5 +1,7 @@
 package com.cursoragent.ui
 
+import com.cursoragent.actions.ConversationFindCommand
+import com.cursoragent.actions.ConversationFindTarget
 import com.cursoragent.actions.AgentPanelActions
 import com.cursoragent.actions.AgentPanelCommand
 import com.cursoragent.actions.AgentWindowCommand
@@ -112,11 +114,34 @@ class AgentToolWindowRootPanel(
     internal fun ownsEditorContext(presentation: com.cursoragent.ui.editor.ChatEditorPresentation): Boolean =
         selectedView?.presentation === presentation && presentation.alive
 
+    private val findActions = ConversationFindTarget(::findAvailable, ::performFind)
     private val panelActions = AgentPanelActions(::shortcutAvailable, ::performShortcut)
     private val registeredShortcuts = mutableListOf<com.intellij.openapi.actionSystem.AnAction>()
 
     override fun uiDataSnapshot(sink: DataSink) {
-        if (!disposed && !project.isDisposed) sink[AgentPanelActions.KEY] = panelActions
+        if (!disposed && !projectClosing && !project.isDisposed) {
+            sink[AgentPanelActions.KEY] = panelActions
+            sink[ConversationFindTarget.KEY] = findActions
+        }
+    }
+
+    private fun findAvailable(command: ConversationFindCommand): Boolean {
+        val view = selectedView ?: return false
+        if (!selectedChatShowing || !windowShortcutAvailable) return false
+        val find = view.timeline.findPanel
+        return if (command == ConversationFindCommand.OPEN) find?.composing != true && find?.hasSearchFocus() != true
+        else find?.hasSearchFocus() == true
+    }
+
+    private fun performFind(command: ConversationFindCommand) {
+        if (!findAvailable(command)) return
+        val timeline = selectedView?.timeline ?: return
+        when (command) {
+            ConversationFindCommand.OPEN -> timeline.openFind()
+            ConversationFindCommand.NEXT -> timeline.findPanel?.move(1)
+            ConversationFindCommand.PREVIOUS -> timeline.findPanel?.move(-1)
+            ConversationFindCommand.CLOSE -> timeline.findPanel?.closeSearch()
+        }
     }
 
     internal val windowShortcutAvailable: Boolean
@@ -289,7 +314,8 @@ class AgentToolWindowRootPanel(
         contentSplitter.secondComponent = cards
         add(contentSplitter, BorderLayout.CENTER)
         val shortcutIds = AgentPanelCommand.entries.filterNot { it == AgentPanelCommand.UNFOCUS_INPUT }.map { it.actionId } +
-            listOf(AgentWindowCommand.SETTINGS.actionId, AgentWindowCommand.HISTORY.actionId)
+            listOf(AgentWindowCommand.SETTINGS.actionId, AgentWindowCommand.HISTORY.actionId) +
+            ConversationFindCommand.entries.map { it.actionId }
         shortcutIds.forEach { actionId ->
             ActionManager.getInstance().getAction(actionId)?.let { action ->
                 action.registerCustomShortcutSet(action.shortcutSet, this)
@@ -912,6 +938,9 @@ class AgentToolWindowRootPanel(
             composer.onStop = controller::stopRun
             composer.onEnqueue = controller::enqueuePrompt
             composer.onShowQueue = controller::showQueue
+            timeline.onFindClosed = {
+                if (selectedView?.timeline === timeline && selectedChatShowing) composer.inputArea.requestFocusInWindow()
+            }
             if (saved != null) {
                 timeline.restore(saved)
                 controller.showResumeAvailability()
@@ -935,6 +964,10 @@ class AgentToolWindowRootPanel(
                     if (event.project === project && sessions.snapshot().selectedId == tab.id && views[tab.id]?.composer === composer) performShortcut(command, event)
                 },
             )
+            val ownedFindActions = ConversationFindTarget(
+                { command -> selectedView?.composer === composer && findAvailable(command) },
+                { command -> if (selectedView?.composer === composer) performFind(command) },
+            )
             val presentation = com.cursoragent.ui.editor.ChatEditorPresentation(
                 project, panel, composer.inputArea,
                 canMove = { !disposed && !projectClosing && composer.canMovePresentation },
@@ -954,7 +987,12 @@ class AgentToolWindowRootPanel(
                 onFailure = { timeline.showStatus("エディターで会話を開けませんでした。パネルから続けて操作できます。") },
                 shortcutAllowed = { composer.canToggleEditorWithShortcut },
                 headerActions = { editorActions.titleActions + com.cursoragent.ui.header.ChatOptionsActionGroup(editorActions.gearActions) },
-                shortcutContext = { sink -> if (!disposed && !projectClosing && views[tab.id]?.composer === composer) sink[AgentPanelActions.KEY] = ownedActions },
+                shortcutContext = { sink ->
+                    if (!disposed && !projectClosing && views[tab.id]?.composer === composer) {
+                        sink[AgentPanelActions.KEY] = ownedActions
+                        sink[ConversationFindTarget.KEY] = ownedFindActions
+                    }
+                },
                 contextShortcuts = registeredShortcuts.toList(),
             )
             composer.inputArea.setDisposedWith(presentation)

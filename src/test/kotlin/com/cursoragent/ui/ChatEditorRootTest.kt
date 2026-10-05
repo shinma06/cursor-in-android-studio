@@ -1,5 +1,8 @@
 package com.cursoragent.ui
 
+import com.cursoragent.actions.ConversationFindCommand
+import com.cursoragent.actions.ConversationFindTarget
+import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.cursoragent.actions.AgentPanelActions
 import com.cursoragent.actions.AgentPanelCommand
 import com.cursoragent.history.ConversationStore
@@ -129,7 +132,32 @@ class ChatEditorRootTest {
                 mode.actionPerformed(firstEvent)
                 assertEquals(AgentMode.PLAN, firstComposer.selection.mode)
                 assertEquals(AgentMode.ASK, secondComposer.selection.mode)
+                val find = ActionManager.getInstance().getAction(ConversationFindCommand.OPEN.actionId)
+                val firstTimeline = get(firstView, "timeline") as ChatTimelinePanel
+                val secondTimeline = get(secondView, "timeline") as ChatTimelinePanel
+                assertNotNull(firstEvent.getData(ConversationFindTarget.KEY), "the editor must supply its owning search target")
+                assertTrue(ActionUtil.getActions(firstEditor.component).contains(find))
+                find.update(firstEvent)
+                assertTrue(firstEvent.presentation.isEnabled, "find remains available while the ToolWindow is hidden")
+                find.actionPerformed(firstEvent)
+                assertTrue(firstTimeline.findPanel?.isVisible == true)
+                assertNull(secondTimeline.findPanel)
                 secondEditor.selectNotify()
+                find.update(firstEvent)
+                assertFalse(firstEvent.presentation.isEnabled)
+                find.actionPerformed(firstEvent)
+                assertNull(secondTimeline.findPanel, "a retained first-owner search event cannot open the second search")
+                val secondFindEvent = event(secondComposer.inputArea)
+                secondComposer.setModelConfigurationBusy(true)
+                find.update(secondFindEvent)
+                assertFalse(secondFindEvent.presentation.isEnabled, "search preserves the shared configuration guard")
+                find.actionPerformed(secondFindEvent)
+                assertNull(secondTimeline.findPanel)
+                secondComposer.setModelConfigurationBusy(false)
+                find.update(secondFindEvent)
+                assertTrue(secondFindEvent.presentation.isEnabled)
+                find.actionPerformed(secondFindEvent)
+                assertTrue(secondTimeline.findPanel?.isVisible == true)
                 mode.update(firstEvent)
                 assertFalse(firstEvent.presentation.isEnabled)
                 mode.actionPerformed(firstEvent)

@@ -392,7 +392,7 @@ class AgentUiController(
         queueSubmission.cancel()
         queueEditor.close()
         com.intellij.openapi.util.Disposer.dispose(queueUiLifetime)
-        timeline.runStatus.dispose()
+        timeline.dispose()
         activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
         sessions.clearRequestId(tabId)
         composer.contextUsage.reset()

@@ -50,6 +50,28 @@
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
     <actions>
+        <group id="CursorAgent.ConversationSearch" text="Cursor in Android Studio — 会話内検索">
+            <action id="CursorAgent.FindConversation" class="com.cursoragent.actions.ConversationFindAction$Open"
+                    text="会話内を検索" description="選択中の会話の表示本文を検索します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="control F"/>
+                <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta F" replace-all="true"/>
+                <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta F" replace-all="true"/>
+            </action>
+            <action id="CursorAgent.FindConversationNext" class="com.cursoragent.actions.ConversationFindAction$Next"
+                    text="会話内検索: 次の一致箇所" description="会話内検索にfocusがあるとき、次の一致箇所へ移動します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="F3"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="ENTER"/>
+            </action>
+            <action id="CursorAgent.FindConversationPrevious" class="com.cursoragent.actions.ConversationFindAction$Previous"
+                    text="会話内検索: 前の一致箇所" description="会話内検索にfocusがあるとき、前の一致箇所へ移動します。">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift F3"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="shift ENTER"/>
+            </action>
+            <action id="CursorAgent.FindConversationClose" class="com.cursoragent.actions.ConversationFindAction$Close"
+                    text="会話内検索を閉じる" description="会話内検索にfocusがあるとき検索を閉じ、入力へ戻ります。">
+                <keyboard-shortcut keymap="$default" first-keystroke="ESCAPE"/>
+            </action>
+        </group>
         <action id="CursorAgent.PastePlain" class="com.cursoragent.ui.composer.context.PromptPlainPasteAction"
                 text="入力欄へ本文として貼り付ける" description="コピー元のcontextを添付せず、テキストを入力欄へ貼り付けます。">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift V"/>

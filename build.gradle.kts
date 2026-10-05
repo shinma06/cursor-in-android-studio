@@ -39,6 +39,7 @@ repositories {
 dependencies {
     implementation("com.google.code.gson:gson:2.14.0")
     implementation("org.commonmark:commonmark:0.30.0")
+    implementation("com.google.re2j:re2j:1.8")
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
