@@ -7,7 +7,7 @@
 
  import com.cursoragent.history.Conversation
  import com.cursoragent.history.ConversationHistory
-@@ -34,6 +36,7 @@
+@@ -36,6 +38,7 @@
      private val onShowConversation: () -> Unit = {},
      private val onTitleChanged: () -> Unit = {},
  ) {
@@ -15,7 +15,7 @@
      private var turnGeneration = 0L
      private var disposed = false
      private var activeRun: AgentRun? = null
-@@ -128,9 +131,13 @@
+@@ -205,9 +208,13 @@
      private fun scheduleNextQueuedPrompt() {
          val ticket = queue.ticket(turnGeneration) ?: return
          SwingUtilities.invokeLater {
@@ -32,7 +32,7 @@
          }
      }
 
-@@ -175,6 +182,7 @@
+@@ -261,6 +268,7 @@
          changes = changes,
          beforeRevert = ::pauseQueue,
          onRunFinished = ::finishRun,
@@ -40,21 +40,27 @@
          onShowConversation = onShowConversation,
      )
      private val modelLoader = ModelCatalogLoader(
-@@ -459,7 +467,12 @@
+@@ -604,8 +612,17 @@
+
          try {
              ApplicationManager.getApplication().executeOnPooledThread {
-                 try {
--                    if (!run.isActive) return@executeOnPooledThread
+-                runPromptPreparation(run, turn.preparation) preparation@{
+-                    if (!run.isActive) return@preparation
++                val verificationPreparation = AutoCloseable {
++                    turn.preparation.close()
++                    VerificationDefer.event("reservation-closed", "preparation", verificationOwner, sessionTurn.token.turnId)
++                }
++                runPromptPreparation(run, verificationPreparation) preparation@{
 +                    VerificationDefer.event("captured", "preparation", verificationOwner, sessionTurn.token.turnId,
 +                        VerificationDefer.fingerprint("$settings/${workspace.mode}"))
 +                    VerificationDefer.awaitPreparation(verificationOwner, sessionTurn.token.turnId)
 +                    val preparationActive = run.isActive
 +                    VerificationDefer.event("guard", "preparation", verificationOwner, sessionTurn.token.turnId, preparationActive.toString())
-+                    if (!preparationActive) return@executeOnPooledThread
++                    if (!preparationActive) return@preparation
                      // Rabbit editor saves may still be pending on disk when Git/CLI preparation starts.
                      ManagingFS.getInstance().flushPendingUpdates()
-                     if (!run.isActive) return@executeOnPooledThread
-@@ -498,6 +511,8 @@
+                     if (!run.isActive) return@preparation
+@@ -647,6 +664,8 @@
                      check(restored == null || restored.canResume(commandTarget.rootPath, workspace.mode)) {
                          "準備中に作業場所が変わったため会話を再開しません。"
                      }
@@ -63,14 +69,6 @@
                      agentService.sendPrompt(
                          if (command != null) fullContext.orEmpty() else fullPrompt,
                          turn, tabId, sessionTurn.transport, commandText = userText.takeIf { command != null }, commandName = command,
-@@ -508,6 +523,7 @@
-                     run.complete(-1)
-                 } finally {
-                     turn.preparation.close()
-+                    VerificationDefer.event("reservation-closed", "preparation", verificationOwner, sessionTurn.token.turnId)
-                 }
-             }
-         } catch (_: Exception) {
 --- a/src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt
 +++ b/src/main/kotlin/com/cursoragent/ui/AgentTurnListenerFactory.kt
 @@ -1,4 +1,6 @@

@@ -65,6 +65,25 @@ class AgentSettingsBoundaryTest {
     }
 
     @Test
+    fun `listener cancellation during synchronous preparation propagates and releases its reservation`() {
+        val service = service()
+        val defaults = AgentSettingsState()
+        val settings = TurnSettings("synthetic", "", AgentMode.AGENT, defaults.permissionMode, defaults.sandboxMode)
+        val cancellation = com.intellij.openapi.progress.ProcessCanceledException()
+        try {
+            assertSame(cancellation, assertThrows(com.intellij.openapi.progress.ProcessCanceledException::class.java) {
+                service.prepareTurn(service.captureWorkspace(null, defaults.worktreeMode), settings) {
+                    assertNull(service.tryRestore())
+                    throw cancellation
+                }
+            })
+            service.tryRestore()!!.close()
+        } finally {
+            service.dispose()
+        }
+    }
+
+    @Test
     fun `ACP execution rejects unsupported settings even without the early UI check`() {
         var launches = 0
         val errors = mutableListOf<String>()

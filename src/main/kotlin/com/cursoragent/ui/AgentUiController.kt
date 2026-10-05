@@ -19,6 +19,7 @@ import com.cursoragent.ui.composer.context.UsagePhase
 import com.cursoragent.ui.composer.mention.MentionResolver
 import com.cursoragent.ui.timeline.ChatTimelinePanel
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.newvfs.ManagingFS
@@ -497,6 +498,18 @@ class AgentUiController(
         lateinit var run: AgentRun
         var preparationFailure: String? = null
         val usageTicket = composer.contextUsage.beginTurn(settings.model)
+        fun finishUnpreparedTurn(stopped: Boolean) {
+            timeline.runStatus.update(if (stopped) com.cursoragent.ui.timeline.RunPhase.STOPPED else com.cursoragent.ui.timeline.RunPhase.FAILED)
+            composer.contextUsage.finish(usageTicket, if (stopped) UsagePhase.STOPPED else UsagePhase.FAILED)
+            recorder.finish(if (stopped) "stopped" else "failed")
+            if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
+            sessions.finishTurn(sessionTurn.token)
+            activeToken = null
+            if (stopped) {
+                pauseQueue()
+                timeline.showStatus("停止しました。入力は保持しています。")
+            }
+        }
         val turn = try {
             agentService.prepareTurn(workspace, settings) {
                 turnListenerFactory.create(
@@ -509,17 +522,14 @@ class AgentUiController(
                     onPrintRequestId = { sessions.confirmRequestId(sessionTurn.token, it) },
                 )
             }
+        } catch (error: ProcessCanceledException) {
+            rethrowPromptCancellation(error) { finishUnpreparedTurn(stopped = true) }
         } catch (_: Exception) {
             preparationFailure = "送信の準備を開始できませんでした。"
             null
         }
         if (turn == null) {
-            timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.FAILED)
-            composer.contextUsage.finish(usageTicket, UsagePhase.FAILED)
-            recorder.finish("failed")
-            if (tab.transport == AgentTransport.ACP && !tab.transportLocked && tab.chatId == null) sessions.abortUnsentAcpTurn(sessionTurn.token)
-            sessions.finishTurn(sessionTurn.token)
-            activeToken = null
+            finishUnpreparedTurn(stopped = false)
             timeline.showStatus(preparationFailure ?: agentService.restoreUnavailableReason())
             return false
         }
@@ -579,6 +589,12 @@ class AgentUiController(
 
         val edtContext = try {
             promptContextBuilder.buildEdtContext(userText, context)
+        } catch (error: ProcessCanceledException) {
+            try {
+                rethrowPromptCancellation(error, run::stop)
+            } finally {
+                turn.preparation.close()
+            }
         } catch (error: Exception) {
             run.reportError("送信の準備に失敗しました: ${error.message}")
             run.complete(-1)
@@ -588,11 +604,11 @@ class AgentUiController(
 
         try {
             ApplicationManager.getApplication().executeOnPooledThread {
-                try {
-                    if (!run.isActive) return@executeOnPooledThread
+                runPromptPreparation(run, turn.preparation) preparation@{
+                    if (!run.isActive) return@preparation
                     // Rabbit editor saves may still be pending on disk when Git/CLI preparation starts.
                     ManagingFS.getInstance().flushPendingUpdates()
-                    if (!run.isActive) return@executeOnPooledThread
+                    if (!run.isActive) return@preparation
                     val imagePayload = sentImage?.let { com.cursoragent.ui.composer.image.ValidatedImage(it.bytes(), it.width, it.height) }
                     imagePayload?.thumbnail()?.let { thumbnail ->
                         runOnEdt {
@@ -611,14 +627,14 @@ class AgentUiController(
                     val checkpointReason = if (checkpointId == null) {
                         checkpointService.unavailableReason(target) ?: RestorePolicy.SNAPSHOT_UNAVAILABLE
                     } else null
-                    if (!run.isActive) return@executeOnPooledThread
+                    if (!run.isActive) return@preparation
                     val backgroundContext = promptContextBuilder.buildBackgroundContext(userText, context)
                     val fullContext = listOfNotNull(edtContext, backgroundContext)
                         .joinToString("\n\n")
                         .takeIf { it.isNotBlank() }
                     val fullPrompt = promptContextBuilder.assemble(fullContext, userText)
 
-                    if (!run.isActive) return@executeOnPooledThread
+                    if (!run.isActive) return@preparation
                     runOnEdt {
                         if (disposed || project.isDisposed || turnGeneration != generation || run.wasStopped) return@runOnEdt
                         userBubble.setCheckpointAvailable(checkpointId != null, checkpointReason)
@@ -636,12 +652,13 @@ class AgentUiController(
                         turn, tabId, sessionTurn.transport, commandText = userText.takeIf { command != null }, commandName = command,
                         image = imagePayload, conversationId = tab.conversationId,
                     )
-                } catch (error: Exception) {
-                    run.reportError("送信の準備に失敗しました: ${error.message}")
-                    run.complete(-1)
-                } finally {
-                    turn.preparation.close()
                 }
+            }
+        } catch (error: ProcessCanceledException) {
+            try {
+                rethrowPromptCancellation(error, run::stop)
+            } finally {
+                turn.preparation.close()
             }
         } catch (_: Exception) {
             run.reportError("送信の準備を開始できませんでした。")
@@ -730,5 +747,28 @@ class AgentUiController(
 
     private fun runOnEdt(block: () -> Unit) {
         if (SwingUtilities.isEventDispatchThread()) block() else SwingUtilities.invokeLater(block)
+    }
+}
+
+/** The actual send worker boundary: preparation ownership lasts until its body leaves. */
+internal fun runPromptPreparation(run: AgentRun, preparation: AutoCloseable, block: () -> Unit) {
+    try {
+        block()
+    } catch (error: ProcessCanceledException) {
+        rethrowPromptCancellation(error, run::stop)
+    } catch (error: Exception) {
+        run.reportError("送信の準備に失敗しました: ${error.message}")
+        run.complete(-1)
+    } finally {
+        preparation.close()
+    }
+}
+
+/** Cleanup must not replace the original platform cancellation, even if a listener throws. */
+internal fun rethrowPromptCancellation(cancellation: ProcessCanceledException, cancel: () -> Unit): Nothing {
+    try {
+        cancel()
+    } finally {
+        throw cancellation
     }
 }
