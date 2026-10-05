@@ -272,6 +272,14 @@ export async function driveCase({c, ledger, ledgerPath}, sdk, apiKey) {
       try { await deadline(agent[Symbol.asyncDispose](), c.steerMs); entry.dispose = 'acknowledged'; }
       catch { entry.dispose = 'unknown'; entry.outcome = 'unknown'; }
     }
+    if (state) {
+      entry.snapshot = privateSnapshot(state);
+      if (state.cancel !== undefined) entry.cancel = state.cancel;
+      entry.closed = state.closed; entry.blocked = state.blocked;
+      if (state.cancel === 'unknown' || state.rows.some(row => ['pending','unknown'].includes(row.status))) {
+        entry.outcome = 'unknown';
+      }
+    }
     ledger.elapsedMs += Date.now() - started;
     record(); atomicJson(ledgerPath, ledger);
   }
@@ -423,6 +431,8 @@ export async function offlineCheck() {
     }
     assert.equal(created, 4); assert.equal(sends, 4); assert.equal(resumed, 1);
     assert.equal(ledger.runs, 4); assert.equal(ledger.entries.length, 6);
+    assert.equal(ledger.entries.find(e => e.case === 'S4').cancel, 'acknowledged');
+    assert.equal(ledger.entries.find(e => e.case === 'S4').closed, true);
     assert.equal(fs.statSync(path.join(dir, 'ledger.json')).mode & 0o077, 0);
     const before = fs.readFileSync(path.join(dir, 'ledger.json'), 'utf8');
     assert.throws(() => atomicJson(path.join(dir, 'missing', 'ledger.json'), {}));
@@ -448,12 +458,23 @@ export async function offlineCheck() {
     assert.throws(() => checkLiveConfig(file), /limit/);
     l.entries[0].chargedUsd = 0.01; l.entries[0].outcome = 'unknown'; atomicJson(prepared.ledgerPath, l);
     assert.throws(() => checkLiveConfig(file), /unreviewed/);
+    const unknownRoot = path.join(dir, 'unknown'); fs.mkdirSync(unknownRoot, {mode: 0o700});
+    const unknownLedger = {runs: 0, elapsedMs: 0, entries: []};
+    const unknownResult = await driveCase({c: {...c, case: 'S3', root: unknownRoot},
+      ledger: unknownLedger, ledgerPath: path.join(unknownRoot, 'ledger.json')},
+      {...fakeSdk, Agent: {...fakeSdk.Agent, create: async () => {
+        const agent = makeAgent(), send = agent.send;
+        agent.send = async text => { const r = await send(text); r.steer = () => new Promise(() => {}); return r; };
+        return agent;
+      }}}, 'SYNTHETIC_NOT_A_CREDENTIAL');
+    assert.equal(unknownResult.observation, 'unknown');
+    assert.equal(unknownLedger.entries[0].snapshot.rows[0].status, 'unknown');
     const expired = await driveCase({c: {...c, runMs: 1},
       ledger: {runs: 0, elapsedMs: 0, entries: []}, ledgerPath: path.join(dir, 'expired.json')},
       {...fakeSdk, Agent: {...fakeSdk.Agent, create: async () => {
         await new Promise(resolve => setTimeout(resolve, 10)); return makeAgent();
       }}}, 'SYNTHETIC_NOT_A_CREDENTIAL');
-    assert.equal(expired.observation, 'unknown'); assert.equal(sends, 4); // No send after expired create.
+    assert.equal(expired.observation, 'unknown'); assert.equal(sends, 5); // No send after expired create.
   } finally { fs.rmSync(dir, {recursive: true}); }
   return {evidence: 'synthetic-only', offline_checks: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'],
     provider_cases: Object.fromEntries(['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].map(id => [id, 'blocked'])),
