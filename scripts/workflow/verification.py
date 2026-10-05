@@ -116,11 +116,8 @@ def promotion_history(candidate, head, base, allowed, git):
             entry = git('ls-tree', commit, '--', path).split()
             if entry and (len(entry) != 4 or entry[:2] != ['100644', 'blob']):
                 raise ValueError('Promotion metadata must remain regular JSON')
-        if changed - allowed:
-            if len(parents) != 2:
-                raise ValueError('Untested commit in promotion history, even if later reverted')
-            # An old metadata-only merge can have resolved historical main conflicts.
-            # New content imports must instead reproduce Git's clean merge exactly.
+        if len(parents) == 2:
+            # Reverted main changes may leave no merge diff, but remain in ancestry.
             roots = git('merge-base', '--all', *parents).splitlines()
             if len(roots) != 1:
                 raise ValueError('Main sync requires one unambiguous merge base')
@@ -138,13 +135,19 @@ def promotion_history(candidate, head, base, allowed, git):
                         if (not set(modes) <= {'000000', '100644', '100755'} or
                                 not path_impacts(path, modes) <= {IMPACT_TOOLING, KNOWLEDGE, METADATA}):
                             raise ValueError('Product, build or unknown change in main sync history')
-                        # Existing Cases/policies/results cannot be revised through a sync.
+                        # Content imports cannot revise existing Cases/policies/results.
+                        # Historical metadata-only merges retain their prior policy.
                         # A newly merged GUI-free tooling PR may bring its own acceptance.
-                        if path.startswith('docs/verification/') and not path.endswith('.md'):
+                        if changed - allowed and path.startswith('docs/verification/') and not path.endswith('.md'):
                             match = re.fullmatch(r'docs/verification/changes/issue-([1-9][0-9]*)\.json', path)
                             if not match or modes != ('000000', '100644') or git('ls-tree', candidate, '--', path):
                                 raise ValueError('Main sync cannot revise acceptance or environment policy')
                             validate_change(regular_json(incoming, path, git), int(match[1]), False)
+        if changed - allowed:
+            if len(parents) != 2:
+                raise ValueError('Untested commit in promotion history, even if later reverted')
+            # An old metadata-only merge can have resolved historical main conflicts.
+            # New content imports must instead reproduce Git's clean merge exactly.
             tree = git('merge-tree', '--write-tree', '--no-messages', *parents)
             if not SHA.fullmatch(tree):
                 raise ValueError('Main sync did not produce a clean merge tree')

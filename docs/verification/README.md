@@ -43,7 +43,7 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 
 - first-parent履歴が固定candidateへ戻り、全追加commitを説明できることを検査します。旧main同期の第二親は現在mainの祖先で、各差分が上記2 JSONだけなら過去の同期として維持します。
 - 文書/toolingを取り込むmergeは、第二親が現在mainの祖先、merge baseが一意で、Gitの競合なしmerge treeと2 JSON以外が完全一致する場合に限ります。文書の手直しや競合解消が必要なら同期専用develop PRと新候補に戻します。
-- main側の取り込み履歴も各親との差分を検査します。既存Change Impact分類でruntime/build/test/unknown、symlink/submoduleを拒否し、製品変更後のRevertを最終差分だけで見逃しません。既存Case・環境/範囲policy・結果JSONの改訂は認めず、新規のGUI不要tooling受入JSONだけを追加できます。
+- 二親mergeでは、merge結果が差分なし・2 JSONだけでもmain側の取り込み履歴を各親との差分で検査します。既存Change Impact分類でruntime/build/test/unknown、symlink/submoduleを拒否し、製品変更後のRevertを最終差分だけで見逃しません。文書/toolingの内容を取り込む場合、既存Case・環境/範囲policy・結果JSONの改訂は認めず、新規のGUI不要tooling受入JSONだけを追加できます。旧metadata-only同期も製品/build履歴の検査対象です。
 - 同期後に `promotion.base` を現在mainへ合わせ、全commit/PR/Case集合を再照合します。固定candidate、artifact、実観察、環境revision、全Case pass、独立レビューと4必須checksは維持します。構造検証の成功はGUI合格ではありません。
 
 ### 既存main同期mergeの履歴照合（#250）

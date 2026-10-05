@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 535,
+  "gui_required": false,
+  "reason": "Python/Gitのpromotion履歴判定だけを修正する。製品コード・固定候補・成果物・Case観察を変えず、GUI合格は代行しない。",
+  "cli_checks": [
+    "実Gitでmainの製品/build変更後revertをmergeし、結果差分なし・受入metadataだけの両経路が修正前に受理され、修正後に拒否されること",
+    "symlink/submodule変更後revertもGitのignoreSubmodules設定によらず拒否し、正当な旧main文書同期・tooling変更後revert・受入metadata更新を保持すること",
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "PR #496の固定履歴を照合し、旧main同期に含まれる製品/build履歴の拒否を記録する。固定candidateや全174 Caseを変更せず、構造照合をGUI passにしない"
+  ],
+  "cases": []
+}
