@@ -123,8 +123,15 @@ def promotion_history(candidate, head, base, allowed, git):
                 raise ValueError('Main sync requires one unambiguous merge base')
             for incoming in git('rev-list', f'{roots[0]}..{parents[1]}').splitlines():
                 inputs = git('rev-list', '--parents', '-n', '1', incoming).split()[1:]
-                if not inputs:
-                    raise ValueError('Unexpected root in main sync history')
+                if not inputs or len(inputs) > 2:
+                    raise ValueError('Unexpected ancestry in main sync history')
+                if len(inputs) == 2:
+                    # rev-list checks both parent histories. Check the merge's own
+                    # changes against a clean merge, not already-tested shared ancestry.
+                    merged = git('merge-tree', '--write-tree', '--no-messages', *inputs)
+                    if not SHA.fullmatch(merged):
+                        raise ValueError('Main history merge did not produce a clean merge tree')
+                    inputs = [merged]
                 for parent in inputs:
                     raw = git('diff', '--ignore-submodules=none', '--raw', '--no-abbrev', '--no-renames', '-z', parent, incoming).split('\0')
                     if raw[-1] != '':

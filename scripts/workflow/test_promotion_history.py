@@ -161,6 +161,34 @@ class PromotionMainSyncTests(unittest.TestCase):
                          self.git('rev-parse', self.legacy + '^{tree}'))
         self.verify(head, main)
 
+    def test_empty_main_merge_still_checks_its_side_branch_history(self):
+        self.git('checkout', '--detach', self.old_main)
+        self.write('src/main/product.txt', 'unobserved side branch\n')
+        mutation = self.commit('side product change')
+        self.git('revert', '--no-edit', mutation)
+        side = self.git('rev-parse', 'HEAD')
+        main = self.git('commit-tree', self.old_main + '^{tree}',
+                        '-p', self.old_main, '-p', side, '-m', 'empty main merge')
+        head = self.merge(main)
+        self.assertEqual(self.git('rev-parse', head + '^{tree}'),
+                         self.git('rev-parse', self.legacy + '^{tree}'))
+        with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
+            self.verify(head, main)
+
+    def test_main_merge_cannot_introduce_its_own_product_change(self):
+        self.git('checkout', '--detach', self.old_main)
+        self.write('docs/side.md', 'safe side branch\n')
+        side = self.commit('main side knowledge')
+        self.write('src/main/product.txt', 'unobserved merge resolution\n')
+        self.git('add', '.')
+        main = self.git('commit-tree', self.git('write-tree'),
+                        '-p', self.old_main, '-p', side, '-m', 'forged main merge')
+        # Hiding the new content in the outer merge cannot hide its provenance.
+        head = self.git('commit-tree', self.legacy + '^{tree}',
+                        '-p', self.legacy, '-p', main, '-m', 'empty promotion merge')
+        with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
+            self.verify(head, main)
+
     def test_build_unknown_symlink_and_submodule_imports_are_rejected(self):
         for path, mode in (('build.gradle.kts', None), ('scripts/workflow/plugin_compatibility.json', None),
                            ('scripts/workflow/change_impact.py', None), ('unknown.txt', None),
