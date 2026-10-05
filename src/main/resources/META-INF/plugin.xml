@@ -9,7 +9,7 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
-    <!-- Optional: only @terminal mention support needs this. A user who has disabled the
+    <!-- Optional: Terminal mentions and copied Terminal context need this. A user who has disabled the
          bundled Terminal plugin must still be able to load and use the rest of this plugin. -->
     <depends optional="true" config-file="cursor-agent-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
@@ -17,7 +17,9 @@
     <depends optional="true" config-file="cursor-agent-jcef.xml">com.intellij.modules.jcef</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <editorActionHandler action="EditorPaste" implementationClass="com.cursoragent.ui.composer.image.PromptImagePasteHandler"/>
+        <copyPastePostProcessor implementation="com.cursoragent.ui.composer.context.ClipboardContextCopyProcessor"/>
+        <!-- Run before the platform PSI paste consumes text; only marked prompt editors are intercepted. -->
+        <editorActionHandler action="EditorPaste" implementationClass="com.cursoragent.ui.composer.image.PromptImagePasteHandler" order="first"/>
         <!-- Keep persisted IDs stable when renaming the product. -->
         <notificationGroup id="Cursor Agent" displayType="BALLOON"
                            bundle="messages.CursorAgentBundle" key="notification.group.name"/>
@@ -45,6 +47,12 @@
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
     <actions>
+        <action id="CursorAgent.PastePlain" class="com.cursoragent.ui.composer.context.PromptPlainPasteAction"
+                text="入力欄へ本文として貼り付ける" description="コピー元のcontextを添付せず、テキストを入力欄へ貼り付けます。">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift V"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift V" replace-all="true"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift V" replace-all="true"/>
+        </action>
         <action id="CursorAgent.AddSelectionToChat" class="com.cursoragent.actions.AddSelectionToChatAction"
                 text="Add to Chat (Cursor)" description="選択したコードを現在のチャットへ明示contextとして追加します。">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>

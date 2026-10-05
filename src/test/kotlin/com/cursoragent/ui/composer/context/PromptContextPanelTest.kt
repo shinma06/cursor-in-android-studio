@@ -79,7 +79,7 @@ class PromptContextPanelTest {
                 val children = (row as JPanel).components
                 val buttons = children.filterIsInstance<JButton>() +
                     children.filterIsInstance<JPanel>().single().components.filterIsInstance<JButton>()
-                assertEquals(3, buttons.size)
+                assertEquals(4, buttons.size)
                 for (button in buttons) {
                     scroll.viewport.viewPosition = Point(0, if (row === rows.components.last()) 0 else rows.height)
                     focusManager.focus(button)

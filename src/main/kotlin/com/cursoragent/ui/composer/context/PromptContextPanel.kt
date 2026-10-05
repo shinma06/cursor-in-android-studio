@@ -2,6 +2,13 @@ package com.cursoragent.ui.composer.context
 
 import com.cursoragent.ui.composer.mention.Mention
 import com.cursoragent.ui.composer.mention.contextDescription
+import com.intellij.ide.CopyProvider
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.actionSystem.UiDataProvider
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBScrollPane
@@ -12,6 +19,7 @@ import java.awt.FlowLayout
 import java.awt.Rectangle
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
+import java.awt.datatransfer.StringSelection
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.JCheckBox
@@ -82,6 +90,13 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
 
     fun addSelection(selection: SelectionContext) { draft.add(selection); render() }
     fun addMention(mention: Mention) { draft.add(mention); render() }
+    fun addTerminal(terminal: TerminalContext) { draft.add(terminal); render() }
+    internal fun addClipboard(context: ClipboardContextData) {
+        context.selections.forEach(draft::add)
+        context.terminal?.let(draft::add)
+        context.mention?.let(draft::add)
+        render()
+    }
     fun clearExplicit() { draft.clearExplicit(); render() }
 
     /** Validate once when sending/enqueuing. The returned value then belongs to that request. */
@@ -118,20 +133,42 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
             rows.add(row("明示: ${selection.label}", selection.block(), {
                 draft.removeSelection(selection.key); render()
             }, { addCurrentSelection(selection.key) },
-                accessibleLabel = "${selection.label}（選択位置 ${selection.startOffset}–${selection.endOffset}）"))
+                accessibleLabel = "${selection.label}（選択位置 ${selection.startOffset}–${selection.endOffset}）",
+                copy = { ClipboardContextData(project.locationHash, selection.label, listOf(selection), copiedAttachment = true) }))
         }
         for (mention in state.mentions) {
             rows.add(row("明示: ${mention.displayLabel}", mention.contextDescription(), {
                 draft.removeMention(mention); render()
-            }))
+            }, copy = { ClipboardContextData(project.locationHash, mention.displayLabel, mention = mention, copiedAttachment = true) }))
+        }
+        for (terminal in state.terminals) {
+            rows.add(row("明示: ${terminal.label}", terminal.block(), {
+                draft.removeTerminal(terminal.id); render()
+            }, copy = { ClipboardContextData(project.locationHash, terminal.label, terminal = terminal, copiedAttachment = true) }))
         }
         attachments.isVisible = rows.componentCount > 0
         revalidate()
         repaint()
     }
 
-    private fun row(label: String, content: String, remove: () -> Unit, replace: (() -> Unit)? = null, accessibleLabel: String = label) =
-        JPanel(BorderLayout(4, 0)).apply {
+    private fun row(
+        label: String, content: String, remove: () -> Unit, replace: (() -> Unit)? = null,
+        accessibleLabel: String = label, copy: () -> ClipboardContextData,
+    ): JPanel {
+        fun copyAttachment() {
+            if (project.isDisposed) return
+            val context = copy()
+            CopyPasteManager.getInstance().setContents(ContextTransferable(StringSelection(context.text), context))
+        }
+        val provider = object : CopyProvider {
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            override fun isCopyEnabled(dataContext: DataContext) = !project.isDisposed
+            override fun isCopyVisible(dataContext: DataContext) = true
+            override fun performCopy(dataContext: DataContext) = copyAttachment()
+        }
+        return object : JPanel(BorderLayout(4, 0)), UiDataProvider {
+            override fun uiDataSnapshot(sink: DataSink) { sink[PlatformDataKeys.COPY_PROVIDER] = provider }
+        }.apply {
             isOpaque = false
             add(attachmentButton(label).apply {
                 minimumSize = Dimension(0, preferredSize.height)
@@ -142,6 +179,11 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
             }, BorderLayout.CENTER)
             add(JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 isOpaque = false
+                add(attachmentButton("コピー").apply {
+                    getAccessibleContext().accessibleName = "$accessibleLabel をコピー"
+                    toolTipText = "別の入力欄へ添付として貼り付けます。本文貼り付けでは表示名だけを入れます。"
+                    addActionListener { copyAttachment() }
+                })
                 if (replace != null) add(attachmentButton("変更").apply {
                     getAccessibleContext().accessibleName = "$accessibleLabel を変更"
                     toolTipText = "現在のエディター選択へ置き換えます。"
@@ -153,6 +195,7 @@ class PromptContextPanel(private val project: Project) : JPanel(BorderLayout()) 
                 })
             }, BorderLayout.EAST)
         }
+    }
 
     private fun attachmentButton(label: String) = JButton(label).apply {
         addFocusListener(object : FocusAdapter() {

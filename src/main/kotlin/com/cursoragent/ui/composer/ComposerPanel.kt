@@ -93,6 +93,8 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     init {
         border = JBUI.Borders.empty(5, 12, 8, 12)
         isOpaque = false
+        inputArea.clipboardContextAvailable = { !project.isDisposed && !commands.popupOpen && !mentionPopupController.popupOpen }
+        inputArea.onClipboardContext = promptContext::addClipboard
 
         val inputWrapper = RoundedSurface(AgentUiColors.composerBackground).apply {
             border = AgentUiColors.RoundedBorder()
