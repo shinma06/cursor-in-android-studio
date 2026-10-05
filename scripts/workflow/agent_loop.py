@@ -326,7 +326,7 @@ class Loop:
             current = git('rev-parse', 'HEAD', cwd=path)
             dirty = git('status', '--porcelain', cwd=path)
             if current != pr['head']['sha'] or dirty:
-                if state['phase'] not in ('fixing', 'publishing', 'syncing'):
+                if state['phase'] not in ('publishing', 'syncing'):
                     raise ValueError('Unexpected local changes; preserve and pause')
                 if current != pr['head']['sha'] and current != state.get('publish_head'):
                     raise ValueError('Unrecognized local commit; coordinator must inspect history before publication')
@@ -409,6 +409,9 @@ class Loop:
                 running.unlink(missing_ok=True)
                 if git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha']:
                     raise ValueError('Fixer changed git history; preserve and pause')
+                # Persist recovery eligibility only after the worker returned verified settings.
+                state.update(phase='publishing', next='Commit verified worker changes')
+                comment_id = self.save(pr, state, comment_id)
                 self.commit_fix(path, h, pr)
                 state['publish_head'] = git('rev-parse', 'HEAD', cwd=path)
                 state['phase'] = 'publishing'
@@ -447,8 +450,9 @@ class Loop:
             state['errors'] = state.get('errors', 0) + 1
             state['next'] = self.private_error(error)
             # Preserve recoverable phases, but never publish a fix whose model execution is unverified.
-            state['interrupted_phase'] = 'blocked' if isinstance(error, WorkerSettingsError) else state['phase']
-            if isinstance(error, ValueError) or state['errors'] >= 3:
+            unverified_fix = state['phase'] == 'fixing'
+            state['interrupted_phase'] = 'blocked' if unverified_fix or isinstance(error, WorkerSettingsError) else state['phase']
+            if unverified_fix or isinstance(error, ValueError) or state['errors'] >= 3:
                 state['paused'] = True
                 state['phase'] = 'blocked'
             else:

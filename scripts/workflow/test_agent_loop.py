@@ -586,6 +586,65 @@ class LoopTests(unittest.TestCase):
         self.loop.test_and_push.assert_not_called()
         self.assertEqual(self.gh.merges, 0)
 
+    def test_interrupted_worker_never_recovers_unverified_changes(self):
+        # Run the real worker boundary with only the CLI process and external effects mocked.
+        cases = [('', subprocess.TimeoutExpired('codex', 600)),
+                 ('model: wrong\nreasoning effort: low', subprocess.TimeoutExpired('codex', 600)),
+                 ('model: gpt-6.1-sol\nreasoning effort: high', OSError('communicate interrupted')),
+                 ('', SystemExit('controller stopped'))]
+        for header, error in cases:
+            with self.subTest(header=header, error=type(error).__name__):
+                handoff, _, _, _ = self.loop.load(36)
+                self.gh.messages.clear()
+                self.gh.comment(36, al.pack(al.HANDOFF, handoff))
+                self.worker.side_effect = lambda *a, **kw: report('changes_requested')
+                self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+                process = Mock(pid=123, returncode=0)
+                process.communicate.side_effect = error
+                def start(command, **kwargs):
+                    kwargs['stdout'].write('OpenAI Codex vtest\n--------\n' + header + '\n--------\nuser\n')
+                    (self.checkout / 'unverified.txt').write_text('preserve this change')
+                    return process
+                self.worker.side_effect = lambda *a, **kw: run_worker(*a, **kw)
+                with patch('agent_worker.subprocess.Popen', side_effect=start), patch('agent_worker.os.killpg'):
+                    if isinstance(error, SystemExit):
+                        with self.assertRaises(SystemExit): self.loop.tick(36)
+                    else:
+                        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+                        _, stopped, _, _ = self.loop.load(36)
+                        self.assertTrue(stopped['paused'])
+                        self.assertEqual(stopped['interrupted_phase'], 'blocked')
+                original = al.git.side_effect
+                with patch.object(al, 'git', side_effect=lambda *a, **kw:
+                          '?? unverified.txt' if a[:2] == ('status', '--porcelain') else original(*a, **kw)), \
+                        patch.object(al.os, 'killpg', side_effect=ProcessLookupError):
+                    # A later tick/controller restart must not adopt a dirty fixing phase.
+                    self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+                    with patch.object(al, 'Loop', return_value=self.loop), \
+                            patch.object(al, 'coordinator_lock'), patch.object(al, 'ROOT', self.checkout), \
+                            patch.object(sys, 'argv', ['agent_loop.py', 'resume', '--pr', '36',
+                                                      '--reason', 'process stopped']), patch('builtins.print'):
+                        self.assertEqual(al.main(), 0)
+                    self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+                self.assertEqual((self.checkout / 'unverified.txt').read_text(), 'preserve this change')
+                self.loop.commit_fix.assert_not_called()
+                self.loop.test_and_push.assert_not_called()
+                self.assertEqual(self.gh.merges, 0)
+
+    def test_verified_fixer_changes_remain_recoverable(self):
+        self.worker.side_effect = lambda *a, **kw: report('changes_requested')
+        self.loop.tick(36)
+        self.worker.side_effect = lambda *a, **kw: report()
+        self.loop.commit_fix.side_effect = RuntimeError('controller stopped before commit')
+        self.assertEqual(self.loop.tick(36)['phase'], 'publishing')
+        original = al.git.side_effect
+        self.loop.commit_fix.side_effect = lambda *a: setattr(self, 'local_head', NEW)
+        with patch.object(al, 'git', side_effect=lambda *a, **kw:
+                          ' M src/a.kt' if a[:2] == ('status', '--porcelain') else original(*a, **kw)), \
+                patch('agent_loop.time.time', return_value=time.time() + 1000):
+            self.assertEqual(self.loop.tick(36)['phase'], 'published-recovery')
+        self.loop.test_and_push.assert_called_once()
+
     def test_legacy_review_without_model_readback_stops_then_rereviews(self):
         self.loop.tick(36)
         _, state, sid, _ = self.loop.load(36)
