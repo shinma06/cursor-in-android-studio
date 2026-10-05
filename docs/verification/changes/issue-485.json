@@ -7,7 +7,7 @@
     "固定candidateで ./gradlew test buildPlugin verifyPluginStructure（464 tests成功・構造検査成功）",
     "固定Plugin ZIPのsource/clean/SDK/JVM/class major/全441class・SHA256をsealし、同じbytesでRabbit Plugin Verifier 1.410のAPI互換性を検査する",
     "同candidateからJDK21/jpackageでswing_probeを生成しplain/app内JAR hash一致とHEAD/base/runを照合",
-    "mainの通常merge後もcandidate treeと一致。後続差分は本Issue受入JSONとpromotion.jsonのみ",
+    "PR #534の限定gateで旧main同期履歴と後続main文書/toolingのclean merge一致を検証。製品treeは固定candidateを保持し、直接編集は本Issue受入JSONとpromotion.jsonのみ",
     "python3 scripts/workflow/change_impact.py --run-tests",
     "全131commit/125元PR・必須174Case・Computer Use4件・Rabbit環境revision10件・元Case394出現の来歴照合。未観察の現在はAcceptance gateが拒否することを確認",
     "全Case実測後の固定HEAD/base独立レビューと4必須checks"
