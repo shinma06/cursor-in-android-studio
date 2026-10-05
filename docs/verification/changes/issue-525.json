@@ -6,7 +6,7 @@
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --run-tests",
     "./gradlew buildPlugin verifyPluginStructure; plugin_compatibility.py seal/verify（同一ZIP・固定SDK/JBR）",
-    "AcpProtocolTest / AcpSessionTest / ModelCatalogStatusTest / ModelParameterKeymapTest / ComposerControlsTest / PromptQueueTest / ConversationStoreTest",
+    "AcpProtocolTest / AcpSessionTest / ModelCatalogStatusTest / ModelParameterKeymapTest / ComposerControlsTest / PromptQueueTest / ConversationStoreTest / ChatEditorModelRequestTest",
     "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
     "固定HEAD/baseの独立レビュー、git diff --check"
   ],
@@ -95,9 +95,10 @@
       "steps": [
         "専用workspace markerを用意し、acp_fixture.py --scenario model-configでlauncherを生成する。新規ACP会話でAutoのThinkingがlow/medium/high、Fastがoff/onであることを確認する。Thinking=medium、Fast=onを選ぶ。",
         "ModelをSmallへ変更する。Thinking候補がlow/high、確定値low、Fast=offへ全置換されることを確認する。古いpopup・別tabからの遅延操作、切断後の操作が新しい状態を変更しないことを確認する。",
+        "設定要求に遅延応答を与え、応答待ちの明示panel/editor切替とshortcutが抑止されることを確認する。viewを持つnative split/editorを閉じて同じownerの別hostへ移した場合は要求・接続・draft・queueを保持し、応答を同じsessionで受理することを確認する。別tabへの切替・会話close・継続した非表示では要求を取り消し、遅延応答を採用せず再送しないことを確認する。",
         "新しいrunのmodel-config-fail launcherで新規会話を作り、Fast=onを選ぶ。確認失敗を表示して選択不能となり、私的captureに自動prompt/再試行/別session再送がないことを確認する。終了後に元設定へ戻す。"
       ],
-      "expected": "現在の全広告が正本で、不正な選択・古いsnapshotは使わない。失敗を成功表示せず、入力を保持して新規会話への明示操作を待つ。"
+      "expected": "現在の全広告が正本で、不正な選択・古いsnapshotは使わない。失敗を成功表示せず、入力を保持して新規会話への明示操作を待つ。 同じownerの一時的な表示先移動を取消しと取り違えず、実際の取消しでは遅延応答破棄と接続保護を維持する。"
     },
     {
       "issue": 525,

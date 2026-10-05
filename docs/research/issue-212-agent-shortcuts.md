@@ -42,11 +42,11 @@
 | `composer.cancelTerminalToolCall` | Shift+Backspace | Shift+Backspace | Shift+Backspace | panel/viewの選択中composer。保留terminal decisionを拒否するかterminal streamだけを取り消す。全run Stopと別。 | in-IDE静的確認 / 能力未実装 / P05 |
 | `composer.triggerCreateWorktreeButton` | Cmd+Shift+Enter | Ctrl+Shift+Enter | Ctrl+Shift+Enter | composerにfocus、空会話かつ非空draft。初回submitを呼ぶ登録であり、named worktree作成を保証しない。 | in-IDE静的確認 / 初回送信を接続・GUI pending、branch/native worktree選択は未実装 / P06 |
 | `composer.openModeMenu` | Cmd+. / Cmd+Option+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | Ctrl+. / Ctrl+Alt+. / Shift+Tab | composer/view/composer editor/mode menuにfocus、一般editor textとquick inputを除く。名前に反してmodeを循環する。入力のkeydownでは一致したmode ActionをTabの過去message処理より先に扱う。 | in-IDE静的確認 / Pluginの既存3 mode循環へ接続、提案分岐・拡張mode・GUIは未達 / A1 |
-| `composer.toggleChatAsEditor` | Cmd+D | Ctrl+D | Ctrl+D | composerにfocus、一般editor textにfocusなし。同一chatのeditor表示を切り替える。 | in-IDE静的確認 / 能力未実装 / P07 |
+| `composer.toggleChatAsEditor` | Cmd+D | Ctrl+D | Ctrl+D | composerにfocus、一般editor textにfocusなし。同一chatのeditor表示を切り替える。 | in-IDE静的確認 / 同じviewの移動・親Action/履歴へ接続済み、GUI pending / P07 |
 | `composer.previousChatTab` | Cmd+[ | Ctrl+[ | Ctrl+[ | composerにfocus、一般editor textにfocusなし。複数タブは表示順、1タブは全会話の更新日時順で循環する静的経路を確認。実GUIは未確認。 | in-IDE静的確認 / 複数/単一タブ分岐へ接続、未GUI / A2 |
 | `composer.nextChatTab` | Cmd+] | Ctrl+] | Ctrl+] | 上記の次tab。 | in-IDE静的確認 / 複数/単一タブ分岐へ接続、未GUI / A2 |
 | `composer.openModelToggle` | Cmd+/ / Cmd+Option+/ | Ctrl+/ | Ctrl+/ / Ctrl+Alt+/ | composerにfocus、一般editor textにfocusなし。Windowsはbinding全体の置換なのでAlt副キーを継承しない。 | in-IDE静的確認 / 一部接続済み / A1 |
-| `composer.cycleModelParameter` | Cmd+Shift+/ | Ctrl+Alt+/ / Ctrl+Shift+/ | Ctrl+Shift+/ | 同じfocus条件、weight201。広告されたcycleable parameterで複数値を持つものを循環する。WindowsではAll Agentsのweight200とも重なる。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / P10 |
+| `composer.cycleModelParameter` | Cmd+Shift+/ | Ctrl+Alt+/ / Ctrl+Shift+/ | Ctrl+Shift+/ | 同じfocus条件、weight201。広告されたcycleable parameterで複数値を持つものを循環する。WindowsではAll Agentsのweight200とも重なる。 | in-IDE静的確認 / ACPの広告設定と親Keymapへ接続済み、hotkey属性差・GUI pending / P10 |
 | `composer.openAddContextMenu` | Cmd+Option+P | Ctrl+Alt+P | Ctrl+Alt+P | composerにfocus、一般editor textにfocusなし。context候補を開く。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `composer.toggleVoiceDictation` | Cmd+Shift+Space | Ctrl+Shift+Space | Ctrl+Shift+Space | isGlass=false、terminal focusなし。選択chatの音声入力を開始/停止する。 | in-IDE静的確認 / 能力未実装 / P09 |
 | `composer.cancelVoiceDictation` | Escape | Escape | Escape | composer editorまたは表示中aichat viewで録音中。処理中も取消handlerはあるがwhenは録音中だけなので到達は未GUI。 | in-IDE静的確認 / 能力未実装 / P09 |
@@ -68,7 +68,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 | 操作群 | キー | 条件・意味 | 所属 / Plugin / 次作業 |
 | --- | --- | --- | --- |
-| INPUT-RESET | M+R | 入力にfocus、Shiftなし。空会話の再利用、履歴後draftの引継ぎ、元ownerを保持した表示置換へ接続。 | in-IDE静的確認 / 実装済み・GUI pending。native worktree/editor分岐はP06/P07 / A1 |
+| INPUT-RESET | M+R | 入力にfocus、Shiftなし。空会話の再利用、履歴後draftの引継ぎ、元ownerを保持した表示置換へ接続。 | in-IDE静的確認 / 実装済み・GUI pending。native worktreeはP06、editor表示は親へ接続済み・GUI pending / A1 |
 | INPUT-LEGACY-NEW | M+N | 入力にfocus、Shiftなし。composer.createNewの現在の既定登録は発見できず、legacy/custom条件付き経路として未確定。 | 未確定 / 既存機能へ接続/差分確認が必要 / A1 |
 | INPUT-MESSAGE-NEXT | Tab | ghost候補位置・mention menuがなくhuman messageを編集中。次のhuman messageまたは末尾入力へ移動。通常の末尾入力ではnative focusへ渡す。 | in-IDE静的確認 / 能力未実装 / P02 |
 | INPUT-MESSAGE-PREVIOUS | Shift+Tab | 同じ候補保護に加えてtool review待ちでない。末尾入力からも前のhuman messageへ移動。mode Actionに一致する場合は先行keydownがこの局所処理へ進ませない。Keymap変更時のfallbackと実配送は未GUI。 | in-IDE静的確認 / 能力未実装 / P02 |
@@ -115,20 +115,20 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、P03/P07/P10は親Draftへ合流して予約編集/復元、editor側のAction/履歴とモデル追加設定を接続した。P01など残る能力の全対象照合・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。P03/P07/P10は独立固定版レビューと必須gateを経てdevelopへ統合し、親Draftも同じdevelopへ通常同期した。親では予約編集/復元、editor側のAction/履歴とモデル追加設定を接続した。P01のPR #520は既存の統合承認待ちを保持する。P01など残る能力の全対象照合・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
 | P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | [PR #520](https://github.com/shinma06/cursor-in-android-studio/pull/520)に実装。#45の保存履歴検索と区別し、大文字小文字/単語単位/正規表現、一致強調と位置/総数、長い本文/不正な式、stream・owner・IME/focusを扱う。独立再レビュー後の統合操作はユーザー承認待ち。GUIは未達。 |
 | P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保持する。下記の履歴変更契約が未確定であり、末尾への通常再送に置換しない。 |
-| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。親Draftの予約編集・元draft復元・即時送信でもTerminal snapshotを保持する。外部rich clipboardや複数inline nodeの一括copyとの差、独立review・8 GUI Caseは未達。 |
+| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。親Draftの予約編集・元draft復元・即時送信でもTerminal snapshotを保持する。子の独立レビュー・develop統合は完了。8 GUI Case/main未反映はQA #528へ移譲済み。外部rich clipboardや複数inline nodeの一括copyとの差と親の組合せ受入を保持する。 |
 | P04 | 同一実行turnへの即時入力 | #278のACP/print調査とSDKの公開`run.steer()`を区別する。下記の別方式候補を評価し、次turn queueやStop後再送を代替にしない。 |
 | P05 | 実行中terminal toolだけの取消 | #147/#297/#300のrun取消/permissionと区別。providerのtool ID付き取消契約が必要。 |
 | P06 | 初回draftのbranch/native Git worktree選択 | #301/#39のroot所有を保持。ISOLATED作業コピーをGit worktreeと呼ばず、公開起動・setup/cancel/cleanupを確定。 |
-| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。親DraftのAction・履歴/最近使用・sidebar経由の再表示へ接続し、非表示ownerのnative tab閉鎖でも元run/draftを保持する。独立review・split/close/focus等の7 GUI Caseは未達。 |
+| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。親DraftのAction・履歴/最近使用・sidebar経由の再表示へ接続し、非表示ownerのnative tab閉鎖でも元run/draftを保持する。子の独立再レビュー・develop統合は完了。split/close/focus等の7 GUI Case/main未反映はQA #529へ移譲済み。親のAction/履歴を含む独立評価とGUI受入は別に行う。 |
 | P08 | 保留変更の一括承認/却下とworktree適用 | #47/#308の事後Diff/Revertと分離。公開された未適用提案のsnapshot/所有契約が前提。 |
 | P09 | Agent Voiceの録音開始/停止/取消 | #99はOS dictation研究でありVoice実装ではない。録音権限、選択chat所有、失敗と保存寿命を含め採用経路を確定。 |
-| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、親DraftでWindowsキー優先/予約editor/native editorへ接続した。独立review・5 GUI Caseは未達。 |
+| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、親DraftでWindowsキー優先/予約editor/native editorへ接続した。子の独立再レビュー・develop統合は完了。5 GUI Case/main未反映はQA #530へ移譲し、親の予約editor/Keymapを含む評価とGUI受入は別に行う。 |
 | P11 | 選択codeからcodebase検索付きchatを開く | #24の一般選択添付と区別。固定版の操作と公開検索意味を確定し、非公開flagや独自indexを発明しない。 |
 
 #48のqueue、#97の送信設定、#258/#404のSkills/command候補、#156のopened chats、#213の最後tab閉鎖等を再利用する。これらの実装Issueがclosedでも、対応QAやmain反映は未達の場合がある。SubComposerの所属未確定からside chat能力を推測して起票しない。
@@ -169,7 +169,7 @@ M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。18個の
 
 チャット入口は固定版のpane分岐を接続した。M+L/Iは選択中チャットを開き、パネルにfocusがあれば隠す。非表示から戻る際、既存の明示選択があればeventの選択コードを追加しない。入力へ戻る操作は選択中チャットを保持して選択コードを追加し、入力欄へfocusする。New Agentは表示順で最初の空Agentを再利用し、なければ新しいAgentを作る。focus済みの空Agentは最後の表示/focus要求から500ms以上経っていれば隠す。表示/focus要求ごとに単調時計でこの間隔を更新する。既存view/draft/contextは再作成せず、新規タブだけをAgent modeにし、共有設定を変更しない。
 
-空判定は送信時保存のdraftではなく現在の入力欄を読み、本文・run・予約・選択command・未送信画像がある会話、本文来歴不明のlegacy会話を再利用対象から外す。画像/commandを空扱いしない条件はPluginの入力保護であり、Cursorとの完全一致は未確認。明示contextだけの空Agentは添付を保持して再利用する。選択コードはcontent生成/表示前のevent editorから取得し、遅いfocus callbackは同じview・世代・生存状態を再確認する。native Git-worktree除外（P06）、editor表示（P07）、過去入力から末尾への移動（P02）は能力未実装のため残り、`ISOLATED`をnative Git-worktreeと推測しない。根拠は上記固定版のentry handler、`isComposerEmpty`、`showAndFocus`、`wasRecentlyShown`と500ms定数の静的確認であり、実GUI合格ではない。
+空判定は送信時保存のdraftではなく現在の入力欄を読み、本文・run・予約・選択command・未送信画像がある会話、本文来歴不明のlegacy会話を再利用対象から外す。画像/commandを空扱いしない条件はPluginの入力保護であり、Cursorとの完全一致は未確認。明示contextだけの空Agentは添付を保持して再利用する。選択コードはcontent生成/表示前のevent editorから取得し、遅いfocus callbackは同じview・世代・生存状態を再確認する。editor表示（P07）は同じview・ownerのまま親入口へ接続した。native Git-worktree除外（P06）、過去入力から末尾への移動（P02）は能力未実装のため残り、`ISOLATED`をnative Git-worktreeと推測しない。根拠は上記固定版のentry handler、`isComposerEmpty`、`showAndFocus`、`wasRecentlyShown`と500ms定数の静的確認であり、実GUI合格ではない。
 
 最近使用一覧は全OSでControl+Tab / Control+Shift+Tab（MacでもCmdではない）。固定版のruntime訪問リストは最大10件で、未登録の候補を更新日時の新しい順で10件まで補う。通常開始は2番目、逆方向開始は末尾を選び、一覧内では同じキーで次/前へ循環する。タブの表示順とは異なり、閉じた保存会話も候補に含む。Pluginはproject内のPRINT/ACP本文・旧print metadata・未保存の開いたタブを統合し、訪問順は表示の確定時だけ更新する。タブ並替え、stream更新、候補上の移動は順序を変えない。本文IDと旧print provider IDを別の型にし、同じprovider文字列のACPをprint legacyとしてまとめない。
 
