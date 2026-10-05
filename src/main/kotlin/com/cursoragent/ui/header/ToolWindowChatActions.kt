@@ -20,7 +20,7 @@ import com.intellij.util.IconUtil
 import java.awt.Component
 import javax.swing.Icon
 
-/** ToolWindow-local actions. Read the selected tab at update AND invocation, never capture a tab. */
+/** Shared chat actions. Resolve the live owner at update AND invocation; never retain a closed view. */
 internal class ToolWindowChatActions(
     private val settings: AgentSettingsState,
     private val available: () -> Boolean,
@@ -46,6 +46,7 @@ internal class ToolWindowChatActions(
     private val settingsUnavailableReason: (PermissionMode, SandboxMode, WorktreeMode) -> String? = { _, _, _ -> null },
     requestIdSnapshot: () -> com.cursoragent.session.SessionTabsSnapshot? = { null },
     onRequestIdCopyFeedback: (String) -> Unit = {},
+    onToggleEditor: () -> Unit = {},
 ) {
     val historyAction = action("履歴", "このプロジェクトの過去のチャットを開きます。", AllIcons.Vcs.History,
         toolbarVisible = { settings.showHistoryIcon }, perform = onHistory)
@@ -56,6 +57,7 @@ internal class ToolWindowChatActions(
     )
 
     val gearActions = DefaultActionGroup(titleActions + listOf(
+        action("会話のパネル／エディター表示を切り替える", "同じ会話・下書き・実行を保持したまま表示先を切り替えます。") { onToggleEditor() },
         action("会話を書き出す…", "選択中の会話の現在までの本文をMarkdownへ保存します。") { onExport() },
         action("ファイルの変更…", "選択中の会話で受信した差分を、会話全体・ターンごとに確認します。") { onChanges() },
         action("開いているチャット…", "このウィンドウの会話タブを検索して切り替えます。", perform = onOpenedChats),

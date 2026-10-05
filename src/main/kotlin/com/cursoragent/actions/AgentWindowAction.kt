@@ -68,6 +68,8 @@ abstract class AgentWindowAction internal constructor(
         val project = e.project?.takeUnless { it.isDisposed } ?: return null
         val window = windowFor(project)?.takeUnless { it.isDisposed || !it.isAvailable || it.project !== project } ?: return null
         val panel = panel(window)
+        val editorOwner = e.getData(com.cursoragent.ui.editor.ChatEditorPresentation.KEY)
+        if (editorOwner != null && (editorOwner.project !== project || panel?.ownsEditorContext(editorOwner) != true)) return null
         if (command == AgentWindowCommand.HISTORY && panel?.historyShortcutAvailable != true) return null
         return window.takeUnless { panel?.windowShortcutAvailable == false }
     }

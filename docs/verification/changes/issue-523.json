@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "issue": 523,
+  "gui_required": true,
+  "reason": "同じ会話をToolWindowとnative editor間で移すため、focus/Keymap/IME・実行/下書き・分割/閉鎖・破棄を固定buildの実画面で確認する。CLI fixtureは実GUI合格ではない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（Kotlin/workflow/loopの必要suite）",
+    "ChatEditorPresentationTest: 公開FileEditorProviderとSDK FileEditorManagerのfixture、入力editor/caret/Undo/owner保持、通常ファイル拒否・native閉鎖・分割、headerの所有DataContext・focus復帰と閉鎖後listener解除",
+    "標準./gradlew buildPlugin、ZIP構造/identity、固定Rabbit/JBRのPlugin Verifier",
+    "git diff --check、Case schema、固定HEAD/baseの別session独立レビュー、4必須checks"
+  ],
+  "cases": [
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-MOVE",
+      "change": "同じ会話のpanel/editor往復",
+      "steps": [
+        "固定buildを起動し、会話Aへ日本語と複数行の下書き・選択・画像/選択コードを用意する。会話本文を途中までスクロールし、メニュー「会話のパネル／エディター表示を切り替える」を実行する。",
+        "editorタブに会話Aが表示され、同じ本文・スクロール・添付・draft・caret/selectionを保持することを確認する。入力を追加してUndo/Redoを実行する。",
+        "「Agentパネルに戻す」と切替Actionで3回往復し、入力・添付が欠落せずUndoが別会話へ跨がないことを確認する。"
+      ],
+      "expected": "同じtab/controller/会話を保持して表示だけが移る。自動送信・reset・履歴からの再作成は起きない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-RUN",
+      "change": "PRINT/ACP実行中の切替と要求",
+      "steps": [
+        "PRINT/ACPの合成fixtureで会話Aを実行し、進捗・tool・permission/質問/Planを表示する。応答stream中にeditorへ移しパネルへ戻す。",
+        "保留要求への回答とStopをそれぞれ試し、元runへの返信は一回だけ、Stopはそのrunだけであることをfixture記録と照合する。",
+        "予約を作り表示を往復する。予約の内容/添付・pause状態と送信ticketが保持され、表示切替自体が重複送信・停止・別session開始を生まないことを確認する。"
+      ],
+      "expected": "応答と要求は同じownerへ届く。切替はprovider/transport/runの寿命を変えず、制限中の操作や返信条件を緩めない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-KEYMAP",
+      "change": "切替キー・IME・通常editorの競合",
+      "steps": [
+        "MacのCmd+D、Windows/LinuxのCtrl+Dを、会話inputと本文focusで実行する。通常コードeditorで同じキーを実行しIDE既存操作が維持されることを確認する。",
+        "Keymapで「会話のパネル／エディター表示を切り替える」のキーを変更/解除し、panel/editor両方で反映と旧割当の解放を確認する。",
+        "日本語IME変換/確定中、@ / の候補popup、model/modeのmenuを開いた状態でキーを試す。変換・候補を壊したり裏で表示を移さないことを確認する。",
+        "Agent/Planでは切替キーが有効、Askでは無効なことを確認する。Askでも明示menuと戻すボタンから同じ会話を移せることを確認する。"
+      ],
+      "expected": "Actionは操作元の会話だけを選ぶ。Keymapに従い、別project/通常editor・IME/popupを奪わない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-MULTI",
+      "change": "複数会話・同名・別projectとsplit",
+      "steps": [
+        "同名の会話A/Bに別draftと実行を用意し、A/Bをそれぞれnative editorへ開く。片方はsplit/detachし、各editorとpanelを交互に選ぶ。",
+        "同じ会話をsplitした場合、選択側へ同じviewが移り、他方の表示リンクで取り戻せることを確認する。2つの入力・同じproviderへの二重送信を作らない。",
+        "別projectの会話も開き、切替・Stop・添付・要求回答・title更新が会話UUIDとprojectの境界を越えないことを確認する。",
+        "会話Aをeditor、Bをpanelで選択した後、nativeタブを切り替えずAの入力へfocusを戻す。Aへ選択コードを追加し、AのheaderからRequest IDコピー・書出し・差分・接続設定を操作する。BのID/本文/状態を参照・変更せず、閉鎖後の遅着focusでも復活しないことを確認する。",
+        "ToolWindowを隠したままeditorの履歴を読み込み、保存済み会話・新規チャット・開いているチャットを選択する。選んだ会話をeditorに表示し、履歴読込中の別会話選択/閉鎖では古いdialogを開かず、自動送信もしないことを確認する。"
+      ],
+      "expected": "同名でも識別が混ざらず、同じ会話の実viewは1つ。split/detachはsession複製ではない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-CLOSE",
+      "change": "nativeタブ閉鎖と会話自体の閉鎖",
+      "steps": [
+        "実行中/下書きありの会話をeditorで開き、nativeタブの×とIDE Close操作で閉じる。splitが残る場合は残った表示、最後ならpanelへ同じ会話が戻ることを確認する。",
+        "panelの会話タブを閉じ、未保存/予約/実行中の確認を取消する。元会話を維持する。再度閉じて承諾し、その会話のeditor表示/所有runだけが破棄されることを確認する。",
+        "複数会話を閉じる確認中に別会話を追加し、最後のタブ判定・panel hideが既存#213条件を保持することを確認する。"
+      ],
+      "expected": "native editor閉鎖は表示を戻す操作。会話の閉鎖には従来確認/停止/遅着拒否が適用され、通常コードeditorを閉じない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-LIFETIME",
+      "change": "開放失敗・project終了とplugin unload",
+      "steps": [
+        "テストfixtureでeditor開放失敗/対応providerなしを再現し、下書きと既存viewがpanelに戻り、未使用のnativeタブを残さないことを確認する。",
+        "複数editor/splitと実行/保留要求がある状態で、使い捨てprojectの終了とplugin unload/reloadを指定担当の手順で実施する。",
+        "遅着イベント・再選択・残った履歴参照で閉鎖済みviewが再作成されないこと、入力editorやlistenerの破棄が完了しIDEが操作可能なことを確認する。"
+      ],
+      "expected": "失敗・終了時も二重破棄/漏れや失敗promptの自動再送がない。再起動は既存の履歴/復元契約を維持し、editor表示だけでprovider再開を保証しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 523,
+      "preconditions": "指定GUI担当のhost lease・専用profile・使い捨てproject。#523を含む固定source SHA/標準ZIP SHA256/installed全JAR/実際のロードbuildを照合。通信は既存PRINT/ACP合成fixture、実providerは別承認の範囲でのみ使う。GUI/main未反映をCLI成功で代替しない。",
+      "next_action": "GUI操作再開後、指定担当が固定buildで全手順を確認。未確認とmain未反映はQAへ双方向移譲する。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/523",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://www.jetbrains.com/help/ai-assistant/ai-chat.html"
+      ],
+      "id": "CHAT-EDITOR-UI",
+      "change": "狭幅・テーマ・キーボードfocus",
+      "steps": [
+        "Light/Dark、狭幅/通常幅、IDE倍率とJIS/US配列で表示切替を試す。editorのtitleと戻すボタン・本文・inputが見切れず操作できることを確認する。 新規チャット・履歴・その他menuを狭幅でも開き、panel側と同じ設定/会話操作に到達することを確認する。",
+        "キーボードだけでmenu、切替、戻す、入力、添付、要求cardへ移動する。スクロールを保持し、別会話や非表示の元editorにfocusを置かないことを確認する。",
+        "Cursor固定版の同じ課題と比較し、native editor閉鎖は会話をpanelへ保持して戻す本Pluginの差を記録する。未確認のOS/状態を他の成功で代替しない。"
+      ],
+      "expected": "日本語の操作説明・native Keymap/アクセシビリティを維持し、対応差を明示する。全OSの未観測はpendingのまま。"
+    }
+  ]
+}

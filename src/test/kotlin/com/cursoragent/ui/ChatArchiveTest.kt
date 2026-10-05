@@ -287,7 +287,8 @@ class ChatArchiveTest {
                 sessions = get(panel, "sessions") as SessionTabs
                 val views = get(panel, "views") as Map<*, *>
                 fun show() = panel.javaClass.getDeclaredMethod("showSelected", com.cursoragent.history.Conversation::class.java,
-                    Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(panel, null, false)
+                    Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+                    .apply { isAccessible = true }.invoke(panel, null, false, true, false)
                 fun controller() = get(views[sessions.snapshot().selectedId]!!, "controller") as AgentUiController
                 fun time(value: Long) {
                     val recorder = get(controller(), "recorder") as com.cursoragent.history.ConversationRecorder
@@ -633,7 +634,8 @@ class ChatArchiveTest {
                 field(first, "activeRun").set(first, run)
                 val secondOwner = sessions.open()
                 fun show() = panel.javaClass.getDeclaredMethod("showSelected", com.cursoragent.history.Conversation::class.java,
-                    Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(panel, null, false)
+                    Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+                    .apply { isAccessible = true }.invoke(panel, null, false, true, false)
                 fun entries() = invoke(panel, "openRecentEntries") as List<*>
                 fun archive(entry: RecentChatEntry, sidebar: Boolean) = panel.javaClass.getDeclaredMethod("archiveChat",
                     ChatArchiveRequest::class.java).apply { isAccessible = true }.invoke(panel,

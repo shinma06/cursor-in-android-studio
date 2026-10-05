@@ -115,7 +115,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、P03は親Draftへ合流して予約編集/復元を接続し、他の子との合流・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、P03/P07は親Draftへ合流して予約編集/復元とeditor側のAction/履歴を接続し、他の子との合流・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
@@ -125,7 +125,7 @@ P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専�
 | P04 | 同一実行turnへの即時入力 | #278のACP/print調査とSDKの公開`run.steer()`を区別する。下記の別方式候補を評価し、次turn queueやStop後再送を代替にしない。 |
 | P05 | 実行中terminal toolだけの取消 | #147/#297/#300のrun取消/permissionと区別。providerのtool ID付き取消契約が必要。 |
 | P06 | 初回draftのbranch/native Git worktree選択 | #301/#39のroot所有を保持。ISOLATED作業コピーをGit worktreeと呼ばず、公開起動・setup/cancel/cleanupを確定。 |
-| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。独立review・親の新設Action/履歴/sidebarとの合流・split/close/focus等の7 GUI Caseは未達。 |
+| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。親DraftのAction・履歴/最近使用・sidebar経由の再表示へ接続し、非表示ownerのnative tab閉鎖でも元run/draftを保持する。独立review・split/close/focus等の7 GUI Caseは未達。 |
 | P08 | 保留変更の一括承認/却下とworktree適用 | #47/#308の事後Diff/Revertと分離。公開された未適用提案のsnapshot/所有契約が前提。 |
 | P09 | Agent Voiceの録音開始/停止/取消 | #99はOS dictation研究でありVoice実装ではない。録音権限、選択chat所有、失敗と保存寿命を含め採用経路を確定。 |
 | P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、独立review・親のWindowsキー優先/予約editorとの合流・5 GUI Caseは未達。 |

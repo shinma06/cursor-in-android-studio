@@ -66,7 +66,8 @@
       "steps": [
         "使い捨てprojectに3会話を開き、本文/下書き/明示context/予約を識別する。対応表のM+T/M+N、M+[/]で新規と表示順の循環を確認する。切替で入力と本文を混ぜない。",
         "M+Wで未保存確認の取消/承認と最後のtab閉鎖/再表示を確認する。ファイルeditorと別projectは閉じない。",
-        "M+A+'で履歴を開き、既存の予約一時停止・保存会話の選択へ接続する。M+Shift+Rで選択中chatの変更一覧を開き、他tabの変更を混ぜず、既存の予約一時停止とRevertのsnapshot/owner確認を保持する。M+Shift+J/M+,でPlugin設定を開く。"
+        "M+A+'で履歴を開き、既存の予約一時停止・保存会話の選択へ接続する。M+Shift+Rで選択中chatの変更一覧を開き、他tabの変更を混ぜず、既存の予約一時停止とRevertのsnapshot/owner確認を保持する。M+Shift+J/M+,でPlugin設定を開く。",
+        "複数会話をnative editorへ移し、ToolWindowを隠した状態でも前後/最近使用・mode/model/context/変更一覧・Stopを現在の会話で操作する。editor headerと入力に現在のKeymapを適用し、再割当/解除、別project、古いevent、閉じたsplitで他ownerを操作しない。通常native tab閉鎖はpanelへ戻るだけで、会話の閉鎖は既存確認を使う。"
       ],
       "expected": "既存操作と同じ対象/確認を通る。最後のtabだけパネル非表示となり、他tab/projectやファイルeditorを破壊しない。"
     },
@@ -386,7 +387,8 @@
         "更新日時の異なる候補240件以上と手動名のあるopen tab、PRINT/ACP/旧履歴を用意する。空検索では新しい200件、200件より古い候補も名前/冒頭文の検索後には表示されることを確認する。日本語/英語/大小文字/曖昧検索/一致強調、同名候補と名前と冒頭文の両方、0件、読込み不能/破損を確認する。本文全文のみにある語では一致せず、従来の履歴本文検索との役割を混ぜない。",
         "検索欄の上下とEnter、一覧のクリック、Esc/外部click/window blurを確認する。IME変換中と背景検索の古い結果では開かず、確定した候補だけを開く。検索中の新query・dispose・panel非表示で古い結果を反映しない。",
         "一覧表示後に候補を更新/削除する。open viewはそのまま選択し、閉じた候補は最新本文・削除/legacy存在を再確認する。ACP本文表示とprovider再開/Revertの可否を区別する。キー変更/解除とWindowsのparameter競合は未対応分も含めて記録する。",
-        "固定Cursorのlocal/Cloud候補、絞込み/上限/表示分岐と比較する。Pluginの初期非表示・ToolWindow内splitter配置、native matcherの順位差、Cloud取得/操作未接続を記録し、local候補だけで全対応passにしない。"
+        "固定Cursorのlocal/Cloud候補、絞込み/上限/表示分岐と比較する。Pluginの初期非表示・ToolWindow内splitter配置、native matcherの順位差、Cloud取得/操作未接続を記録し、local候補だけで全対応passにしない。",
+        "選択会話がnative editorにある場合もAll Agentsを開き、開いている/非表示/保存済みの会話を選ぶ。同一ownerを再利用し、editorからの選択はeditorへ戻る。元native tabが別ファイルの裏にある場合もsidebar側の選択を拒否せず、旧load/検索世代・IME guardを保つ。"
       ],
       "expected": "最近使用10件とは独立した一覧と検索入口になり、全候補を検索してから200件に制限する。既存作業・所有・IME・削除/再開制約を保つ。拡張候補とGUI差は追跡する。"
     },
@@ -714,7 +716,8 @@
         "空候補がない状態で、初回送信前の本文/画像/commandを入力して実行する。新しい表示は空のAgentとなり、元の会話はタブ列から外れる。All Agentsの説明/最近使用一覧から元のIDへ戻ると、本文・caret/選択・mode/model・command/context・画像が残る。名前を自動生成せず、保存履歴の再読込やprovider prompt送信も起こさない。",
         "本文がある会話の次のdraftで実行する。新しい会話に本文・command・context/自動設定・画像を複製し、入力ありのPlan/Askを保持する。入力がなければAgent。元draftも維持され、片側の編集・画像解除・Undoが他方を壊さない。新規接続/モデルの既定と、command/画像の対応未確認時の拒否・保持を確認する。",
         "print/ACPの準備中・応答中・終了後・予約編集中に表示を置換する。元の応答/provider title/許可待ちは元ownerへ届き、新しい会話へ混ざらない。元のrunを勝手にStop/再送せず、予約だけは既存の切替方針で一時停止する。元の会話を再表示してStop/予約更新/取消/再開が正しい1件に作用することを確認する。",
-        "複数の非表示ownerを保持して、表示タブの前後移動/ドラッグ順替え/開いているチャット/全閉鎖を実行する。操作対象はvisible集合だけで、非表示のrunは停止しない。最後のvisibleを閉じるとパネルが隠れ、再表示は新しいNew Agent。元ownerの明示closeとroot/project破棄では対象run・画像lease・listenersを解放し、遅いイベントを拒否する。IDE再起動で未保存draftが戻る保証とは扱わない。"
+        "複数の非表示ownerを保持して、表示タブの前後移動/ドラッグ順替え/開いているチャット/全閉鎖を実行する。操作対象はvisible集合だけで、非表示のrunは停止しない。最後のvisibleを閉じるとパネルが隠れ、再表示は新しいNew Agent。元ownerの明示closeとroot/project破棄では対象run・画像lease・listenersを解放し、遅いイベントを拒否する。IDE再起動で未保存draftが戻る保証とは扱わない。",
+        "native editorでも表示置換を試し、非表示になる旧会話のnative tabだけが閉じること、元run/draft/予約/画像/Terminal snapshotが保持され、閉鎖時のIDE選択通知で新しい会話から別ownerへ移らないことを確認する。All Agentsや最近使用から旧ownerを再表示して内容を照合する。"
       ],
       "expected": "入力局所の有効条件と空会話再利用/履歴後draft引継ぎが一致し、表示置換で元の実行・下書き・予約を失わない。明示closeとroot破棄の所有/遅着拒否、#213の最後visible閉鎖を維持する。native worktree/editor等の未接続分岐は全対象照合に残す。"
     },
@@ -962,7 +965,8 @@
         "遅い履歴読込みの間にpanelを隠す、会話を切り替える、対象を閉じる、projectを閉じる。古いcallbackから履歴メニュー/本文検索を開いたり、別会話へ選択/削除/書出しを適用しない。再表示時は新しい世代で読み直す。読込み失敗時は保存データを保持し、自動再試行しない。",
         "IME変換・入力候補・子popup中はキーを奪わない。読込み後にguardが失効した場合も遅れて履歴メニュー/本文検索を開かない。要求の記録や読込み取消だけでは予約をpauseせず、実際の履歴メニュー表示直前に既存の一時停止を行う。Stop/Revert等の明示pauseを解除しない。",
         "ヘッダー直下の履歴メニューから保存本文/旧print履歴を選び、元の表示・provider再開制約を確認する。通常候補のpin優先/更新順と各20件/More、Archived初期折畳み、検索変更時の件数リセットを確認する。「保存した会話を検索…」から本文検索の一致移動、削除時の確認/開いた会話の保護、Markdown出力を確認する。メニューcloseが遅れて通知されても新しい表示要求を消費せず、本文検索を別の会話へ開かない。表示要求を記録しただけで保存形式や会話IDを変更しない。",
-        "macOS/Windows/LinuxとUS/JIS配列でM+A+'、IDE既存割当、Keymap変更/解除を確認する。固定Cursor版のheader flyoutとの配置/focus/読み上げ、header iconを隠した時の到達、editor表示の履歴は未確認の差として記録し、入口の接続だけで全対象をpassにしない。"
+        "macOS/Windows/LinuxとUS/JIS配列でM+A+'、IDE既存割当、Keymap変更/解除を確認する。固定Cursor版のheader flyoutとの配置/focus/読み上げ、header iconを隠した時の到達、editor表示の履歴は未確認の差として記録し、入口の接続だけで全対象をpassにしない。",
+        "同じ会話をnative editorへ移しToolWindowを隠す。editorのheader/現在Keymapから履歴の開閉、More、本文検索へ進む。2会話・split・非表示/閉鎖・遅いloadを組み合わせ、旧会話の要求が別会話へ表示されず、元header buttonのtoggleと表示先を保つ。ToolWindow側sidebarとeditor側履歴を混同せず、popup/IMEを優先する。"
       ],
       "expected": "既存の選択中会話だけが履歴の表示要求を所有し、globalキー・header切替・sidebar排他・非表示/再表示と非同期取消が混線しない。content生成/強制表示や別会話への遅い操作がなく、既存の履歴検索と保存保護を維持する。"
     },

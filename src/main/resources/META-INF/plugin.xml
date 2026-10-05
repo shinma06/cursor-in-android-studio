@@ -22,6 +22,7 @@
         <copyPastePostProcessor implementation="com.cursoragent.ui.composer.context.ClipboardContextCopyProcessor"/>
         <!-- Run before the platform PSI paste consumes text; only marked prompt editors are intercepted. -->
         <editorActionHandler action="EditorPaste" implementationClass="com.cursoragent.ui.composer.image.PromptImagePasteHandler" order="first"/>
+        <fileEditorProvider implementation="com.cursoragent.ui.editor.ChatFileEditorProvider"/>
         <!-- Keep persisted IDs stable when renaming the product. -->
         <notificationGroup id="Cursor Agent" displayType="BALLOON"
                            bundle="messages.CursorAgentBundle" key="notification.group.name"/>
@@ -54,6 +55,13 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control shift V"/>
             <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift V" replace-all="true"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift V" replace-all="true"/>
+
+        </action>
+        <action id="CursorAgent.ToggleChatEditor" class="com.cursoragent.ui.editor.ChatEditorToggleAction"
+                text="会話のパネル／エディター表示を切り替える" description="同じ会話・下書き・実行を保持したまま表示先を切り替えます。">
+            <keyboard-shortcut keymap="$default" first-keystroke="control D"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta D"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta D"/>
         </action>
         <action id="CursorAgent.AddSelectionToChat" class="com.cursoragent.actions.AddSelectionToChatAction"
                 text="Add to Chat (Cursor)" description="選択したコードを現在のチャットへ明示contextとして追加します。">
