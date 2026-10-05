@@ -14,7 +14,7 @@
 
 ## 登録command
 
-`M`はmacOSのCmd、Windows/LinuxのCtrl、`A`はOption/Alt。表はOSを省略せず、macOSのControlとCmdも区別する。状態はこの親branchのソース上の接続状況で、同等UXの合格ではない。別branchの子実装は後述の「実装と不足能力の追跡」へ示す。親branchで未接続でも子Issueが未着手とは限らず、子PRの実装を親への統合済みとも扱わない。modeのM+A+.とPlugin設定のM+,は既存Actionの副キーへ追加した。A1〜A3/P01〜P11は後述の作業区分でありIssue番号ではない。
+`M`はmacOSのCmd、Windows/LinuxのCtrl、`A`はOption/Alt。表はOSを省略せず、macOSのControlとCmdも区別する。状態はPR #513と子実装を統合したdevelopのソース上の接続状況で、同等UXの合格ではない。実装と残るGUI・main反映は後述の「実装と不足能力の追跡」へ示す。modeのM+A+.とPlugin設定のM+,は既存Actionの副キーへ追加した。A1〜A3/P01〜P11は後述の作業区分でありIssue番号ではない。
 
 | command ID | macOS | Windows | Linux | 有効条件・意味 | 所属 / Plugin / 次作業 |
 | --- | --- | --- | --- | --- | --- |
@@ -50,10 +50,10 @@
 | `composer.openAddContextMenu` | Cmd+Option+P | Ctrl+Alt+P | Ctrl+Alt+P | composerにfocus、一般editor textにfocusなし。context候補を開く。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `composer.toggleVoiceDictation` | Cmd+Shift+Space | Ctrl+Shift+Space | Ctrl+Shift+Space | isGlass=false、terminal focusなし。選択chatの音声入力を開始/停止する。 | in-IDE静的確認 / 能力未実装 / P09 |
 | `composer.cancelVoiceDictation` | Escape | Escape | Escape | composer editorまたは表示中aichat viewで録音中。処理中も取消handlerはあるがwhenは録音中だけなので到達は未GUI。 | in-IDE静的確認 / 能力未実装 / P09 |
-| `composer.find.focus` | Cmd+F | Ctrl+F | Ctrl+F | composerにfocus、会話内findにはfocusなし。 | in-IDE静的確認 / 能力未実装 / P01 |
-| `composer.find.hide` | Escape | Escape | Escape | 会話内findにfocus。検索欄が可視という条件だけではない。 | in-IDE静的確認 / 能力未実装 / P01 |
-| `composer.find.next` | F3 / Enter | F3 / Enter | F3 / Enter | 会話内findにfocus。次の本文matchへ移動する。 | in-IDE静的確認 / 能力未実装 / P01 |
-| `composer.find.previous` | Shift+F3 / Shift+Enter | Shift+F3 / Shift+Enter | Shift+F3 / Shift+Enter | 会話内findにfocus。前の本文matchへ移動する。 | in-IDE静的確認 / 能力未実装 / P01 |
+| `composer.find.focus` | Cmd+F | Ctrl+F | Ctrl+F | composerにfocus、会話内findにはfocusなし。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
+| `composer.find.hide` | Escape | Escape | Escape | 会話内findにfocus。検索欄が可視という条件だけではない。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
+| `composer.find.next` | F3 / Enter | F3 / Enter | F3 / Enter | 会話内findにfocus。次の本文matchへ移動する。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
+| `composer.find.previous` | Shift+F3 / Shift+Enter | Shift+F3 / Shift+Enter | Shift+F3 / Shift+Enter | 会話内findにfocus。前の本文matchへ移動する。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
 | `workbench.action.openAgentsView` | Control+Shift+S | Ctrl+Shift+/ | Ctrl+Shift+/ | Background Composer Window以外。統合sidebarを表示するかAll Agents pickerを開く。macOSはControlを使う。 | in-IDE静的確認 / 既存機能へ接続/差分確認が必要 / A2 |
 | `workbench.action.quickOpenPreviousRecentlyUsedAgent` | Control+Tab | Ctrl+Tab | Ctrl+Tab | agentsPane/composerにfocus、chatEditorGroup.enabledではなくBackground Composer Windowでもない。最近使用順picker。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenLeastRecentlyUsedAgent` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記と同じ条件で初期選択を逆順にする。tab表示順とは別。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
@@ -115,20 +115,20 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。P03/P07/P10は独立固定版レビューと必須gateを経てdevelopへ統合し、親Draftも同じdevelopへ通常同期した。親では予約編集/復元、editor側のAction/履歴とモデル追加設定を接続した。P01のPR #520は既存の統合承認待ちを保持する。P01など残る能力の全対象照合・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01/P03/P07/P10は下表のnative sub-issueへ実分解し、すべて独立固定版レビューと必須gateを経てdevelopへ統合済み。親#212のPR #513も統合し、予約編集/復元、editor側のAction/履歴とモデル追加設定を接続した。P01のPR #520はその後のdevelopへ統合し、4 GUI Caseとmain未反映を[QA #532](https://github.com/shinma06/cursor-in-android-studio/issues/532)へ移譲済み。#212全体の対象確定・全対応・固定build GUI・main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
-| P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | [PR #520](https://github.com/shinma06/cursor-in-android-studio/pull/520)に実装。#45の保存履歴検索と区別し、大文字小文字/単語単位/正規表現、一致強調と位置/総数、長い本文/不正な式、stream・owner・IME/focusを扱う。独立再レビュー後の統合操作はユーザー承認待ち。GUIは未達。 |
+| P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | [PR #520](https://github.com/shinma06/cursor-in-android-studio/pull/520)に実装。#45の保存履歴検索と区別し、大文字小文字/単語単位/正規表現、一致強調と位置/総数、長い本文/不正な式、stream・owner・IME/focusを扱う。develop統合済み。4 GUI Caseとmain未反映は[QA #532](https://github.com/shinma06/cursor-in-android-studio/issues/532)でpending。 |
 | P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保持する。下記の履歴変更契約が未確定であり、末尾への通常再送に置換しない。 |
-| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。親Draftの予約編集・元draft復元・即時送信でもTerminal snapshotを保持する。子の独立レビュー・develop統合は完了。8 GUI Case/main未反映はQA #528へ移譲済み。外部rich clipboardや複数inline nodeの一括copyとの差と親の組合せ受入を保持する。 |
+| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。親#212の予約編集・元draft復元・即時送信でもTerminal snapshotを保持する。子の独立レビュー・develop統合は完了。8 GUI Case/main未反映はQA #528へ移譲済み。外部rich clipboardや複数inline nodeの一括copyとの差と親の組合せ受入を保持する。 |
 | P04 | 同一実行turnへの即時入力 | #278のACP/print調査とSDKの公開`run.steer()`を区別する。下記の別方式候補を評価し、次turn queueやStop後再送を代替にしない。 |
 | P05 | 実行中terminal toolだけの取消 | #147/#297/#300のrun取消/permissionと区別。providerのtool ID付き取消契約が必要。 |
 | P06 | 初回draftのbranch/native Git worktree選択 | #301/#39のroot所有を保持。ISOLATED作業コピーをGit worktreeと呼ばず、公開起動・setup/cancel/cleanupを確定。 |
-| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。親DraftのAction・履歴/最近使用・sidebar経由の再表示へ接続し、非表示ownerのnative tab閉鎖でも元run/draftを保持する。子の独立再レビュー・develop統合は完了。split/close/focus等の7 GUI Case/main未反映はQA #529へ移譲済み。親のAction/履歴を含む独立評価とGUI受入は別に行う。 |
+| P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。親#212のAction・履歴/最近使用・sidebar経由の再表示へ接続し、非表示ownerのnative tab閉鎖でも元run/draftを保持する。子の独立再レビュー・develop統合は完了。split/close/focus等の7 GUI Case/main未反映はQA #529へ移譲済み。親のAction/履歴を含む独立レビューはPR #513で実施済み。GUI受入はQA #531に残る。 |
 | P08 | 保留変更の一括承認/却下とworktree適用 | #47/#308の事後Diff/Revertと分離。公開された未適用提案のsnapshot/所有契約が前提。 |
 | P09 | Agent Voiceの録音開始/停止/取消 | #99はOS dictation研究でありVoice実装ではない。録音権限、選択chat所有、失敗と保存寿命を含め採用経路を確定。 |
-| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、親DraftでWindowsキー優先/予約editor/native editorへ接続した。子の独立再レビュー・develop統合は完了。5 GUI Case/main未反映はQA #530へ移譲し、親の予約editor/Keymapを含む評価とGUI受入は別に行う。 |
+| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、親#212でWindowsキー優先/予約editor/native editorへ接続した。子の独立再レビュー・develop統合は完了。5 GUI Case/main未反映はQA #530へ移譲し、親の予約editor/Keymapを含む独立レビューはPR #513で実施済み。GUI受入はQA #531に残る。 |
 | P11 | 選択codeからcodebase検索付きchatを開く | #24の一般選択添付と区別。固定版の操作と公開検索意味を確定し、非公開flagや独自indexを発明しない。 |
 
 #48のqueue、#97の送信設定、#258/#404のSkills/command候補、#156のopened chats、#213の最後tab閉鎖等を再利用する。これらの実装Issueがclosedでも、対応QAやmain反映は未達の場合がある。SubComposerの所属未確定からside chat能力を推測して起票しない。
@@ -250,7 +250,7 @@ OpenChat/FollowUp/NewAgent/All Agentsのglobal入口ではcontent生成・activa
 
 ## モデル設定循環の接続条件
 
-固定版`cycleHotkeyParameter`は各選択modelのparameter定義から`isCycleableByHotkey === true`かつ複数値を持つ最初の項目を選ぶ。CLIのalias末尾から作る既存`ModelFamilies`のaxis順を、この広告された順序やhotkey許可と同一視しない。現在のPluginのprint catalogにはこの属性がない。P10のACP UIは広告された`thought_level` / `model_config`を扱い、広告順で最初の複数値項目を選ぶ。親DraftのAction/予約editorにも接続したが、Cursor固有のhotkey属性と同一とは扱わない。
+固定版`cycleHotkeyParameter`は各選択modelのparameter定義から`isCycleableByHotkey === true`かつ複数値を持つ最初の項目を選ぶ。CLIのalias末尾から作る既存`ModelFamilies`のaxis順を、この広告された順序やhotkey許可と同一視しない。現在のPluginのprint catalogにはこの属性がない。P10のACP UIは広告された`thought_level` / `model_config`を扱い、広告順で最初の複数値項目を選ぶ。親#212のAction/予約editorにも接続したが、Cursor固有のhotkey属性と同一とは扱わない。
 
 [ACP config options](https://agentclientprotocol.com/protocol/v1/session-config-options)は`thought_level` / `model_config` categoryと広告順をUI/shortcut判断に利用でき、設定応答では全listの置換を求める。[Cursor SDKのmodel catalog](https://cursor.com/docs/sdk/typescript)にもparameter/variantの公開型がある。ACP経路の実装と限定metadata観測の範囲は[current implementation](../architecture/current-implementation.md)に記載した。SDK catalogは別経路の候補であり、全Cursor ACP modelの広告やCLI aliasへの対応、SDK catalogに同じhotkey許可が含まれることの証拠ではない。[JetBrains AI AssistantのACP対応](https://www.jetbrains.com/help/ai-assistant/acp.html)も比較対象のまま維持し、モデル設定循環の同等性は有限の実測と公開契約の照合後に判定する。
 

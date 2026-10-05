@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "issue": 537,
+  "gui_required": false,
+  "reason": "統合済み実装と残QAの文書表記だけを訂正する。製品コード、外部仕様、Case観察、固定promotionは変更しない。",
+  "cli_checks": [
+    "PR #513/#520/#522/#524/#526のdevelop統合とQA #528〜#532のopen状態を照合する",
+    "findの4 commandとP01がdevelop実装済みかつGUI/main pendingと読めること、固定Cursor調査と未実装能力を保持すること",
+    "python3 scripts/workflow/change_impact.py --run-tests"
+  ],
+  "cases": []
+}
