@@ -1,5 +1,6 @@
 package com.cursoragent.ui.composer.image
 
+import com.cursoragent.ui.composer.context.pasteClipboardContext
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Editor
@@ -13,11 +14,12 @@ import com.intellij.openapi.util.Key
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 
-/** Native EditorPaste wrapper: only our marked prompt editor consumes an image; all text delegates. */
+/** Only marked prompts consume copied context/images; ordinary text and other editors delegate. */
 class PromptImagePasteHandler(private val original: EditorActionHandler) : EditorActionHandler() {
     override fun doExecute(editor: Editor, caret: Caret?, dataContext: DataContext) {
         val handler = editor.getUserData(IMAGE_INPUT)
         val content = if (handler != null) CopyPasteManager.getInstance().contents else null
+        if (content != null && pasteClipboardContext(editor, content)) return
         if (content != null && ImageTransfer.accepts(content.transferDataFlavors) && handler!!.invoke(content)) return
         original.execute(editor, caret, dataContext)
     }

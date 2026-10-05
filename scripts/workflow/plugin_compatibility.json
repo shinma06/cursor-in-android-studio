@@ -23,8 +23,8 @@
       "disposition": "Rabbit 262 contains all 17 reported usages: 5 scheduled for removal (four existing list-renderer overloads and settings file chooser), plus ToolWindowFactory default bridges, ProcessAdapter, ReadAction and file chooser factory. Reevaluate replacements before expanding the SDK range; no missing APIs are waived."
     },
     "experimental-api-usages.txt": {
-      "sha256": "1639d56d3c0d7f90c5b065a60c95eb5859db916be21bdd70dd692b63274d7dff",
-      "disposition": "34 usages are present in Rabbit: 32 existing Terminal view/output and ToolWindowFactory bridges, plus two ManagingFS.flushPendingUpdates calls required by JetBrains' documented async editor-save contract before external Git/CLI access. Flush runs off EDT/write actions and failure aborts the operation. Preserve optional Terminal loading/linkage protection; issue-466 Cases cover both Terminal states and saved-content/restore ordering. Reevaluate these experimental APIs before expanding the SDK range."
+      "sha256": "309015f6389d6e987b86edc52fad6a56e7bdf34385674cef0750d8568499edd1",
+      "disposition": "57 usages are present in the fixed Rabbit SDK: the existing 34 Terminal/ToolWindowFactory/ManagingFS usages plus 23 TerminalCopyContextListener usages of the action-owned TerminalView data key, selection offsets, active output model, line indexes and title. These are required to snapshot the actual copied selection; the active terminal or output tail cannot establish copy provenance. Native Terminal Copy action fixture verifies the selected range and fallback after unavailable/ignored/mismatched copy. Keep registration in the optional Terminal descriptor, LinkageError protection, EDT reads, immutable data-only snapshots and no terminal/process creation. Fixed-build runtime acceptance remains PASTE-521-TERMINAL and issue-466 Terminal cases; reassess public alternatives and all 57 usages before expanding the SDK range. No missing, override-only or unknown API findings are waived; independent fixed-diff review remains required."
     },
     "internal-api-usages.txt": {
       "sha256": "378f943adb69e86552a2788ae4a16def47bc35914b901ea41d8583096d8f3196",

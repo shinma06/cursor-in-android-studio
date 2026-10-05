@@ -2,6 +2,10 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.ui.AgentUiColors
 import com.cursoragent.ui.AgentUiMetrics
+import com.cursoragent.ui.composer.context.ClipboardContextData
+import com.cursoragent.ui.composer.context.PROMPT_CONTEXT_PASTE
+import com.cursoragent.ui.composer.context.PromptContextPaste
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.DocumentReferenceManager
 import com.intellij.openapi.command.undo.UndoManager
@@ -23,6 +27,8 @@ import javax.swing.SwingUtilities
 class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
     internal var modelParameterKeyHeld = false
+    internal var clipboardContextAvailable: () -> Boolean = { true }
+    internal var onClipboardContext: ((ClipboardContextData) -> Unit)? = null
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
@@ -56,6 +62,16 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         // Use prompt-local shortcuts as well: selection indentation ignores this flag.
         editor.isEmbeddedIntoDialogWrapper = true
         installPromptFocusTraversal(editor.contentComponent)
+        editor.putUserData(
+            PROMPT_CONTEXT_PASTE,
+            PromptContextPaste(
+                { isEnabled && !isComposing && clipboardContextAvailable() && onClipboardContext != null },
+                { onClipboardContext?.invoke(it) },
+            ),
+        )
+        ActionManager.getInstance().getAction("CursorAgent.PastePlain")?.let { action ->
+            action.registerCustomShortcutSet(action.shortcutSet, editor.contentComponent)
+        }
         com.cursoragent.ui.composer.image.installPromptImageInput(editor) { value ->
             if (!isEnabled || isComposing) true else onImageTransfer?.invoke(value) ?: false
         }
