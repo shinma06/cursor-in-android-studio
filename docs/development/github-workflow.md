@@ -24,19 +24,66 @@
 Issueは目的・受入・担当・依存・次の操作、PRは差分・固定HEAD/base・レビュー・CI・統合判断の正本です。
 QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのpassは別buildを保証しません。
 
-GPT/Codex・Claude・Cursorのいずれも開発担当になれます。担当はモデル/provider名ではなく、必要な能力・実際に利用できるtool・許可範囲・claimで決めます。3種類のAgentの併用は必須ではありません。
+開発client/providerだけで職務を固定しません。必要な能力・実際に利用できるtool・許可範囲・claimに、下記のユーザー指定モデル条件を合わせて担当を選びます。GPT/Codex・Claude・Cursorの併用は必須ではなく、clientが利用できるだけでは担当資格になりません。
 
-| 役割 | 担当条件と責任 |
+| 役割 | 入力 → 出力・完了責任 | 兼任・独立性 |
+| --- | --- | --- |
+| PM/進行役 | Issue/Project、既存担当/実行handle、依存・負荷・承認 → 優先順位、有限の枠、割当、blocker/次操作、成果回収と最終readback。登録だけで進行済みにしない | 統合管理を兼任可。ソース実装・指摘修正・独立レビューを兼任しない |
+| 実装・指摘修正担当 | claim、scope、base、受入/指摘 → 1 Issue・1 branch・1 worktree・1 writerで変更、必要テスト、Case、固定HEAD/base、clean/停止と引継ぎ。修正後は新HEADの再レビューへ戻す | 調査・CLI検証、権限内のbase同期/統合操作を兼任可。PMおよび自分の差分の独立レビュアーと分離 |
+| 独立レビュアー | 固定HEAD/baseの全差分、Issue/Case、指摘 → reviewed SHA/base、受入判定、findings/disposition、未確認と証拠。変更があれば旧承認を流用しない | 実装者/PMと別の独立top-level session。レビュー中はread-only、ソース変更・GUI操作をしない。同じproviderでも可、同じsessionの自己レビューは不可 |
+| 統合担当 | writer停止、固定版レビュー、依存順、現行baseと必須checks → 通常mergeによる同期を実装担当へ戻すか権限内で実施、必要テスト/非force push/再レビュー、順序付きmerge、QA・Project・cleanupの回収 | PMは統合条件とGitHub操作を管理可。競合解消・ソース修正は実装担当へ戻す。同期/修正したsessionはその差分を独立レビューしない |
+| GUI QA担当 | 未達Case、識別build、能力/許可とhost lease → 実観察、pass/fail/環境blocked/未実施、証拠とlease解放・次担当。製品failは修正Issueへ | 指定sessionまたは明示引継ぎ済み人間。host/OS sessionごとに単一operator。実装兼任でも独立コードレビューの代替にならない |
+
+### 役割別モデルと実設定の確認（#527）
+
+2026-10-05のユーザー指定。性能の一般順位ではなく、現ラインナップで本プロジェクトが許可する割当範囲です。
+
+| 役割 | 許可範囲・通常割当 |
 | --- | --- |
-| PM/進行役・統合担当 | 必要なGitHub権限と既存の承認範囲で統合順・claim・設定・gateを管理する |
-| 実装担当 | 1 Issue・1 branch・1 worktree・1 writerを守り、製品コード・文書・設定を担当範囲で変更する |
-| 独立レビュアー | writerとは別sessionで固定HEAD/baseを確認し、レビュー役の間はソース変更・GUI操作をしない。同じproviderでも別sessionなら可、同じsessionの自己レビューは不可 |
-| GUI担当 | 実画面を操作・観察する能力と許可を持つ指定session、または明示的に引き継いだ人間。host/OS sessionごとに1担当でleaseを取得し、対象buildと証拠を照合する |
+| PM・独立レビュー | GPT-6 Astra High以上。通常 `gpt-6-astra` / `high`、必要理由があれば同モデルの対応する上位effort |
+| 実装・指摘修正・調査等（AgentのGUI QAを含む） | GPT-6.1 Sol High以上〜GPT-6 Astra High以下。通常 `gpt-6.1-sol` / `high`、難度/失敗に根拠があれば `gpt-6-astra` / `high`へ変更。範囲内の別設定もPMが根拠と利用可否を確認する |
+
+割当前・新規/再開・役割変更・指摘修正・統合/GUI待ちからの再開で、PMはrequested model/effortと実際のsession設定・直近turn/実行記録を照合する。prompt中の自己申告、clientの既定値、旧turnの設定だけで確認済みにしない。役割を兼ねる場合は双方のモデル条件を満たす。モデル追加/廃止時はユーザー指定範囲を再評価し、旧順位を別モデルへ移さない。
+
+設定不明・不一致・利用不可なら当該担当の実行/成果採用を停止し、原因・確認担当・解除条件を記録して独立可能な仕事へ進む。範囲外への黙ったfallback、設定未確認のpass、writer所有の付け替えを行わない。実行後のreadback不一致では未公開差分を保持し、修正/再実行と独立レビューを経るまでcommit/pushへ進めない。
+claim/引継ぎ/レビューの既存記録に、公開可能な担当参照・role・requested/actual model/effort・確認根拠・scope・状態・次操作を残す。rawログや実session ID/host/pathはprivate記録へ、公開側は必要な要約だけにする。新しいモデル台帳や必須checkを増やさない。[Codex実行規約](codex-execution-policy.md)のAstra子Agent禁止と独立top-level条件、上位の権限制約を優先する。
 
 GUI toolがない担当は実装・CLI検証を進め、GUIだけを対応可能な担当へ引き継ぎます。対応する実行経路が確保できなければGUIはblockedです。`required_execution: computer_use` は人間の直接操作で代替できません。Cursor IDEとプラグインを比較するfixture課題は製品の試験であり、開発担当としてのCursorをfixture専任にする規則ではありません。
 
-役割を兼ねる場合もレビューの別session条件と単一writer/GUI leaseを守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
+上の兼任範囲でも単一writer/GUI leaseを守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
 モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
+
+### 担当と継続
+
+PMは以下の順で自律的に編成を再評価する。ユーザーから委任済みの割当/再利用は再質問しないが、委任から外部送信・破壊操作等の新しい許可は作らない。「最適」はこの根拠付き判断であり、未測定の速度/費用/品質改善や数学的最適性を主張しない。
+
+1. **照合**: 開始/再開、成果固定、レビュー終了、統合、失敗、承認/質問/GUI待ち、資源解放で、Issue/PR/Projectと既存owner/source/registry、session/job handle、成果物HEAD/baseを読む。担当不在、停止、結果未回収を区別する。timeout/無応答は停止やclaim解放の証明にならない。
+2. **回収と再利用**: 未回収結果と固定PRのレビュー/修正/統合を先に回収する。同じscopeへ二重割当しない。既存の適格な空き担当を優先して再利用し、model/effort・独立性・所有を再確認する。旧writerの停止/解放または明示再割当なしに交代しない。
+3. **有限の枠**: ready件数、難度/責務、依存、共有UI/ファイル、レビュー滞留とCPU/メモリ/重いbuild/GUIの実負荷から、今回の上限と理由を既存の作業記録へ残す。初期上限はPM/統合管理1、実装/修正1、read-only独立レビュー最大2、共有UI writer1、重いbuild1、host GUI operator1。全枠の常時起動は不要。PMは独立scopeと負荷の余裕を確認した場合だけ有限の上限を改め、未知負荷では増やさない。GUI leaseの排他は増枠不可。
+4. **次の割当**: ブロックされない依存先の解消と固定版のレビュー/修正/統合を優先し、同優先度なら既存待ち順を使う。必要な役割・model/effort・scope・成果・次担当を渡して実handleを確認する。空いた担当へ独立した次作業を渡し、readyがなければ待機/終了へ戻す。追加sessionには合理的理由が必要。実装だけを増やさず、同じ共有コードのwriterと重いbuildを直列にする。
+5. **状態の報告**: GUI失敗/環境blocked、承認待ち、質問待ちは発生時にユーザーへ通知し、既存Issue/PRのblocker・担当・必要な解除条件・次操作を更新する。次回報告にも既報blockerの現在状態（継続/解消/移譲）を含める。独立作業へ切替え、何もなければ解除条件を明示して待機する。理由のない再試行や無限の増員をしない。
+
+待ち行列は既存Issue/PR/Projectとcoordinatorの状態を使い、新しい恒久台帳/daemon/heartbeatを作らない。短期の報告表は正本への参照に留める。枠の値はAgent起動の許可ではなく、#135とtool権限・ユーザー承認の範囲内でのみ適用する。
+
+#### 子PRと親PRの順序
+
+子PRを固定 → 独立レビュー → 実装担当の指摘修正/必要検証 → 新HEAD/baseの独立再レビュー → 現行4 checks/会話解決を確認 → 依存順にmergeする。各子のbase変更でも旧承認は失効する。親writerは子の統合を読み戻して最新baseへ通常mergeで同期し、必要テストを実行して親全差分と全受入を固定し直す。親の旧レビューや子の合格だけで親を承認しない。stacked PRは依存base/merge順を明示し、base切替後に同じ再レビューを行う。
+
+#### 有限の運用例
+
+机上評価は実session実行やGUI passと区別し、対象Issue/PRへ結果を残す。実操作は割当/許可と既存gateがある範囲だけで行う。
+
+| 入力/契機 | 再評価後の次操作 |
+| --- | --- |
+| ready 1→複数、共有UI差分が重なる | 既存writerを再利用、競合分は待ちへ。独立scope/負荷の余裕がなければ増員しない |
+| ready 複数→0、担当完了 | 結果を回収・readbackし、担当を待機/終了へ。固定レビュー/QA/cleanupが残れば先に次担当へ |
+| 同scopeに有効claim、担当無応答 | 二重割当を停止。同handle/成果を確認し、停止と解放/再割当が揃うまで横取りしない |
+| 担当停止または結果未回収 | 既存成果を保持・回収、次担当/解除条件を明示。再開時は役割/モデル/所有を再確認 |
+| 子の依存解消、親base更新 | 子のmerge readback→親同期/テスト→親全差分再レビュー。旧承認を失効 |
+| 固定PRがレビュー未割当で滞留 | 適格な既存Astra High reviewerを再利用。最大2のread-only枠を検討し、writerを増やす前に回収 |
+| 重いbuild実行中/メモリ圧迫 | 次buildを待ちへ。CLI/固定版read-onlyレビューへ切替え、終了/負荷解放で再選択 |
+| GUI fail/承認待ち/質問待ち | 即時通知、既報状態を追跡、独立作業へ切替え。依存作業は具体的解除条件付き待ち |
+| モデル設定不明/範囲外/利用不可 | 当該役割の実行/成果採用を停止。適格担当の確認済み再利用か設定回復を待ち、黙ったfallbackを拒否 |
 
 ## 個人情報・非公開情報の公開前確認
 
