@@ -235,12 +235,14 @@ class AgentUiController(
         composer.addHierarchyListener {
             if (composer.isShowing && !disposed) { refreshAcpConnection(); commandSettingsWatch.start() }
             else {
-                cancelModelChange()
                 commandSettingsWatch.stop()
                 // Moving the same view between native hosts briefly removes it from the hierarchy.
                 // The existing import scope still rejects changed tabs/settings; invalidate only if it stays hidden.
                 javax.swing.SwingUtilities.invokeLater {
-                    if (!disposed && !composer.isShowing && imageDraft.importing) imageDraft.invalidateImport()
+                    if (!disposed && !composer.isShowing) {
+                        cancelModelChange()
+                        if (imageDraft.importing) imageDraft.invalidateImport()
+                    }
                 }
             }
         }

@@ -231,7 +231,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     }
 
     internal val canMovePresentation: Boolean
-        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
+        get() = !modelConfigurationBusy && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
             !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
 
     internal val canToggleEditorWithShortcut: Boolean
