@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "issue": 547,
+  "gui_required": false,
+  "reason": "固定SDKの取得/公開型照合、未実行の最小live driverを含むexportable Node probe、offline合成checkと許可/費用/保存条件の準備のみ。製品Gradle/transport/JSON v1/UIを変更しない。SDK agent起動・課金prompt・GUIを実施せず、P04実装済みや物理終了/権限同等性を主張しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests: workflow/loop testsとdiff check。既存scripts/workflow Python入口に配置し、製品build/classifierを変更しない。",
+    "python3 -m unittest scripts.workflow.test_sdk_steering_probe -v: 同じexportable Node moduleをFake Agent/Runだけで実行。固定版以外のmetadataは拒否。SDK import/認証探索/network/provider呼出しなし。",
+    "python3 scripts/workflow/sdk_steering_probe.py: S1–S6のoffline境界のassert。実provider Caseは全てblocked、人間はpending。sdk_agents/provider_calls=0、model消費/物理静止はunobservedのまま出力。",
+    "python3 scripts/workflow/sdk_steering_probe.py --inspect-sdk: 私的に取得した@cursor/sdk 1.0.31のname/version/Node engine・public Run/AgentOptions型とhashを照合。公式registryのarchive SRIは取得bytesとlockfileで直接確認。darwin/arm64 helper作動は未観察。",
+    "--export-nodeは新しい私的ファイルだけへmoduleを書き出す。export自体はlive実行なし。moduleは--check-configのみでcredential内容/SDK importなし、--execute-approvedだけ明示許可条件と1 Case実行を要求する。今回はFake SDKで同じdriverを確認。node --checkで構文確認し、書き出した同じmoduleのofflineCheckも実行。",
+    "S1: 合成のtoolsなし初回send/配送ack/draft確定/ID再送拒否。S2: 不受理/method不在/終端済みを区別して本文保持。実SDKのlive/detached配送はblocked。",
+    "S3: 合成timeout/例外/未知ackをunknownで保全し再送拒否。遅いackは新draftを消さない。S4: pending中のStop-close・遅着ack・取消失敗と受付停止。実provider切断/SDK取消/物理終了はblocked。",
+    "S5: 合成JSON roundtrip後pendingをunknownとして保持、再開の自動入力を拒否。SDK store耐久性/checkpoint/resumeはblocked。S6: 別owner/run/agent/handle・同時入力を拒否し、同文別ownerを誤dedupeしない。実SDKのID/重複はblocked。",
+    "独立レビューR548-01/R548-02のFake回帰: 期限後のcreate/resume返却handleを各1回disposeし、late ID/試行結果をprivate Case/ledgerへ保存。unknown/費用未確認/再送禁止を維持。古いticket、dispatch直前のdraft本文/revision・owner/handle/ID・blocked/running変更、close-before-microtaskはSDKを呼ばず拒否。既dispatchへの遅着ackは旧ownerへ記録する既存checkを保持。",
+    "docs/research/issue-547-sdk-steering-probe.md: 6run/60秒run/10秒steer待機/費用US$1.00停止値・US$0.50警戒値の案と強制不可の限界、認証/保存/ログ境界、1起動1 Case/共通ledger/SDK entry hash/許可・費用未確認の開始拒否とatomic private記録、実provider許可・独立レビューの未達を照合。合成成功をlive/GUI/mainや#212完了へ転記しない。",
+    "公開前にstaged diff/commit metadata/Issue claim/PR本文を点検。個人path/host/session ID/credential/raw SDK/wireを公開しない。固定HEAD/baseの独立レビュー・4 checksはPMの次工程。"
+  ],
+  "cases": []
+}
