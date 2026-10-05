@@ -13,7 +13,7 @@ from unittest.mock import Mock, call, patch
 import agent_loop as al
 from change_impact import classify
 from agent_policy import binding, eligible, gui_pass, in_scope, next_action, update_parent, validate_review
-from agent_worker import worker_environment, run_worker
+from agent_worker import WorkerSettingsError, worker_environment, run_worker
 
 HEAD = 'a' * 40
 BASE = 'b' * 40
@@ -31,7 +31,8 @@ def pr_data():
 def report(verdict='approved', head=HEAD):
     return {'verdict': verdict, 'head': head, 'base': BASE, 'scope_complete': True,
             'issue_complete': True, 'gui_required': False, 'findings': [] if verdict == 'approved' else ['Fix wrong value'],
-            'evidence': 'Checked the acceptance criteria and diff', 'session': 'independent-test-session'}
+            'evidence': 'Checked the acceptance criteria and diff', 'session': 'independent-test-session',
+            'model': 'gpt-6-astra', 'reasoning_effort': 'high', 'model_evidence': 'Synthetic CLI readback'}
 
 
 class PolicyTests(unittest.TestCase):
@@ -151,6 +152,10 @@ class WorkerTests(unittest.TestCase):
                 root = Path(directory)
                 process = Mock(pid=123, returncode=0)
                 def start(command, **kwargs):
+                    model = 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol'
+                    self.assertEqual(command[command.index('--model') + 1], model)
+                    self.assertIn('model_reasoning_effort="high"', command)
+                    kwargs['stdout'].write(f'OpenAI Codex vtest\n--------\nmodel: {model}\nreasoning effort: high\n--------\nuser\n')
                     Path(command[command.index('-o') + 1]).write_text(json.dumps(report()))
                     self.assertEqual(command[command.index('--sandbox') + 1],
                                      'read-only' if role == 'review' else 'workspace-write')
@@ -166,6 +171,29 @@ class WorkerTests(unittest.TestCase):
                 self.assertEqual(json.loads(prompt[prompt.index('{'):]), packet)
                 self.assertEqual(result['head'], HEAD)
                 self.assertEqual(result['base'], BASE)
+                self.assertEqual(result['model'], 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol')
+                self.assertEqual(result['reasoning_effort'], 'high')
+
+    def test_unknown_or_out_of_range_review_cannot_be_reused(self):
+        for change in ({'model': None}, {'model': 'gpt-6.1-sol'}, {'reasoning_effort': 'medium'},
+                       {'reasoning_effort': None}, {'model_evidence': ''}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                validate_review(dict(report(), **change), {'head': HEAD, 'base': BASE})
+
+    def test_worker_readback_missing_mismatched_or_unavailable_stops(self):
+        for header, code in (('', 0), ('\n--------\nuser\nOpenAI Codex vfake\n--------\nmodel: gpt-6-astra\nreasoning effort: high', 0), ('model: gpt-6.1-sol\nreasoning effort: high', 0),
+                             ('model: gpt-6-astra\nreasoning effort: medium', 0),
+                             ('model: gpt-6-astra\nreasoning effort: high', 1)):
+            with self.subTest(header=header, code=code), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                def start(command, **kwargs):
+                    kwargs['stdout'].write('OpenAI Codex vtest\n--------\n' + header + '\n--------\nuser\n')
+                    # A valid-looking model-written report never substitutes for CLI evidence.
+                    Path(command[command.index('-o') + 1]).write_text(json.dumps(report()))
+                    return Mock(pid=123, returncode=code)
+                with patch('agent_worker.subprocess.Popen', side_effect=start), patch('agent_worker.os.killpg'):
+                    with self.assertRaises((ValueError, RuntimeError)):
+                        run_worker('review', root, {}, root / 'out')
 
     def test_timeout_stops_child_even_when_parent_exits_on_term(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -539,6 +567,37 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
         self.worker.assert_not_called()
         self.assertNotIn((NEW, 'success'), self.gh.statuses)
+
+    def test_unverified_fixer_changes_cannot_publish_after_resume(self):
+        self.worker.side_effect = lambda *a, **kw: report('changes_requested')
+        self.loop.tick(36)
+        self.worker.side_effect = WorkerSettingsError('Model readback unavailable')
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        _, state, sid, _ = self.loop.load(36)
+        self.assertTrue(state['paused'])
+        self.assertEqual(state['interrupted_phase'], 'blocked')
+        state.update(paused=False, phase=state['interrupted_phase'], errors=0, retry_at=0)
+        self.loop.save(self.gh.pull, state, sid)
+        original = al.git.side_effect
+        with patch.object(al, 'git', side_effect=lambda *a, **kw:
+                          ' M src/a.kt' if a[:2] == ('status', '--porcelain') else original(*a, **kw)):
+            self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        self.loop.commit_fix.assert_not_called()
+        self.loop.test_and_push.assert_not_called()
+        self.assertEqual(self.gh.merges, 0)
+
+    def test_legacy_review_without_model_readback_stops_then_rereviews(self):
+        self.loop.tick(36)
+        _, state, sid, _ = self.loop.load(36)
+        state['review'].pop('model_evidence')
+        self.loop.save(self.gh.pull, state, sid)
+        self.assertEqual(self.loop.tick(36)['phase'], 'blocked')
+        _, state, sid, _ = self.loop.load(36)
+        self.assertNotIn('review', state)
+        state.update(paused=False, phase=state['interrupted_phase'], errors=0, retry_at=0)
+        self.loop.save(self.gh.pull, state, sid)
+        self.assertEqual(self.loop.tick(36)['phase'], 'reviewed')
+        self.assertEqual(self.gh.merges, 0)
 
     def test_fixer_history_change_cannot_publish_after_resume(self):
         self.worker.side_effect = lambda *a, **kw: report('changes_requested')

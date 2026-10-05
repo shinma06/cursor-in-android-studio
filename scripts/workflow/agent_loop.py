@@ -17,7 +17,7 @@ import uuid
 from urllib.parse import quote
 
 from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_number, next_action, update_parent, validate_review
-from agent_worker import run_worker, worker_environment
+from agent_worker import WorkerSettingsError, run_worker, worker_environment
 from handoff_registry import register, resolve
 from verification import verify_pr, metadata
 from issue_schema import validate_issue, done_labels, labels
@@ -370,7 +370,11 @@ class Loop:
                 self.save(pr, state, comment_id)
                 return {'pr': number, 'phase': 'base-synced'}
             if state.get('binding') == bound and state.get('review'):
-                validate_review(state['review'], bound)
+                try:
+                    validate_review(state['review'], bound)
+                except ValueError:
+                    self.invalidate_acceptance(state)
+                    raise
             gui_needed = h['gui_required'] or bool(state.get('review', {}).get('gui_required'))
             acceptance = self.acceptance(pr, path)
             if gui_needed and acceptance.get('mode') in ('develop', 'tooling') and not acceptance.get('cases'):
@@ -442,8 +446,8 @@ class Loop:
         except Exception as error:
             state['errors'] = state.get('errors', 0) + 1
             state['next'] = self.private_error(error)
-            # Preserve fixing/publishing phase so an interrupted worker can be recovered without discarding files.
-            state['interrupted_phase'] = state['phase']
+            # Preserve recoverable phases, but never publish a fix whose model execution is unverified.
+            state['interrupted_phase'] = 'blocked' if isinstance(error, WorkerSettingsError) else state['phase']
             if isinstance(error, ValueError) or state['errors'] >= 3:
                 state['paused'] = True
                 state['phase'] = 'blocked'
