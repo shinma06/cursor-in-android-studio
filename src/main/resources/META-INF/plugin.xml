@@ -17,6 +17,7 @@
     <depends optional="true" config-file="cursor-agent-jcef.xml">com.intellij.modules.jcef</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <fileEditorProvider implementation="com.cursoragent.ui.editor.ChatFileEditorProvider"/>
         <copyPastePostProcessor implementation="com.cursoragent.ui.composer.context.ClipboardContextCopyProcessor"/>
         <!-- Run before the platform PSI paste consumes text; only marked prompt editors are intercepted. -->
         <editorActionHandler action="EditorPaste" implementationClass="com.cursoragent.ui.composer.image.PromptImagePasteHandler" order="first"/>
@@ -47,6 +48,12 @@
         <applicationService serviceImplementation="com.cursoragent.settings.AgentSettingsState"/>
     </extensions>
     <actions>
+        <action id="CursorAgent.ToggleChatEditor" class="com.cursoragent.ui.editor.ChatEditorToggleAction"
+                text="会話のパネル／エディター表示を切り替える" description="同じ会話・下書き・実行を保持したまま表示先を切り替えます。">
+            <keyboard-shortcut keymap="$default" first-keystroke="control D"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta D"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta D"/>
+        </action>
         <action id="CursorAgent.PastePlain" class="com.cursoragent.ui.composer.context.PromptPlainPasteAction"
                 text="入力欄へ本文として貼り付ける" description="コピー元のcontextを添付せず、テキストを入力欄へ貼り付けます。">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift V"/>
