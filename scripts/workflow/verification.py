@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from change_impact import path_impacts, TOOLING as IMPACT_TOOLING, KNOWLEDGE, METADATA
 
 SHA = re.compile(r'[0-9a-f]{40}')
 HASH = re.compile(r'[0-9a-f]{64}')
@@ -96,6 +97,65 @@ def git_read(*args, cwd=None):
 
 def tooling_path(path):
     return path.startswith(TOOLING) or path in ('CLAUDE.md', 'AGENTS.md', 'README.md')
+
+
+def promotion_history(candidate, head, base, allowed, git):
+    """Keep candidate history fixed; import only reproducible, non-build main updates."""
+    previous = candidate
+    synced_paths = set()
+    chain = git('rev-list', '--first-parent', '--reverse', f'{candidate}..{head}').splitlines()
+    for commit in chain:
+        parents = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
+        if not parents or len(parents) > 2 or parents[0] != previous:
+            raise ValueError('Unexpected promotion ancestry; first parents must return to candidate')
+        if len(parents) == 2:
+            if git('rev-list', '--max-count=1', parents[1], '--not', base):
+                raise ValueError('Unexpected promotion ancestry; merge parent must be an ancestor of main')
+        changed = set(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', previous, commit).splitlines())
+        for path in changed & allowed:
+            entry = git('ls-tree', commit, '--', path).split()
+            if entry and (len(entry) != 4 or entry[:2] != ['100644', 'blob']):
+                raise ValueError('Promotion metadata must remain regular JSON')
+        if changed - allowed:
+            if len(parents) != 2:
+                raise ValueError('Untested commit in promotion history, even if later reverted')
+            # An old metadata-only merge can have resolved historical main conflicts.
+            # New content imports must instead reproduce Git's clean merge exactly.
+            roots = git('merge-base', '--all', *parents).splitlines()
+            if len(roots) != 1:
+                raise ValueError('Main sync requires one unambiguous merge base')
+            for incoming in git('rev-list', f'{roots[0]}..{parents[1]}').splitlines():
+                inputs = git('rev-list', '--parents', '-n', '1', incoming).split()[1:]
+                if not inputs:
+                    raise ValueError('Unexpected root in main sync history')
+                for parent in inputs:
+                    raw = git('diff', '--ignore-submodules=none', '--raw', '--no-abbrev', '--no-renames', '-z', parent, incoming).split('\0')
+                    if raw[-1] != '':
+                        raise ValueError('Malformed main sync diff')
+                    for index in range(0, len(raw) - 1, 2):
+                        header, path = raw[index].split(), raw[index + 1]
+                        modes = (header[0].removeprefix(':'), header[1])
+                        if (not set(modes) <= {'000000', '100644', '100755'} or
+                                not path_impacts(path, modes) <= {IMPACT_TOOLING, KNOWLEDGE, METADATA}):
+                            raise ValueError('Product, build or unknown change in main sync history')
+                        # Existing Cases/policies/results cannot be revised through a sync.
+                        # A newly merged GUI-free tooling PR may bring its own acceptance.
+                        if path.startswith('docs/verification/') and not path.endswith('.md'):
+                            match = re.fullmatch(r'docs/verification/changes/issue-([1-9][0-9]*)\.json', path)
+                            if not match or modes != ('000000', '100644') or git('ls-tree', candidate, '--', path):
+                                raise ValueError('Main sync cannot revise acceptance or environment policy')
+                            validate_change(regular_json(incoming, path, git), int(match[1]), False)
+            tree = git('merge-tree', '--write-tree', '--no-messages', *parents)
+            if not SHA.fullmatch(tree):
+                raise ValueError('Main sync did not produce a clean merge tree')
+            if set(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', tree, commit).splitlines()) - allowed:
+                raise ValueError('Main sync differs from the clean merge result')
+            synced_paths.update(changed - allowed)
+        previous = commit
+    if previous != head or set(chain) != set(git('rev-list', head, '--not', candidate, base).splitlines()):
+        raise ValueError('Unexplained commit in promotion history')
+    if set(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', candidate, head).splitlines()) - allowed - synced_paths:
+        raise ValueError('Promotion tree differs from tested candidate outside acceptance metadata or main sync')
 
 
 def source_commits(source, base, git):
@@ -296,19 +356,7 @@ def verify_pr(pr, api, git=git_read):
         git('merge-base', '--is-ancestor', candidate, develop)
         git('merge-base', '--is-ancestor', candidate, head)
         git('merge-base', '--is-ancestor', base, head)
-        # Metadata-only changes after the tested candidate. No untested product edits or main conflict resolutions.
-        allowed = {PROMOTION, path}
-        if any(p not in allowed for p in git('diff', '--name-only', candidate, head).splitlines()):
-            raise ValueError('Promotion tree differs from tested candidate outside acceptance metadata')
-        # A net-zero revert must not smuggle later/unobserved commits into main ancestry.
-        # Every new promotion commit is metadata-only; the only allowed merge parent is current main.
-        for commit in git('rev-list', head, '--not', candidate, base).splitlines():
-            parents = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
-            if not parents or len(parents) > 2 or (len(parents) == 2 and parents[1] != base):
-                raise ValueError('Unexpected promotion ancestry; only the current main merge is allowed')
-            changed = git('diff', '--name-only', parents[0], commit).splitlines()
-            if any(p not in allowed for p in changed):
-                raise ValueError('Untested commit in promotion history, even if later reverted')
+        promotion_history(candidate, head, base, {PROMOTION, path}, git)
         commits = git('rev-list', f'{base}..{candidate}').splitlines()
         if not commits or len(commits) != len(set(commits)):
             raise ValueError('No candidate changes or duplicate commits')

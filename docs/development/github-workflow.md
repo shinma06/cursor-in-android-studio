@@ -112,7 +112,7 @@ GitHubへ接続できずclaimを確認できないときは新規実装を開始
 developではCase不足を拒否しますが、GUI passを要求しません。未実施/blocked/failと次の操作を保ち、`Refs #N`を使います。
 coordinatorは実装受入完了を確認後、QA Issueを先に作成/再利用し、双方向linkと全Caseのreadbackを確認して元実装Issueをstatus:doneでcloseします。GUI不要でもmain未反映分はQAのmain反映マトリクスへ引き継ぎます。失敗時はcloseせず再試行します。親tracking/researchやQA自体は子PRだけでcloseしません。検証担当は区切りで一覧をまとめて実施します。
 
-mainは[固定候補手順](../verification/README.md)で範囲全体を確認します。候補後に許す差分はpromotion JSONとそのpromotion IssueのCase JSONだけです。
+mainは[固定候補手順](../verification/README.md)で範囲全体を確認します。候補後の直接編集はpromotion JSONとそのpromotion IssueのCase JSONだけです。後続main文書/toolingの同期は[限定検証](../verification/README.md#候補固定後のmain同期533)を通し、製品・build・Caseの固定条件を維持します。
 一部Caseだけのpassや未確認製品commitをQA文書変更へ偽装することはgateが拒否します。main先行tooling/前回QA記録は候補固定前に専用develop同期PRへ取り込みます。
 promotionはmerge commitに限定し、GitHub APIのHEAD指定とstrict baseを通します。merge直前にmain/develop refを再取得します。
 main/developへの直接commit/push、admin bypass、hook無効化、force push、`--no-verify`は禁止です。
