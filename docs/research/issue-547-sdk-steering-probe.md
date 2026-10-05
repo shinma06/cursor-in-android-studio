@@ -45,6 +45,10 @@ python3 scripts/workflow/sdk_steering_probe.py --export-node "$PRIVATE_PROBE_MOD
 
 配送側は所有run handle参照・agent/run ID・owner・local送信ID・draft revisionを照合し、1件ずつ受け付ける。ack不明は本文を保全して追加受付/再送を止める。遅いackは旧ownerに記録し、新draftやclose後のdraftを消さない。不受理でも自動follow-upを送らない。保存snapshotのpendingは再読込でunknown、再開状態は受付停止のままにする。これはprobeの保守的な境界であり、製品への採用決定ではない。
 
+SDK呼出しの直前にもcaptured owner/handle/ID、現在のdraft本文/revision、closed/blocked/runningを再確認する。古いticketは受付時に拒否し、受付後にdraft/owner/状態が変わった入力やdispatch前のcloseは`not-dispatched`として本文を保持する。既にdispatchした呼出しへの遅着ackとは区別する。
+
+create/resumeの取得Promiseは期限後も返却handleを所有するcallbackを保持する。遅着AgentのIDとdispose試行/結果をprivate Case・ledgerへ追記し、保存失敗でもdispose試行を省略しない。期限後のCaseはunknownと費用未確認のままで、send/retryを許可しない。disposeのackや遅着handleの回収は物理終了の保証ではない。
+
 | Case | offlineで確認した境界 | 実provider Agent状態 / 人間状態 |
 | --- | --- | --- |
 | S1 | Fake Agentへのtext-only設定/初回send、合成配送ackで同じsnapshotだけ確定、同じIDの再送拒否 | blocked / pending。同一runへの実配送・model消費は未観察 |
@@ -102,7 +106,7 @@ NODE_OPTIONS='' NODE_PATH='' node "$PRIVATE_PROBE_MODULE" --execute-approved "$P
 
 1起動で1 Caseだけ。Caseとrun数は処理前に予約し、各実行の`observed`は観測取得の意味であってCase passではない。実行後は必ず停止し、次のCaseに自動進行しない。`ledger.json`の`costReviewed`はfalseのまま保存する。独立担当が請求の確定証拠を確認して`chargedUsd`（USD）と`costEvidence`（private証拠参照）、`costReviewed: true`を記録した時だけ次の起動を検討する。usage UUIDとclient run IDを混同せず、欠落/遅延/取消後料金を0と推測しない。累積US$0.50以上でも保守的に停止する。unknown Case、重複、未確定費用、上限到達は拒否する。ledgerを手修正してunknown/retry境界を解除しない。
 
-合成checkは同じdriverにFake SDKだけを渡し、6入口（新規send4件、resume1件）、許可未指定・上限・費用未確認の拒否、private保存と元記録保持を検証した。実SDK import/credential内容の読取/agent/providerは0。新規SDK storeの実動作、取消や終了の強制性、model消費は全て未観察のまま。
+合成checkは同じdriverにFake SDKだけを渡し、6入口（新規send4件、resume1件）、許可未指定・上限・費用未確認の拒否、private保存と元記録保持を検証した。独立レビューR548-01/R548-02の回帰では、期限後のcreate/resume返却を各1回disposeしてID/結果を保存すること、古いticket・dispatch直前のdraft/owner/ID/状態変更・closeを未dispatchで拒否することを確認する。既dispatch後の遅着ackの確認も維持する。実SDK import/credential内容の読取/agent/providerは0。新規SDK storeの実動作、取消や終了の強制性、model消費は全て未観察のまま。
 
 ## 実provider検証の許可・上限案
 

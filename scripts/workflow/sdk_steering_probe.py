@@ -37,15 +37,18 @@ export function outbox(owner, run, text = 'Finish with FIXTURE_STEER instead.') 
   return {owner, run, draft: {text, revision: 0}, rows: [], pending: false, blocked: false, closed: false};
 }
 export async function steerOnce(state, run, ticket, timeoutMs = 1000) {
-  if (state.closed || state.blocked || state.pending || state.run !== run ||
-      ticket.owner !== state.owner || ticket.agentId !== run.agentId || ticket.runId !== run.id ||
+  const captured = {...ticket};
+  const ownsInput = () => state.run === run && state.owner === captured.owner &&
+    run.agentId === captured.agentId && run.id === captured.runId &&
+    state.draft.text === captured.text && state.draft.revision === captured.revision;
+  if (state.closed || state.blocked || state.pending || !ownsInput() ||
       typeof ticket.id !== 'string' || !ticket.id || state.rows.some(row => row.id === ticket.id) ||
       typeof ticket.text !== 'string' || !ticket.text.trim() || Buffer.byteLength(ticket.text) > 8192 ||
       !Number.isSafeInteger(ticket.revision) || ticket.revision < 0 ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60000) {
     throw Error('Submission refused before dispatch');
   }
-  const row = {...ticket, status: 'pending'};
+  const row = {...captured, status: 'pending'};
   state.rows.push(row);
   if (run.status !== 'running' || typeof run.steer !== 'function') {
     row.status = 'not-dispatched';
@@ -53,14 +56,21 @@ export async function steerOnce(state, run, ticket, timeoutMs = 1000) {
   }
   state.pending = true;
   const unknown = () => { row.status = 'unknown'; state.blocked = true; };
-  const ack = Promise.resolve().then(() => run.steer(ticket.text)).then(outcome => {
+  const ack = Promise.resolve().then(() => {
+    if (state.closed || state.blocked || !state.pending || !ownsInput() ||
+        run.status !== 'running' || typeof run.steer !== 'function') {
+      row.status = 'not-dispatched';
+      return;
+    }
+    return run.steer(captured.text);
+  }).then(outcome => {
+    if (row.status === 'not-dispatched') return;
     row.status = outcome === 'complete_delivered' ? 'delivered' :
       outcome === 'revert_to_followup' ? 'not-delivered' : 'unknown';
     if (row.status === 'unknown') state.blocked = true;
     // Delivery belongs to the captured owner even after close; never clear a newer draft.
-    if (!state.closed && row.status === 'delivered' &&
-        state.draft.revision === ticket.revision && state.draft.text === ticket.text) {
-      state.draft = {text: '', revision: ticket.revision + 1};
+    if (!state.closed && row.status === 'delivered' && ownsInput()) {
+      state.draft = {text: '', revision: captured.revision + 1};
     }
   }, unknown);
   let timer;
@@ -186,6 +196,30 @@ export async function driveCase({c, ledger, ledgerPath}, sdk, apiKey) {
     return deadline(action(), ms);
   };
   let agent, run, state, stream;
+  const acquireAgent = async (kind, action) => {
+    let stopped = false;
+    try {
+      return await bounded(() => Promise.resolve(action()).then(async handle => {
+        if (stopped || Date.now() >= until) {
+          entry.outcome = 'unknown'; entry.lateAcquisition = kind;
+          entry.lateAgentId = handle.agentId; entry.lateDispose = 'requested';
+          const persist = label => {
+            entry.timeline.push({ms: Date.now() - started, label});
+            try { record(); atomicJson(ledgerPath, ledger); }
+            catch { entry.lateRecord = 'unknown'; }
+          };
+          persist('late-agent-owned');
+          try { await deadline(handle[Symbol.asyncDispose](), c.steerMs); entry.lateDispose = 'acknowledged'; }
+          catch { entry.lateDispose = 'unknown'; }
+          persist('late-agent-dispose-settled-or-unknown');
+          throw Error('Agent returned after client deadline');
+        }
+        // Own the handle before the race settles, including an expiry at this boundary.
+        agent = handle;
+        return handle;
+      }));
+    } catch (error) { stopped = true; throw error; }
+  };
   try {
     for (const name of ['fixture', 'store']) {
       const dir = path.join(c.root, name);
@@ -199,7 +233,7 @@ export async function driveCase({c, ledger, ledgerPath}, sdk, apiKey) {
     const ref = ledger.entries.find(e => e.case === 'S1');
     if (!fresh) {
       if (c.case === 'S5') {
-        agent = await bounded(() => sdk.Agent.resume(ref.agentId, options));
+        agent = await acquireAgent('resume', () => sdk.Agent.resume(ref.agentId, options));
         if (agent.agentId !== ref.agentId) throw Error('Resumed owner changed');
         mark('resume-no-send');
       }
@@ -215,7 +249,7 @@ export async function driveCase({c, ledger, ledgerPath}, sdk, apiKey) {
         entry.messages = await bounded(() => sdk.Agent.messages.list(ref.agentId, lookup));
       }
     } else {
-      agent = await bounded(() => sdk.Agent.create(options)); mark('created');
+      agent = await acquireAgent('create', () => sdk.Agent.create(options)); mark('created');
       run = await bounded(() => agent.send(initialText));
       if (run.agentId !== agent.agentId) throw Error('Initial run owner changed');
       entry.agentId = run.agentId; entry.runId = run.id; mark('initial-send');
@@ -392,6 +426,27 @@ export async function offlineCheck() {
   await steerOnce(a, a.run, ticket(a)); await steerOnce(b, b.run, ticket(b));
   assert.equal(a.rows[0].status, 'delivered'); assert.equal(b.rows[0].status, 'delivered');
   assert.equal(calls, 4);
+  const dispatchTrace = [];
+  const guardedRun = () => ({id: 'fixture-guarded-run', agentId: 'fixture-guarded-agent', status: 'running',
+    steer: async text => { dispatchTrace.push(['steer', text]); return 'complete_delivered'; },
+    cancel: async () => { dispatchTrace.push(['cancel']); },
+  });
+  state = outbox('fixture-owner', guardedRun());
+  const staleTicket = ticket(state); state.draft = {text: 'NEW_DRAFT', revision: 1};
+  await rejected(() => steerOnce(state, state.run, staleTicket));
+  assert.equal(state.rows.length, 0); assert.equal(state.draft.text, 'NEW_DRAFT');
+  for (const change of [s => { s.draft.text = 'NEW_DRAFT'; }, s => { s.draft.revision++; },
+    s => { s.owner = 'other-owner'; }, s => { s.run = {...s.run}; },
+    s => { s.run.id = 'other-run'; }, s => { s.run.agentId = 'other-agent'; },
+    s => { s.blocked = true; }, s => { s.run.status = 'finished'; }]) {
+    const s = outbox('fixture-owner', guardedRun());
+    const queued = steerOnce(s, s.run, ticket(s)); change(s);
+    assert.equal((await queued).status, 'not-dispatched'); assert.notEqual(s.draft.text, '');
+  }
+  state = outbox('fixture-owner', guardedRun());
+  const beforeClose = steerOnce(state, state.run, ticket(state));
+  await closeProbe(state); assert.equal((await beforeClose).status, 'not-dispatched');
+  assert.deepEqual(dispatchTrace, [['cancel']]); assert.notEqual(state.draft.text, '');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdk-probe-synthetic-'));
   try {
     fs.chmodSync(dir, 0o700);
@@ -469,16 +524,30 @@ export async function offlineCheck() {
       }}}, 'SYNTHETIC_NOT_A_CREDENTIAL');
     assert.equal(unknownResult.observation, 'unknown');
     assert.equal(unknownLedger.entries[0].snapshot.rows[0].status, 'unknown');
-    const expired = await driveCase({c: {...c, runMs: 1},
-      ledger: {runs: 0, elapsedMs: 0, entries: []}, ledgerPath: path.join(dir, 'expired.json')},
-      {...fakeSdk, Agent: {...fakeSdk.Agent, create: async () => {
-        await new Promise(resolve => setTimeout(resolve, 10)); return makeAgent();
-      }}}, 'SYNTHETIC_NOT_A_CREDENTIAL');
-    assert.equal(expired.observation, 'unknown'); assert.equal(sends, 5); // No send after expired create.
+    for (const kind of ['create', 'resume']) {
+      const lateRoot = path.join(dir, `late-${kind}`); fs.mkdirSync(lateRoot, {mode: 0o700});
+      const acquiring = deferred(), cleaned = deferred(); let acquired = 0, disposed = 0;
+      const lateCase = kind === 'create' ? 'S1' : 'S5';
+      const lateLedger = {runs: 0, elapsedMs: 0, entries: kind === 'create' ? [] : [{case: 'S1', agentId: 'fixture-prior'}]};
+      const lateSdk = {...fakeSdk, Agent: {...fakeSdk.Agent, [kind]: () => { acquired++; return acquiring.promise; }}};
+      const expired = await driveCase({c: {...c, case: lateCase, root: lateRoot}, ledger: lateLedger,
+        ledgerPath: path.join(lateRoot, 'ledger.json')}, lateSdk, 'SYNTHETIC_NOT_A_CREDENTIAL');
+      assert.equal(expired.observation, 'unknown'); assert.equal(acquired, 1);
+      acquiring.resolve({agentId: `fixture-late-${kind}`, send: async () => { sends++; },
+        [Symbol.asyncDispose]: async () => { disposed++; cleaned.resolve(); }});
+      await cleaned.promise; await new Promise(resolve => setImmediate(resolve));
+      const saved = JSON.parse(fs.readFileSync(path.join(lateRoot, 'ledger.json'), 'utf8')).entries.at(-1);
+      const caseRecord = JSON.parse(fs.readFileSync(path.join(lateRoot, `${lateCase}.json`), 'utf8'));
+      assert.equal(disposed, 1); assert.equal(sends, 5); // Late create/resume never sends.
+      assert.equal(saved.outcome, 'unknown'); assert.equal(saved.lateAcquisition, kind);
+      assert.equal(saved.lateAgentId, `fixture-late-${kind}`); assert.equal(saved.lateDispose, 'acknowledged');
+      assert.equal(caseRecord.lateDispose, 'acknowledged');
+      assert.equal(saved.costReviewed, false);
+    }
   } finally { fs.rmSync(dir, {recursive: true}); }
   return {evidence: 'synthetic-only', offline_checks: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'],
     provider_cases: Object.fromEntries(['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].map(id => [id, 'blocked'])),
-    driver_checks: 'fake-sdk-only; configuration, six entries, atomic private records',
+    driver_checks: 'fake-sdk-only; configuration, six entries, atomic private records; late create/resume cleanup and dispatch guards',
     sdk_agents: 0, provider_calls: 0, model_consumption: 'unobserved', physical_quiescence: 'unobserved'};
 }
 '''
