@@ -18,6 +18,67 @@ import javax.swing.SwingUtilities
 
 class ChatEditorPresentationTest {
     @Test
+    fun `closing an inactive chats owning split preserves selected chat queue history and context target`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("inactive split close").fixture
+        fixture.setUp()
+        val settings = com.cursoragent.settings.AgentSettingsState.getInstance()
+        val executable = settings.agentExecutablePath
+        settings.agentExecutablePath = java.nio.file.Path.of(fixture.project.basePath!!, "missing-" + java.util.UUID.randomUUID()).toString()
+        try {
+            runInEdtAndWait {
+                fun get(owner: Any, name: String): Any = owner.javaClass.getDeclaredField(name)
+                    .apply { isAccessible = true }.get(owner)
+                val root = com.cursoragent.ui.AgentToolWindowRootPanel(fixture.project) {}
+                try {
+                    val sessions = get(root, "sessions") as SessionTabs
+                    val views = get(root, "views") as Map<*, *>
+                    val firstId = sessions.snapshot().selectedId
+                    val firstView = requireNotNull(views[firstId])
+                    val presentation = get(firstView, "presentation") as ChatEditorPresentation
+                    val first = presentation.createEditor()
+                    val second = presentation.createEditor()
+                    first.selectNotify()
+                    val selectedId = sessions.open().id
+                    root.javaClass.getDeclaredMethod("showSelected", com.cursoragent.history.Conversation::class.java,
+                        Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+                        .apply { isAccessible = true }.invoke(root, null, false, false)
+                    val selectedView = requireNotNull(views[selectedId])
+                    val queue = get(get(selectedView, "controller"), "queue") as com.cursoragent.ui.PromptQueue
+                    assertTrue(queue.add("selected chat queued prompt", AgentMode.AGENT, "model"))
+                    val ticket = requireNotNull(queue.ticket(1))
+                    val history = get(selectedView, "history")
+                    val historyGeneration = get(history, "generation")
+                    val snapshot = sessions.snapshot()
+                    val content = get(presentation, "view") as javax.swing.JComponent
+
+                    first.dispose()
+
+                    assertEquals(snapshot, sessions.snapshot(), "Closing a background split must not change the selected chat")
+                    assertEquals(ticket, queue.ticket(1), "The selected chat's scheduled queue dispatch must remain valid")
+                    assertEquals(historyGeneration, get(history, "generation"), "Pending history must not be cancelled")
+                    assertTrue(SwingUtilities.isDescendingFrom(content, second.component))
+                    assertFalse(SwingUtilities.isDescendingFrom(content, first.component))
+                    val selection = com.cursoragent.ui.composer.context.SelectionContext(
+                        "file:///Fixture.kt", "Fixture.kt", 0, 4, 1, 1, "code", 1)
+                    requireNotNull(root.selectionContextTarget()).invoke(selection)
+                    val selectedComposer = get(selectedView, "composer") as com.cursoragent.ui.composer.ComposerPanel
+                    val firstComposer = get(firstView, "composer") as com.cursoragent.ui.composer.ComposerPanel
+                    assertEquals(listOf(selection), selectedComposer.promptContext.draft.snapshot().selections)
+                    assertTrue(firstComposer.promptContext.draft.snapshot().selections.isEmpty())
+
+                    second.selectNotify()
+                    assertEquals(firstId, sessions.snapshot().selectedId, "A real editor selection still selects its owner")
+                    assertTrue(queue.paused)
+                    assertNotEquals(historyGeneration, get(history, "generation"))
+                } finally { Disposer.dispose(root) }
+            }
+        } finally {
+            settings.agentExecutablePath = executable
+            runInEdtAndWait { fixture.tearDown() }
+        }
+    }
+
+    @Test
     fun `split views preserve the same input editor caret draft and running session until final close`() {
         val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("chat editor ownership").fixture
         fixture.setUp()
