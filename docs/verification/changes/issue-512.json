@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 512,
+  "gui_required": false,
+  "reason": "監査#512の部分是正として、非実行・非同梱の旧GUI記録2行から開発チャット識別子を非公開証拠参照へ置換する。実装、build、当時の実観察・GUI未達、既存Caseの結果は変更しない。監査全体・Git履歴・main反映は未完了として維持する。",
+  "cli_checks": [
+    "固定baseの原文2件とタスク識別子の対応を非公開保管し、ISSUE-512-GUI-01/02から追跡可能であることをhashで照合する。実値を公開記録へ転載しない。",
+    "差分は文書2行とこの受入JSONだけであること、各2行の置換を戻すと元文書の全byteと一致することを確認する。日時・版・SHA・観察・未確認事項・公開リンクを保持する。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests、git diff --check、受入JSON schema、固定HEAD/baseの独立レビュー、4必須checksを確認する。",
+    "develop統合後にmain未反映をQAへ双方向移譲する。本PRで監査#512をcloseせず、完了baseline・固定promotion候補・過去のGUI結果は変更しない。"
+  ],
+  "cases": []
+}

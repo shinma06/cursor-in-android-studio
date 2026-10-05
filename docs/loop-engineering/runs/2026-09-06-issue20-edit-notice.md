@@ -25,7 +25,7 @@ GPTがIssue #1の推奨順と#20のコメントを確認し、P0 #20を選択し
 
 ## Computer Useで観察したこと
 
-観察日: 2026-09-06 JST。このタスク（`01a0724b-f011-7d53-ad2e-70a97985d3f0`）の`mcp__cua_repl`出力が一次証拠。ローカルの各runの`evidence/`に操作とAX抜粋・エラーを保存した。
+観察日: 2026-09-06 JST。当時のタスクの`mcp__cua_repl`出力が一次証拠。タスク識別子は非公開証拠 `ISSUE-512-GUI-01` で管理する。ローカルの各runの`evidence/`に操作とAX抜粋・エラーを保存した。
 
 1. Cursorは最初に開発リポジトリを表示。Cmd+Oはファイル用ダイアログだったため取消し、File → フォルダーを開くを使用。Cmd+Shift+Gでr1/cursorを指定し、AXのselected URLと場所はfixtureを示したが、スクリーンショットのOpenは無効のまま。Returnで遷移せず、横スクロールで`noWindowsAvailable`。マーカー本文は確認できず、プロンプトは入力・送信していない。
 2. 通常版Android Studioの実画面では、空のComposerに即時編集・事後Revertの説明がなかった。ただしinstalled SHAは未特定で、これは限定的な表示の再現記録。新ビルドの製品fail/passには使わない。ソースでもComposer/Settings双方の説明欠落を確認した。
