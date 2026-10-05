@@ -102,12 +102,13 @@ class AgentProcessService(private val project: Project) : Disposable {
 
     /** Capture session ownership before scheduling, so a late task cannot recreate a closed tab. */
     @Synchronized
-    fun prepareAcpCommands(tabId: String, root: String, executable: String, conversationId: String, onImageSupport: (Boolean?) -> Unit = {}, onTitle: (String, String?) -> Unit = { _, _ -> }, onCommands: (CommandCatalog) -> Unit) {
+    fun prepareAcpCommands(tabId: String, root: String, executable: String, conversationId: String, onImageSupport: (Boolean?) -> Unit = {}, onTitle: (String, String?) -> Unit = { _, _ -> }, onConfiguration: (AgentEvent.Configuration?) -> Unit = {}, onCommands: (CommandCatalog) -> Unit) {
         if (disposed) return
         val session = acpSession(tabId, conversationId)
         session.observeCommands(onCommands)
         session.observeImageSupport(onImageSupport)
         session.observeTitle(onTitle)
+        session.observeConfiguration(onConfiguration)
         com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
             val canonicalRoot = runCatching { RestoreTarget.capture(root, WorktreeMode.DEFAULT).rootPath }.getOrNull()
             val preparation = operations.tryPrepare()
@@ -118,9 +119,26 @@ class AgentProcessService(private val project: Project) : Disposable {
         }
     }
 
+    /** Captures this connection only. Cancelling a queued change cannot recreate a closed conversation. */
+    @Synchronized
+    fun changeAcpConfiguration(tabId: String, expected: AgentEvent.Configuration, draft: AgentEvent.Configuration, id: String, value: String,
+        finished: (Boolean) -> Unit): () -> Unit {
+        val current = java.util.concurrent.atomic.AtomicBoolean(!disposed)
+        val session = acpSessions[tabId]
+        try {
+            com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+                val success = session != null && runCatching {
+                    session.changeConfiguration(expected, draft, id, value, current::get)
+                }.isSuccess
+                finished(success)
+            }
+        } catch (_: Exception) { finished(false) }
+        return { current.set(false) }
+    }
+
     /** Early UI guidance; AcpSession still validates the same values at its execution boundary. */
     fun settingsUnavailableReason(transport: AgentTransport, settings: TurnSettings, mode: WorktreeMode): String? {
-        if (transport == AgentTransport.PRINT) return null
+        if (transport == AgentTransport.PRINT) return if (settings.modelParameters.isEmpty()) null else "このモデル設定はACP接続専用です。モデルを選び直してください。"
         return try {
             AcpSession.validateSettings(settings, mode)
             null

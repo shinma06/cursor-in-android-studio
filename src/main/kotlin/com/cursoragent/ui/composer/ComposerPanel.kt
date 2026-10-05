@@ -23,6 +23,10 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     var isRunning = false
         private set
     private var acp = false
+    internal var modelConfigurationBusy = false
+        private set
+    internal val canConfigureModel: Boolean get() = acp && !isRunning && !modelConfigurationBusy &&
+        inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen && images?.importing != true
     internal var images: com.cursoragent.ui.composer.image.ImageDraft? = null
         private set
     private val imageContainer = JPanel(BorderLayout()).apply { isOpaque = false }
@@ -184,9 +188,19 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     fun showAcpConfiguration(state: AgentEvent.Configuration) {
         val mode = AgentMode.entries.firstOrNull { it.name.lowercase() == state.mode } ?: return
         modeSelector.selectMode(mode)
-        modelSelector.setAcpModels(state.models, state.model)
+        showAcpModelConfiguration(state)
         modeSelector.isEnabled = !isRunning
-        modelSelector.isEnabled = !isRunning && state.models.isNotEmpty()
+    }
+
+    internal fun showAcpModelConfiguration(state: AgentEvent.Configuration?, preserveDraft: Boolean = false) {
+        modelSelector.setAcpConfiguration(state, preserveDraft)
+        modelSelector.isEnabled = !isRunning && !modelConfigurationBusy && state != null
+    }
+
+    internal fun setModelConfigurationBusy(busy: Boolean) {
+        modelConfigurationBusy = busy
+        modelSelector.isEnabled = !isRunning && !busy && modelSelector.acpConfiguration != null
+        modeSelector.isEnabled = inputArea.isEnabled && !isRunning && !busy
     }
 
     fun setInputEnabled(enabled: Boolean) {
@@ -202,7 +216,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         accessoryPanel.isVisible = running || queueButton.isVisible
         if (acp) {
             modeSelector.isEnabled = !running
-            modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
+            modelSelector.isEnabled = !running && !modelConfigurationBusy && modelSelector.acpConfiguration != null
         }
         sendButton.text = if (running) "" else "↑"
         sendButton.icon = if (running) StopIcon else null
@@ -217,7 +231,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     }
 
     internal val canMovePresentation: Boolean
-        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
+        get() = !modelConfigurationBusy && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
             !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
 
     internal val canToggleEditorWithShortcut: Boolean
@@ -226,7 +240,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (isRunning || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
+        if (isRunning || modelConfigurationBusy || !inputArea.isEnabled || inputArea.isComposing || commands.popupOpen || mentionPopupController.popupOpen) return
         val text = inputText()
         if (images?.importing == true) return
         if (text.isNotEmpty() || commands.selectedName != null || images?.attachment != null) {

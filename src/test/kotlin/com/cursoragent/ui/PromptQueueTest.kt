@@ -25,6 +25,20 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
 class PromptQueueTest {
+    @Test
+    fun `model parameter snapshot cannot be changed by later draft edits or queue edits`() {
+        val queue = PromptQueue("conversation")
+        val values = mutableMapOf("thinking" to "high")
+        queue.add("queued", AgentMode.ASK, "actual-model", modelParameters = values)
+        values["thinking"] = "low"
+        val item = queue.snapshot().single()
+        queue.edit(item.id, "edited")
+        assertEquals(mapOf("thinking" to "high"), queue.snapshot().single().modelParameters)
+        queue.remove(item.id)
+        queue.restoreUnsent(item)
+        assertEquals(mapOf("thinking" to "high"), queue.snapshot().single().modelParameters)
+    }
+
     @org.junit.jupiter.api.Test
     fun `explicit attachment snapshot belongs to queue item across draft edits and dispatch`() {
         val draft = com.cursoragent.ui.composer.context.PromptContextDraft()

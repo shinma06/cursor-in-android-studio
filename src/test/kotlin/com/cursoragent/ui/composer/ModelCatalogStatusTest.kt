@@ -12,6 +12,40 @@ import javax.swing.SwingUtilities
 
 class ModelCatalogStatusTest {
     @Test
+    fun `ACP queue configuration preserves draft and parameter cycle waits for confirmation`() = SwingUtilities.invokeAndWait {
+        val settings = AgentSettingsState()
+        val selector = ModelSelector(settings)
+        selector.waitForAcp()
+        val models = listOf(ModelOption("a", "A"), ModelOption("b", "B"))
+        val values = listOf(ModelOption("low", "Low"), ModelOption("high", "High"))
+        val initial = com.cursoragent.service.AgentEvent.Configuration("ask", "a", models, listOf(
+            com.cursoragent.service.ModelParameter("fixed", "Fixed", "model_config", "low", values.take(1)),
+            com.cursoragent.service.ModelParameter("thinking", "Thinking", "thought_level", "high", values),
+        ))
+        selector.setAcpConfiguration(initial)
+        val queued = initial.copy(mode = "agent", model = "b", parameters = emptyList())
+        selector.setAcpConfiguration(queued, preserveDraft = true)
+        assertSame(queued, selector.providerConfiguration)
+        assertSame(initial, selector.acpConfiguration)
+        assertEquals("a", settings.selectedModel)
+        val requested = mutableListOf<Pair<String, String>>()
+        selector.onConfigure = { state, id, value -> assertSame(initial, state); requested += id to value }
+        selector.cycleParameter()
+        assertEquals(listOf("thinking" to "low"), requested)
+        assertEquals("high", selector.parameterValues["thinking"])
+        selector.isEnabled = false
+        selector.cycleParameter()
+        assertEquals(1, requested.size)
+        selector.setAcpConfiguration(queued)
+        assertEquals("b", settings.selectedModel)
+        assertTrue(selector.parameterValues.isEmpty())
+        selector.cycleParameter()
+        assertEquals(1, requested.size)
+        selector.setAcpConfiguration(null)
+        assertFalse(selector.isEnabled)
+    }
+
+    @Test
     fun `failure empty loading and saved selection remain distinct and retry accepts keyboard`() = SwingUtilities.invokeAndWait {
         for (saved in listOf("", "auto", "gpt-5.3-codex-low")) {
             val settings = AgentSettingsState().apply { selectedModel = saved }

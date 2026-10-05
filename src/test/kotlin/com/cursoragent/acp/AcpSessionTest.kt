@@ -22,6 +22,7 @@ class AcpSessionTest {
         val diagnostics = CopyOnWriteArrayList<String>()
         var failDiagnostics = false
         val commands = CopyOnWriteArrayList<CommandCatalog>()
+        val configurations = CopyOnWriteArrayList<AgentEvent.Configuration?>()
         val imageSupport = CopyOnWriteArrayList<Boolean?>()
         val received = CountDownLatch(1)
         val session: AcpSession
@@ -40,13 +41,15 @@ class AcpSessionTest {
                 diagnostics.add(diagnostic)
                 if (failDiagnostics) error("synthetic diagnostic failure")
             }, privateDiagnostic, isWorkspaceUncertain = { gate.isUncertain })
+            session.observeConfiguration { configurations.add(it) }
             session.observeCommands { commands.add(it) }
             session.observeImageSupport { imageSupport.add(it) }
         }
 
         fun send(model: String = "", mode: AgentMode = AgentMode.AGENT, prompt: String = "synthetic prompt", commandText: String? = null,
             image: com.cursoragent.ui.composer.image.ValidatedImage? = null,
-            preparation: WorkspaceOperationGate.Preparation = gate.tryPrepare()!!) {
+            preparation: WorkspaceOperationGate.Preparation = gate.tryPrepare()!!,
+            modelParameters: Map<String, String> = emptyMap()) {
             run = AgentRun(object : AgentProcessListener {
                 override fun onStarted() { starts.incrementAndGet() }
                 override fun onStructuredEvent(event: AgentEvent) {
@@ -63,7 +66,7 @@ class AcpSessionTest {
                 override fun onUncertain(message: String) { outcomes += "uncertain" }
             })
             val turn = PreparedAgentTurn(run, TurnWorkspace(root.toString(), WorktreeMode.DEFAULT, null), preparation,
-                TurnSettings("synthetic", model, mode, PermissionMode.ASK_EVERY_TIME, SandboxMode.DEFAULT))
+                TurnSettings("synthetic", model, mode, PermissionMode.ASK_EVERY_TIME, SandboxMode.DEFAULT, modelParameters))
             lastTurn = turn
             worker = thread { preparation.use { session.send(prompt, turn, commandText, commandText?.substringBefore(' ')?.removePrefix("/"), image) } }
         }
@@ -81,6 +84,77 @@ class AcpSessionTest {
                 if (!it.waitFor(5, TimeUnit.SECONDS)) it.destroyForcibly().waitFor(5, TimeUnit.SECONDS)
             }
             worker?.join(8000)
+        }
+    }
+
+    @Test
+    fun `in flight setting excludes prompt and cancellation discards its late response`() {
+        Harness(temp, "model-config-delayed").use { h ->
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            val initial = h.configurations.last()!!
+            val current = java.util.concurrent.atomic.AtomicBoolean(true)
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val change = thread(isDaemon = true) {
+                failure.set(runCatching { h.session.changeConfiguration(initial, initial, "fast", "on", current::get) }.exceptionOrNull())
+            }
+            awaitCondition { Files.exists(temp.resolve("config-pending")) }
+            h.send()
+            h.finish()
+            assertFalse(h.lastTurn.promptDispatched)
+            current.set(false)
+            Files.writeString(temp.resolve("release-config"), "")
+            change.join(5000)
+            assertFalse(change.isAlive)
+            assertTrue(failure.get() is AcpException)
+            assertNull(h.configurations.last())
+            assertTrue(h.wire().none { it.string("method") == "session/prompt" })
+            assertEquals(1, h.wire().count { it.string("method") == "session/set_config_option" })
+        }
+    }
+
+    @Test
+    fun `idle model parameters restore draft after queued settings and reject stale or cancelled choices`() {
+        Harness(temp, "model-config").use { h ->
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            val initial = h.configurations.last()!!
+            assertEquals(listOf("reasoning", "fast"), initial.parameters.map { it.id })
+            val initialize = h.wire().single { it.string("method") == "initialize" }
+            assertTrue(initialize.getAsJsonObject("params").getAsJsonObject("clientCapabilities").getAsJsonObject("_meta")["parameterizedModelPicker"].asBoolean)
+            h.session.changeConfiguration(initial, initial, "reasoning", "medium") { true }
+            val draft = h.configurations.last()!!
+            assertEquals("medium", draft.parameterValues()["reasoning"])
+            h.send(model = "small", modelParameters = mapOf("reasoning" to "high", "fast" to "on"))
+            h.finish()
+            val queued = h.events.filterIsInstance<AgentEvent.Configuration>().last()
+            assertEquals("small", queued.model)
+            assertEquals(mapOf("reasoning" to "high", "fast" to "on"), queued.parameterValues())
+            h.session.changeConfiguration(queued, draft, "fast", "on") { true }
+            val restored = h.configurations.last()!!
+            assertEquals(draft.model, restored.model)
+            assertEquals(mapOf("reasoning" to "medium", "fast" to "on"), restored.parameterValues())
+            val before = h.wire().size
+            assertThrows(IllegalStateException::class.java) { h.session.changeConfiguration(initial, initial, "fast", "on") { true } }
+            assertThrows(IllegalStateException::class.java) { h.session.changeConfiguration(restored, restored, "fast", "off") { false } }
+            assertThrows(IllegalStateException::class.java) { h.session.changeConfiguration(restored, restored, "invented", "off") { true } }
+            assertEquals(before, h.wire().size)
+            h.session.changeConfiguration(restored, restored, "model", "small") { true }
+            assertEquals(listOf("low", "high"), h.configurations.last()!!.parameters.first().options.map { it.id })
+            assertEquals("low", h.configurations.last()!!.parameterValues()["reasoning"])
+            assertEquals(1, h.wire().count { it.string("method") == "session/prompt" })
+        }
+    }
+
+    @Test
+    fun `unconfirmed model parameter disconnects and never sends a prompt`() {
+        Harness(temp, "model-config-fail").use { h ->
+            h.session.prepare(temp.toRealPath().toString(), "synthetic")
+            val initial = h.configurations.last()!!
+            assertThrows(AcpException::class.java) { h.session.changeConfiguration(initial, initial, "fast", "on") { true } }
+            assertNull(h.configurations.last())
+            h.send()
+            h.finish()
+            assertTrue(h.wire().none { it.string("method") == "session/prompt" })
+            assertEquals(1, h.processes.size)
         }
     }
 
@@ -368,6 +442,11 @@ class AcpSessionTest {
             h.send()
             assertTrue(h.received.await(5, TimeUnit.SECONDS))
             val request = h.events.filterIsInstance<AgentEvent.Input>().single().request
+            val currentConfig = h.events.filterIsInstance<AgentEvent.Configuration>().last()
+            assertThrows(IllegalStateException::class.java) {
+                h.session.changeConfiguration(currentConfig, currentConfig, "model", "small") { true }
+            }
+            assertTrue(h.wire().none { it.string("method") == "session/set_config_option" })
             assertTrue(request.answer(AgentAnswer.Permission("reject")))
             assertFalse(request.answer(AgentAnswer.Permission("allow")))
             h.finish()

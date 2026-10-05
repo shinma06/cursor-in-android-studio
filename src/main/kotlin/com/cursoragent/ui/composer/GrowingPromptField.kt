@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities
 /** Grow by actual editor visual lines (including soft wraps), then let the editor scroll. */
 class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
+    internal var modelParameterKeyHeld = false
     internal var clipboardContextAvailable: () -> Boolean = { true }
     internal var onClipboardContext: ((ClipboardContextData) -> Unit)? = null
     private var resizePending = false
@@ -74,6 +75,15 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         com.cursoragent.ui.composer.image.installPromptImageInput(editor) { value ->
             if (!isEnabled || isComposing) true else onImageTransfer?.invoke(value) ?: false
         }
+        modelParameterKeyHeld = false
+        editor.contentComponent.addKeyListener(object : java.awt.event.KeyAdapter() {
+            override fun keyReleased(e: java.awt.event.KeyEvent) { modelParameterKeyHeld = false }
+        })
+        editor.contentComponent.addFocusListener(object : java.awt.event.FocusAdapter() {
+            override fun focusLost(e: java.awt.event.FocusEvent) { modelParameterKeyHeld = false }
+        })
+        val cycle = com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("CursorAgent.CycleModelParameter")
+        cycle?.registerCustomShortcutSet(cycle.shortcutSet, editor.contentComponent)
         ime.reset()
         editor.contentComponent.addInputMethodListener(ime)
         editor.settings.apply {
