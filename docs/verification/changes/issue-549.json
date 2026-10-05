@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 549,
+  "gui_required": false,
+  "reason": "固定Cursor 3.23.12の静的条件について、共有ショートカット対応表のVoice取消行と根拠だけを訂正する。製品コード・Voice実装・権限・音声送信・GUI操作・既存Case観察は変更しない。実Keymap配送は未GUI、Voice/P09と親#212は未完了のまま。",
+  "cli_checks": [
+    "固定Cursor commit 2d29876d567da1607532b23bbf2cd5ddbca496f0、workbench.desktop.main.js SHA-256 87cd7ca0b620138599c195d477a728e05910e28dc02082b325d78f13588accedと既存調査証拠を照合。UTF-8復号後0始まり文字offset 30318535のsetState内のcontext設定条件を限定確認。",
+    "composer.cancelVoiceDictation行と隣接根拠がrecording、processingかつstreamSessionあり、requesting_permission除外を区別し、全OSの実キー配送未GUI・Voice/P09未実装・#212未完了を保持することを確認。",
+    "python3 scripts/workflow/verification.py docs/verification/changes/issue-549.json: 既存schemaによる検証。GUI不要のcases空配列と理由/CLI checksを確認。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests: 固定Issue差分のworkflow/metadata testsと空白検査。製品runtime/build変更なしの分類ならJVM/ZIP buildを省略。",
+    "公開する差分・commit metadata・claim・PR本文を点検し、個人path/host/chat識別子/credential/private raw証拠を追加していないことを確認。独立レビューと4 checks、develop統合後のmain未反映QA引継ぎはPMの次工程。"
+  ],
+  "cases": []
+}

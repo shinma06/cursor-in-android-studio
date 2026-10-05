@@ -49,7 +49,7 @@
 | `composer.cycleModelParameter` | Cmd+Shift+/ | Ctrl+Alt+/ / Ctrl+Shift+/ | Ctrl+Shift+/ | 同じfocus条件、weight201。広告されたcycleable parameterで複数値を持つものを循環する。WindowsではAll Agentsのweight200とも重なる。 | in-IDE静的確認 / ACPの広告設定と親Keymapへ接続済み、hotkey属性差・GUI pending / P10 |
 | `composer.openAddContextMenu` | Cmd+Option+P | Ctrl+Alt+P | Ctrl+Alt+P | composerにfocus、一般editor textにfocusなし。context候補を開く。 | in-IDE静的確認 / 一部接続済み / A1 |
 | `composer.toggleVoiceDictation` | Cmd+Shift+Space | Ctrl+Shift+Space | Ctrl+Shift+Space | isGlass=false、terminal focusなし。選択chatの音声入力を開始/停止する。 | in-IDE静的確認 / 能力未実装 / P09 |
-| `composer.cancelVoiceDictation` | Escape | Escape | Escape | composer editorまたは表示中aichat viewで録音中。処理中も取消handlerはあるがwhenは録音中だけなので到達は未GUI。 | in-IDE静的確認 / 能力未実装 / P09 |
+| `composer.cancelVoiceDictation` | Escape | Escape | Escape | composer editorまたは表示中aichat viewで`voiceInputRecording`がtrue（`recording`、または`processing`かつ`streamSession`あり）。`requesting_permission`は含まない。実キー配送は未GUI。 | in-IDE静的確認 / 能力未実装 / P09 |
 | `composer.find.focus` | Cmd+F | Ctrl+F | Ctrl+F | composerにfocus、会話内findにはfocusなし。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
 | `composer.find.hide` | Escape | Escape | Escape | 会話内findにfocus。検索欄が可視という条件だけではない。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
 | `composer.find.next` | F3 / Enter | F3 / Enter | F3 / Enter | 会話内findにfocus。次の本文matchへ移動する。 | in-IDE静的確認 / develop実装済み、GUI・main反映はQA #532でpending / P01 |
@@ -61,6 +61,8 @@
 | `aiSettings.action.open` | Cmd+Shift+J / Cmd+, | Ctrl+Shift+J / Ctrl+, | Ctrl+Shift+J / Ctrl+, | M+Shift+Jはglobal、M+,はisGlass=false。固定配布版では両方Cursor Settingsを開き、一般IDE設定はM+Shift+,。Pluginはproject内global設定入口へ接続。公式概要との差を保持する。 | in-IDE静的確認 / global設定へ接続・GUI pending / A1 |
 | `workbench.action.quickOpenNavigateNextInAgentsPicker` | Control+Tab | Ctrl+Tab | Ctrl+Tab | quick open内のAgents MRU picker、weight250。picker内だけで次へ進む。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
 | `workbench.action.quickOpenNavigatePreviousInAgentsPicker` | Control+Shift+Tab | Ctrl+Shift+Tab | Ctrl+Shift+Tab | 上記の前へ移動。通常editor切替には流さない。 | in-IDE静的確認 / local会話の最近使用一覧へ接続、保存会話を含む・未GUI / A2 |
+
+Voice取消の静的根拠は上記固定版の`workbench.desktop.main.js`、UTF-8復号後の0始まり文字offset `30318535`にあるserviceの`setState`内の`voiceInputRecordingKey.set`。設定条件は`this.state.status === "recording" || (this.state.status === "processing" && this.streamSession !== void 0)`であり、キーの名称だけから録音中限定と解釈しない。登録のwhenとhandlerを静的に追跡した結果で、全OSの実Keymap配送・取消後の挙動は未確認。PluginのVoice/P09は未実装で、OS dictationや生音声ACP capabilityの同等性、#212全体の完了を示さない。
 
 panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`、`NextChat`、`Stop`、`ModeMenu`、`ModelMenu`、`AddContext`、`History`、`Changes`、`Settings`の11 Action。project全体から使う`CursorAgent.TogglePanel`と`CursorAgent.SwapPanelSide`に`OpenChat`、`FollowUp`、`NewAgent`、`AllChats`を加えた6 Actionを別に登録する。ToolWindowがまだ生成されていなくても標準content生成/表示へ接続する。`RecentChat` / `LeastRecentChat`の2 Actionもpanel内と専用一覧内へ接続し、修飾左右の`PreviousAgent` / `NextAgent`も別Actionとして接続し、入力局所の`ResetChat` / `UnfocusInput`も加え、AcceptPendingとSubmitInitialChat、ApproveTool/SkipToolも加えてpanel専用は計19 Action、Settings/Historyは同じIDを保って7/8つ目のglobal Actionへ移す。Settings/Historyは引き続きpanelにもlocal登録する。設定・会話owner・未保存確認等は既存経路を再利用する。表の一部接続だけで全分岐を満たしたとは扱わない。
 
