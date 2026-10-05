@@ -329,6 +329,9 @@ class AgentToolWindowRootPanel(
                 onChoose = { if (windowShortcutAvailable) { stopSidebarNavigation(); openRecentChat(it, allowArchived = true) } },
                 onArchive = ::archiveChat,
                 onArchivePrior = ::archivePriorChats,
+                onOpenInNewTab = { id, isCurrent ->
+                    openRecentChat(id, allowArchived = true, isCurrent = isCurrent)
+                },
             )
             allChatsSidebar = view
             val header = JPanel(BorderLayout()).apply {
@@ -518,8 +521,8 @@ class AgentToolWindowRootPanel(
         popup.show(event)
     }
 
-    private fun openRecentChat(id: RecentChatId, allowArchived: Boolean = false) {
-        if (disposed || project.isDisposed || !isShowing || !windowShortcutAvailable) return
+    private fun openRecentChat(id: RecentChatId, allowArchived: Boolean = false, isCurrent: () -> Boolean = { true }) {
+        if (disposed || project.isDisposed || !isShowing || !windowShortcutAvailable || !isCurrent()) return
         val metadata = chatArchive.apply(RecentChatEntry(id, "", 0, null))
         if (metadata.archived && !allowArchived) return
         val open = sessions.snapshot().tabs.firstOrNull { tab -> views[tab.id]?.let { recentChatId(tab, it) == id } == true }
@@ -531,7 +534,8 @@ class AgentToolWindowRootPanel(
         val ticket = ++chatFocusGeneration
         val store = project.getService(ConversationHistory::class.java)
         store.load { result -> SwingUtilities.invokeLater {
-            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration || !windowShortcutAvailable || !chatArchive.matches(metadata)) return@invokeLater
+            if (disposed || project.isDisposed || !isShowing || ticket != chatFocusGeneration || !windowShortcutAvailable ||
+                !chatArchive.matches(metadata) || !isCurrent()) return@invokeLater
             val loaded = result.getOrNull()
             if (loaded == null) {
                 selectedView?.timeline?.showStatus("履歴を読み込めませんでした。保存先の権限を確認してください。")

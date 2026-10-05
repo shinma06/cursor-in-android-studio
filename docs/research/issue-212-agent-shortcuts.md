@@ -205,6 +205,12 @@ pinは固定版の有効候補75件上限に合わせる。削除済み等の現
 
 `ChatArchiveTest`は実list Actionと既存ボタンの共有、古い選択/pin/検索/IME/非表示/破棄、archiveを保ったpinを確認し、`SidebarChatsTest`は有効75件とarchived/stale IDの境界を確認する。実キー配送・取消・読み上げ・再起動は`KEYMAP-SIDEBAR-SECTIONS`に残す。[JetBrains AI Chat](https://www.jetbrains.com/help/ai-assistant/ai-chat.html)の会話管理と[Cursor ACP連携](https://cursor.com/docs/integrations/jetbrains)を比較対象にし、独自機能とは呼ばない。直接IDE統合では同じprojectのtyped会話ID/Keymapと既存保存metadataを使い、providerやrunへ操作を転送しない。現行Cursorの公式overviewはこのpin細部を列挙していないため、上記の固定配布版の静的経路を根拠とし、GUI同等性は未確認である。
 
+### Sidebarから新しいタブで開く
+
+固定版の`bzt`は`agentLayoutService.openComposer`へlocal IDと`openInNewTab: true`を渡す。layoutから`composerService.openComposerImpl`へ追跡すると、選択済みIDは既存viewをshow/focusし、未表示IDは追加する。元tabの置換や会話のforkではない。Pluginはsidebarのnativeメニューから既存の`openRecentChat`/`SessionTabs.open`へ接続し、開いた/非表示の同一会話を同じownerへ戻す。閉じた会話は`ConversationHistory.load`で最新本文と削除を確認してtabへ追加し、元のrun/draft/queueを保つ。archivedの会話も開けるがarchive解除/送信/provider再開は行わない。取得不能は既存の安全な履歴エラーとして表示する。
+
+メニューが保持する選択・検索世代・metadataとIME/表示寿命を確定時と履歴読込み後に照合し、一度だけ実行する。native popupの上下/Enter/Escapeを使い、独自global keyは増やさない。`ChatOpenTabTest`は実root/list Action・保存worker・SessionTabsとcontrollerで、最新本文、古い検索中の応答拒否、元view/run/draft/queue、archiveと重複しない再表示を確認する。native windowを作らないSDK fixtureの成功は実GUIの代替にせず、`KEYMAP-SIDEBAR-SECTIONS`で実配送/取消/IMEとeditor表示との合流を追う。targetGroup・Cloud/linked backgroundはこのlocal接続の受入に含めず、全対象の未確認範囲に残す。比較は上記のJetBrains AI Chat + Cursor ACP/IDE/MCP構成を維持し、同一ownerとIDE Keymapへの直接接続として扱う。
+
 ## All Agentsのアーカイブと復元
 
 固定版の`chat:` provider（`EGo` / `TGo`）はglobal All Agents検索に属し、local/Cloudの通常候補を曖昧検索して200件まで返す。`KKb`はヘッダー履歴メニュー（`zKb`）のproviderであり、global検索とは別経路である。履歴は名前/冒頭文の部分一致、通常候補のpin優先/更新順とアーカイブの更新順、`qKb`の各20件/Moreを使う。検索変更とメニュー再表示で件数を戻し、Archivedは初期折り畳みとする。両経路を同じpopupとみなした以前の比較は適用しない。Cloudのprivate RPCはPluginから呼ばない。

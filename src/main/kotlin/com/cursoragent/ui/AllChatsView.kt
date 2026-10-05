@@ -73,6 +73,7 @@ internal class AllChatsView(
     private val onArchive: (ChatArchiveRequest) -> Unit,
     private val onManage: (() -> Unit)? = null,
     private val onArchivePrior: ((ChatArchivePriorRequest) -> Unit)? = null,
+    private val onOpenInNewTab: ((RecentChatId, () -> Boolean) -> Unit)? = null,
 ) : JPanel(BorderLayout(0, JBUI.scale(4))), Disposable {
     private val pageSize = if (mode == ChatListMode.HISTORY) 20 else 6
     private val store = project.getService(ConversationHistory::class.java)
@@ -429,7 +430,29 @@ internal class AllChatsView(
             .component.show(component, x, y)
     }
 
-    private fun chatMenuActions(): List<AnAction> = listOfNotNull(pinAction(), archivePriorAction())
+    private fun chatMenuActions(): List<AnAction> = listOfNotNull(pinAction(), openInNewTabAction(), archivePriorAction())
+
+    private fun openInNewTabAction(): AnAction? {
+        val openInNewTab = onOpenInNewTab ?: return null
+        if (mode != ChatListMode.SIDEBAR || disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return null
+        val entry = (list.selectedValue as? AllChatRow.Chat)?.hit?.entry ?: return null
+        if (!entryAvailable(entry)) return null
+        val ticket = searchGeneration
+        fun isCurrent() = !disposed && valid() && ready && !isComposing && ticket == searchGeneration &&
+            appliedQuery == search.text &&
+            (list.selectedValue as? AllChatRow.Chat)?.hit?.entry == entry && entryAvailable(entry)
+        return object : DumbAwareAction("新しいタブで開く", "開いている会話は同じタブへ移動します。", null) {
+            private var used = false
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            override fun update(e: AnActionEvent) { e.presentation.isEnabled = !used && isCurrent() }
+            override fun actionPerformed(e: AnActionEvent) {
+                if (used || !isCurrent()) return
+                used = true
+                navigationTarget = null
+                openInNewTab(entry.id, ::isCurrent)
+            }
+        }
+    }
 
     private fun pinAction(): AnAction? {
         if (mode != ChatListMode.SIDEBAR || disposed || !valid() || !ready || isComposing || appliedQuery != search.text) return null
