@@ -15,6 +15,7 @@ class SteeringProbeTests(unittest.TestCase):
         result = offline_check()
         self.assertEqual(result['offline_checks'], ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'])
         self.assertEqual(set(result['provider_cases'].values()), {'blocked'})
+        self.assertIn('fake-sdk-only', result['driver_checks'])
         self.assertEqual((result['sdk_agents'], result['provider_calls']), (0, 0))
 
     def test_wrong_sdk_version_is_refused_before_type_inspection(self):
