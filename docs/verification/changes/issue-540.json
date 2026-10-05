@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 540,
+  "gui_required": false,
+  "reason": "旧print回帰fixtureの識別値と出所説明だけを訂正する。製品実装・ACP原証拠・実GUI受入・固定promotionを変更しない。Git履歴等の残存とmain未反映は別途追跡する。",
+  "cli_checks": [
+    "固定baseの原本4件を非公開で保全し、hashと置換対応を確認する。公開説明へ原値や生ログを転載しない。",
+    "変更前後のJSONを比較し、許可した識別値以外の項目・型・イベント順序/件数/重複・本文・diff・usage・model・時刻が同じで、識別子の同一関係が維持されることを確認する。",
+    "既存のparser・tool payload・usage・変更一覧・queue/Revert・print本文のJVMテストとprint replayのPythonテストを通す。",
+    "python3 scripts/workflow/change_impact.py --run-tests、git diff --check、固定HEAD/baseの独立レビュー、4必須checks。",
+    "develop統合後、main未反映をQAへ双方向移譲し、監査#512へ限定是正と未解決の履歴残存を返す。"
+  ],
+  "cases": []
+}
