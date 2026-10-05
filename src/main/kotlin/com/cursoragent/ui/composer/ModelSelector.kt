@@ -2,6 +2,7 @@ package com.cursoragent.ui.composer
 
 import com.cursoragent.service.ModelCatalogState
 import com.cursoragent.service.ModelOption
+import com.cursoragent.service.AgentEvent
 import com.cursoragent.settings.AgentSettingsState
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -10,8 +11,16 @@ class ModelSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
     private val popupController = SelectorPopupController(this, ownsChildPopups = true)
+    private var acpPopup: JBPopup? = null
     private var models: List<ModelOption> = emptyList()
     private var acp = false
+    internal var acpConfiguration: AgentEvent.Configuration? = null
+        private set
+    internal var providerConfiguration: AgentEvent.Configuration? = null
+        private set
+    internal var onConfigure: (AgentEvent.Configuration, String, String) -> Unit = { _, _, _ -> }
+    internal var parameterValues: Map<String, String> = emptyMap()
+        private set
     var onRetry: () -> Unit = {}
     private var catalog: ModelCatalogState = ModelCatalogState.Loading
     private var printModelId: String? = null
@@ -20,6 +29,7 @@ class ModelSelector(
 
     init {
         showsChevron = true
+        addHierarchyListener { if (!isShowing) closePopup() }
         showCatalog(ModelCatalogState.Loading)
         addActionListener {
             if (!acp && (
@@ -30,23 +40,20 @@ class ModelSelector(
                 return@addActionListener
             }
             if (acp) {
-                popupController.toggle {
-                    JBPopupFactory.getInstance().createPopupChooserBuilder(models)
-                        .setRenderer { _, option, _, selected, _ ->
-                            javax.swing.JLabel(option.label).apply {
-                                putClientProperty("html.disable", true)
-                                border = com.intellij.util.ui.JBUI.Borders.empty(6, 8)
-                                isOpaque = true
-                                background = if (selected) com.cursoragent.ui.AgentUiColors.userBubbleBackground else com.cursoragent.ui.AgentUiColors.panelBackground
-                                toolTipText = option.id
-                            }
-                        }
-                        .setItemChosenCallback { option ->
-                            settings.selectedModel = option.id
-                            showSelection(option)
-                            toolTipText = "次の送信で適用: ${option.label} — ${option.id}"
-                        }.createPopup()
+                val state = acpConfiguration ?: return@addActionListener
+                acpPopup?.takeUnless { it.isDisposed }?.let {
+                    closePopup()
+                    return@addActionListener
                 }
+                val content = AcpModelOptionsPanel(state) { id, value ->
+                    closePopup()
+                    if (isEnabled && acpConfiguration === state) onConfigure(state, id, value)
+                }
+                // Let the native popup own ComboBox drop-downs; the print picker owns separate custom children.
+                val next = JBPopupFactory.getInstance().createComponentPopupBuilder(content, content.selectors.values.firstOrNull { it.isEnabled })
+                    .setFocusable(true).setRequestFocus(true).setCancelOnOtherWindowOpen(false).createPopup()
+                acpPopup = next
+                next.show(com.intellij.openapi.ui.popup.PopupShowOptions.aboveComponent(this).withPopupComponentUnscaledGap(4))
                 return@addActionListener
             }
             popupController.toggle {
@@ -78,17 +85,38 @@ class ModelSelector(
         }
     }
 
-    fun closePopup() = popupController.close()
+    internal fun cycleParameter() {
+        val state = acpConfiguration ?: return
+        val parameter = state.parameters.firstOrNull { it.options.size > 1 } ?: return
+        val index = parameter.options.indexOfFirst { it.id == parameter.currentValue }
+        if (index >= 0 && isEnabled) onConfigure(state, parameter.id, parameter.options[(index + 1) % parameter.options.size].id)
+    }
 
-    internal fun restoreSelection(id: String) {
+    fun closePopup() {
+        popupController.close()
+        acpPopup?.cancel()
+        acpPopup = null
+    }
+
+    override fun createToolTip() = super.createToolTip().apply { putClientProperty("html.disable", true) }
+
+    internal fun restoreSelection(id: String, configuration: AgentEvent.Configuration? = null,
+        parameters: Map<String, String> = configuration?.parameterValues().orEmpty()) {
+        // A saved draft is local selection, not confirmation that the resident provider still uses it.
+        acpConfiguration = configuration?.takeIf { it.model == id && it.parameterValues() == parameters }
+        parameterValues = parameters.toMap()
         settings.selectedModel = id
-        showSelection(models.firstOrNull { it.id == id } ?: ModelOption(id, id.ifEmpty { "既定モデル" }))
+        showSelection((acpConfiguration?.models ?: models).firstOrNull { it.id == id } ?: ModelOption(id, id.ifEmpty { "既定モデル" }))
+        if (acp) isEnabled = acpConfiguration != null && providerConfiguration != null
     }
 
     fun waitForAcp() {
         if (!acp) printModelId = settings.selectedModel
         settings.selectedModel = ""
         acp = true
+        acpConfiguration = null
+        parameterValues = emptyMap()
+        providerConfiguration = null
         models = emptyList()
         families = emptyList()
         text = "ACPの既定モデル"
@@ -98,6 +126,24 @@ class ModelSelector(
     }
 
     fun setAcpModels(models: List<ModelOption>, selected: String) {
+        setAcpConfiguration(AgentEvent.Configuration("agent", selected, models))
+    }
+
+    internal fun setAcpConfiguration(state: AgentEvent.Configuration?, preserveDraft: Boolean = false) {
+        closePopup()
+        providerConfiguration = state
+        if (preserveDraft) return
+        acpConfiguration = state
+        parameterValues = state?.parameterValues().orEmpty()
+        if (state == null) {
+            models = emptyList()
+            isEnabled = false
+            text = "ACPのモデル設定を確認中…"
+            toolTipText = "接続先の設定を確認できるまでモデルを変更できません。"
+            return
+        }
+        val models = state.models
+        val selected = state.model
         if (!acp) printModelId = settings.selectedModel
         acp = true
         showsChevron = models.isNotEmpty()
@@ -116,6 +162,9 @@ class ModelSelector(
             printModelId = null
         }
         acp = false
+        acpConfiguration = null
+        parameterValues = emptyMap()
+        providerConfiguration = null
         catalog = state
         showsChevron = state is ModelCatalogState.Loaded && state.models.isNotEmpty()
         when (state) {
@@ -153,8 +202,11 @@ class ModelSelector(
         val family = families.find { it.variants.any { variant -> variant.option.id == option.id } }
         val variant = family?.variants?.find { it.option.id == option.id }
         text = if (family != null && variant != null) family.selectionLabel(variant) else option.displayName()
-        toolTipText = "${option.label} — ${option.id}"
-        getAccessibleContext().accessibleName = "Model: ${option.label}"
+        val parameters = acpConfiguration?.parameters.orEmpty().joinToString(" / ") { parameter ->
+            "${parameter.name}: ${parameter.options.firstOrNull { it.id == parameter.currentValue }?.label ?: parameter.currentValue}"
+        }
+        toolTipText = "${option.label} — ${option.id}" + if (parameters.isEmpty()) "" else " — $parameters"
+        getAccessibleContext().accessibleName = "Model: ${option.label}" + if (parameters.isEmpty()) "" else ", $parameters"
         revalidate()
         repaint()
     }

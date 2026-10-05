@@ -139,6 +139,70 @@ class ChatEditorRootTest {
                 assertTrue(sessions.accepts(token))
                 assertEquals(0, stops)
 
+                val input = requireNotNull(secondComposer.inputArea.getEditor(true)).contentComponent
+                val previousFocus = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                val keymaps = com.intellij.openapi.keymap.ex.KeymapManagerEx.getInstanceEx()
+                val previousKeymap = keymaps.activeKeymap
+                val cycle = ActionManager.getInstance().getAction("CursorAgent.CycleModelParameter") as com.cursoragent.actions.CycleModelParameterAction
+                val originalConfigure = secondComposer.modelSelector.onConfigure
+                try {
+                    java.awt.KeyboardFocusManager.setCurrentKeyboardFocusManager(object : java.awt.DefaultKeyboardFocusManager() {
+                        override fun getFocusOwner(): java.awt.Component = input
+                    })
+                    keymaps.activeKeymap = keymaps.getKeymap("\$default")!!
+                    secondComposer.useAcp()
+                    secondComposer.showAcpConfiguration(com.cursoragent.service.AgentEvent.Configuration("agent", "exact-model",
+                        listOf(com.cursoragent.service.ModelOption("exact-model", "Exact")),
+                        listOf(com.cursoragent.service.ModelParameter("thinking", "Thinking", "thought_level", "low",
+                            listOf("low", "high").map { com.cursoragent.service.ModelOption(it, it) }))))
+                    val changes = mutableListOf<Pair<String, String>>()
+                    secondComposer.modelSelector.onConfigure = { _, id, value -> changes += id to value }
+                    val key = java.awt.event.KeyEvent(input, java.awt.event.KeyEvent.KEY_PRESSED, 0,
+                        java.awt.event.InputEvent.CTRL_DOWN_MASK or java.awt.event.InputEvent.SHIFT_DOWN_MASK,
+                        java.awt.event.KeyEvent.VK_SLASH, '/')
+                    val context = event(input).dataContext
+                    val cycleEvent = AnActionEvent.createEvent(context, null, "test", ActionUiKind.NONE, key)
+                    assertTrue(ActionUtil.getActions(input).contains(cycle))
+                    assertTrue(ActionUtil.getActions(input).contains(ActionManager.getInstance().getAction("CursorAgent.AllChats")))
+                    cycle.update(cycleEvent)
+                    assertTrue(cycleEvent.presentation.isEnabled, "the native editor supplies its live owning chat")
+                    var windowLookups = 0
+                    val allChats = object : com.cursoragent.actions.AgentWindowAction(com.cursoragent.actions.AgentWindowCommand.ALL_CHATS,
+                        { windowLookups++; null }) {}
+                    allChats.update(cycleEvent)
+                    assertEquals(0, windowLookups, "a matching enabled model key takes priority over All Agents")
+                    cycle.actionPerformed(cycleEvent)
+                    cycle.actionPerformed(cycleEvent)
+                    assertEquals(listOf("thinking" to "high"), changes, "holding the key must not configure twice")
+                    input.keyListeners.forEach { it.keyReleased(java.awt.event.KeyEvent(input, java.awt.event.KeyEvent.KEY_RELEASED, 0, 0,
+                        java.awt.event.KeyEvent.VK_SLASH, '/')) }
+                    val otherProject = AnActionEvent.createEvent(DataContext { keyName ->
+                        if (CommonDataKeys.PROJECT.`is`(keyName)) com.intellij.openapi.project.ProjectManager.getInstance().defaultProject
+                        else context.getData(keyName)
+                    }, null, "test", ActionUiKind.NONE, key)
+                    cycle.actionPerformed(otherProject)
+                    assertEquals(1, changes.size, "a different project cannot operate this input")
+                    firstEditor.selectNotify()
+                    cycle.update(cycleEvent)
+                    assertFalse(cycleEvent.presentation.isEnabled)
+                    cycle.actionPerformed(cycleEvent)
+                    assertEquals(1, changes.size, "the retained second-owner event cannot act after owner selection changes")
+                    secondEditor.selectNotify()
+                    secondComposer.setModelConfigurationBusy(true)
+                    cycle.update(cycleEvent)
+                    assertFalse(cycleEvent.presentation.isEnabled)
+                    cycle.actionPerformed(cycleEvent)
+                    assertEquals(1, changes.size)
+                    secondComposer.setModelConfigurationBusy(false)
+                    secondComposer.showAcpModelConfiguration(secondComposer.modelSelector.acpConfiguration!!.copy(parameters = emptyList()))
+                    allChats.update(cycleEvent)
+                    assertEquals(1, windowLookups, "All Agents stays available when there is no cycleable parameter")
+                } finally {
+                    secondComposer.modelSelector.onConfigure = originalConfigure
+                    keymaps.activeKeymap = previousKeymap
+                    java.awt.KeyboardFocusManager.setCurrentKeyboardFocusManager(previousFocus)
+                }
+
                 val history = get(panel, "history") as PastChatsCoordinator
                 field(history, "load").set(history, { callback: (Result<ConversationStore.Loaded>) -> Unit -> loads.add(callback); Unit })
                 field(history, "showMenu").set(history,

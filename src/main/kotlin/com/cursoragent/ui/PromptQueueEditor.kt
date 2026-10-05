@@ -42,7 +42,8 @@ internal class PromptQueueEditor(
         edit = Edit(entry, saved)
         composer.showQueueEdit(true)
         composer.restoreDraft(ComposerDraft(entry.text, null, entry.mode, entry.model,
-            entry.context ?: PromptContextSnapshot(emptyList(), emptyList(), true), entry.command, image))
+            entry.context ?: PromptContextSnapshot(emptyList(), emptyList(), true), entry.command, image,
+            modelConfiguration = entry.modelConfiguration, modelParameters = entry.modelParameters))
         changed()
         onQueueReady()
         if (composer.isShowing) composer.inputArea.requestFocusInWindow()
@@ -68,7 +69,8 @@ internal class PromptQueueEditor(
             return
         }
         val replacement = session.expected.copy(text = composer.inputArea.text, mode = composer.selection.mode,
-            model = composer.selection.selectedModel, context = context, command = command, image = image)
+            model = composer.selection.selectedModel, context = context, command = command, image = image,
+            modelParameters = composer.modelSelector.parameterValues.toMap(), modelConfiguration = composer.modelSelector.acpConfiguration)
         if (!queue.replace(session.expected, replacement)) {
             image?.let(releaseImage)
             error(if (replacement.text.isBlank() && command == null && image == null) "空の入力は予約できません。"

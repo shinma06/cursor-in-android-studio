@@ -388,7 +388,8 @@
         "検索欄の上下とEnter、一覧のクリック、Esc/外部click/window blurを確認する。IME変換中と背景検索の古い結果では開かず、確定した候補だけを開く。検索中の新query・dispose・panel非表示で古い結果を反映しない。",
         "一覧表示後に候補を更新/削除する。open viewはそのまま選択し、閉じた候補は最新本文・削除/legacy存在を再確認する。ACP本文表示とprovider再開/Revertの可否を区別する。キー変更/解除とWindowsのparameter競合は未対応分も含めて記録する。",
         "固定Cursorのlocal/Cloud候補、絞込み/上限/表示分岐と比較する。Pluginの初期非表示・ToolWindow内splitter配置、native matcherの順位差、Cloud取得/操作未接続を記録し、local候補だけで全対応passにしない。",
-        "選択会話がnative editorにある場合もAll Agentsを開き、開いている/非表示/保存済みの会話を選ぶ。同一ownerを再利用し、editorからの選択はeditorへ戻る。元native tabが別ファイルの裏にある場合もsidebar側の選択を拒否せず、旧load/検索世代・IME guardを保つ。"
+        "選択会話がnative editorにある場合もAll Agentsを開き、開いている/非表示/保存済みの会話を選ぶ。同一ownerを再利用し、editorからの選択はeditorへ戻る。元native tabが別ファイルの裏にある場合もsidebar側の選択を拒否せず、旧load/検索世代・IME guardを保つ。",
+        "WindowsのCtrl+Shift+/と同じキーへのremapで、選択中のACP入力欄かつ複数値parameterを変更可能な時だけparameter循環が優先し、All Agentsが同時に開かないことを確認する。追加設定なし・printではAll Agentsへ届く。model設定要求中・IME/子popup中では誤動作せず、Keymapの変更/解除とnative editorにも追随する。"
       ],
       "expected": "最近使用10件とは独立した一覧と検索入口になり、全候補を検索してから200件に制限する。既存作業・所有・IME・削除/再開制約を保つ。拡張候補とGUI差は追跡する。"
     },
@@ -622,7 +623,8 @@
         "更新/送信、Escape、キャンセルで元の本文・全caret/選択・mode/model・command/context/自動設定・画像が戻ることを確認する。画像変更や遅いimportが退避draftや未保存の元予約へ漏れない。切替前へのUndoはdraft境界で止まり、復元後の文字入力はUndo/Redoできる。本文が@や/のみ、同じ本文同士の切替でも古い候補が開かない。Enter長押しで元draftを追加予約しない。",
         "IME未確定/確定直後、command/mention/model popup、別tab/project、ToolWindow表示切替、run終端/ACP設定通知/Stopを組み合わせる。変換・候補を優先し、編集中のmode/modelを通知で上書きしない。Keymap変更/解除後の取消を確認する。管理dialog、Stop、Revert、失敗でpauseした予約は編集終了だけでは再開せず、未保存作業の確認と画像解放を保つ。",
         "既存の選択snapshotを保持し、新規/変更した選択のDocumentが変われば更新/送信を拒否する。古い予約ID/変更済み予約への保存を拒否し、編集本文をコピー・取消可能なまま残す。狭い幅で更新/送信/取消と画像を操作できる。通常queueの取消後は再判定し、明示pause後は管理dialogでの再開が必要。Cursor固定版の条件差を照合し、一覧からの選択1件のSend Nowは専用Caseで確認し、未接続のsteeringを合格扱いにしない。",
-        "元の下書きと予約に、異なるTerminalの複数行出力をコピーしてcontext添付する。Terminalを閉じる/出力を進めてから予約を編集し、確定・取消・idle送信を試す。名前・行範囲・コピー時本文がそれぞれ保持され、予約送信は対象snapshot、復元入力は元draftを使うことを確認する。通常/変更後Keymapのcontext pasteとplain paste、画像Paste・IME・上下移動も併用し、出典のない本文へのfallbackを維持する。"
+        "元の下書きと予約に、異なるTerminalの複数行出力をコピーしてcontext添付する。Terminalを閉じる/出力を進めてから予約を編集し、確定・取消・idle送信を試す。名前・行範囲・コピー時本文がそれぞれ保持され、予約送信は対象snapshot、復元入力は元draftを使うことを確認する。通常/変更後Keymapのcontext pasteとplain paste、画像Paste・IME・上下移動も併用し、出典のない本文へのfallbackを維持する。",
+        "model-config-queueの合成接続で、登録時と現在の下書きでmodel/追加設定を変える。inline編集に登録時の値が現れ、本文だけの更新では値を保持する。idleで編集対象の設定を変えて保存/取消し、元下書きの本文・caret・mode/model/追加設定・Terminal・画像を戻す。設定応答待ちの送信/取消/Reset/表示切替を拒否し、予約実行後も元下書きの値を保つ。panelとnative editorで照合する。"
       ],
       "expected": "予約編集の実行中更新・idle送信・取消を区別し、元draftと対象予約の本文・設定・context・画像・会話所有を保持する。編集中の対象を配送せず、既存pauseを解除しない。二重送信、古いticket復活、他draftの連続送信や画像混入を起こさない。"
     },

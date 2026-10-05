@@ -30,6 +30,7 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
     internal var onSendKeyReleased: () -> Unit = {}
     internal var clipboardContextAvailable: () -> Boolean = { true }
     internal var onClipboardContext: ((ClipboardContextData) -> Unit)? = null
+    internal var modelParameterKeyHeld = false
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
@@ -102,15 +103,24 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         com.cursoragent.ui.composer.image.installPromptImageInput(editor) { value ->
             if (!isEnabled || isComposing) true else onImageTransfer?.invoke(value) ?: false
         }
+        modelParameterKeyHeld = false
+        // Both matches must live at the nearest component; a disabled cycle must not mask All Agents.
+        listOf("CursorAgent.CycleModelParameter", "CursorAgent.AllChats").forEach { id ->
+            ActionManager.getInstance().getAction(id)?.let { it.registerCustomShortcutSet(it.shortcutSet, editor.contentComponent) }
+        }
         ime.reset()
         onSendKeyReleased()
         editor.contentComponent.addKeyListener(object : java.awt.event.KeyAdapter() {
             override fun keyReleased(event: java.awt.event.KeyEvent) {
+                modelParameterKeyHeld = false
                 if (event.keyCode == java.awt.event.KeyEvent.VK_ENTER) onSendKeyReleased()
             }
         })
         editor.contentComponent.addFocusListener(object : java.awt.event.FocusAdapter() {
-            override fun focusLost(event: java.awt.event.FocusEvent) = onSendKeyReleased()
+            override fun focusLost(event: java.awt.event.FocusEvent) {
+                modelParameterKeyHeld = false
+                onSendKeyReleased()
+            }
         })
         editor.contentComponent.addInputMethodListener(ime)
         editor.settings.apply {

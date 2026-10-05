@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "issue": 525,
+  "gui_required": true,
+  "reason": "ACPのモデル追加設定・native shortcut・予約snapshot・履歴fieldのユーザー操作と互換を変更するため。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "./gradlew buildPlugin verifyPluginStructure; plugin_compatibility.py seal/verify（同一ZIP・固定SDK/JBR）",
+    "AcpProtocolTest / AcpSessionTest / ModelCatalogStatusTest / ModelParameterKeymapTest / ComposerControlsTest / PromptQueueTest / ConversationStoreTest",
+    "python3 -m unittest discover -s scripts/loop -p test_acp_fixture.py",
+    "固定HEAD/baseの独立レビュー、git diff --check"
+  ],
+  "cases": [
+    {
+      "issue": 525,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#525を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体、Rabbit 1/JBR 25を照合。元の実行ファイル/transport/Keymap設定を控え、終了時に復元する。合成launcherはこの固定sourceで新runを準備し、既存証拠は上書きしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/525",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ],
+      "id": "MODEL-CONFIG-REAL",
+      "change": "実Cursorが広告するモデル追加設定を確認して選択する",
+      "steps": [
+        "承認済みPro/Teamsの実CLI版を記録し、新規ACP会話を開く。送信前にModel selectorを開き、接続先が広告したmodel/追加設定の値を確認する。未広告の推論量・速度・context容量を表示しないことを確認する。",
+        "実際に複数値を広告した項目を1つ変更する。要求中の無効化と確定値の表示を観察し、許可済みの無編集Ask入力「ファイルやツールを操作せず MODEL_CONFIG_OK とだけ返してください。」を1回送る。モデル変更によって項目や候補が変わる場合は全置換を確認する。",
+        "表示値・確定したconfig ID/value・送信との対応を非公開証拠で照合する。未広告・未実測のmodel/設定をpassに含めない。実推論tierの内部適用はprovider観測以上を主張しない。設定不一致時はCaseを保留し、勝手なalias/代替値で進めない。"
+      ],
+      "expected": "広告された項目だけを表示して応答を照合する。確定model/parameterで次turnを準備し、不明な選択を黙って無視しない。共有CLI設定への影響も記録する。"
+    },
+    {
+      "issue": 525,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#525を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体、Rabbit 1/JBR 25を照合。元の実行ファイル/transport/Keymap設定を控え、終了時に復元する。合成launcherはこの固定sourceで新runを準備し、既存証拠は上書きしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/525",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ],
+      "id": "MODEL-CONFIG-REPLACE",
+      "change": "合成設定の全置換と失敗後の無送信を確認する",
+      "steps": [
+        "専用workspace markerを用意し、acp_fixture.py --scenario model-configでlauncherを生成する。新規ACP会話でAutoのThinkingがlow/medium/high、Fastがoff/onであることを確認する。Thinking=medium、Fast=onを選ぶ。",
+        "ModelをSmallへ変更する。Thinking候補がlow/high、確定値low、Fast=offへ全置換されることを確認する。古いpopup・別tabからの遅延操作、切断後の操作が新しい状態を変更しないことを確認する。",
+        "新しいrunのmodel-config-fail launcherで新規会話を作り、Fast=onを選ぶ。確認失敗を表示して選択不能となり、私的captureに自動prompt/再試行/別session再送がないことを確認する。終了後に元設定へ戻す。"
+      ],
+      "expected": "現在の全広告が正本で、不正な選択・古いsnapshotは使わない。失敗を成功表示せず、入力を保持して新規会話への明示操作を待つ。"
+    },
+    {
+      "issue": 525,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#525を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体、Rabbit 1/JBR 25を照合。元の実行ファイル/transport/Keymap設定を控え、終了時に復元する。合成launcherはこの固定sourceで新runを準備し、既存証拠は上書きしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/525",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ],
+      "id": "MODEL-CONFIG-QUEUE",
+      "change": "予約の設定固定と下書きの保持を確認する",
+      "steps": [
+        "model-config-queueの新規launcherを使用し、先行turnを合成permissionで保留する。実行中にmodel/parameterを変更できないことを確認し、現在の選択で予約Aを追加し、予約一覧を開いて一時停止する。その後、先行turnの合成permissionを拒否して終了させる。",
+        "前turn終了後に予約を一時停止し、下書き側を別model/parameterへ変更する。日本語の未送信本文とcaretを置き、予約Aの本文を編集してもAの設定snapshotが変わらないことを確認する。",
+        "予約を明示再開し、Aの合成permissionを拒否して終了する。Aが登録時の値で送信されることと、元の下書き本文・caret・mode/model/parameterが保持されることを照合する。予約後に下書きparameterを変更し、下書きmodelへ再設定したうえで次turnへ適用されることを確認する。親#212の予約editor統合後にも同じ操作を行う。",
+        "親#212のinline予約editorで、Aの登録時広告/設定と退避した下書きを別々に保持する。本文のみの更新、idleで設定変更後の保存と取消、設定応答待ちの保存/取消拒否、切断後の値保持とselector無効化、未送信復旧を確認する。元下書きへ戻ってもproviderがその値で確認済みとみなさず、次の明示設定操作/送信時に応答を照合する。native editor移動とTerminal/画像添付も組み合わせる。"
+      ],
+      "expected": "予約と下書きは独立したsnapshotを持ち、予約実行・編集・未送信復旧で設定を取り違えない。実行/設定要求中に二重送信や別会話の設定変更を起こさない。"
+    },
+    {
+      "issue": 525,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#525を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体、Rabbit 1/JBR 25を照合。元の実行ファイル/transport/Keymap設定を控え、終了時に復元する。合成launcherはこの固定sourceで新runを準備し、既存証拠は上書きしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/525",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ],
+      "id": "MODEL-CONFIG-KEYMAP",
+      "change": "OS別ショートカットとfocus・長押しを確認する",
+      "steps": [
+        "macOS Cmd+Shift+/、Windows Ctrl+Alt+/およびCtrl+Shift+/、Linux XWin Ctrl+Shift+/を各対象環境で確認する。model-configのcomposerでキーを押し、最初の複数値Thinkingが循環して最後から先頭へ戻り、Fastを勝手に循環しないことを確認する。単一値/追加設定なしのmodelでは変更しない。",
+        "KeymapでActionを別キーへ変更・解除する。変更後だけ動作し、解除後は発火しないことを確認する。通常editor・別tab・背景window・候補popup・IME変換中・画像import中・実行中・設定応答待ちでは変更しないことを確認する。キー長押しで複数回要求しないこと、release後は再び操作できることを確認する。",
+        "親#212を含む統合buildで、WindowsのCtrl+Shift+/が入力focus/追加設定選択可の条件でparameter循環に届くことと、その他の条件ではAll Agentsの意図した優先に従うことを照合する。不要なキー文字やIDEコメント操作が入力に混ざらないことを確認する。",
+        "ToolWindowを隠しnative editorの入力で操作する。別project、別会話へ切替後の古いevent、非選択split、header focusでは元入力を変更しない。Windowsの共通キーでは利用可能なparameterだけを優先し、候補なしならAll Agentsへ届く。設定要求中の表示移動・予約編集開始・送信を拒否し、長押しとrelease/focus離脱の後で動作を再確認する。"
+      ],
+      "expected": "native Keymapの変更/解除に追随し、対象composerだけで1打鍵につき1回設定する。各OS・親Action競合の未実施をpass扱いにしない。"
+    },
+    {
+      "issue": 525,
+      "preconditions": "指定GUI担当とhost lease、専用profile・使い捨てproject。#525を含む固定source SHA・ZIP SHA256・installed全JARと起動ロード実体、Rabbit 1/JBR 25を照合。元の実行ファイル/transport/Keymap設定を控え、終了時に復元する。合成launcherはこの固定sourceで新runを準備し、既存証拠は上書きしない。",
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "合成/SDK回帰は固定buildの実GUI合格ではない。指定担当による観察待ち。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "next_action": "GUI担当が全手順を固定buildで確認。Caseとmain未反映をQAへ双方向移譲し、main対象外を保持する。",
+      "main_eligible": false,
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/525",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212"
+      ],
+      "id": "MODEL-CONFIG-HISTORY",
+      "change": "確定設定の保存と旧履歴互換を確認する",
+      "steps": [
+        "model-configでmode/model/追加設定を確認して1turn送り、終了を待つ。所有会話JSONの該当turnに確定したmode/model/parameterだけが保存されることを非公開で確認する。wire・全モデル候補・秘密情報を保存しないことを確認する。",
+        "同一固定buildでIDEを再起動し、会話の本文・順序・IDが保たれることを確認する。modelSettings fieldなしの旧v1 JSONと既存print/XML由来履歴も開き、追加設定を推定して再送しないことを確認する。",
+        "破損した追加fieldを含む使い捨て履歴と正常履歴を並べ、破損を隔離して元ファイルと正常データを保護することを確認する。確認前にfailedになったturnの保存が実推論の成功証拠として扱われないことを確認する。"
+      ],
+      "expected": "旧形式の任意field不在を許容し、確定設定は所有turnの表示データとして保持する。ACP履歴resume/自動再送の範囲は拡張しない。"
+    }
+  ]
+}

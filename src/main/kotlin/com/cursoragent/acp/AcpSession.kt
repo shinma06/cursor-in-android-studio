@@ -104,6 +104,60 @@ internal class AcpSession(
 
     private val protocol = AcpProtocol()
     private val configuration = AcpConfiguration()
+    @Volatile private var configurationChanging = false
+    private var configurationListener: (AgentEvent.Configuration?) -> Unit = {}
+
+    fun observeConfiguration(listener: (AgentEvent.Configuration?) -> Unit) = synchronized(lock) {
+        configurationListener = listener
+        listener(if (closing || disconnected) null else runCatching { configuration.state() }.getOrNull())
+    }
+
+    private fun publishConfiguration() = synchronized(lock) {
+        configurationListener(if (closing || disconnected) null else runCatching { configuration.state() }.getOrNull())
+    }
+
+    /** Idle, explicit UI change. Never races a prompt or reuses an old selector after a replacement. */
+    fun changeConfiguration(expected: AgentEvent.Configuration, draft: AgentEvent.Configuration, id: String, value: String, isCurrent: () -> Boolean) {
+        val connection = synchronized(lock) {
+            check(!closing && !disconnected && active == null && !configurationChanging && isCurrent())
+            check(configuration.state() == expected)
+            check(id == "model" && draft.models.any { it.id == value } ||
+                draft.parameters.any { it.id == id && it.options.any { option -> option.id == value } })
+            val connected = checkNotNull(rpc)
+            configurationChanging = true
+            connected
+        }
+        try {
+            // A queued turn may have changed the resident provider while the composer kept its draft.
+            // Restore that draft before applying a parameter; a new model adopts its advertised defaults.
+            val desired = linkedMapOf("model" to if (id == "model") value else draft.model)
+            if (id != "model") { desired.putAll(draft.parameterValues()); desired[id] = value }
+            for ((configId, selected) in desired) {
+                check(isCurrent() && !closing && !disconnected)
+                check(configId == "model" || configuration.state().parameters.any { it.id == configId })
+                check(configuration.accepts(configId, selected))
+                if (configuration.selection(configId) != selected) {
+                    connection.request("session/set_config_option", sessionParams().apply {
+                        addProperty("configId", configId)
+                        addProperty("value", selected)
+                    }, onDispatch = { check(isCurrent() && !closing && !disconnected) }) {
+                        configuration.replace(it.asJsonObject)
+                    }.get(20, TimeUnit.SECONDS)
+                }
+                check(isCurrent() && !closing && !disconnected)
+                check(configuration.selection(configId) == selected)
+            }
+            check(desired.all { (configId, selected) -> configuration.selection(configId) == selected })
+            configuration.state() // Validate the complete dependent replacement before publishing.
+        } catch (error: Exception) {
+            // An uncertain setting result must never become an implicitly accepted execution setting.
+            disconnect()
+            throw AcpException("ACPのモデル設定を確認できません。新しい会話で接続し直してください。")
+        } finally {
+            synchronized(lock) { configurationChanging = false }
+            publishConfiguration()
+        }
+    }
     private val requests = ConcurrentHashMap.newKeySet<AgentInputRequest>()
     @Volatile private var rpc: AcpJsonRpc? = null
     @Volatile private var process: Process? = null
@@ -133,7 +187,7 @@ internal class AcpSession(
         image: com.cursoragent.ui.composer.image.ValidatedImage? = null) {
         val current = Active(turn)
         synchronized(lock) {
-            if (closing || disconnected || active != null) {
+            if (closing || disconnected || active != null || configurationChanging) {
                 turn.run.reportError(if (isWorkspaceUncertain()) UNCERTAIN_MESSAGE else "このACP会話は再送できません。新しい会話を開始してください。")
                 turn.run.complete(-1)
                 return
@@ -268,6 +322,7 @@ internal class AcpSession(
         if (closing || !isActive()) throw AcpException("ACP接続の準備を停止しました")
         val connection = AcpJsonRpc(child.inputStream, child.outputStream, ::notification, ::request, onClosed = { reason ->
             disconnected = true
+            publishConfiguration()
             publishImageSupport(null)
             publishCommands(com.cursoragent.service.CommandCatalog.Failed)
             active?.takeIf { it.promptSent && !it.quiescent }?.let {
@@ -290,6 +345,8 @@ internal class AcpSession(
             add("clientCapabilities", JsonObject().apply {
                 add("fs", JsonObject().apply { addProperty("readTextFile", false); addProperty("writeTextFile", false) })
                 addProperty("terminal", false)
+                // Cursor extension used by its parameterized ACP picker; values still come from configOptions.
+                add("_meta", JsonObject().apply { addProperty("parameterizedModelPicker", true) })
             })
         }
         connection.request("initialize", initialize, onDispatch = ::checkWorkspace) {
@@ -307,6 +364,8 @@ internal class AcpSession(
             val body = result.asJsonObject
             sessionId = body.requiredString("sessionId").also { require(it.isNotEmpty()) }
             configuration.replace(body)
+            configuration.state()
+            publishConfiguration()
             publishCommands(com.cursoragent.service.CommandCatalog.Awaiting)
         }.get(20, TimeUnit.SECONDS)
         return connection
@@ -327,8 +386,24 @@ internal class AcpSession(
             }
             if (configuration.selection(id) != value) throw AcpException("ACPが選択した$id を確定しませんでした")
         }
+        for ((id, value) in settings.modelParameters) {
+            if (!current.turn.run.isActive) return
+            if (configuration.state().parameters.none { it.id == id } || !configuration.accepts(id, value)) {
+                throw AcpException("保存したモデル設定はこの接続で利用できません。設定を選び直してください。")
+            }
+            if (configuration.selection(id) != value) {
+                connection.request("session/set_config_option", sessionParams().apply {
+                    addProperty("configId", id)
+                    addProperty("value", value)
+                }, onDispatch = { check(current.turn.run.isActive) }) { configuration.replace(it.asJsonObject) }.get(20, TimeUnit.SECONDS)
+            }
+            if (configuration.selection(id) != value) throw AcpException("ACPがモデル設定を確定しませんでした")
+        }
         if (configuration.selection("mode") != mode || configuration.selection("model") != model) {
             throw AcpException("ACP設定の組み合わせが確定しませんでした")
+        }
+        if (settings.modelParameters.any { (id, value) -> configuration.selection(id) != value }) {
+            throw AcpException("ACPのモデル設定の組み合わせが確定しませんでした")
         }
         current.turn.run.emit { it.onStructuredEvent(configuration.state()) }
     }
@@ -346,7 +421,9 @@ internal class AcpSession(
         }
         if (update.string("sessionUpdate") == "config_option_update") {
             configuration.replace(update)
-            active?.turn?.run?.emit { it.onStructuredEvent(configuration.state()) }
+            val state = configuration.state()
+            active?.turn?.run?.emit { it.onStructuredEvent(state) }
+            if (active == null && !configurationChanging) publishConfiguration()
             return
         }
         if (update.string("sessionUpdate") == "session_info_update") {
@@ -478,6 +555,7 @@ internal class AcpSession(
 
     private fun disconnect() {
         disconnected = true
+        publishConfiguration()
         rpc?.close()
     }
 

@@ -10,7 +10,7 @@ import sys
 
 MARKER = 'ACP_SYNTHETIC_FIXTURE.json'
 PURPOSE = 'synthetic-acp-fixture'
-ACP_SCENARIOS = ('permission', 'normal', 'eof', 'cancel', 'child', 'bad-config', 'commands-delayed', 'events', 'questions', 'plan', 'titles')
+ACP_SCENARIOS = ('permission', 'normal', 'eof', 'cancel', 'child', 'bad-config', 'commands-delayed', 'events', 'questions', 'plan', 'titles', 'model-config', 'model-config-fail', 'model-config-queue')
 PRINT_SCENARIOS = ('print-usage', 'print-missing', 'print-partial', 'print-repeat', 'print-result-only', 'print-error', 'print-abnormal', 'print-hold', 'print-tools')
 PRINT_VERSION = '2026.09.10-fd3934a'  # Synthetic producer, not an installed Cursor version.
 

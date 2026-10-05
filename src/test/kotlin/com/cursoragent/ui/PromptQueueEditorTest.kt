@@ -31,6 +31,81 @@ import java.util.ArrayDeque
 import java.util.concurrent.Executor
 
 class PromptQueueEditorTest {
+    @Test
+    fun `editing model parameters preserves the queued snapshot hidden draft and resident provider separately`() {
+        val fixture = IdeaTestFixtureFactory.getFixtureFactory().createLightFixtureBuilder("queued model settings").fixture
+        fixture.setUp()
+        try {
+            runInEdtAndWait {
+                val lifetime = Disposer.newDisposable()
+                val composer = ComposerPanel(fixture.project)
+                composer.inputArea.setDisposedWith(lifetime)
+                composer.inputArea.getEditor(true)
+                fun configuration(model: String, value: String) = com.cursoragent.service.AgentEvent.Configuration("agent", model,
+                    listOf("large", "small").map { com.cursoragent.service.ModelOption(it, it) },
+                    listOf(com.cursoragent.service.ModelParameter("thinking", "Thinking", "thought_level", value,
+                        listOf("low", "high").map { com.cursoragent.service.ModelOption(it, it) })))
+                val draft = configuration("large", "high")
+                val queued = configuration("small", "low")
+                composer.useAcp()
+                composer.showAcpConfiguration(draft)
+                composer.inputArea.text = "draft"
+                composer.modeSelector.selectMode(AgentMode.ASK)
+                val queue = PromptQueue("owner")
+                queue.add("queued", AgentMode.PLAN, queued.model, modelParameters = queued.parameterValues(), modelConfiguration = queued)
+                val sent = mutableListOf<QueuedPrompt>()
+                val editing = PromptQueueEditor(queue, composer, { true }, { it.close() }, {}, { error(it) }, {}, sent::add)
+                try {
+                    composer.setRunning(true)
+                    editing.begin(queue.snapshot().single().id)
+                    assertEquals("small", composer.selection.selectedModel)
+                    assertEquals(mapOf("thinking" to "low"), composer.modelSelector.parameterValues)
+                    assertSame(queued, composer.modelSelector.acpConfiguration)
+                    composer.showAcpConfiguration(draft)
+                    assertEquals(AgentMode.PLAN, composer.selection.mode)
+                    assertSame(queued, composer.modelSelector.acpConfiguration, "turn metadata cannot replace the edited row")
+                    assertSame(draft, composer.modelSelector.providerConfiguration)
+
+                    composer.setRunning(false)
+                    composer.setModelConfigurationBusy(true)
+                    editing.cancel()
+                    editing.submit()
+                    assertTrue(editing.isEditing, "save and cancel wait for the outstanding configuration reply")
+                    assertFalse(composer.canMovePresentation)
+                    assertFalse(composer.canSubmitInitial)
+                    composer.setModelConfigurationBusy(false)
+                    val changed = configuration("small", "high")
+                    composer.showAcpModelConfiguration(changed) // Confirmed response to this edit's own setting request.
+                    composer.setRunning(true)
+                    editing.submit()
+                    assertTrue(sent.isEmpty())
+                    val updated = queue.snapshot().single()
+                    assertEquals(changed.parameterValues(), updated.modelParameters)
+                    assertSame(changed, updated.modelConfiguration)
+                    assertEquals("draft", composer.inputArea.text)
+                    assertEquals(AgentMode.ASK, composer.selection.mode)
+                    assertEquals("large", composer.selection.selectedModel)
+                    assertSame(draft, composer.modelSelector.acpConfiguration)
+                    assertSame(changed, composer.modelSelector.providerConfiguration, "restoring a draft does not confirm provider settings")
+
+                    editing.begin(updated.id)
+                    composer.showAcpModelConfiguration(null, preserveDraft = true)
+                    composer.setRunning(false)
+                    assertFalse(composer.modelSelector.isEnabled)
+                    assertEquals(changed.parameterValues(), composer.modelSelector.parameterValues, "disconnect cannot erase the saved edit")
+                    editing.cancel()
+                    assertSame(updated, queue.snapshot().single())
+                    assertEquals(draft.parameterValues(), composer.modelSelector.parameterValues)
+                    assertNull(composer.modelSelector.providerConfiguration)
+                    assertFalse(composer.modelSelector.isEnabled)
+                } finally {
+                    editing.close()
+                    Disposer.dispose(lifetime)
+                }
+            }
+        } finally { runInEdtAndWait { fixture.tearDown() } }
+    }
+
     private class Tasks : Executor {
         private val tasks = ArrayDeque<Runnable>()
         override fun execute(command: Runnable) { tasks.add(command) }

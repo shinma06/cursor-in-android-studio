@@ -65,6 +65,8 @@ abstract class AgentWindowAction internal constructor(
     }
 
     private fun target(e: AnActionEvent): ToolWindow? {
+        if (command == AgentWindowCommand.ALL_CHATS && e.inputEvent is java.awt.event.KeyEvent &&
+            (e.actionManager.getAction("CursorAgent.CycleModelParameter") as? CycleModelParameterAction)?.ownsShortcut(e) == true) return null
         val project = e.project?.takeUnless { it.isDisposed } ?: return null
         val window = windowFor(project)?.takeUnless { it.isDisposed || !it.isAvailable || it.project !== project } ?: return null
         val panel = panel(window)

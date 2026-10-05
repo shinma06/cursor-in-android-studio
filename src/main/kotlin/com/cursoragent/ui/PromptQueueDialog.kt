@@ -55,7 +55,7 @@ internal class PromptQueueDialog(
 
     override fun createCenterPanel(): JComponent = JPanel(BorderLayout(JBUI.scale(8), JBUI.scale(8))).apply {
         preferredSize = JBUI.size(640, 440)
-        add(JLabel("明示選択・添付は登録時に固定。自動context・参照内容・実行設定は送信開始時です。"), BorderLayout.NORTH)
+        add(JLabel("mode/model/追加設定と明示選択・添付は登録時に固定。自動context・参照内容と権限などは送信開始時です。"), BorderLayout.NORTH)
         add(JBScrollPane(list), BorderLayout.CENTER)
         add(JPanel(java.awt.GridLayout(0, 3, JBUI.scale(6), JBUI.scale(6))).apply {
             add(button("編集…") { editQueuedPrompt(project, queue, isCurrent, it) })

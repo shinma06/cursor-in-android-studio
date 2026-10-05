@@ -12,10 +12,13 @@ data class ChatMessage(
     val id: String = newHistoryId(), val role: String, val text: String,
     val presentation: String? = null,
 )
+data class SavedModelSettings(val mode: String, val model: String, val parameters: Map<String, String>)
+
 data class SavedTurn(
     val id: String = newHistoryId(),
     val state: String = "running",
     val messages: List<ChatMessage> = emptyList(),
+    val modelSettings: SavedModelSettings? = null,
 )
 
 /** Display data only: never stores injected context, wire payloads, credentials or executable actions. */
@@ -50,6 +53,14 @@ class ConversationRecorder(var conversation: Conversation, private val save: (Co
         assistantId = null
         tools.clear()
         publish(conversation.copy(turns = conversation.turns + SavedTurn(id, messages = listOf(ChatMessage(role = "user", text = prompt)))))
+    }
+
+    fun configuration(state: com.cursoragent.service.AgentEvent.Configuration) {
+        if (turnId == null) return
+        val settings = SavedModelSettings(state.mode, state.model, state.parameterValues())
+        publish(conversation.copy(turns = conversation.turns.map {
+            if (it.id == turnId) it.copy(modelSettings = settings) else it
+        }))
     }
 
     fun provider(id: String) { publish(conversation.copy(providerId = id)) }

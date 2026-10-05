@@ -280,6 +280,21 @@ class ScenarioProcessTest(unittest.TestCase):
                 process.stdin.close()
                 self.assertEqual(0, process.wait(timeout=5))
 
+    def test_model_parameters_replace_dependent_values_and_failure_keeps_the_advertisement(self):
+        for scenario in ('model-config', 'model-config-fail', 'model-config-queue'):
+            with self.subTest(scenario=scenario):
+                process, received, _, _ = self.start(scenario, scenario)
+                self.initialize(process, received)
+                self.send(process, id=3, method='session/set_config_option', params={
+                    'sessionId': 'session-one', 'configId': 'model', 'value': 'small'})
+                options = self.receive(received)['result']['configOptions']
+                self.assertEqual(['mode', 'model', 'reasoning', 'fast'], [option['id'] for option in options])
+                self.assertEqual('small' if scenario != 'model-config-fail' else 'default[]', options[1]['currentValue'])
+                self.assertEqual(['low', 'high'] if scenario != 'model-config-fail' else ['low', 'medium', 'high'],
+                                 [option['value'] for option in options[2]['options']])
+                process.stdin.close()
+                self.assertEqual(0, process.wait(timeout=5))
+
     def test_titles_keep_stdin_responsive_and_deliver_idle_metadata_on_explicit_release(self):
         for action in ('cancel', 'complete'):
             with self.subTest(action=action):

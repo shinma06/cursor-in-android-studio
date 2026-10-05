@@ -15,7 +15,7 @@
 
 ## ID・形式・更新
 
-v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMode、updatedMs、turns。SavedTurnはid(UUID)、state、messages。ChatMessageはid(UUID)、role(user/assistant/tool/error)、text。配列が順序。会話ID、tab ID、turn UUID、run tokenの参照同一性、provider IDは別物。provider IDはPRINT/ACPと組で解釈する。providerから取得できないIDを生成して補わない。
+v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMode、updatedMs、turns。SavedTurnはid(UUID)、state、messages。#525では任意の`modelSettings`（mode・exact model ID・parameter ID/value map）を追加し、所有turnのACP Configurationで確認した最新値を保存する。未確認や旧JSONのfield不在はnull。failed turnの設定記録はprompt実行や適用成功を証明せず、再開・再送の実行命令として使わない。label・全候補・wireは保存しない。ChatMessageはid(UUID)、role(user/assistant/tool/error)、text。配列が順序。会話ID、tab ID、turn UUID、run tokenの参照同一性、provider IDは別物。provider IDはPRINT/ACPと組で解釈する。providerから取得できないIDを生成して補わない。
 
 root/worktreeModeは直近の実行先来歴でありturn別の復元権限ではない。履歴を開くsnapshotはそのview/controllerへ渡すだけでrootにキャッシュせず、closeで解放する。
 

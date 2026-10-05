@@ -104,7 +104,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 特に次は初期一覧からの訂正で、GUIで差を確認する。
 
 - M+Lは`aichat.newchataction`（Open Chat）。`composer.cancelChat`への初期抽出の対応は誤り。M+Iと同じ入口を使い、選択やfocusで新規/既存が分岐する。M+Shift+L/Iも単純な既存chatへの選択追加とは異なる。
-- Windowsのmodel menuはCtrl+/だけ。Ctrl+Alt+/とCtrl+Shift+/はparameter変更であり、Mac/Linuxのmodel menu副キーをWindowsへ継承してはいけない。Pluginは標準Windows KeymapをCtrl+/だけにし、Linuxの副キーは`Default for XWin`へ定義した。parameter変更の接続はP10で未達。
+- Windowsのmodel menuはCtrl+/だけ。Ctrl+Alt+/とCtrl+Shift+/はparameter変更であり、Mac/Linuxのmodel menu副キーをWindowsへ継承してはいけない。Pluginは標準Windows KeymapをCtrl+/だけにし、Linuxの副キーは`Default for XWin`へ定義した。parameter変更はP10の子実装を親Draftへ接続し、同じキーでは利用可能なparameter操作を優先する。固定build GUIは未達。
 - M+Rは入力欄だけで新しい会話へ移る。本文消去や追加tab作成だけに置換せず、後述の再利用/表示置換/下書き条件へ接続する。
 - Shift+Tabは[Plan Mode公式説明](https://cursor.com/docs/agent/plan-mode)のmode回転と整合する固定版の実handlerを確認した。`openModeMenu`という名前だけでmenu表示とした初期解釈を修正する。先行keydownがmode Actionへの一致を検出した場合は、Tabによる過去human message移動へ進まない。Keymap変更/条件不一致時のP02 fallbackは別に残し、静的優先を実OSの配送passへ読み替えない。
 - M+Shift+Enterは初回draft submit、空入力の変更承認/Apply worktree、取消等で意味が分かれる。すべてを「新しいworktreeで開始」としない。
@@ -115,7 +115,7 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、P03/P07は親Draftへ合流して予約編集/復元とeditor側のAction/履歴を接続し、他の子との合流・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、P03/P07/P10は親Draftへ合流して予約編集/復元、editor側のAction/履歴とモデル追加設定を接続した。P01など残る能力の全対象照合・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
@@ -128,7 +128,7 @@ P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専�
 | P07 | [#523](https://github.com/shinma06/cursor-in-android-studio/issues/523): 同一Agent会話のToolWindow/editor表示切替 | [PR #524](https://github.com/shinma06/cursor-in-android-studio/pull/524)に同じowner/viewの移動とeditor headerを実装。#156/#213を再利用し、chat ID/run/draft/contextを二重化しない。親DraftのAction・履歴/最近使用・sidebar経由の再表示へ接続し、非表示ownerのnative tab閉鎖でも元run/draftを保持する。独立review・split/close/focus等の7 GUI Caseは未達。 |
 | P08 | 保留変更の一括承認/却下とworktree適用 | #47/#308の事後Diff/Revertと分離。公開された未適用提案のsnapshot/所有契約が前提。 |
 | P09 | Agent Voiceの録音開始/停止/取消 | #99はOS dictation研究でありVoice実装ではない。録音権限、選択chat所有、失敗と保存寿命を含め採用経路を確定。 |
-| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、独立review・親のWindowsキー優先/予約editorとの合流・5 GUI Caseは未達。 |
+| P10 | [#525](https://github.com/shinma06/cursor-in-android-studio/issues/525): 広告されたmodel parameterの循環選択 | [PR #526](https://github.com/shinma06/cursor-in-android-studio/pull/526)にACP追加設定の選択/循環・予約snapshot・確認済みturn履歴を実装。#43のexact IDを保持。Cursorのhotkey指定とACP category/orderの差、親DraftでWindowsキー優先/予約editor/native editorへ接続した。独立review・5 GUI Caseは未達。 |
 | P11 | 選択codeからcodebase検索付きchatを開く | #24の一般選択添付と区別。固定版の操作と公開検索意味を確定し、非公開flagや独自indexを発明しない。 |
 
 #48のqueue、#97の送信設定、#258/#404のSkills/command候補、#156のopened chats、#213の最後tab閉鎖等を再利用する。これらの実装Issueがclosedでも、対応QAやmain反映は未達の場合がある。SubComposerの所属未確定からside chat能力を推測して起票しない。
@@ -181,7 +181,7 @@ M+N/T/W、M+[/]、M+/、M+Shift+J等はIDE既存操作と競合する。18個の
 
 Pluginは1タブ時に保存履歴を背景読込みし、現行tab・世代・IME/子popup・削除を再確認する。保存済みで作業が残らないタブは置き換えて連続移動を保つ。run token・保存失敗/保留・queue・下書き・明示context・command・画像・手動名があるタブは保持し、対象を追加タブで開く。固定版のrunning switchも新タブを選ぶ実装で、単に取消/確認分岐の文字列があることから確認dialogを推測しない。Pluginはdraft等も保護対象に含めるため、その後は複数タブ移動になる差をGUIで照合する。空の未保存会話を履歴へ新規保存せず、名前/modeを推測しない。sidebar表示中は下記の候補highlight・解放確定へ分岐し、非表示時の履歴循環と区別する。
 
-All Agentsは固定版の`workbench.action.openAgentsView` / `chat:` providerを確認した。Agent paneにfocusがありsidebarが見えている場合だけsidebarを隠す。それ以外はsidebarを表示して検索pickerを開く。Pluginは独立したチャット一覧と検索popupへ接続し、ToolWindowや会話本体は閉じない。一覧の表示状態をprojectごとに保持する。新規projectでは非表示から始めるPluginの初期状態と、ToolWindow内の分割配置は固定版の独立sidebarとGUI比較する。MacはControl+Shift+S、Windows/LinuxはCtrl+Shift+/。Windowsのmodel parameter優先（P10）は未接続として残す。
+All Agentsは固定版の`workbench.action.openAgentsView` / `chat:` providerを確認した。Agent paneにfocusがありsidebarが見えている場合だけsidebarを隠す。それ以外はsidebarを表示して検索pickerを開く。Pluginは独立したチャット一覧と検索popupへ接続し、ToolWindowや会話本体は閉じない。一覧の表示状態をprojectごとに保持する。新規projectでは非表示から始めるPluginの初期状態と、ToolWindow内の分割配置は固定版の独立sidebarとGUI比較する。MacはControl+Shift+S、Windows/LinuxはCtrl+Shift+/。Windowsのmodel parameter優先（P10）は、入力欄にfocusがあり設定可能な場合に接続し、実GUI比較は残す。
 
 候補は開いた会話・保存本文・旧print metadataを型付きIDで統合し、開いたviewの手動名/冒頭文を優先する。pickerはアーカイブを除外した通常候補を使い、pin/アーカイブ操作を持たない。空検索なら更新日時降順、入力時は名前/冒頭文の一致順位で最大200件。全候補を検索してから件数を制限し、古い会話を検索対象から落とさない。IDE native matcherによる曖昧検索と一致強調を使い、Cursor内部のscore値・同順位の順序との完全一致は主張しない。sidebarは大文字小文字を区別しない部分一致で検索し、区分内の更新日時順を保つ。popupの曖昧検索と混同しない。本文全文検索は従来の履歴検索であり、この入口へ混ぜない。読込み/検索を背景処理し、IME中や結果待ちは確定を拒否する。保持するのはmetadataで、閉じた候補の本文/削除を確定時に再読込みする。
 
@@ -250,9 +250,9 @@ OpenChat/FollowUp/NewAgent/All Agentsのglobal入口ではcontent生成・activa
 
 ## モデル設定循環の接続条件
 
-固定版`cycleHotkeyParameter`は各選択modelのparameter定義から`isCycleableByHotkey === true`かつ複数値を持つ最初の項目を選ぶ。CLIのalias末尾から作る既存`ModelFamilies`のaxis順を、この広告された順序やhotkey許可と同一視しない。現在のPluginのprint catalogにはこの属性がなく、ACP UIも確認済みの`mode` / `model`だけを扱うため、P10は未接続である。
+固定版`cycleHotkeyParameter`は各選択modelのparameter定義から`isCycleableByHotkey === true`かつ複数値を持つ最初の項目を選ぶ。CLIのalias末尾から作る既存`ModelFamilies`のaxis順を、この広告された順序やhotkey許可と同一視しない。現在のPluginのprint catalogにはこの属性がない。P10のACP UIは広告された`thought_level` / `model_config`を扱い、広告順で最初の複数値項目を選ぶ。親DraftのAction/予約editorにも接続したが、Cursor固有のhotkey属性と同一とは扱わない。
 
-[ACP config options](https://agentclientprotocol.com/protocol/v1/session-config-options)は`thought_level` / `model_config` categoryと広告順をUI/shortcut判断に利用でき、設定応答では全listの置換を求める。[Cursor SDKのmodel catalog](https://cursor.com/docs/sdk/typescript)にもparameter/variantの公開型がある。これらは次の接続候補であり、現在のCursor ACPが対象設定を広告することやCLI aliasへの対応、SDK catalogに同じhotkey許可が含まれることの証拠ではない。[JetBrains AI AssistantのACP対応](https://www.jetbrains.com/help/ai-assistant/acp.html)も比較対象のまま維持し、モデル設定循環の同等性は有限の実測と公開契約の照合後に判定する。
+[ACP config options](https://agentclientprotocol.com/protocol/v1/session-config-options)は`thought_level` / `model_config` categoryと広告順をUI/shortcut判断に利用でき、設定応答では全listの置換を求める。[Cursor SDKのmodel catalog](https://cursor.com/docs/sdk/typescript)にもparameter/variantの公開型がある。ACP経路の実装と限定metadata観測の範囲は[current implementation](../architecture/current-implementation.md)に記載した。SDK catalogは別経路の候補であり、全Cursor ACP modelの広告やCLI aliasへの対応、SDK catalogに同じhotkey許可が含まれることの証拠ではない。[JetBrains AI AssistantのACP対応](https://www.jetbrains.com/help/ai-assistant/acp.html)も比較対象のまま維持し、モデル設定循環の同等性は有限の実測と公開契約の照合後に判定する。
 
 ## 空入力からinline予約一覧への移動
 

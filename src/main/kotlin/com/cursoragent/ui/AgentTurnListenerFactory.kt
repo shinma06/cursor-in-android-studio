@@ -119,7 +119,7 @@ internal class AgentTurnListenerFactory(
                             timeline.addInputRequest(event.request) { !project.isDisposed && !terminal && isCurrent() && !isStopped() }
                         }
                         is AgentEvent.Plan -> { activity(RunPhase.RUNNING); timeline.showPlan(event.entries) }
-                        is AgentEvent.Configuration -> onConfiguration(event)
+                        is AgentEvent.Configuration -> { recorder.configuration(event); onConfiguration(event) }
                     }
                 }
             }

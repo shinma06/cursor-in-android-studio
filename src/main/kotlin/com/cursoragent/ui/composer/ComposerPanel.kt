@@ -28,6 +28,10 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     var isRunning = false
         private set
     private var acp = false
+    internal var modelConfigurationBusy = false
+        private set
+    internal val canConfigureModel: Boolean get() = acp && !isRunning && !modelConfigurationBusy &&
+        inputArea.isEnabled && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen && images?.importing != true
     internal var images: com.cursoragent.ui.composer.image.ImageDraft? = null
         private set
     private val imageContainer = JPanel(BorderLayout()).apply { isOpaque = false }
@@ -57,7 +61,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     internal fun cycleMode() { if (canCycleMode) modeSelector.cycleMode() }
 
     internal val panelShortcutAvailable: Boolean
-        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen
+        get() = !modelConfigurationBusy && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen
 
     /** The root additionally checks project lifetime, panel visibility and child popups. */
     private fun inputShortcutAvailable(focus: java.awt.Component?): Boolean =
@@ -136,7 +140,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
 
     private val enqueueButton = javax.swing.JButton("予約に追加").apply {
         isVisible = false
-        toolTipText = "入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
+        toolTipText = "入力を次のターンに予約します。mode/model/追加設定と明示選択・添付は登録時に固定。自動context・参照内容と権限などの実行設定は送信開始時です。"
         addActionListener { if (isRunning && !isQueueEditing) submit() }
     }
     private val queueButton = javax.swing.JButton().apply {
@@ -172,6 +176,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         inputArea.text, inputArea.editor?.caretModel?.caretsAndSelections,
         selection.mode, selection.selectedModel, promptContext.draft.snapshot(), commands.selectedName,
         images?.retain(), images?.preview,
+        modelSelector.acpConfiguration, modelSelector.parameterValues.toMap(),
     )
 
     internal fun restoreDraft(draft: ComposerDraft) {
@@ -180,7 +185,9 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         commands.clearSelection()
         draft.command?.let(commands::restoreSelection)
         modeSelector.selectMode(draft.mode)
-        modelSelector.restoreSelection(draft.model)
+        modelSelector.restoreSelection(draft.model, draft.modelConfiguration, draft.modelParameters)
+        if (acp) modelSelector.isEnabled = !isRunning && !modelConfigurationBusy &&
+            modelSelector.acpConfiguration != null && modelSelector.providerConfiguration != null
         inputArea.replaceDraftText(draft.text, draft.carets)
     }
 
@@ -306,7 +313,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         queueEditSubmit.text = if (isRunning) "予約を更新" else "送信"
         queueEditSubmit.toolTipText = if (isRunning) sendLabel.replace("送信", "予約を更新") else sendLabel
         enqueueButton.accessibleContext.accessibleName = sendLabel.replace("送信", "予約に追加")
-        enqueueButton.toolTipText = "${enqueueButton.accessibleContext.accessibleName}。入力を次のターンに予約します。mode/modelと明示選択・添付は登録時に固定。自動context・参照内容と実行設定は送信開始時です。"
+        enqueueButton.toolTipText = "${enqueueButton.accessibleContext.accessibleName}。入力を次のターンに予約します。mode/model/追加設定と明示選択・添付は登録時に固定。自動context・参照内容と権限などの実行設定は送信開始時です。"
     }
 
     fun useAcp() {
@@ -318,20 +325,27 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
 
     fun showAcpConfiguration(state: AgentEvent.Configuration) {
         val mode = AgentMode.entries.firstOrNull { it.name.lowercase() == state.mode } ?: return
-        val editingMode = selection.mode
-        val editingModel = selection.selectedModel
-        modeSelector.selectMode(if (isQueueEditing) editingMode else mode)
-        modelSelector.setAcpModels(state.models, state.model)
-        if (isQueueEditing) modelSelector.restoreSelection(editingModel)
-        modeSelector.isEnabled = !isRunning
-        modelSelector.isEnabled = !isRunning && state.models.isNotEmpty()
+        if (!isQueueEditing) modeSelector.selectMode(mode)
+        showAcpModelConfiguration(state, preserveDraft = isQueueEditing)
+        modeSelector.isEnabled = !isRunning && !modelConfigurationBusy
+    }
+
+    internal fun showAcpModelConfiguration(state: AgentEvent.Configuration?, preserveDraft: Boolean = false) {
+        modelSelector.setAcpConfiguration(state, preserveDraft)
+        modelSelector.isEnabled = !isRunning && !modelConfigurationBusy && state != null && modelSelector.acpConfiguration != null
+    }
+
+    internal fun setModelConfigurationBusy(busy: Boolean) {
+        modelConfigurationBusy = busy
+        modelSelector.isEnabled = !isRunning && !busy && modelSelector.acpConfiguration != null && modelSelector.providerConfiguration != null
+        modeSelector.isEnabled = inputArea.isEnabled && !isRunning && !busy
     }
 
     fun setInputEnabled(enabled: Boolean) {
         // sendButton is intentionally left enabled here -- setRunning() repurposes
         // it as a Stop button while a turn is in flight, so it must stay clickable.
         inputArea.isEnabled = enabled
-        modeSelector.isEnabled = enabled
+        modeSelector.isEnabled = enabled && !modelConfigurationBusy && (!acp || !isRunning)
     }
 
     fun setRunning(running: Boolean) {
@@ -339,8 +353,8 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         enqueueButton.isVisible = running && !isQueueEditing
         accessoryPanel.isVisible = isQueueEditing || running || queueButton.isVisible
         if (acp) {
-            modeSelector.isEnabled = !running
-            modelSelector.isEnabled = !running && selection.selectedModel.isNotEmpty()
+            modeSelector.isEnabled = !running && !modelConfigurationBusy
+            modelSelector.isEnabled = !running && !modelConfigurationBusy && modelSelector.acpConfiguration != null && modelSelector.providerConfiguration != null
         }
         sendButton.text = if (running) "" else "↑"
         sendButton.icon = if (running) StopIcon else null
@@ -355,7 +369,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     }
 
     internal val canMovePresentation: Boolean
-        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
+        get() = !modelConfigurationBusy && !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
             !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
 
     internal val canToggleEditorWithShortcut: Boolean
@@ -364,7 +378,7 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {
-        if (!inputArea.isEnabled || !panelShortcutAvailable ||
+        if (modelConfigurationBusy || !inputArea.isEnabled || !panelShortcutAvailable ||
             com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)) return
         if (isQueueEditing) { if (queueEditAvailable) onSubmitQueueEdit(); return }
         val text = inputText()
@@ -384,4 +398,6 @@ internal data class ComposerDraft(
     val command: String?,
     val image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment?,
     val imagePreview: java.awt.image.BufferedImage? = null,
+    val modelConfiguration: AgentEvent.Configuration? = null,
+    val modelParameters: Map<String, String> = modelConfiguration?.parameterValues().orEmpty(),
 )
