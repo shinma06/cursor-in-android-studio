@@ -342,7 +342,7 @@ class AgentUiController(
             runOnEdt {
                 if (!disposed && !project.isDisposed && commandConnection.isCurrent(generation) && transportState().first == AgentTransport.ACP) {
                     composer.showAcpModelConfiguration(state,
-                        preserveDraft = (queuedTurn || queueEditor.isEditing) && modelRequestGeneration == null)
+                        preserveDraft = state == null || (queuedTurn || queueEditor.isEditing) && modelRequestGeneration == null)
                 }
             }
         }) { state ->

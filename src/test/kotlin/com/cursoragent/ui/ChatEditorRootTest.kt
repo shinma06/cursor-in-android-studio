@@ -197,6 +197,36 @@ class ChatEditorRootTest {
                     secondComposer.showAcpModelConfiguration(secondComposer.modelSelector.acpConfiguration!!.copy(parameters = emptyList()))
                     allChats.update(cycleEvent)
                     assertEquals(1, windowLookups, "All Agents stays available when there is no cycleable parameter")
+
+                    assertTrue(sessions.selectTransport(secondId, com.cursoragent.service.AgentTransport.ACP))
+                    val secondController = get(secondView, "controller") as AgentUiController
+                    secondController.javaClass.getDeclaredMethod("refreshAcpConnection", Boolean::class.javaPrimitiveType)
+                        .apply { isAccessible = true }.invoke(secondController, false)
+                    val service = fixture.project.getService(com.cursoragent.service.AgentProcessService::class.java)
+                    val connection = requireNotNull((get(service, "acpSessions") as Map<*, *>)[secondId])
+                    @Suppress("UNCHECKED_CAST")
+                    val notifyConfiguration = get(connection, "configurationListener") as (com.cursoragent.service.AgentEvent.Configuration?) -> Unit
+                    val savedConfiguration = com.cursoragent.service.AgentEvent.Configuration("agent", "exact-model",
+                        listOf(com.cursoragent.service.ModelOption("exact-model", "Exact")),
+                        listOf(com.cursoragent.service.ModelParameter("thinking", "Thinking", "thought_level", "high",
+                            listOf("low", "high").map { com.cursoragent.service.ModelOption(it, it) })))
+                    secondComposer.showAcpConfiguration(savedConfiguration)
+                    val queue = get(secondController, "queue") as PromptQueue
+                    val editing = get(secondController, "queueEditor") as PromptQueueEditor
+                    queue.add("queued", AgentMode.PLAN, savedConfiguration.model,
+                        modelParameters = savedConfiguration.parameterValues(), modelConfiguration = savedConfiguration)
+                    editing.begin(queue.snapshot().single().id)
+                    assertTrue(editing.isEditing)
+                    field(secondController, "modelRequestGeneration").set(secondController, 42L)
+                    secondComposer.setModelConfigurationBusy(true)
+                    notifyConfiguration(null) // The actual controller observer receives disconnect during a pending edit request.
+                    assertEquals(savedConfiguration.parameterValues(), secondComposer.modelSelector.parameterValues)
+                    assertNull(secondComposer.modelSelector.providerConfiguration)
+                    assertFalse(secondComposer.modelSelector.isEnabled)
+                    field(secondController, "modelRequestGeneration").set(secondController, null)
+                    secondComposer.setModelConfigurationBusy(false)
+                    editing.cancel()
+                    queue.clear()
                 } finally {
                     secondComposer.modelSelector.onConfigure = originalConfigure
                     keymaps.activeKeymap = previousKeymap
