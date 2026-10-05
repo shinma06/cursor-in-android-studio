@@ -230,6 +230,13 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
         commands.clearSelection()
     }
 
+    internal val canMovePresentation: Boolean
+        get() = !inputArea.isComposing && !commands.popupOpen && !mentionPopupController.popupOpen &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(this)
+
+    internal val canToggleEditorWithShortcut: Boolean
+        get() = canMovePresentation && selection.mode != AgentMode.ASK
+
     fun inputText(): String = if (commands.selectedName == null) inputArea.text.trim() else inputArea.text
 
     private fun submit() {

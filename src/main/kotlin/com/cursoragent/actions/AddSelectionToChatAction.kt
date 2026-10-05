@@ -25,7 +25,6 @@ class AddSelectionToChatAction : DumbAwareAction() {
         val existing = panel()?.selectionContextTarget()
         if (existing != null) {
             existing(selection)
-            window.activate(null)
         } else {
             window.activate { if (!project.isDisposed && !window.isDisposed) panel()?.selectionContextTarget()?.invoke(selection) }
         }

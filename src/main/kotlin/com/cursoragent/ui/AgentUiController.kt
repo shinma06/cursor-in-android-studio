@@ -237,7 +237,11 @@ class AgentUiController(
             else {
                 cancelModelChange()
                 commandSettingsWatch.stop()
-                if (imageDraft.importing) imageDraft.invalidateImport()
+                // Moving the same view between native hosts briefly removes it from the hierarchy.
+                // The existing import scope still rejects changed tabs/settings; invalidate only if it stays hidden.
+                javax.swing.SwingUtilities.invokeLater {
+                    if (!disposed && !composer.isShowing && imageDraft.importing) imageDraft.invalidateImport()
+                }
             }
         }
     }

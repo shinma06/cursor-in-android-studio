@@ -19,6 +19,20 @@
 
 最後の会話タブを閉じると、既存の`SessionTabs`が空の`New Agent`を用意し、対象controllerの破棄後にfactoryが標準`ToolWindow.hide`でAgentパネルを非表示にする（#213）。再表示時はその新規会話を使い、閉じた会話の本文・下書き・provider IDを復帰させない。閉じるボタン、タブ上のDelete、全チャット閉鎖は同じ処理を通る。確認dialog後の現行タブ集合で最後かを判定し、確認中に追加されたタブがあればパネルを維持する。未保存/実行中の確認・取消、対象runだけの停止と遅着拒否は既存経路を保つ。ヘッダーの「パネルを隠す」は会話を閉じず、そのまま保持する別操作。実画面の非表示・再表示と入力/並行実行の受入は[Case #213](../verification/changes/issue-213.json)で確認する。
 
+## 会話のeditor表示
+
+同じ会話をパネルとnative editorタブで切り替える（#523）。上部menuと`CursorAgent.ToggleChatEditor`（Mac Cmd+D / Windows・Linux Ctrl+D、Keymap変更可能）から、既存のtimeline/composerを移動する。FileEditorProviderは自前のメモリ内VirtualFileと同じprojectだけを受理する。通常のファイルは扱わず、会話保存・provider session・run token・controllerは作り直さない。パネル側の会話タブは保持し、表示リンクからeditorへfocusできる。コードの明示context追加も既存ownerの現在の表示先へ戻る。 非選択会話のviewを持つsplitを閉じるときは、残るsplitへのview移動だけを行い、現在の会話選択・予約ticket・履歴要求・context追加先を変えない。残るeditorを実際に選択またはfocusしたときにownerを選択する。`ChatEditorPresentationTest`は実rootでこの境界を確認する。
+
+editorのheaderは既存の新規チャット・履歴・会話menuを共有し、各操作時にそのtab UUIDの生きたviewを引き直す。ToolWindowへfocusを移してから同じeditorへ戻った場合も、nativeタブの再選択通知に加えてfocus ownerを照合する。履歴の読込・dialogは会話ごとの表示componentに結び付け、非表示・別会話選択・閉鎖でgenerationを無効化する。editor側の新規チャット・履歴・開いているチャット選択は移動先もeditorで開く。通常ファイルのfocusで選択会話を変えず、破棄時にはfocus listenerを解除する。
+
+`ChatEditorPresentation`は表示だけを所有する。入力欄は公開`EditorTextField.setDisposedWith`で会話の表示ownerに結び付け、再parent時のnative editor破棄によるcaret/selection/Undo消失を防ぐ。nativeタブを閉じても会話を閉じず、最後の表示ならpanelへ戻す。splitで同一会話を開いた場合は選択側へ1つのviewを移し、他方には表示リンクを置く。会話そのものの閉鎖・root破棄では従来controller停止に続けてpresentation/native editorを破棄し、VirtualFileからowner参照を切る。project終了中にpanelを再表示しない。editor表示位置をディスクへ保存したり、その位置だけでprovider再開を認定することはない。
+
+一時的な階層離脱の後は同じEDT queueで実際の非表示を確認して画像importを取り消す。既存のtab/settings/世代検証は維持する。IME変換中・@/command候補・composerのpopup中は表示切替を抑制する。所有外の通常editorのCmd/Ctrl+Dを変更しない。戻す操作はnative ToolWindow activation完了後に現行ownerを再確認して入力へfocusする。
+
+比較対象は固定Cursor 3.23.12 stable（commit `2d29876d567da1607532b23bbf2cd5ddbca496f0`）のin-IDE `composer.toggleChatAsEditor` の静的登録/実行経路であり、実画面の成功とは別。Cmd/Ctrl+D・composer focus・通常editor本文focus外の条件と同一composerのpane/editor移動を確認した。`chat`は固定配布物のMode定義でAskに対応し、ショートカットはAsk中に無効とする。明示menu/戻すボタンはAskでも使える。実際のfocus範囲は[Case #523](../verification/changes/issue-523.json)と親#212で実画面照合する。[現行Cursor公式shortcut](https://cursor.com/docs/reference/keyboard-shortcuts)の一般layout切替との違いも保持する。[JetBrains AI Chat](https://www.jetbrains.com/help/ai-assistant/ai-chat.html)もeditorタブ表示を備え、[Cursor ACP統合](https://cursor.com/docs/integrations/jetbrains)と[IDE/MCP tools](https://www.jetbrains.com/help/idea/mcp-server.html)を含む構成を比較対象とする。本機能を競合にない独自能力とは扱わない。表示所有はIDE APIの責務でありACP拡張・MCP tool・CLI解析を追加しない。直接統合の価値は本Pluginの既存会話・添付・要求cardを同じIDEのfocus/Keymapで保持する点であり、競合を超える実UXは未検証。
+
+[表示実装](../../src/main/kotlin/com/cursoragent/ui/editor/ChatEditorPresentation.kt)と`ChatEditorPresentationTest`がSDK内の開閉・split・owner/Undo保持を確認する。7 GUI Caseはpendingであり、headless fixtureをnative windowの実受入として扱わない。native editor閉鎖で会話をpanelへ保持する点は本Pluginの明示方針。#521のcontext pasteは同じcomposer/input editorへ接続済みで、表示移動後もcopy由来contextとTerminal snapshotの所有を保持する。親#212のAction群/履歴表示・予約編集への接続は親PRの固定差分で再照合し、子機能の単体受入を親全体の合格に代用しない。
+
 ## 会話タブの折り返し
 
 会話タブはIDEの `Settings → Editor → General → Editor Tabs → Show tabs in` に連動する（#211）。`Multiple rows` は `UISettings.scrollTabLayoutInEditor == false`、`One row` は `true` で、Rabbit 1の既定値は `true`。設定はIDE全体に適用され、各panelは生成時と `UISettingsListener.TOPIC` のEDT通知で反映する。接続はprojectに登録し、panel破棄時にも明示的に切断する。製品独自の設定・永続化は増やさない。読み取りAPIと設定画面の値対応はRabbit 1 `AI-262.9437.185.2621.16467767` のSDKで確認した。[設定の公式説明](https://www.jetbrains.com/help/idea/using-code-editor.html) / [UISettings](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettings.kt) / [既定値](https://github.com/JetBrains/intellij-community/blob/master/platform/editor-ui-api/src/com/intellij/ide/ui/UISettingsState.kt)。
