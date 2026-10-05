@@ -22,7 +22,7 @@ python3 scripts/workflow/verification.py \
   --output docs/verification/current.md
 ```
 
-候補確認を開始したら、バッチJSONの `promotion` に `docs/verification/promotion.json` を指定するか、上記へ `--promotion docs/verification/promotion.json` を加えます。結果の入力後に同じコマンドを再実行すると、候補結果・確認者・日時・証拠・Case単位のmain可否が更新されます。生成MarkdownをPRへcommitする場合は**developで候補を固定する前**に行います。promotion branchでは下記2 JSON以外の差分を許しません。候補確認後の閲覧用出力はローカルへ出力してください。
+候補確認を開始したら、バッチJSONの `promotion` に `docs/verification/promotion.json` を指定するか、上記へ `--promotion docs/verification/promotion.json` を加えます。結果の入力後に同じコマンドを再実行すると、候補結果・確認者・日時・証拠・Case単位のmain可否が更新されます。生成MarkdownをPRへcommitする場合は**developで候補を固定する前**に行います。promotion branchの直接編集は下記2 JSONに限ります。後からmainが進んだ場合の同期は、下記の限定検証を通す必要があります。候補確認後の閲覧用出力はローカルへ出力してください。
 
 保存形式の`gpt`キーと`actor: gpt`は互換用のAgent観察枠です。GPT専任を意味しません。旧Case手順の「指定GPT」等の担当表記も現行の能力・許可条件で割り当てます。過去に実観察した担当名・モデル・結果は書き換えません。実際の担当session・モデル・実施経路を証拠に記録し、`human`と既存の観察履歴は保持します。担当条件は[共通規約](../development/github-workflow.md#正本と役割)に従います。
 
@@ -36,12 +36,21 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 
 1. PMが区切りを選び、未実装依存を解消してdevelopへ統合します。最新mainをdevelopへ取り込む必要がある場合は、**専用Issue branchをdevelopから作りmainを通常mergeし、develop向けPRをsquash merge**します。同期も自分のCase JSON・CI・独立レビューが必要です。main/developへの直接pushは禁止です。
 2. PMはdevelopの候補40桁SHAを固定し、そのSHAからbuildします。developへの後続統合は継続できます。ZIPのSHA-256と実際にロードしたJARを照合します。probe等の別成果物は同じcandidateからbuildし、`artifacts.swing_probe`にそのhashを記録します。Caseの`artifact`（省略時plugin）ごとに一致検査します。candidateが現在のdevelopの祖先であることをgateが検査します。candidateより後の変更は今回のpromotionに含めず次バッチへ回します。無関係なSHAや候補の差し替えは受入に使えません。
-3. 専用promotion Issueと `codex/N-promotion` branch/worktreeを候補SHAから作成し、現在のmainを通常mergeします。`candidate`からの製品差分がゼロである必要があります。main先行toolingや前回QA記録が差分に残れば、1に戻してdevelopへ同期し直します。
+3. 専用promotion Issueと `codex/N-promotion` branch/worktreeを候補SHAから作成し、現在のmainを通常mergeします。`candidate`からの製品差分がゼロである必要があります。初回同期のmain先行toolingや前回QA記録が差分に残れば、1に戻してdevelopへ同期し直します。候補を保った既存promotionへ後続mainを同期する場合は下記の限定検証を使います。
 4. `docs/verification/changes/issue-N.json` をGUI不要の「確認結果の記録」として作成し、`docs/verification/promotion.json` を下記の形式で用意します。PR本文は `Integration: promotion`、`GUI: not-required`（結果記録自体の区分）、`Verification: docs/verification/changes/issue-N.json`。必須GUIは元develop PRのCaseから自動収集され、ここで不要と宣言しても免除されません。
 5. `changes` に `git rev-list <main SHA>..<candidate SHA>` の**全コミット**を1回ずつ登録します。通常は各コミットを実際にmerge済みの同一repository develop PRのsquash結果へ対応付けます。既存の承認済みmain同期mergeは下記の厳密な履歴照合に限って内包commitも同じPRへ対応付けます。省略、未対応コミット、任意のmerge/rebase取り込み、別PRへの付け替えをgateが拒否します。選択的なmain統合は実装していません。通常は固定develop候補全体を確認します。
 6. `results` は全必要Caseを `Issue番号:Case ID` で列挙します。各Caseの操作後、実施者が実際の結果を入力します。失敗なら専用修正Issue/PRをdevelopへ入れ、新候補で全必要Caseを再確認します。
 7. テスト・独立レビュー・PR policy・Acceptance gateを通し、PM/coordinatorが**merge commit**で統合します。squashでは候補の祖先関係が失われるため禁止です。mainのstrict base、直前のcandidate再照合、head指定mergeを維持します。
 8. promotion Issueは全受入完了時にclose可能です。元の機能/QA Issueは残条件を個別に照合して更新し、まとめてcloseしません。次の区切りでは1のmain同期を先に行います。main/developをcleanupしません。
+
+### 候補固定後のmain同期（#533）
+
+候補を再buildせずに同期できるのは、製品・build入力を変えないmain更新だけです。promotion側で直接編集できるのは引き続き `promotion.json` と当該IssueのCase JSONだけです。
+
+- first-parent履歴が固定candidateへ戻り、全追加commitを説明できることを検査します。旧main同期の第二親は現在mainの祖先で、各差分が上記2 JSONだけなら過去の同期として維持します。
+- 文書/toolingを取り込むmergeは、第二親が現在mainの祖先、merge baseが一意で、Gitの競合なしmerge treeと2 JSON以外が完全一致する場合に限ります。文書の手直しや競合解消が必要なら同期専用develop PRと新候補に戻します。
+- main側の取り込み履歴も各親との差分を検査します。既存Change Impact分類でruntime/build/test/unknown、symlink/submoduleを拒否し、製品変更後のRevertを最終差分だけで見逃しません。既存Case・環境/範囲policy・結果JSONの改訂は認めず、新規のGUI不要tooling受入JSONだけを追加できます。
+- 同期後に `promotion.base` を現在mainへ合わせ、全commit/PR/Case集合を再照合します。固定candidate、artifact、実観察、環境revision、全Case pass、独立レビューと4必須checksは維持します。構造検証の成功はGUI合格ではありません。
 
 ### 既存main同期mergeの履歴照合（#250）
 

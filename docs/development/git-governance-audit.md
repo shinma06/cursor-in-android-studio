@@ -41,11 +41,30 @@ python3 scripts/workflow/governance_audit.py
 | Branch | remote実ref/local branch/tracking ref/worktreeを区別し、merged/stale・命名・Issue対応・担当・未保存成果物・mainと統合先developとの差を照合。経過日数やbehindだけで不要としない。 |
 | PR | Issue対応、merge後の元Issue/QA/Project、template・必須条件の目的と現実の負担。テスト/レビュー/受入を未確認のまま緩和しない。 |
 | Rule | 各現行ルールを必要性・実際の利用・重複/矛盾・自動化可能性で上の6分類へ。既存だからKEEPとしない。[Change Impact](change-impact.md)の分類と消費側の一致、古いpath/新runtime resource、不要な重いCI、条件の重複、required checksとskipの整合も点検する。 |
+| Information disclosure | 個人情報・認証情報・非公開情報がGitHubのソース/履歴・Issue/PR・添付/配布物等に存在していないか、下の[情報公開監査](#個人情報非公開情報の監査)で確認する。 |
 | Context | 適用されるAGENTS/CLAUDE、instructions、README/CONTRIBUTING（存在するもの）、architecture/workflow、Issue/PR template、roadmap、Git文書を実GitHub状態と照合。歴史記録と現在の指示を区別する。[開発コンテキストの共通規則](../architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件)で用途/言語/形式/正本/読込条件/証拠を判定し、作成・更新・レビュー入口から同じ正本への到達を確認する。原証拠等の正当な例外を言語違反にしない。 |
 
 全ページを取得する。既存の[終了時照合](github-projects.md#issue終了時の整合確認)・[branch照合](pr-automation.md#ブランチ残存の判定と完了確認)とCase/受入の正本を再利用し、別のclose/削除判定を作らない。
 
 未登録Issue、設定漏れ、closedなのにProject未完了、完了Milestoneの未達Issue、obsoleteなdependency、orphan/merged branch増加、Issue/PR追跡不能、重複Issue、Status矛盾は異常候補。2か所への手入力、多数の作成時設定、使われないfield、Label/fieldやIssue/Milestone/Projectの責務重複、例外や「ルールのルール」の増加も点検する。既に理由付きで保留されたものを新しい欠陥と数え直さない。
+
+## 個人情報・非公開情報の監査
+
+定期監査では、[公開前確認の情報区分・判定基準](github-workflow.md#個人情報非公開情報の公開前確認)を使い、GitHub上に個人情報や公開してはいけない情報が存在していないか確認する。Openだけでなくclosed/mergedの履歴も含め、公開承認・実データ/合成値・現在の閲覧範囲を照合する。漏えいの疑いがある場合は次回のmerge閾値まで待たず、対象情報の再公開/配布を止めて本節の確認・対応へ進む。
+
+| 対象 | 確認範囲 |
+| --- | --- |
+| ソースとGit履歴 | main/developだけでなくremote branch/tag・取得可能なPR refsの現在と履歴。削除/rename済みファイル、設定/fixture/ログ、commit message・author/committerのname/email、branch/tag名。ローカル作業treeだけで不存在を判定しない。 |
+| Issue/PR（MR相当） | Open/closed/mergedのtitle/body、コメント、レビュー/inline comment、差分、編集履歴、添付画像/動画/ファイルとメタデータ。 |
+| 実行・配布・その他 | Actionsログ/summary/artifact、Release本文/asset（ZIP等の内部も含む）、Wiki、Discussions、Projectの内容、Milestone/label/repositoryの説明、GitHub Pages/Packages等の公開物・メタデータ。対象repoから参照する関連GitHubリソースも確認範囲へ記録する。 |
+
+一覧取得はページングを最後まで行い、本文・履歴・添付/バイナリの内容も確認する。初回は取得可能な既存範囲を確認し、以後は前回の確認範囲/時点を起点に追加・更新分と未確認分、前回の検出箇所の残存を照合する。差分や更新履歴の完全性を確認できない対象は対象全体を再確認する。存在しない/無効な機能はその根拠を記録し、権限不足・削除/期限切れ・API制約で取得できない内容は未確認として分ける。
+
+利用可能な[GitHub Secret scanning](https://docs.github.com/en/code-security/concepts/secret-security/secret-scanning)のalertと既存scannerを補助に使う。alertなしや文字列検索の一致なしだけで、個人情報・業務情報・画像/バイナリを含む全範囲の不存在を証明したことにしない。監査用の新しい必須CI gateや常駐監視を追加しない。
+
+結果は同じ監査Issueへ、確認日時、ref/SHA・リソース種別と範囲、検出の有無、未確認範囲/理由、是正・保留の担当と次の操作を記録する。公開報告は問題の種類・影響と安全な識別子に限定する。秘密の値・個人情報・rawログ・秘密を含むURL/検索語・添付を転載せず、漏えい箇所へ誘導する詳細や原証拠は承認済みの非公開保管先で扱う。主要範囲が未確認なら「漏えいなし」やHEALTHY/監査完了にせず、baselineを進めない。
+
+検出時は対象の投稿・push・配布を止め、maintainerへ非公開経路で引き継ぐ。認証情報は[GitHub公式の削除手順](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)に従い失効・交換を最優先にし、本文/ファイルを削除しただけで解決済みにしない。Git履歴・PR refs/差分・編集履歴・添付・artifact/asset・キャッシュ・fork等の残存と再混入を確認する。取得/制御できないコピーの回収を保証せず、必要なGitHub Support対応を含め担当・残リスクを残す。通常修正は既存Issue/専用PRで進め、資格情報操作や削除は既存権限/承認範囲に従う。履歴改変・force push・保護変更・不可逆な削除を監査の名目で自動実行せず、具体的な対応案を準備して不足する承認だけを確認する。無関係な開発は一律停止しない。
 
 ## 修正の順序と境界
 
@@ -78,7 +97,7 @@ closeを日数、merge、全子closedだけで判定しない。残受入を正�
 ```
 ````
 
-上は書式例。Issueでは外側のtext fenceを付けず、marker直後にJSON fenceを置く。実際のUTC日時はISO 8601で記録する。全7領域の照合と是正/保留理由・owner・次操作を記録し、必要なレビュー/PR統合・引継ぎを終えて監査Issueをcloseしたレコードだけを採用する。途中・API失敗・主要範囲未確認の監査でbaselineを進めない。未達QAを監査完了でpassへ変えない。
+上は書式例。Issueでは外側のtext fenceを付けず、marker直後にJSON fenceを置く。実際のUTC日時はISO 8601で記録する。全8領域（情報公開を含む）の照合と是正/保留理由・owner・次操作を記録し、必要なレビュー/PR統合・引継ぎを終えて監査Issueをcloseしたレコードだけを採用する。途中・API失敗・主要範囲未確認の監査でbaselineを進めない。未達QAを監査完了でpassへ変えない。
 
 `audited_through`は実際に確認したsnapshot境界で、完了時刻まで勝手に延ばさない。監査中にmergeされた未確認PRは次回countへ残す。完了によってその境界からのcountを0に戻し、それ以降のmergeは失わない。初回に記録がなければ初回監査を実施し、過去の部分監査を完了baselineと推定しない。
 

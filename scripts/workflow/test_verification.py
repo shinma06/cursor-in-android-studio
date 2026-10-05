@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import agent_loop as al
 from agent_policy import binding, next_action
 from handoff_registry import register, resolve
-from verification import metadata, validate_change, verify_pr, render_queue, ENVIRONMENT, json_hash, environment_cases, git_read
+from verification import metadata, validate_change, verify_pr, render_queue, ENVIRONMENT, json_hash, environment_cases, git_read, promotion_history, PROMOTION
 from test_agent_loop import pr_data, report, HEAD, BASE, NEW
 import test_agent_loop as tal
 
@@ -57,13 +57,13 @@ class AcceptanceTests(unittest.TestCase):
                 return json.dumps(self.manifest)
             return json.dumps(self.documents[args[1]])
         if args[0] == 'diff':
-            if args[2] == NEW:
+            if args[-2] == NEW:
                 return '\n'.join(self.product_diff + ['docs/verification/promotion.json'])
             return 'docs/verification/promotion.json'
         if args[:2] == ('rev-list', '--parents'):
-            return args[-1] + ' ' + BASE
+            return args[-1] + ' ' + (NEW if args[-1] == HEAD else BASE)
         if args[0] == 'rev-list':
-            return '' if '--not' in args else '\n'.join(self.range)
+            return HEAD if '--first-parent' in args or args == ('rev-list', HEAD, '--not', NEW, BASE) else ('' if '--not' in args else '\n'.join(self.range))
         if args[0] == 'ls-tree':
             return ''
         if args[0] == 'fetch':
@@ -220,7 +220,7 @@ class AcceptanceTests(unittest.TestCase):
 
     def test_untested_product_change_in_promotion_rejected(self):
         self.product_diff = ['src/main/kotlin/Product.kt']
-        with self.assertRaisesRegex(ValueError, 'tree differs'):
+        with self.assertRaisesRegex(ValueError, 'Untested commit'):
             self.verify()
 
     def test_closed_origin_does_not_weaken_or_block_fixed_candidate_gate(self):
@@ -507,7 +507,7 @@ class RealPromotionHistoryTests(unittest.TestCase):
             # An unobserved product change after candidate is never accepted as metadata.
             write('product.txt', 'untested'); untested = commit('hidden product update')
             bad = copy.deepcopy(one); bad['head']['sha'] = untested
-            with self.assertRaisesRegex(ValueError, 'tree differs'): verify_pr(bad, api, git)
+            with self.assertRaisesRegex(ValueError, 'Untested commit'): verify_pr(bad, api, git)
             # Even net-identical product content cannot hide a later develop commit in ancestry.
             git('checkout', '-b', 'codex/41-history-smuggling', one['head']['sha'])
             git('merge', '--no-edit', later)

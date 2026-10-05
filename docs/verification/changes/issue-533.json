@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 533,
+  "gui_required": false,
+  "reason": "固定promotionのmain同期履歴を検証するPython gateと運用文書のみ。製品source/build・固定candidate・GUI結果・全Case pass要件は変更しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p test_promotion_history.py: 実Gitによる正常mergeと不正履歴拒否",
+    "python3 -m unittest discover -s scripts/workflow -p test_verification.py: candidate/Case/build/environment/observationの既存検証",
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests: workflow/loop tests",
+    "PR #496の既存履歴・現在mainとの一時merge treeを照合。全174 Case pendingを保持し、構造確認をGUI合格にしない。"
+  ],
+  "cases": []
+}
