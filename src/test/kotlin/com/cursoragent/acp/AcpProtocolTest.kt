@@ -94,4 +94,29 @@ class AcpProtocolTest {
         config.replace(json("""{"configOptions":[]}"""))
         assertThrows(AcpException::class.java) { config.state() }
     }
+    @Test
+    fun `model parameter advertisements retain provider order and reject invalid replacements`() {
+        val base = json("""{"configOptions":[{"id":"mode","type":"select","currentValue":"agent","options":[{"value":"agent","name":"Agent"}]},{"id":"model","type":"select","currentValue":"actual-id","options":[{"value":"actual-id","name":"Actual"}]}]}""")
+        val parameter = json("""{"id":"thinking","name":"Thinking","category":"thought_level","type":"select","currentValue":"low","options":[{"group":"Levels","options":[{"value":"low","name":"Low"},{"value":"high","name":"High"}]}]}""")
+        val response = base.deepCopy().apply { getAsJsonArray("configOptions").add(parameter) }
+        val config = AcpConfiguration()
+        config.replace(response)
+        assertEquals(mapOf("thinking" to "low"), config.state().parameterValues())
+        assertEquals(listOf("low", "high"), config.state().parameters.single().options.map { it.id })
+        val invalid = response.deepCopy().apply { getAsJsonArray("configOptions")[2].asJsonObject.addProperty("currentValue", "invented") }
+        config.replace(invalid)
+        assertThrows(IllegalArgumentException::class.java) { config.state() }
+        val unknown = response.deepCopy().apply { getAsJsonArray("configOptions")[2].asJsonObject.addProperty("category", "future_category") }
+        config.replace(unknown)
+        assertTrue(config.state().parameters.isEmpty())
+        val boolean = response.deepCopy().apply { getAsJsonArray("configOptions")[2].asJsonObject.addProperty("type", "boolean") }
+        config.replace(boolean)
+        assertTrue(config.state().parameters.isEmpty())
+        val duplicate = response.deepCopy().apply { getAsJsonArray("configOptions").add(parameter.deepCopy()) }
+        assertThrows(IllegalArgumentException::class.java) { config.replace(duplicate) }
+        assertThrows(AcpException::class.java) { config.state() }
+        config.replace(base)
+        assertTrue(config.state().parameters.isEmpty())
+    }
+
 }

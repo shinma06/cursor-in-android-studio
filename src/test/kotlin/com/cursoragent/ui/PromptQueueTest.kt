@@ -25,11 +25,105 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
 class PromptQueueTest {
+    @Test
+    fun `replacing a queued snapshot requires current identity and never revives an earlier ticket`() {
+        val queue = PromptQueue("owner")
+        queue.add("queued", AgentMode.ASK, "model-a")
+        val entry = queue.snapshot().single()
+        val ticket = queue.ticket(1)!!
+        assertFalse(queue.replace(entry, entry.copy(id = "another")))
+        assertFalse(queue.replace(entry, entry.copy(text = " ")))
+        val replacement = entry.copy(text = "edited", mode = AgentMode.PLAN, model = "model-b")
+        assertTrue(queue.replace(entry, replacement))
+        assertFalse(queue.replace(entry, entry.copy(text = "stale")))
+        assertFalse(queue.paused)
+        assertFalse(queue.dispatch(ticket, 1, true) { error("stale ticket") })
+        assertTrue(queue.dispatch(queue.ticket(1)!!, 1, true) { assertSame(replacement, it); true })
+        assertFalse(queue.replace(replacement, replacement))
+    }
+
+    @Test
+    fun `editing holds only its head position and never releases an explicit pause or stale ticket`() {
+        for (paused in listOf(false, true)) {
+            val queue = PromptQueue("owner")
+            repeat(3) { queue.add("entry-$it", AgentMode.AGENT, "model") }
+            val entries = queue.snapshot()
+            val previousTicket = queue.ticket(1)!!
+            if (paused) queue.pause()
+            assertTrue(queue.beginEdit(entries[1]))
+            assertFalse(queue.beginEdit(entries[2]))
+            assertEquals(paused, queue.paused)
+            assertFalse(queue.dispatch(previousTicket, 1, true) { error("ticket predates edit hold") })
+            if (paused) assertNull(queue.next())
+            else {
+                assertSame(entries[0], queue.next(), "an earlier row can finish before the edited row")
+                assertTrue(queue.dispatch(queue.ticket(1)!!, 1, true) { it === entries[0] })
+                assertNull(queue.next(), "later rows cannot skip the edited head")
+            }
+            assertFalse(queue.dispatchSelected(entries[1], true) { error("cannot send a held row") })
+            val edited = entries[1].copy(text = "edited")
+            assertTrue(queue.replace(entries[1], edited))
+            assertEquals(paused, queue.paused)
+            queue.endEdit("unrelated")
+            assertFalse(queue.dispatchSelected(edited, true) { error("unrelated release cannot end editing") })
+            queue.endEdit(edited.id)
+            assertEquals(paused, queue.paused)
+            if (paused) { assertNull(queue.next()); queue.resume() }
+            assertTrue(queue.dispatch(queue.ticket(2)!!, 2, true) { true })
+            assertEquals(if (paused) listOf(edited, entries[2]) else listOf(entries[2]), queue.snapshot())
+        }
+        val queue = PromptQueue("owner")
+        queue.add("edit", AgentMode.AGENT, "model")
+        val entry = queue.next()!!
+        queue.beginEdit(entry)
+        queue.pause() // Stop, Revert or failed execution during editing.
+        queue.endEdit(entry.id)
+        assertNull(queue.next())
+        assertTrue(queue.paused)
+        queue.clear()
+        assertFalse(queue.beginEdit(entry))
+    }
+
+    @Test
+    fun `explicit idle submit sends only its current selected row and leaves failed preparation paused`() {
+        val queue = PromptQueue("owner")
+        repeat(3) { queue.add("entry-$it", AgentMode.AGENT, "model") }
+        val entries = queue.snapshot()
+        val earlierTicket = queue.ticket(1)!!
+        queue.pause()
+        assertFalse(queue.dispatchSelected(entries[1], false) { error("busy or wrong owner") })
+        assertTrue(queue.dispatchSelected(entries[1], true) { assertSame(entries[1], it); true })
+        assertEquals(listOf(entries[0], entries[2]), queue.snapshot())
+        assertTrue(queue.paused, "explicit submission does not resume other paused rows")
+        assertFalse(queue.dispatchSelected(entries[1], true) { error("duplicate submit") })
+        queue.resume()
+        assertFalse(queue.dispatch(earlierTicket, 1, true) { error("explicit submission invalidated the earlier ticket") })
+        assertFalse(queue.dispatchSelected(entries[2], true) { false })
+        assertTrue(queue.paused)
+        assertEquals(listOf(entries[0], entries[2]), queue.snapshot(), "preparation failure retains the edited snapshot for explicit retry")
+    }
+
+    @Test
+    fun `model parameter snapshot cannot be changed by later draft edits or queue edits`() {
+        val queue = PromptQueue("conversation")
+        val values = mutableMapOf("thinking" to "high")
+        queue.add("queued", AgentMode.ASK, "actual-model", modelParameters = values)
+        values["thinking"] = "low"
+        val item = queue.snapshot().single()
+        queue.edit(item.id, "edited")
+        assertEquals(mapOf("thinking" to "high"), queue.snapshot().single().modelParameters)
+        queue.remove(item.id)
+        queue.restoreUnsent(item)
+        assertEquals(mapOf("thinking" to "high"), queue.snapshot().single().modelParameters)
+    }
+
     @org.junit.jupiter.api.Test
     fun `explicit attachment snapshot belongs to queue item across draft edits and dispatch`() {
         val draft = com.cursoragent.ui.composer.context.PromptContextDraft()
         val selection = com.cursoragent.ui.composer.context.SelectionContext("file:///A.kt", "A.kt", 0, 3, 1, 1, "old", 1)
         draft.add(selection)
+        val terminal = com.cursoragent.ui.composer.context.TerminalContext("copy", "Build", 1, 2, "old\noutput")
+        draft.add(terminal)
         val queue = PromptQueue("owner")
         queue.add("queued", AgentMode.ASK, "auto", draft.snapshot())
         val id = queue.next()!!.id
@@ -41,6 +135,7 @@ class PromptQueueTest {
         assertTrue(queue.dispatch(ticket, 1, true) { item ->
             assertEquals("edited queued text", item.text)
             assertEquals(listOf(selection), item.context!!.selections)
+            assertEquals(listOf(terminal), item.context!!.terminals)
             assertTrue(draft.snapshot().selections.isEmpty())
             true
         })

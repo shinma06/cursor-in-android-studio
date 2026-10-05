@@ -48,6 +48,7 @@ data class TurnSettings(
     val mode: com.cursoragent.settings.AgentMode,
     val permission: com.cursoragent.settings.PermissionMode,
     val sandbox: com.cursoragent.settings.SandboxMode,
+    val modelParameters: Map<String, String> = emptyMap(),
 ) {
     fun arguments(): List<String> = buildList {
         model.takeIf { it.isNotBlank() }?.let { addAll(listOf("--model", it)) }

@@ -12,7 +12,7 @@ capture = None
 control = root
 if len(sys.argv) != 3:
     try:
-        if len(sys.argv) != 5 or sys.argv[3] != "--capture" or scenario not in ("permission", "normal", "eof", "cancel", "child", "bad-config", "commands-delayed", "events", "questions", "plan", "titles"):
+        if len(sys.argv) != 5 or sys.argv[3] != "--capture" or scenario not in ("permission", "normal", "eof", "cancel", "child", "bad-config", "commands-delayed", "events", "questions", "plan", "titles", "model-config", "model-config-fail", "model-config-queue"):
             raise ValueError("Unknown capture scenario")
         root = root.resolve(strict=True)
         marker = root / "ACP_SYNTHETIC_FIXTURE.json"
@@ -38,6 +38,18 @@ config = [
     {"id": "model", "type": "select", "currentValue": "default[]", "options": [
         {"value": "default[]", "name": "Auto"}, {"value": "small", "name": "Small"}]},
 ]
+def model_parameters():
+    model = config[1]["currentValue"]
+    return [
+        {"id": "reasoning", "name": "Thinking", "category": "thought_level", "type": "select", "currentValue": "low",
+         "options": [{"value": v, "name": v} for v in (["low", "high"] if model == "small" else ["low", "medium", "high"])]},
+        {"id": "fast", "name": "Fast", "category": "model_config", "type": "select", "currentValue": "off",
+         "options": [{"value": v, "name": v} for v in ["off", "on"]]},
+    ]
+
+if scenario.startswith("model-config"):
+    config.extend(model_parameters())
+
 prompt_id = None
 pending = None
 next_request_id = 0
@@ -175,7 +187,9 @@ for line in sys.stdin:
             record("in", request)
     method = request.get("method")
     if method == "initialize":
-        assert request["params"]["clientCapabilities"] == {"fs": {"readTextFile": False, "writeTextFile": False}, "terminal": False}
+        capabilities = request["params"]["clientCapabilities"].copy()
+        assert capabilities.pop("_meta", {}) in ({}, {"parameterizedModelPicker": True})
+        assert capabilities == {"fs": {"readTextFile": False, "writeTextFile": False}, "terminal": False}
         initialized = {"protocolVersion": 1.5 if scenario == "version-fraction" else "1" if scenario == "version-string" else 1}
         if scenario.startswith("image-"):
             initialized["agentCapabilities"] = {"promptCapabilities": {"image": {"image-true": True, "image-false": False, "image-string": "true"}[scenario]}}
@@ -193,10 +207,17 @@ for line in sys.stdin:
         else:
             new_session(request["id"])
     elif method == "session/set_config_option":
-        if scenario != "bad-config":
+        if scenario == "model-config-delayed":
+            (control / "config-pending").write_text("")
+            deadline = time.monotonic() + 5
+            while not (control / "release-config").exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+        if scenario not in ("bad-config", "model-config-fail"):
             for option in config:
                 if option["id"] == request["params"]["configId"]:
                     option["currentValue"] = request["params"]["value"]
+            if scenario.startswith("model-config") and request["params"]["configId"] == "model":
+                config[2:] = model_parameters()
         response(request["id"], {"configOptions": config})
     elif method == "session/prompt":
         assert request["params"]["sessionId"] == "session-one"
@@ -279,11 +300,11 @@ for line in sys.stdin:
             else:
                 params["plan"] = "# Plan"
             send({"id": pending, "method": "cursor/ask_question" if scenario == "questions" else "cursor/create_plan", "params": params})
-        elif scenario in ("permission", "unknown"):
+        elif scenario in ("permission", "unknown", "model-config-queue"):
             pending = next_request_id
             next_request_id += 1
             params = {"sessionId": "session-one", "toolCall": {"toolCallId": "opaque\ncall", "title": "Synthetic", "rawInput": {"command": "synthetic-command"}}, "options": [{"optionId": "allow", "name": "Allow", "kind": "allow_once"}, {"optionId": "reject", "name": "Reject", "kind": "reject_once"}]}
-            send({"id": pending, "method": "session/request_permission" if scenario == "permission" else "fs/read_text_file", "params": params})
+            send({"id": pending, "method": "session/request_permission" if scenario in ("permission", "model-config-queue") else "fs/read_text_file", "params": params})
         else:
             for text in ["はい", "はい"]:
                 update(sessionUpdate="agent_message_chunk", content={"type": "text", "text": text})

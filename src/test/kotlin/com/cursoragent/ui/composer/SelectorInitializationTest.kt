@@ -26,6 +26,28 @@ class SelectorInitializationTest {
     }
 
     @Test
+    fun `mode shortcuts cycle existing choices and labels without changing another chat or disabled selection`() = SwingUtilities.invokeAndWait {
+        val current = AgentSettingsState().apply { mode = AgentMode.AGENT }
+        val other = AgentSettingsState().apply { mode = AgentMode.ASK }
+        val selector = ModeSelector(current)
+        ModeSelector(other)
+        for ((mode, label) in listOf(AgentMode.PLAN to "Plan", AgentMode.ASK to "Ask", AgentMode.AGENT to "Agent")) {
+            selector.cycleMode()
+            assertEquals(mode, current.mode)
+            assertEquals(label, selector.text)
+            assertEquals("Mode: $label", selector.accessibleContext.accessibleName)
+            assertEquals(AgentMode.ASK, other.mode)
+        }
+        selector.isEnabled = false
+        selector.cycleMode()
+        assertEquals(AgentMode.AGENT, current.mode)
+        selector.isEnabled = true
+        selector.selectMode(AgentMode.ASK)
+        selector.cycleMode()
+        assertEquals(AgentMode.AGENT, current.mode, "cycling starts from the latest explicit selection")
+    }
+
+    @Test
     fun `mode initializes its accessible name without crashing the tool window`() = SwingUtilities.invokeAndWait {
         val settings = AgentSettingsState().apply { mode = AgentMode.AGENT }
         val selector = ModeSelector(settings)

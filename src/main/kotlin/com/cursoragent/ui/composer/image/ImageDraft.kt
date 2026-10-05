@@ -46,10 +46,7 @@ internal class ImageDraft(
             var failure: String? = null
             try {
                 val image = read()
-                decoded = javax.imageio.stream.MemoryCacheImageInputStream(ByteArrayInputStream(image.bytes())).use { input ->
-                    val reader = ImageIO.getImageReadersByFormatName("png").next()
-                    try { reader.input = input; reader.read(0) } finally { reader.dispose() }
-                }
+                decoded = decode(image.bytes())
                 check(decoded != null)
                 saved = store().save(image)
             } catch (problem: Exception) {
@@ -97,6 +94,33 @@ internal class ImageDraft(
 
     /** The caller owns a separate immutable lease for its queue item or in-flight turn. */
     fun retain(): ImageAttachment? = attachment?.retain()
+
+    /** Transfer an independently owned lease into this draft, without reading image bytes on EDT. */
+    fun restore(image: ImageAttachment?, cachedPreview: BufferedImage? = null) {
+        check(!closed)
+        clear()
+        attachment = image
+        preview = cachedPreview.takeIf { image != null }
+        changed()
+        if (image == null || preview != null) return
+        val ticket = generation
+        worker.execute {
+            val decoded = runCatching { decode(image.bytes()) }.getOrNull()
+            deliver {
+                if (!closed && ticket == generation && attachment === image) {
+                    preview = decoded
+                    error = if (decoded == null) "画像を表示できません。再添付してください。" else null
+                    changed()
+                }
+            }
+        }
+    }
+
+    private fun decode(bytes: ByteArray): BufferedImage? =
+        javax.imageio.stream.MemoryCacheImageInputStream(ByteArrayInputStream(bytes)).use { input ->
+            val reader = ImageIO.getImageReadersByFormatName("png").next()
+            try { reader.input = input; reader.read(0) } finally { reader.dispose() }
+        }
 
     private fun release(image: ImageAttachment) {
         // A project service may already have closed the store and stopped its executor.

@@ -269,9 +269,21 @@ class ChatTimelinePanel : JPanel(BorderLayout()) {
         (if (parent == null) id else "${parent.length}:$parent$id") to card.tool
     }
 
-    fun addInputRequest(request: AgentInputRequest) {
+    fun addInputRequest(request: AgentInputRequest, isCurrent: () -> Boolean = { true }) {
         hideEmptyState()
-        addRow(AgentRequestCard(request))
+        addRow(AgentRequestCard(request, isCurrent))
+    }
+
+    internal val hasPendingInput: Boolean
+        get() = isActiveTab && messagesPanel.components.filterIsInstance<AgentRequestCard>().any { it.isPending }
+
+    /** ACP supplies no decision-group identifier. Only focus or a single live request selects a target. */
+    internal fun pendingInput(focus: Component?): AgentRequestCard? {
+        if (!isActiveTab) return null
+        val cards = messagesPanel.components.filterIsInstance<AgentRequestCard>()
+        val focused = cards.firstOrNull { focus != null && SwingUtilities.isDescendingFrom(focus, it) }
+        if (focused != null) return focused.takeIf { it.isPending }
+        return cards.filter { it.isPending }.singleOrNull()
     }
 
     fun showPlan(entries: List<String>) {

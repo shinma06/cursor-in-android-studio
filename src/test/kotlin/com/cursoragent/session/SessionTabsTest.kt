@@ -6,6 +6,93 @@ import org.junit.jupiter.api.Test
 
 class SessionTabsTest {
     @Test
+    fun `hiding selected owners chooses a visible neighbor without disposing live work`() {
+        val tabs = SessionTabs()
+        val first = tabs.snapshot().selectedId
+        tabs.updateComposer(first, AgentMode.PLAN, "model", "request", 3)
+        val token = tabs.beginTurn(first)!!.token
+        tabs.updateComposer(first, AgentMode.ASK, "model", "draft", 4)
+        val before = tabs.snapshot().selected
+        val second = tabs.open().id
+        val third = tabs.open().id
+        tabs.select(first)
+        assertTrue(tabs.hide(first))
+        assertEquals(second, tabs.snapshot().selectedId)
+        assertEquals(before.copy(visible = false), tabs.snapshot().tabs.first { it.id == first })
+        assertTrue(tabs.accepts(token))
+        assertFalse(tabs.hide(first))
+        assertFalse(tabs.hide("missing"))
+        assertTrue(tabs.hide(third))
+        assertEquals(second, tabs.snapshot().selectedId)
+        assertTrue(tabs.hide(second))
+        val fresh = tabs.snapshot().selectedId
+        assertEquals(4, tabs.snapshot().tabs.size)
+        assertEquals(listOf(fresh), tabs.snapshot().visibleTabs.map { it.id })
+        assertTrue(tabs.finishTurn(token))
+        assertEquals(fresh, tabs.snapshot().selectedId)
+        assertTrue(tabs.select(first))
+        assertEquals(before.copy(run = null), tabs.snapshot().selected)
+        assertTrue(tabs.hide(first))
+        assertEquals(fresh, tabs.snapshot().selectedId)
+    }
+
+    @Test
+    fun `replacing a view retains its owner token draft and identity until explicit close`() {
+        val store = SessionTabs()
+        val first = store.snapshot().selectedId
+        store.selectTransport(first, com.cursoragent.service.AgentTransport.ACP)
+        store.updateComposer(first, AgentMode.PLAN, "provider-model", "request", 2)
+        val token = store.beginTurn(first)!!.token
+        store.bindChat(token, "provider-session")
+        store.updateComposer(first, AgentMode.ASK, "next-model", "next draft", 4)
+        val before = store.snapshot().selected
+        val next = store.replaceSelected()
+        assertEquals(listOf(next.id), store.snapshot().visibleTabs.map { it.id })
+        assertEquals(before.copy(visible = false), store.snapshot().tabs.first { it.id == first })
+        assertTrue(store.accepts(token))
+        assertTrue(store.applyAcpTitle(first, "provider-session", "background title"))
+        assertTrue(store.finishTurn(token))
+        assertEquals(next.id, store.snapshot().selectedId)
+        val reopened = store.open(conversationId = before.conversationId, transport = before.transport)
+        assertEquals(first, reopened.id)
+        assertTrue(reopened.visible)
+        assertEquals("next draft", reopened.draft)
+        assertEquals(4, reopened.caret)
+        assertEquals("next-model", reopened.modelId)
+        assertEquals("provider-session", reopened.chatId)
+        assertEquals(2, store.snapshot().tabs.size)
+        store.close(first)
+        assertFalse(store.applyAcpTitle(first, "provider-session", "late title"))
+    }
+
+    @Test
+    fun `hidden owners do not affect visible order close neighbors or last-tab replacement`() {
+        val store = SessionTabs()
+        val hidden = store.snapshot().selectedId
+        store.updateComposer(hidden, AgentMode.AGENT, "model", "running", 0)
+        val token = store.beginTurn(hidden)!!.token
+        val a = store.replaceSelected().id
+        val b = store.open().id
+        val c = store.open().id
+        assertFalse(store.move(hidden, 0))
+        assertTrue(store.move(c, 0))
+        assertTrue(store.move(a, 2))
+        assertEquals(listOf(c, b, a), store.snapshot().visibleTabs.map { it.id })
+        store.select(b)
+        store.close(b)
+        assertEquals(a, store.snapshot().selectedId)
+        store.closeAll(listOf(c, a))
+        val fresh = store.snapshot().selected
+        assertEquals(listOf(fresh.id), store.snapshot().visibleTabs.map { it.id })
+        assertEquals(setOf(hidden, fresh.id), store.snapshot().tabs.map { it.id }.toSet())
+        assertTrue(store.accepts(token))
+        assertEquals(listOf(token), store.stopAll(), "project cleanup includes owners without visible tabs")
+        assertFalse(store.accepts(token))
+        assertTrue(store.select(hidden))
+        assertEquals(listOf(fresh.id, hidden), store.snapshot().visibleTabs.map { it.id })
+    }
+
+    @Test
     fun `failed initial ACP preparation releases transport but a bound provider or stale token cannot`() {
         val sessions = SessionTabs()
         val tab = sessions.snapshot().selectedId

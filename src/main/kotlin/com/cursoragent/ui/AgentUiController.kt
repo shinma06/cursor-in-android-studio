@@ -42,6 +42,8 @@ class AgentUiController(
     private var releaseUnsentTransport: (() -> Unit)? = null
     private var recoverUnsentCommand: (() -> Unit)? = null
     private val commandConnection = com.cursoragent.ui.composer.command.AcpCommandConnection()
+    private var modelChangeGeneration = 0L
+    private var cancelModelRequest: (() -> Unit)? = null
     private val commandSettingsWatch = javax.swing.Timer(400) {
         if (composer.isShowing) refreshAcpConnection()
     }
@@ -52,7 +54,7 @@ class AgentUiController(
         deliver = { runOnEdt(it) },
         store = agentService::imageStore,
         changed = { imagePanel?.refresh() },
-        scope = { listOf(sessions.snapshot().selectedId, transportState(), composer.selection.selectedModel, commandConnection.revision,
+        scope = { listOf(sessions.snapshot().selectedId, transportState(), composer.selection.selectedModel, composer.modelSelector.parameterValues, commandConnection.revision,
             AgentSettingsState.getInstance().agentExecutablePath, AgentSettingsState.getInstance().permissionMode,
             AgentSettingsState.getInstance().sandboxMode, AgentSettingsState.getInstance().worktreeMode) },
     )
@@ -76,11 +78,36 @@ class AgentUiController(
         } }
     }
     private val queue = PromptQueue(recorder.conversation.id, agentService::releaseImage)
+    private val queueEditor = PromptQueueEditor(queue, composer,
+        isCurrent = { !disposed && !project.isDisposed && composer.isShowing && isSelectedConversation() },
+        releaseImage = agentService::releaseImage, changed = ::refreshQueue, error = timeline::showStatus,
+        onQueueReady = ::scheduleNextQueuedPrompt, onSend = ::sendEditedQueuedPrompt)
+    private val queueSubmission = PromptQueueSubmission(queue,
+        isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() && composer.isShowing &&
+            !composer.modelConfigurationBusy && !queueEditor.isEditing && composer.inputArea.isEnabled && composer.panelShortcutAvailable &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(composer) },
+        activeRun = { activeRun }, generation = { turnGeneration },
+        dispatchLater = { SwingUtilities.invokeLater(it) }, start = { startPrompt(it.text, it) },
+        stop = ::stopActiveRun, changed = ::refreshQueue,
+        stopFailed = { timeline.showStatus("停止を確認できません。選択した予約を保持しました。") })
     private var queueDialog: PromptQueueDialog? = null
-    val hasQueuedPrompts: Boolean get() = queue.size > 0
+    private val queueUiLifetime = com.intellij.openapi.util.Disposer.newDisposable()
+    private val inlineQueue: PromptQueueList = PromptQueueList(queue,
+        isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
+        shortcutAvailable = {
+            !queueEditor.isEditing && composer.isShowing && inlineQueue.isFocusOwner &&
+                !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(inlineQueue)
+        },
+        onEdit = { queueSubmission.cancel(); queueEditor.begin(it.id) },
+        onChanged = ::refreshQueue,
+        onReturnToInput = { inlineQueue.clearSelection(); composer.inputArea.requestFocusInWindow() },
+        canSubmit = { queueSubmission.available },
+        onSubmit = { queueSubmission.submit(it) },
+    )
+    val hasQueuedPrompts: Boolean get() = queue.size > 0 || queueEditor.isEditing
 
     fun enqueuePrompt(text: String) {
-        if (disposed || project.isDisposed || activeRun?.isActive != true || !isSelectedConversation()) return
+        if (disposed || project.isDisposed || queueEditor.isEditing || activeRun?.isActive != true || !isSelectedConversation()) return
         val context = try {
             composer.promptContext.snapshot()
         } catch (error: IllegalArgumentException) {
@@ -94,7 +121,8 @@ class AgentUiController(
         }
         if (imageDraft.importing) return
         val image = imageDraft.retain()
-        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context, command, image)) {
+        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context, command, image,
+                composer.modelSelector.parameterValues, composer.modelSelector.acpConfiguration)) {
             composer.clearInput()
             refreshQueue()
         } else image?.let(agentService::releaseImage)
@@ -105,11 +133,52 @@ class AgentUiController(
         return selected.id == tabId && selected.conversationId == queue.conversationId
     }
 
-    fun pauseQueue() { queue.pause(); refreshQueue() }
-    private fun refreshQueue() { composer.showQueueState(queue.size, queue.paused) }
+    fun pauseQueue() { cancelModelChange(); queueSubmission.cancel(); queue.pause(); refreshQueue() }
+    private fun refreshQueue() {
+        val returnToInput = inlineQueue.isFocusOwner && queue.size == 0 && isSelectedConversation()
+        inlineQueue.refresh()
+        inlineQueue.isEnabled = !queueEditor.isEditing
+        composer.showQueueState(queue.size, queue.paused)
+        if (returnToInput && !disposed && !project.isDisposed) composer.inputArea.requestFocusInWindow()
+    }
+
+    private fun focusQueue(reverse: Boolean): Boolean {
+        if (disposed || project.isDisposed || queueEditor.isEditing || !isSelectedConversation() || !composer.isShowing || queue.size == 0) return false
+        return inlineQueue.selectFromPrompt(reverse) && inlineQueue.requestFocusInWindow()
+    }
+
+    private fun cancelModelChange() {
+        ++modelChangeGeneration
+        cancelModelRequest?.invoke()
+        cancelModelRequest = null
+    }
+
+    private var modelRequestGeneration: Long? = null
+    private var queuedTurn = false
+
+    private fun changeModelConfiguration(state: com.cursoragent.service.AgentEvent.Configuration, id: String, value: String) {
+        if (disposed || project.isDisposed || !isSelectedConversation() || !composer.isShowing || !composer.canConfigureModel ||
+            activeRun != null || composer.modelSelector.acpConfiguration !== state) return
+        val provider = composer.modelSelector.providerConfiguration ?: return
+        pauseQueue()
+        val generation = ++modelChangeGeneration
+        composer.setModelConfigurationBusy(true)
+        modelRequestGeneration = generation
+        val cancel = agentService.changeAcpConfiguration(tabId, provider, state, id, value) { success ->
+            runOnEdt {
+                if (!disposed && !project.isDisposed && modelRequestGeneration == generation) {
+                    modelRequestGeneration = null
+                    cancelModelRequest = null
+                    composer.setModelConfigurationBusy(false)
+                    if (!success && generation == modelChangeGeneration) timeline.showStatus("モデル設定を変更できませんでした。接続先の設定を確認してから操作し直してください。")
+                }
+            }
+        }
+        if (modelRequestGeneration == generation) cancelModelRequest = cancel else cancel()
+    }
 
     fun showQueue() {
-        if (disposed || project.isDisposed || !isSelectedConversation() || queueDialog != null) return
+        if (disposed || project.isDisposed || queueEditor.isEditing || !isSelectedConversation() || queueDialog != null) return
         pauseQueue()
         val dialog = PromptQueueDialog(project, queue,
             isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
@@ -121,10 +190,15 @@ class AgentUiController(
                     scheduleNextQueuedPrompt()
                 }
             },
+            canSubmit = { queueSubmission.available },
+            onSubmit = queueSubmission::submit,
         )
         queueDialog = dialog
         dialog.show()
-        if (queueDialog === dialog) queueDialog = null
+        if (queueDialog === dialog) {
+            queueDialog = null
+            if (!disposed && !project.isDisposed && isSelectedConversation()) composer.inputArea.requestFocusInWindow()
+        }
     }
 
     private fun scheduleNextQueuedPrompt() {
@@ -134,6 +208,12 @@ class AgentUiController(
             queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
             if (!disposed) refreshQueue()
         }
+    }
+
+    private fun sendEditedQueuedPrompt(entry: QueuedPrompt) {
+        val ownerIsIdle = !disposed && !project.isDisposed && composer.isShowing && activeRun == null && isSelectedConversation()
+        queue.dispatchSelected(entry, ownerIsIdle) { startPrompt(it.text, it) }
+        if (!disposed) refreshQueue()
     }
 
     private val changes = ConversationChanges(recorder.conversation.id)
@@ -172,7 +252,10 @@ class AgentUiController(
         timeline = timeline,
         onUsage = composer.contextUsage::update,
         onUsageFinish = composer.contextUsage::finish,
-        onConfiguration = composer::showAcpConfiguration,
+        onConfiguration = { state ->
+            if (queuedTurn) composer.showAcpModelConfiguration(state, preserveDraft = true)
+            else composer.showAcpConfiguration(state)
+        },
         recorder = recorder,
         changes = changes,
         beforeRevert = ::pauseQueue,
@@ -191,16 +274,30 @@ class AgentUiController(
     )
 
     init {
+        composer.installQueueList(inlineQueue)
+        inlineQueue.installShortcuts(queueUiLifetime)
+        composer.onFocusQueue = ::focusQueue
+        composer.onSubmitQueueEdit = queueEditor::submit
+        composer.onCancelQueueEdit = queueEditor::cancel
+        composer.installInputShortcuts(queueUiLifetime)
         imagePanel = composer.installImages(imageDraft)
         checkpointService.pruneExpired()
         composer.modelSelector.onRetry = modelLoader::load
+        composer.modelSelector.onConfigure = ::changeModelConfiguration
         if (transportState().first == AgentTransport.ACP) composer.useAcp() else modelLoader.load()
         composer.commands.onRetry = { refreshAcpConnection(force = true) }
         composer.addHierarchyListener {
             if (composer.isShowing && !disposed) { refreshAcpConnection(); commandSettingsWatch.start() }
             else {
                 commandSettingsWatch.stop()
-                if (imageDraft.importing) imageDraft.invalidateImport()
+                // Moving the same view between native hosts briefly removes it from the hierarchy.
+                // The existing import scope still rejects changed tabs/settings; invalidate only if it stays hidden.
+                javax.swing.SwingUtilities.invokeLater {
+                    if (!disposed && !composer.isShowing) {
+                        cancelModelChange()
+                        if (imageDraft.importing) imageDraft.invalidateImport()
+                    }
+                }
             }
         }
     }
@@ -214,6 +311,10 @@ class AgentUiController(
         val shared = AgentSettingsState.getInstance()
         val key = com.cursoragent.ui.composer.command.AcpCommandKey(project.basePath, shared.agentExecutablePath, shared.permissionMode, shared.sandboxMode, shared.worktreeMode)
         val generation = commandConnection.replace(key, force) ?: return
+        cancelModelChange()
+        modelRequestGeneration = null
+        composer.setModelConfigurationBusy(false)
+        composer.showAcpModelConfiguration(null)
         composer.contextUsage.reset()
         agentService.closeSession(tabId)
         val settings = TurnSettings(shared.agentExecutablePath, composer.selection.selectedModel, composer.selection.mode, shared.permissionMode, shared.sandboxMode)
@@ -236,6 +337,13 @@ class AgentUiController(
                 if (!disposed && !project.isDisposed && commandConnection.isCurrent(generation) &&
                     agentService.isAcpSessionConnected(tabId, providerSessionId) &&
                     sessions.applyAcpTitle(tabId, providerSessionId, title)) onTitleChanged()
+            }
+        }, onConfiguration = { state ->
+            runOnEdt {
+                if (!disposed && !project.isDisposed && commandConnection.isCurrent(generation) && transportState().first == AgentTransport.ACP) {
+                    composer.showAcpModelConfiguration(state,
+                        preserveDraft = state == null || (queuedTurn || queueEditor.isEditing) && modelRequestGeneration == null)
+                }
             }
         }) { state ->
             runOnEdt {
@@ -275,8 +383,15 @@ class AgentUiController(
     }
 
     fun dispose() {
+        cancelModelChange()
         recorder.finish("interrupted")
         disposed = true
+        composer.onFocusQueue = { false }
+        composer.onSubmitQueueEdit = {}
+        composer.onCancelQueueEdit = {}
+        queueSubmission.cancel()
+        queueEditor.close()
+        com.intellij.openapi.util.Disposer.dispose(queueUiLifetime)
         timeline.dispose()
         activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
         sessions.clearRequestId(tabId)
@@ -290,6 +405,7 @@ class AgentUiController(
         changesReview.dispose()
         modelLoader.cancel()
         composer.modelSelector.onRetry = {}
+        composer.modelSelector.onConfigure = { _, _, _ -> }
         turnGeneration++
         activeToken?.let(sessions::finishTurn)
         activeRun?.detachListener()
@@ -320,7 +436,7 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (activeRun != null || userText.isBlank() && composer.commands.selectedName == null && imageDraft.attachment == null) return
+        if (composer.modelConfigurationBusy || queueEditor.isEditing || activeRun != null || userText.isBlank() && composer.commands.selectedName == null && imageDraft.attachment == null) return
         pauseQueue()
         startPrompt(userText)
     }
@@ -329,7 +445,7 @@ class AgentUiController(
         val command = if (queued == null) composer.commands.selectedName else queued.command
         val sourceImage = if (queued == null) imageDraft.attachment else queued.image
         if (queued == null && imageDraft.importing) return false
-        if (disposed || project.isDisposed || legacyOnly || arguments.isBlank() && command == null && sourceImage == null || activeRun != null) return false
+        if (disposed || project.isDisposed || legacyOnly || composer.modelConfigurationBusy || arguments.isBlank() && command == null && sourceImage == null || activeRun != null) return false
         refreshAcpConnection()
         if (command != null && !composer.commands.canInvoke(command)) {
             timeline.showStatus("選択したコマンドを確認できません。候補から再選択してください。予約は一時停止します。")
@@ -355,7 +471,9 @@ class AgentUiController(
         val settings = TurnSettings(
             shared.agentExecutablePath, queued?.model ?: composer.selection.selectedModel, queued?.mode ?: composer.selection.mode,
             shared.permissionMode, shared.sandboxMode,
+            queued?.modelParameters ?: composer.modelSelector.parameterValues,
         )
+        val modelConfiguration = if (queued == null) composer.modelSelector.acpConfiguration else queued.modelConfiguration
         val workspace = agentService.captureWorkspace(tab.chatId, shared.worktreeMode)
         agentService.settingsUnavailableReason(tab.transport, settings, workspace.mode)?.let { reason ->
             timeline.showStatus(reason)
@@ -407,7 +525,8 @@ class AgentUiController(
         }
         val sentImage = if (queued == null) imageDraft.retain() else sourceImage
         if (sentImage != null) {
-            val retry = queued ?: QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command, image = sentImage)
+            val retry = queued ?: QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command,
+                image = sentImage, modelParameters = settings.modelParameters, modelConfiguration = modelConfiguration)
             finishImage = { successful ->
                 if (successful || disposed) agentService.releaseImage(sentImage)
                 else SwingUtilities.invokeLater {
@@ -427,6 +546,7 @@ class AgentUiController(
             releaseUnsentTransport = { if (!turn.promptDispatched) sessions.abortUnsentAcpTurn(sessionTurn.token) }
         }
         turnGeneration = generation
+        queuedTurn = queued != null
         if (queued == null) composer.clearInput()
         else sessions.updateComposer(tabId, composer.selection.mode, composer.selection.selectedModel, composer.inputArea.text, composer.inputArea.editor?.caretModel?.offset ?: 0)
         if (command != null && sentImage == null) {
@@ -441,8 +561,10 @@ class AgentUiController(
                         composer.commands.restoreSelection(command)
                         context.selections.forEach(composer.promptContext::addSelection)
                         context.mentions.forEach(composer.promptContext::addMention)
+                        context.terminals.forEach(composer.promptContext::addTerminal)
                     } else {
-                        queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command))
+                        queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command,
+                            modelParameters = settings.modelParameters, modelConfiguration = modelConfiguration))
                         timeline.showStatus("送信前に失敗した入力を予約一覧へ保持しました。内容を確認してから再開してください。")
                     }
                 }
@@ -569,33 +691,41 @@ class AgentUiController(
     fun stopRun() {
         pauseQueue()
         val run = activeRun ?: return
+        stopActiveRun(run)
+    }
+
+    private fun stopActiveRun(run: AgentRun) {
         try {
             run.stop()
         } finally {
             // An already-observed exit wins over a later Stop click.
-            if (run.wasStopped) {
+            if (run.wasStopped && activeRun === run) {
                 composer.contextUsage.stop()
                 timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.STOPPING)
             }
         }
     }
 
-    private fun finishRun(successful: Boolean) {
+    private fun finishRun(phase: com.cursoragent.ui.timeline.RunPhase) {
+        val successful = phase == com.cursoragent.ui.timeline.RunPhase.COMPLETED
+        val finishedRun = activeRun
         finishImage?.invoke(successful)
         finishImage = null
         if (!successful) releaseUnsentTransport?.invoke()
         releaseUnsentTransport = null
         if (!successful) recoverUnsentCommand?.invoke()
         recoverUnsentCommand = null
-        if (!successful) queue.pause()
+        if (!successful && !queue.paused) queue.pause()
         activeToken?.let(sessions::finishTurn)
         activeToken = null
         activeRun = null
+        queuedTurn = false
         composer.setInputEnabled(true)
         composer.setRunning(false)
         composer.commands.update(commandConnection.catalog, !transportState().second)
         refreshQueue()
-        if (successful) scheduleNextQueuedPrompt()
+        val explicitSend = queueSubmission.finished(finishedRun, phase)
+        if (successful && !explicitSend) scheduleNextQueuedPrompt()
     }
 
     private fun runOnEdt(block: () -> Unit) {

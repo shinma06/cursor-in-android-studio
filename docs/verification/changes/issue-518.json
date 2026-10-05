@@ -7,6 +7,7 @@
     "python3 scripts/workflow/change_impact.py --run-tests（製品Kotlin/関連tooling）",
     "ConversationSearchTest: 条件・位置・ゼロ幅・不正/非対応regex・反復展開上限・実行途中取消",
     "ConversationFindPanelTest / ConversationFindActionTest: 表示Document・選択/原文維持・復元本文・遅着/IME/dispose・Action対象再取得・XML",
+    "ChatEditorRootTest: ToolWindow非表示のeditor検索・保持した別ownerイベント拒否・設定変更中の共通guard",
     "git diff --check、Case schema、固定HEAD/base独立レビュー、必須checks"
   ],
   "cases": [
@@ -110,7 +111,8 @@
       "steps": [
         "A/Bを同時実行しAで検索中にAの本文を更新する。古い強調を即座に解除し、更新後の文字列で検索する。検索中にstreamの末尾へ勝手に飛ばない。",
         "検索worker実行中にBへ切り替え、Bや別projectを検索する。Aの結果/件数/スクロールをBへ適用せず、Aを再選択したらAの現在本文で更新する。",
-        "worker実行中に検索を閉じる、会話を閉じる、projectをdisposeする。遅着の結果や多重workerで表示を復活させず、他の会話/runを止めない。閉じた検索は同じ会話の入力へfocusを戻す。"
+        "worker実行中に検索を閉じる、会話を閉じる、projectをdisposeする。遅着の結果や多重workerで表示を復活させず、他の会話/runを止めない。閉じた検索は同じ会話の入力へfocusを戻す。",
+        "同じ会話をeditorタブへ移しToolWindowを隠して検索する。検索欄・語句・強調を同じviewで保持し、別editor会話への切替後に元会話の保留イベントを配送しても新会話を操作しない。ToolWindowへ戻し、検索の継続・閉鎖後の入力focusとrun/draft保持を確認する。"
       ],
       "expected": "各結果は元のtabと現在本文にだけ属する。取消/世代/破棄を照合し、遅着・focus・runを混ぜない。",
       "gpt": {
@@ -156,7 +158,7 @@
       "steps": [
         "Mac/Windows/Linuxの使用OSとKeymap、US/JIS配列を記録し、Cmd/Ctrl+F、F3/Enter、Shift+F3/Shift+Enter、Escapeを検索欄のfocus条件付きで確認する。通常入力の送信キー、一般IDE editorの検索と別ToolWindowの操作を奪わない。",
         "検索欄と通常入力で日本語IME変換・確定中、@/slash候補・子popup中に各キーを押す。変換/候補を先に扱い、裏で検索移動・閉鎖・送信しない。Tabによる検索条件/前後/閉じるのfocus、アクセシビリティ名称、Dark/Light/高DPI・狭幅で判別できることを確認する。",
-        "IDE Keymapで4つのfind Actionを変更/削除し、すでに開いているpanelでも変更が反映されることを確認する。#212のAction群と二重配送されない。"
+        "IDE Keymapで4つのfind Actionを変更/削除し、すでに開いているpanel/editorの両方で変更が反映されることを確認する。#212のAction群と二重配送されず、モデル設定変更中は共通guardを維持する。"
       ],
       "expected": "設定されたキーとfocus条件で1回だけ動作する。IME/候補とIDE既存操作を保ち、検索欄の全操作へkeyboardで到達できる。",
       "gpt": {

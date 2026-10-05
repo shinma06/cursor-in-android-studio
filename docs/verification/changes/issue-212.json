@@ -1,0 +1,1262 @@
+{
+  "schema": 1,
+  "issue": 212,
+  "gui_required": true,
+  "reason": "IDE Action/Keymap、実focusとIME/popup、OS別競合・設定変更反映を固定buildで照合する。panel専用19操作とglobal入口8操作だけでは全ショートカット受入は未達。今回はGUIなし。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests（製品/Kotlinテストを含む）",
+    "AgentPanelActionTest: panel context必須、実行時の対象/可否再取得、別projectイベント、XMLのOS別キーとclass整合",
+    "AgentWindowActionTest: project/ToolWindowの実行時再取得、別project拒否、未生成content、不可/破棄後の拒否、visible/anchorの最新状態とglobal既定キー",
+    "ChatEntryTest: Openのfocus/非表示選択保持、FollowUpの現在chat維持、NewAgentの空再利用/作成/500ms境界と再表示時更新",
+    "RecentChatsTest: 訪問順/10件上限、閉じた保存会話と更新日時fallback、open metadata優先、PRINT/ACP/旧履歴のID分離、Keymapの修飾解放/複数stroke",
+    "RecentChatsTest: 単一tabの全履歴更新日時順/循環/10件超、本文/legacyの識別、run token/保留作業/手動名の置換拒否",
+    "AllChatsTest: 全履歴の検索後200件上限、名前/冒頭文の曖昧検索と一致位置、sidebar更新順、metadata優先/PRINT重複識別、端のhighlightとControl/Meta解放/Keymap",
+    "SidebarChatsTest: local日付/DST/7日30日境界、pin優先と6件/More、折畳み候補除外、部分一致とpopup曖昧検索の区別、75件の有効pin上限と型付き保存/不正値",
+    "SessionTabsTest/SessionTabsExecutionTest/ChatEntryTest/ToolWindowChatActionsTest: 表示置換とowner保持、空会話/履歴後draft条件、hidden runの配送/実終了排他、visibleだけの移動/閉鎖、Actionと入力focus/IME/import guard",
+    "ChatFocusReturnTest/ComposerSubmissionTest: Terminal/editor originの更新と1回消費、閉鎖/不可/別project/未生成時のfallback、project破棄、再生成後の実EditorでIME/入力focus/予約編集の優先",
+    "git diff --check、Case schema、固定HEAD/baseの独立レビューと必須checks",
+    "標準buildPlugin/verifyPluginStructureとRabbit 1のPlugin Verifier: 最近使用/予約一覧の現行renderer API、残る既存16 deprecated usageの完全report、全class・ZIP hash・固定SDK/JBRを照合する",
+    "AgentWindowActionTest: Settingsのpanel contextなし実行、event projectの切替、content未生成/非表示維持、失効の拒否と旧Action ID/OS別2キー",
+    "RequestShortcutsTest: 実カード/ボタン・timeline・turn listener・SessionTabs tokenによる一意/曖昧/focus対象、返信の一度性、onceだけの選択と質問/Plan、close/token更新/Stop/project破棄/terminal後の拒否、OS/送信設定・キー長押し",
+    "PastChatsCoordinatorTest/AgentWindowActionTest: 非表示中の会話別要求、sidebarとheader取消、反復キー、読込み世代、古い選択callback・close/破棄後拒否、実rootでcontent未生成/非表示維持とAction登録/解除",
+    "SelectorInitializationTest/PromptFocusTraversalTest/ComposerSubmissionTest: 最新modeからの循環・別会話/共有設定保持、Shift+Tabと逆focusのKeymap排他、実Editor再生成、本文/選択保持、ACP busyと入力不可",
+    "ComposerSubmissionTest/AgentPanelActionTest: 初回送信のnative Action登録・OS別既定キー・実行時owner再確認、空白/run/予約編集/入力不可/IME拒否、通常送信とEnter長押し共有・解放後再送・破棄時解除",
+    "PromptQueueSubmissionTest/PromptQueueListTest/RunProgressDispatchTest: 実AgentRun・listener・SessionTabsの確定終端/finally後に選択1件だけ送信、終了不確定/失敗・取消/世代/行更新/編集・画像lease、native Actionと送信設定/長押し/登録解除",
+    "ToolReviewShortcutsTest/RequestShortcutsTest: 実Composer・Editor・timeline・permissionの空入力/command/画像/import/予約編集/IME/失効、Keymapの変更/解除/複数stroke先頭とsend/Escape排他、返信後の長押し配送抑止",
+    "ChatArchiveTest/SessionTabsTest/SidebarChatsTest/RecentChatsTest: project型付きmetadata、不正値/遅い保存、実listの通常200件検索と履歴20件More/検索変更/IME/旧状態/非表示/破棄、root/controller/AgentRunの確認取消/対象Stop/遅延終了/owner保持、全区分の隣候補・復元非送信・pin/MRU除外"
+  ],
+  "cases": [
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-CORE-TABS",
+      "change": "新規・切替・閉鎖・履歴・変更一覧・設定",
+      "steps": [
+        "使い捨てprojectに3会話を開き、本文/下書き/明示context/予約を識別する。対応表のM+T/M+N、M+[/]で新規と表示順の循環を確認する。切替で入力と本文を混ぜない。",
+        "M+Wで未保存確認の取消/承認と最後のtab閉鎖/再表示を確認する。ファイルeditorと別projectは閉じない。",
+        "M+A+'で履歴を開き、既存の予約一時停止・保存会話の選択へ接続する。M+Shift+Rで選択中chatの変更一覧を開き、他tabの変更を混ぜず、既存の予約一時停止とRevertのsnapshot/owner確認を保持する。M+Shift+J/M+,でPlugin設定を開く。",
+        "複数会話をnative editorへ移し、ToolWindowを隠した状態でも前後/最近使用・mode/model/context/変更一覧・Stopを現在の会話で操作する。editor headerと入力に現在のKeymapを適用し、再割当/解除、別project、古いevent、閉じたsplitで他ownerを操作しない。通常native tab閉鎖はpanelへ戻るだけで、会話の閉鎖は既存確認を使う。"
+      ],
+      "expected": "既存操作と同じ対象/確認を通る。最後のtabだけパネル非表示となり、他tab/projectやファイルeditorを破壊しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-COMPOSER-RUN",
+      "change": "選択中runと入力/設定条件",
+      "steps": [
+        "print/ACP合成fixtureでA/Bを同時実行し、選択中BでM+Shift+Backspace、macOSではControl+Cも押す。Cmd+Cによる通常コピーは停止にしない。Bだけ停止し、Aと新規会話へ停止/遅着を混ぜない。停止完了とphysical終了を区別する。",
+        "M+./M+A+.、OS別のM+/と副キー、M+A+Pで既存mode/model/context候補を操作する。model menuはWindows標準KeymapでCtrl+/だけ、LinuxのXWin/GNOME/KDEでCtrl+/とCtrl+Alt+/、MacでCmd+/とCmd+Option+/が開くことを確認する。WindowsのCtrl+Alt+/でmodel menuを開かない。未実装のparameter変更はP10として残し、無反応を全対応passにしない。ACP初期未取得・busy・model空の制約を保持し、printモデル失敗時は既存再取得操作になる。",
+        "日本語IME変換中、@と/候補中、mode/model/履歴popup中で各既定キーを押す。入力確定・選択・取消を奪わず、popupの背後でtab追加/閉鎖/停止が起きない。",
+        "通常入力のEnter/Shift+Enter、設定切替後のM+Enter、Tab/Shift+Tabのfocus移動、Escapeと貼付けが従来どおり動くことを確認する。"
+      ],
+      "expected": "対象runだけ停止し、IME/popupとACPの可否を保持する。現行の未対応Cursor操作を代替動作で成功扱いしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-OS-REMAP",
+      "change": "OS別Keymap・変更・解除・寿命",
+      "steps": [
+        "macOS、Windows、Linuxを別々に使用OSとIDE keymap、US/JIS配列込みで記録し、対応表の既定/副キーを確認する。MacのCmd/Controlを区別し、Windowsのmodel/menuとparameter/All Agents競合を照合。panel専用19操作は一般editor/別ToolWindowで働かず、既存IDE操作を維持することを確認する。global入口M+A+J/M+E/M+L/I/M+Y（WindowsはCtrl+Shift+Y）/M+Shift+L/I、MacのControl+Shift+SとWindows/LinuxのCtrl+Shift+/、M+Shift+J/M+,、M+A+'はproject内で働くため、Recent Files等の競合をKeymap変更/解除で調整する。",
+        "IDE KeymapのCursor in Android Studioからキーを変更/削除する。panel専用19操作とglobal入口8操作の両方で変更が反映され、旧キーでPlugin操作せず、新キーで選択中tabだけ操作する。IDEの他Actionとの競合を記録して明示的な割当調整を試す。 LinuxはXWin/GNOME/KDEの継承を個別確認し、別OS系Keymapを明示選択した場合は選択したKeymapの割当に従うことも確認する。",
+        "project A/Bを開いて交互に操作し、Aのcontentをdispose/閉じた後もBが正常に動くことを確認する。再表示/再生成で重複実行や旧project参照がない。"
+      ],
+      "expected": "ユーザーのKeymap変更をlocal登録にも反映する。panel内操作は一般editorを奪わず、global入口は明示割当どおりに動く。dispose済みの対象へ配送しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-WINDOW",
+      "change": "Agentパネルの表示切替・左右移動・project所有",
+      "steps": [
+        "使い捨てprojectでAgent content未生成の状態からM+A+Jを押し、ToolWindowが表示されることを確認する。会話を始め、下書き・明示context・予約・実行tokenを識別してから再度押して非表示にする。表示中はeditorへfocusを移しても同じキーで隠れ、再表示で同じ会話/下書き/実行を保持する。",
+        "M+Eを左/右/上/下配置、表示/非表示の組合せで押し、左なら右、それ以外なら左へanchorが変わって表示されることを確認する。会話や実行が作り直されず、type/splitと他のIDEパネルを保持する。Floating/Windowed時のnative配置と固定Cursorの複数領域配置との差を記録し、同等未確認をpassに置き換えない。",
+        "日本語IME変換中、mention/slash候補と子popup中はパネルを隠したり移動したりしない。popupを閉じる操作を先に完了させ、閉じた後に再度試す。",
+        "project A/Bで交互に操作し、選択eventのprojectのパネルだけ動くことを確認する。Aの破棄/閉鎖後の遅いeventや未生成contentに対するupdateで、別projectを操作したりcontentを先に生成したりしない。Keymap再割当/削除とOS/US-JIS配列も照合する。"
+      ],
+      "expected": "visibilityとanchorだけを既存ToolWindowへ適用し、会話/draft/runを保持する。IME/popup/破棄と別projectの境界を守り、Cursorとの配置差・実focus・浮動状態は固定buildの実観察で判定する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-CHAT-ENTRY",
+      "change": "開く・入力へ戻る・New Agentの再利用とfocus所有",
+      "steps": [
+        "content未生成/非表示/表示中の各状態でM+L/Iを押す。現在の会話/draftを保持し、editorの選択コードを追加して入力欄にfocusする。既にパネル内にfocusがある場合は隠す。非表示の会話に明示選択がある場合は新たなeditor選択で置換・追加しない。",
+        "MacのCmd+Y、LinuxのCtrl+Y、WindowsのCtrl+Shift+Yで現在の入力へ戻る。本文/draft/contextを保持してeventの選択コードを追加する。WindowsのCtrl+Y、LinuxのCtrl+Shift+Yを副キーと誤認しない。",
+        "本文あり、未送信draftあり、空Agent、空Plan、画像/command/予約あり、legacy本文不明のタブを用意する。M+Shift+L/Iは最初の空Agentを再利用し、適格なタブがなければ新規Agentを作る。共有mode設定と他タブ、明示contextを保持する。空Agentにfocusして500ms未満の再入力で隠れず、最後の表示/focus要求から500ms経過後に隠れることを確認する。",
+        "表示callback待ちにタブ切替、非表示、project閉鎖を行い、旧viewへのfocusや別projectへの添付を起こさない。IME/候補/子popup中は背後の表示/タブ操作が起きない。Keymap変更/解除、US/JIS、全OSの既存IDE操作との競合を記録する。",
+        "Cursorのnative Git-worktree除外、editor表示、過去入力からの戻りはP06/P07/P02の未実装として残す。ISOLATEDをnative Git-worktreeとみなさず、pane分岐だけの成功で全対応をpassにしない。"
+      ],
+      "expected": "pane入口がview/draft/context/runを保持し、空Agent再利用・500ms・OS差・遅いfocusの所有を満たす。未実装分岐とCursorとの入力保護差を記録する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-RECENT-CHATS",
+      "change": "最近使用順の一覧・キー解放・保存会話の再表示",
+      "steps": [
+        "使い捨てprojectでA/B/Cの順にタブを作り、A→C→Bと表示する。タブを並べ替えたりAで応答を更新したりしても訪問順B/C/Aは変わらない。全OSでControl+Tab（MacでもControl）からCを初期選択し、Controlを保持してTabで次、Shift+Tabで前へ循環する。逆方向から開始すると末尾を選ぶ。",
+        "候補上の移動だけでは本文を切り替えず、Control解放またはEnterで選択を確定する。Esc、外部click、別windowへの移動で取り消し、元のtab/draft/context/runを保つ。確定したviewだけを最新訪問にする。",
+        "10件を超える会話、閉じた保存会話、閉じて失われた未送信draft、旧print metadata、同じprovider文字列のPRINT/ACPを用意する。直近訪問と更新日時fallbackから最大10件を表示し、存在しないdraftを復活させない。既に開いたviewを再利用し、閉じた保存本文は最新データを再読込する。本文表示をprovider再開やRevert許可に置き換えない。",
+        "履歴読込みを遅くしてControlを先に離す。一覧を残し、結果到着後に勝手に会話を開かない。読込失敗/破損件数を表示し、既存ファイルを変更しない。選択確定後の読込中にtab変更/非表示/project破棄・IME変換/別popupの開始を行い、遅い結果で別の選択やprojectを操作しない。",
+        "IDE Keymapで入口をAlt/Meta付き単一strokeや複数strokeに変更/解除する。一覧内の移動にも反映し、Shiftだけの解放でControl保持中に確定しない。複数strokeはEnterで確定する。一般editorや別popupで同じキーを奪わず、IME/候補中は最近使用一覧を開かない。",
+        "Cursor固定版との一覧初期選択・キー解放・閉じた会話・All Agentsとの差を記録する。共通providerのBackground/未読候補とAll Agents/sidebar、M+A+左右は未確定/未接続として残し、本Caseだけで全対象をpassにしない。"
+      ],
+      "expected": "タブ表示順から独立した訪問順で候補を選び、確定時だけ既存viewまたは最新保存本文を開く。取消・読込遅延・削除・ID/transport・project境界とKeymap変更を保持する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-ADJACENT-CHATS",
+      "change": "複数タブと単一タブ履歴の前後移動・修飾左右",
+      "steps": [
+        "sidebarを非表示にした状態でA/B/Cのタブを並べ替え、M+[/]とM+A+左右で表示順の循環を確認する。MRUの訪問順や更新日時順と混同せず、他のtab/projectのdraft/context/runを保持する。一般editorの同キーは奪わない。",
+        "開いたtabを1つにし、更新日時が異なる保存会話を15件以上用意する。操作が無効にならず、全会話の更新日時順で前後/端の循環ができることを確認する。最近使用一覧の10件上限で途中を落とさない。保存済みで作業のないtabは置換され、続けて履歴を巡回できる。",
+        "1tabで実行/準備中、未送信draft、明示context、画像、command、queue、保存失敗/保留、手動名の各状態を作る。前後移動で元tabを閉じず、対象を追加tabで開く。Stopや送信は発生しない。新規tabの生成後にも元tabの作業状態を再確認する。",
+        "旧print metadata、同じprovider文字列のPRINT/ACP、削除済み/破損した保存会話、未保存の空tabを用意する。名前や本文を推測せず、既存の本文表示・provider再開/Revert制約を保持する。履歴読込み失敗では会話を勝手に切り替えない。",
+        "読込み中にtab切替、別の前後操作、panel非表示、project破棄、IME変換、子popupを開始し、遅い結果を反映しない。OS/US-JIS/Keymap変更・解除を確認する。",
+        "固定Cursorの複数/単一tabとrunning switchを同条件で比較する。Pluginが未保存作業/手動名を追加tabで保護した後は複数tabの移動になる差を記録する。All Agentsとsidebar表示中navigationは専用Caseで確認し、拡張候補を本Caseだけで全対応passにしない。"
+      ],
+      "expected": "表示順と全履歴更新日時順の2分岐が正しく循環し、作業のない単一tabでは継続移動できる。実行・未保存作業・名前を失わず、遅い読込みや別projectへ誤配送しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-ALL-CHATS",
+      "change": "All Agentsの表示切替・全候補検索・確定時の再読込み",
+      "steps": [
+        "パネル非表示・表示中editor focus・Agent pane focusを切り替え、MacはControl+Shift+S、Windows/LinuxはCtrl+Shift+/を実行する。一覧がない時は一覧と検索popupを開き、pane focus中で一覧表示済みの場合は一覧だけを隠す。既存chat/本文/draft/runは保持する。閉じるボタン、IDE再起動後のproject別表示状態、別project、遅いactivate中のtab変更/一覧閉鎖/破棄も確認する。 一覧を隠しても検索語/追加表示件数/scroll位置を保持し、再表示で同じviewへ戻る。Sidebar非表示中のIME状態はglobal入口を妨げない。",
+        "更新日時の異なる候補240件以上と手動名のあるopen tab、PRINT/ACP/旧履歴を用意する。空検索では新しい200件、200件より古い候補も名前/冒頭文の検索後には表示されることを確認する。日本語/英語/大小文字/曖昧検索/一致強調、同名候補と名前と冒頭文の両方、0件、読込み不能/破損を確認する。本文全文のみにある語では一致せず、従来の履歴本文検索との役割を混ぜない。",
+        "検索欄の上下とEnter、一覧のクリック、Esc/外部click/window blurを確認する。IME変換中と背景検索の古い結果では開かず、確定した候補だけを開く。検索中の新query・dispose・panel非表示で古い結果を反映しない。",
+        "一覧表示後に候補を更新/削除する。open viewはそのまま選択し、閉じた候補は最新本文・削除/legacy存在を再確認する。ACP本文表示とprovider再開/Revertの可否を区別する。キー変更/解除とWindowsのparameter競合は未対応分も含めて記録する。",
+        "固定Cursorのlocal/Cloud候補、絞込み/上限/表示分岐と比較する。Pluginの初期非表示・ToolWindow内splitter配置、native matcherの順位差、Cloud取得/操作未接続を記録し、local候補だけで全対応passにしない。",
+        "選択会話がnative editorにある場合もAll Agentsを開き、開いている/非表示/保存済みの会話を選ぶ。同一ownerを再利用し、editorからの選択はeditorへ戻る。元native tabが別ファイルの裏にある場合もsidebar側の選択を拒否せず、旧load/検索世代・IME guardを保つ。",
+        "WindowsのCtrl+Shift+/と同じキーへのremapで、選択中のACP入力欄かつ複数値parameterを変更可能な時だけparameter循環が優先し、All Agentsが同時に開かないことを確認する。追加設定なし・printではAll Agentsへ届く。model設定要求中・IME/子popup中では誤動作せず、Keymapの変更/解除とnative editorにも追随する。"
+      ],
+      "expected": "最近使用10件とは独立した一覧と検索入口になり、全候補を検索してから200件に制限する。既存作業・所有・IME・削除/再開制約を保つ。拡張候補とGUI差は追跡する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-SIDEBAR-NAVIGATION",
+      "change": "sidebar表示中の候補highlight・解放確定・取消",
+      "steps": [
+        "一覧表示中に選択中chatからM+A+左右を押す。会話本体は確定まで変わらず、表示候補を前後highlightして先頭/末尾で止まる。選択中chatがfilter外なら次で先頭、前で末尾へ進む。検索後も区分内は更新日時順を保持し、折り畳んだ区分と見出しを除く。Moreを確定すると6件追加し、会話は切り替えない。",
+        "Altだけを離した時は未確定、Control/Metaが両方離れた時だけ対象chatを開く。設定変更後の単一修飾キーと複数stroke/Enterも確認する。Esc、root外へのfocus、別window、hide/disposeで取り消し、取消後にkeyupしても開かない。",
+        "IME変換・候補・子popup中は既存入力処理を優先する。navigationの途中に検索結果更新/候補削除/別tab選択/別projectへ移動しても古い対象を開かない。繰り返し開始/取消/破棄後にdispatcherが重複・残留せず、一般editorのkeyup/Enter/Escを奪わない。",
+        "実行/準備/下書き/画像/context/command/queue/保存失敗があるchatから確定しても元viewを保持し、Stop・送信・本文書換えを起こさない。sidebarを隠すと修飾左右が従来のtab/全履歴循環に戻る。",
+        "pin/日付section/折畳み/Moreの順序と6件追加を専用Caseで照合する。Archived/復元と通常一覧からの除外はKEYMAP-ALL-CHATS-ARCHIVEで確認する。Cloud・Find with Agent・transient/editor-groupへの表示の差と未接続を記録し、通常chatのhighlight成功だけで全候補をpassにしない。"
+      ],
+      "expected": "sidebar表示中は候補highlightと確定を分離し、非表示時のtab循環と混同しない。対象root内だけでキーを処理し、全終了経路で解除する。未接続候補は残作業にする。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-SIDEBAR-SECTIONS",
+      "change": "一覧のpin・日付区分・折り畳み・More",
+      "steps": [
+        "今日/昨日/7日以内/30日以内/それ以前の会話と、古いpinを用意する。固定したチャットが先頭区分に一度だけ出て、各区分内は更新日時降順になる。日本語/英語の名前・冒頭文で検索し、sidebarは部分一致、popupは曖昧検索になる違いを確認する。空区分を表示せず、検索解除後に各区分へ戻る。",
+        "同区分に13件以上を用意し、初期6件+More、確定ごとの6件追加と最終More消失を確認する。Moreのクリック/Enter/修飾解放で会話本体・run・draftを変えず、追加された先頭の候補が見える。表示候補だけを前後highlightし、Moreへ移動/確定できる。見出しはmodifier navigation候補に入らない。",
+        "区分見出しをクリック/Enterで折り畳み・展開する。折り畳んだ会話とMoreへキー移動せず、全部折り畳みなら候補移動は何もしない。project別の状態とIDE再起動後の復元、通常の非表示/再表示では検索語・追加表示件数・scroll位置を保持し、IDE再起動等でcontentを作り直すと表示上限が6件へ戻ることを確認する。スクリーンリーダーで区分名/件数/操作とMoreの対象を識別できる。",
+        "一覧に固定/固定解除を行い、移動先の区分が折り畳み中なら別会話をpin対象にしない。75件目まで追加でき、76件目は理由付きで無効、解除後は追加できる。削除済み等の残ったpin metadataは有効件数に数えず、同じ文字列の本文IDと旧print IDを混同しない。pinから本文/空会話を作らず、未保存draftの再起動復元を保証しない。",
+        "sidebar行の右クリック/「…」/IDE KeymapのShowPopupMenuから固定・固定解除へ進み、上下/Enterで確定、Escapeで取消する。元のボタンと状態を共有し、同じActionの反復や、選択・検索・pin・archive・IME・表示状態変更後の古いメニューで別会話を変更しない。アーカイブ済みlocal会話にも固定/解除できるが復元/開く/送信は起きず、復元後に固定区分へ戻る。上限は未archiveの現存固定だけを数え、既に75件ならarchive済みへの新規pinも拒否する。履歴/quick accessにsidebar専用menuを表示しない。",
+        "sidebarの右クリック/「…」/ShowPopupMenuから「新しいタブで開く」を上下/Enterで選び、Escapeでは取消する。閉じた保存会話は最新本文を追加tabへ表示し、元tabのrun/draft/画像/予約を保持する。既に開いた会話は同じownerへ移り、非表示ownerも同じviewを再表示して二重化しない。archive済みは開いてもarchive状態を維持し、provider再開や送信を行わない。読込み中の検索/選択/表示/IME変更、削除、project破棄と反復Actionで古い候補を開かない。editor group/Cloudの差は未確認として別記する。",
+        "履歴の読込み待ち/失敗/破損中は新規pinを無効にし、既存の解除を可能にする。検索待ち・IME変換中・古い結果でpin/Moreを実行しない。別projectと破棄済みviewを操作せず、pin/折り畳み/MoreでStop・送信・履歴削除を発生させない。 読込み/検索中に隠して即再表示しても旧世代の結果を適用しない。非表示中はworker/timerとnavigation listenerを止め、content破棄時に保持viewを解放する。",
+        "local日付の0時越え、DSTで昨日が24時間と一致しない場合、7日/30日の境界を確認する。表示中の1分更新で区分が変わり、選択/対象IDを取り違えない。固定Cursorと同条件で比較し、Archived/復元はKEYMAP-ALL-CHATS-ARCHIVEで照合する。未接続のCloud・editor sticky等は別の残作業として記録する。"
+      ],
+      "expected": "表示区分とnavigation候補が一致し、折り畳み/Moreは会話の所有や実行を変えない。pinの上限・ID・状態保持を守り、GUI未検証/未接続の拡張能力を省略しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE",
+      "change": "予約一覧の選択・編集・削除・入力への復帰",
+      "steps": [
+        "実行中のPRINT/ACP各会話に、異なる本文/mode/model/command/contextと画像を持つ予約を3件登録する。予約管理一覧を開くと一時停止し、一覧にfocusする。上下キーで移動し、先頭では止まり、末尾の下キーとEscapeでは一時停止を保って同じ会話の入力へ戻る。空一覧からもEscapeで戻れる。",
+        "Right/Spaceで選択した予約を編集し、保存/取消/空入力の拒否、IME確定と改行を確認する。登録時のmode/model/command/context/画像を保持する。編集dialogの上下/Right/SpaceやIME確定を親一覧の操作として処理しない。",
+        "MacのCmd+Backspace、Windows/LinuxのCtrl+Deleteで選択1件だけを削除する。隣接行の選択と画像所有の解放を確認する。他の修飾キーを加えた組合せ、入力欄や他projectでは同じ削除を起こさない。別会話への変更・破棄・子popup中は遅いActionも拒否する。",
+        "予約一覧にfocusしてEnterを押しても全件再開しない。再開ボタンを明示操作すると従来どおり予約を送る。編集/削除/一覧を閉じる操作ではStop・再送・古い送信ticketの復活を起こさない。選択1件のSend Nowは専用Caseで確認し、steeringは未実装として記録する。全件再開を1件送信のpassにしない。",
+        "IDE Keymapで専用6 Actionを変更/解除して再配送を確認する。解除後に残るnative一覧の上下選択と標準dialog Escapeを区別する。dialog破棄でlocal登録を解除する。inline一覧と空入力からの入口は専用Caseで照合する。入力欄を使うqueue編集はKEYMAP-QUEUE-EDITで確認する。"
+      ],
+      "expected": "予約一覧に限定したActionが最新ID/会話所有と固定contextを保ち、入力へ戻っても勝手に再開・送信しない。未実装の入力欄での編集/送信分岐を全対応と扱わない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE-ENTRY",
+      "change": "入力欄上の予約一覧と空入力境界からの移動",
+      "steps": [
+        "PRINT/ACPそれぞれで複数予約を作り、入力欄上の一覧・3行程度の高さとscroll・管理dialogとの同じ対象IDを確認する。空入力の先頭で上キーを押すと末尾へ、末尾で下キーを押すと2番目（1件ならその項目）へfocusする。予約なしでは通常入力を保つ。",
+        "inline一覧で上下/Right/Space/OS別削除/Escapeを試し、末尾の下移動とEscapeで同じ入力へ戻る。単なるfocus移動でpause/resumeしない。編集では入力欄へ読み込んで対象IDの配送を保留し、mode/model/command/context/画像を保持する。更新/送信/取消の詳細はKEYMAP-QUEUE-EDITで確認する。最後の項目削除で一覧が消えれば入力へ戻る。",
+        "本文、空白/改行だけの入力、途中caret、範囲選択、複数caret、未送信command/画像と画像import中を用意する。本文や途中位置等でqueueへ移らず、通常の上下移動・選択を保つ。IME未確定/確定直後、command/mention候補と子popupでもqueueへ移らない。通常ファイルeditorで上下キーを奪わない。",
+        "応答の終了による予約の自動送信と一覧操作を近接させる。消えたIDや古い表示を別項目の編集/削除に使わず、二重送信/古いticket復活を起こさない。別tab/project・ToolWindow非表示・controller破棄後は元入力へ遅れてfocusしない。",
+        "IDE KeymapのEditorUp/EditorDownおよび一覧専用Actionを変更/解除し、native配送を確認する。Cursorの固定版と空白/改行境界・視覚行・下方向の初期候補を比較する。過去human message/review候補とsteeringの未接続をこの入口の成功でpass扱いにしない。選択1件のSend Nowは専用Caseで確認する。"
+      ],
+      "expected": "空入力の対象条件でinline予約一覧へ移り、native入力/IMEと会話・予約ID所有を保つ。focusだけでは送信状態を変えず、実装済み入口と残る分岐を分けて判定する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE-EDIT",
+      "change": "入力欄での予約編集・更新/送信/取消と元の下書きの復元",
+      "steps": [
+        "PRINT/ACPで実行中に複数予約を作り、元の入力欄に日本語/複数行本文、複数caret/選択、mode/model、command、明示context/自動設定、画像を用意する。inline一覧のRight/Spaceで選択予約を入力欄へ読み込む。編集中の予約だけを配送保留し、先行予約は処理でき、編集中の先頭を後続が飛び越さない。画像import/IME中は下書きを差し替えない。",
+        "実行中に予約の本文・mode/model・command/context・画像を変更し、設定済み送信キーと「予約を更新」を使う。同じID・位置の1件だけを更新して配送保留を解き、現在のrunを中断せず次turnを待つ。別試行では編集中にrunを完了させ、ボタンが「送信」へ変わること、送信キー/ボタンでその1件の更新内容が現在の会話へ送られることを確認する。準備失敗では更新した予約を保持してpauseし、自動再送しない。",
+        "更新/送信、Escape、キャンセルで元の本文・全caret/選択・mode/model・command/context/自動設定・画像が戻ることを確認する。画像変更や遅いimportが退避draftや未保存の元予約へ漏れない。切替前へのUndoはdraft境界で止まり、復元後の文字入力はUndo/Redoできる。本文が@や/のみ、同じ本文同士の切替でも古い候補が開かない。Enter長押しで元draftを追加予約しない。",
+        "IME未確定/確定直後、command/mention/model popup、別tab/project、ToolWindow表示切替、run終端/ACP設定通知/Stopを組み合わせる。変換・候補を優先し、編集中のmode/modelを通知で上書きしない。Keymap変更/解除後の取消を確認する。管理dialog、Stop、Revert、失敗でpauseした予約は編集終了だけでは再開せず、未保存作業の確認と画像解放を保つ。",
+        "既存の選択snapshotを保持し、新規/変更した選択のDocumentが変われば更新/送信を拒否する。古い予約ID/変更済み予約への保存を拒否し、編集本文をコピー・取消可能なまま残す。狭い幅で更新/送信/取消と画像を操作できる。通常queueの取消後は再判定し、明示pause後は管理dialogでの再開が必要。Cursor固定版の条件差を照合し、一覧からの選択1件のSend Nowは専用Caseで確認し、未接続のsteeringを合格扱いにしない。",
+        "元の下書きと予約に、異なるTerminalの複数行出力をコピーしてcontext添付する。Terminalを閉じる/出力を進めてから予約を編集し、確定・取消・idle送信を試す。名前・行範囲・コピー時本文がそれぞれ保持され、予約送信は対象snapshot、復元入力は元draftを使うことを確認する。通常/変更後Keymapのcontext pasteとplain paste、画像Paste・IME・上下移動も併用し、出典のない本文へのfallbackを維持する。",
+        "model-config-queueの合成接続で、登録時と現在の下書きでmodel/追加設定を変える。inline編集に登録時の値が現れ、本文だけの更新では値を保持する。idleで編集対象の設定を変えて保存/取消し、元下書きの本文・caret・mode/model/追加設定・Terminal・画像を戻す。設定応答待ちの送信/取消/Reset/表示切替を拒否し、予約実行後も元下書きの値を保つ。panelとnative editorで照合する。"
+      ],
+      "expected": "予約編集の実行中更新・idle送信・取消を区別し、元draftと対象予約の本文・設定・context・画像・会話所有を保持する。編集中の対象を配送せず、既存pauseを解除しない。二重送信、古いticket復活、他draftの連続送信や画像混入を起こさない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE-SUBMIT",
+      "change": "実行中の送信キーで次turn予約へ追加",
+      "steps": [
+        "PRINT/ACPの実行中に本文を入力し、Enterで送信する設定とM+Enterで送信する設定をそれぞれ試す。設定済みキーと「予約に追加」が同じ次turn予約へ登録し、設定に応じた通常の改行/Shift+Enterを奪わない。Stopボタンは同じrunの停止のまま保つ。",
+        "commandのみ/引数の前後空白、画像のみ/本文との組合せを予約する。mode/modelと明示context・画像を登録時に保持し、空入力は増やさない。画像import中、IME未確定/確定直後、mention/command/model popup、入力無効時に登録しない。owner/runが変わって登録を拒否した場合は元draftを保持する。",
+        "Enter長押し、連打、修飾キーをEnterより先に解放、focus移動とeditor再生成、IMEでkey releaseが発生する順序を試す。1回の押下で二重登録せず、キー解放後の次の明示入力が働く。予約編集中の更新/送信の直後に復元した元draftを長押しで続けて予約しない。",
+        "run成功/失敗/Stop、provider継続ID未取得と予約登録を近接させる。正常終了後だけ次turnを進め、失敗や不確定接続を自動再送しない。別tab/projectへ登録せず、GUIの予約件数・本文と入力欄の状態を確認する。通常入力のidle送信へ戻ることを確認し、即時steering・保留decision回答・空入力の送信分岐は本Caseで合格扱いにしない。"
+      ],
+      "expected": "送信キー設定・IME・popup・所有・添付の制約を保って実行中の入力を次turn予約へ接続する。Stop/改行/通常idle送信を保ち、長押しによる重複や復元draftの誤登録、失敗の自動再送を起こさない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
+      ],
+      "id": "KEYMAP-INPUT-RESET",
+      "change": "入力欄から新しい会話へ表示を置き換え、元の実行と下書きを保持する",
+      "steps": [
+        "MacのCmd+R、Windows/LinuxのCtrl+Rを入力欄で実行する。Shift付き、通常editor、timeline/selector/sidebar、別project、入力不可、IME変換/確定直後、候補/子popup、画像import中では切替しない。Keymap変更/解除後の新旧キーとIDE標準Actionの競合も照合する。",
+        "現在の空会話を優先して再利用する。現在が非空なら表示中で最初の空会話へ移る。空会話のmode/contextを保持し、新しい空会話や不要なタブを増やさない。run/queue/command/画像/本文不明の会話を空と誤認しない。",
+        "空候補がない状態で、初回送信前の本文/画像/commandを入力して実行する。新しい表示は空のAgentとなり、元の会話はタブ列から外れる。All Agentsの説明/最近使用一覧から元のIDへ戻ると、本文・caret/選択・mode/model・command/context・画像が残る。名前を自動生成せず、保存履歴の再読込やprovider prompt送信も起こさない。",
+        "本文がある会話の次のdraftで実行する。新しい会話に本文・command・context/自動設定・画像を複製し、入力ありのPlan/Askを保持する。入力がなければAgent。元draftも維持され、片側の編集・画像解除・Undoが他方を壊さない。新規接続/モデルの既定と、command/画像の対応未確認時の拒否・保持を確認する。",
+        "print/ACPの準備中・応答中・終了後・予約編集中に表示を置換する。元の応答/provider title/許可待ちは元ownerへ届き、新しい会話へ混ざらない。元のrunを勝手にStop/再送せず、予約だけは既存の切替方針で一時停止する。元の会話を再表示してStop/予約更新/取消/再開が正しい1件に作用することを確認する。",
+        "複数の非表示ownerを保持して、表示タブの前後移動/ドラッグ順替え/開いているチャット/全閉鎖を実行する。操作対象はvisible集合だけで、非表示のrunは停止しない。最後のvisibleを閉じるとパネルが隠れ、再表示は新しいNew Agent。元ownerの明示closeとroot/project破棄では対象run・画像lease・listenersを解放し、遅いイベントを拒否する。IDE再起動で未保存draftが戻る保証とは扱わない。",
+        "native editorでも表示置換を試し、非表示になる旧会話のnative tabだけが閉じること、元run/draft/予約/画像/Terminal snapshotが保持され、閉鎖時のIDE選択通知で新しい会話から別ownerへ移らないことを確認する。All Agentsや最近使用から旧ownerを再表示して内容を照合する。"
+      ],
+      "expected": "入力局所の有効条件と空会話再利用/履歴後draft引継ぎが一致し、表示置換で元の実行・下書き・予約を失わない。明示closeとroot破棄の所有/遅着拒否、#213の最後visible閉鎖を維持する。native worktree/editor等の未接続分岐は全対象照合に残す。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://www.jetbrains.com/help/idea/tool-windows.html"
+      ],
+      "id": "KEYMAP-INPUT-ESCAPE",
+      "change": "入力欄のEscapeで会話を保持して作業場所へ戻る",
+      "steps": [
+        "各OSの入力欄でEscapeを押し、本文・複数caret/選択・画像・command/context・mode/model・予約を保持してeditorへ戻る。PRINT/ACPの準備/実行/終了/保留要求中でもStop/送信/許可/閉鎖を起こさない。画像import中も元draftへ結果を届ける。IDEのauto-hide設定による表示とPluginによる明示hideを区別する。",
+        "開いているTerminalからOpenChat/FollowUp/NewAgent/All Agents経由で入力へ入りEscapeを実行する。その時点の選択中Terminalへ1回戻り、Terminalのprocess/入力/caretを作り直さない。editorから入り直した場合はeditorを優先し、チャット内のタブ/一覧移動だけではoriginを置き換えない。明示的な選択コード追加もeditorへ戻す。",
+        "Terminalを閉じる/無効にする/最後のcontentを閉じる、別projectに切り替える、editorのファイルを閉じる等を復帰前に行う。消えたTerminalを再生成せず当該projectのeditorへfallbackし、別projectや破棄済みrootから操作しない。Terminalのeditor表示やマウスから入る条件は固定Cursor版と比較し、未確認を合格へ広げない。",
+        "inline予約編集中のEscapeは先に取消/元draft復元を行い、入力へ留まる。次のEscapeで作業場所へ戻る。mention/command/model/画像等のpopup、IME変換/確定直後では子操作を先に処理し、入力の有効化でEditorが再生成された後も条件を保つ。sidebar/予約一覧/requestカード/timelineや一般editorのEscapeを奪わない。",
+        "IDE KeymapでUnfocusInputと予約取消のキーを変更/解除し、新旧キーとnative Escapeの優先を確認する。遅いwindow activation、tab切替、project/root破棄を近接させ、復帰後に古いchat focus要求で戻されない。保留reviewや過去message編集等の未接続分岐は全対象照合へ残す。"
+      ],
+      "expected": "通常Escapeは会話と実行を保持してnative workspaceへ戻り、Terminal由来は生成済みの同project Terminalだけへ1回復帰する。予約編集取消・IME・popupを優先し、別focus/破棄済みownerを操作せず、Keymap変更とnative競合を記録する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
+      ],
+      "id": "KEYMAP-SETTINGS",
+      "change": "設定のglobal入口と既存Keymapの保持",
+      "steps": [
+        "同じ固定buildの2つの使い捨てprojectを開く。Agentパネル未生成のprojectでeditorからM+Shift+Jを実行する。",
+        "設定を閉じ、Agentを表示して下書き・予約・実行を準備する。editor/Terminal/Agent入力それぞれからM+Shift+JとM+,を試す。",
+        "Agent入力のIME変換中、mention/slash候補と子popupが表示中に同じキーを試す。",
+        "KeymapでCursorAgent.Settingsのキーを変更/解除し、panel内外から試す。IDEの一般設定/行結合等との競合と選択肢を記録する。",
+        "別projectへ移動して設定を開く。要求後のproject終了/ToolWindow不可でも別projectへ配送せず、新しい会話やTerminalを作らないことを確認する。"
+      ],
+      "expected": "eventのprojectに属するnative Plugin設定が開く。Agent contentの生成・パネル表示・会話/draft/queue/runの変更は起きない。既存rootのIME/候補/子popupが優先され、旧Action IDのユーザー再割当/解除がpanel内外へ反映される。別project・破棄後の配送なし。MacはCmd、Windows/LinuxはCtrl。一般editor/Terminal側IMEとIDE既存キーとの優先は実測し、未確認をpassにしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
+      ],
+      "id": "KEYMAP-PENDING-REQUESTS",
+      "change": "保留要求の個別返信と取消キーの優先",
+      "steps": [
+        "固定buildのACP合成fixtureで、対象情報・opaque ID付きallow_once/reject_onceを持つ許可を1件提示する。Enter送信設定のM+Enter、修飾キー送信設定のM+A+Enterで同じ今回だけ許可が返信され、通常送信・予約・画像/draftに変化がないことを確認する。",
+        "対象情報なし、once option複数、alwaysだけ、未知kindをそれぞれ提示する。許可/拒否キーで推測のoptionを選ばず、提示済みボタンで選べる範囲を保つ。共有permission設定やshell allowlistは変更しない。",
+        "質問を複数項目（単一/複数選択）で提示する。回答未完では送信せず、明示選択完了後だけ同じ選択IDを返信する。Planの承認/却下、質問スキップをそれぞれ確認する。",
+        "同じ会話に複数要求を提示する。入力欄では対象を推測せず、特定カードにfocusしてその要求だけに返信する。返信済みカードにfocusが残っていても別要求へ転送せず、別会話/別projectの要求へ配送しない。",
+        "M+Shift+BackspaceとMac Control+Cで対象を特定できる保留要求だけを拒否/スキップする。保留要求が曖昧ならrun停止に読み替えない。保留なしでは従来Stopになり、停止ボタンは常に既存のrun Stopを行う。queueの明示pauseと通常拒否を混同しない。",
+        "許可/拒否キーを押したまま次の要求を届ける。次の要求に連続返信せず、拒否後にrun Stopへfall throughしない。対象キーを解放してから次を実行できること、modifier先行解放・別キー・focus/window移動・アプリ外keyup・root破棄を確認する。",
+        "キーupdate後やカード表示後にタブclose、token更新、Stop、project破棄、turn終了を発生させる。キーとマウスの古いカードから返信できず、返信競合が一度だけ解決される。",
+        "IME変換、mention/slash候補、子popup、非表示view/別領域focusで操作が拒否されることを確認する。Keymapでdefault以外のキーへ再割当/解除し、panel内と入力局所で同じ設定を使い、通常送信/予約編集を保つ。",
+        "Cursor固定版のgroup全件操作・通知・shell Shift+Enterと今回の個別返信との差を記録する。空入力のEnter/EscapeはKEYMAP-TOOL-REVIEWで検証し、group/allowlistや未接続submitの合格を推定せず全対象照合の残作業として追う。"
+      ],
+      "expected": "提示済みの個別要求だけを既存ボタンと同じtyped replyで一度だけ解決する。once optionの推測・永続許可への昇格・別要求/別ownerへの転送なし。古いUI、IME/popup、長押しの連続返信を拒否する。保留要求への拒否と全run Stopを区別する。通常送信/予約/下書きと既存のMouse操作を維持し、group/allowlist/通知などの未対応をpassにしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://agentclientprotocol.com/protocol/v1/tool-calls"
+      ],
+      "id": "KEYMAP-TOOL-REVIEW",
+      "change": "空入力時のtool許可/拒否キーと既存送信・focus解除の優先",
+      "steps": [
+        "固定buildのACP合成fixtureで、対象情報と一意なallow_once/reject_onceを持つpermissionを提示する。空入力からEnterで今回だけ許可、別要求にEscapeで今回は拒否を1回ずつ返信する。両送信キー設定で確認し、run Stop・通常送信・次turn予約に変わらないことを照合する。",
+        "本文、commandだけ、画像だけ、画像import、予約編集中、入力不可、IME/mention/slash/子popupの各状態で確認キーを押す。誤承認せず、既存の送信/予約編集/改行/候補操作を保つ。別会話、非表示panel、sidebar、別projectから返信しない。",
+        "対象情報なし、once option重複、alwaysだけ、未知kind、Plan/質問、複数permissionを提示する。空入力から推測して返信せず、特定cardの本文へfocusした場合だけそのpermissionを対象にする。ボタンfocusのEnter/Spaceは元ボタンの操作を保ち、解決済みcardから別要求に転送しない。",
+        "KeymapでApproveTool/SkipToolを別キーへ変更または解除する。Enterの送信/改行とEscapeのfocus解除が元へ戻り、変更したキーは同じ要求にだけ作用する。複数stroke設定の先頭入力、Mac/Windows/Linux、US/JISと同じ入力componentでの競合を確認する。",
+        "Enter/Escapeを長押ししたまま要求を解決し、次のpermission・復元draft・run終了を発生させる。次の返信/送信/改行/Stop/focus解除に進まず、解放後だけ次の明示操作が成立する。focus/window変更とアプリ外keyup、root破棄後も確認する。",
+        "有効表示後にStop、token更新、会話close、project破棄、terminal完了を発生させ、古いキー/カードから返信しない。Cursor固定版のrun/skipと操作差を記録し、Shift+Enterのallowlist、group、notificationは未対応として別に残す。"
+      ],
+      "expected": "入力が空で対象が明確な時だけ、現在のpermissionの提示済みonce optionへ一度返信する。無関係な操作や永続設定を変更せず、Keymapを尊重して送信/改行/focus解除と排他にする。長押し・IME/popup・添付・予約編集・失効・別ownerによる誤返信を防ぐ。合成テストやこの個別操作から全group/allowlist/GUI受入を推定しない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-HISTORY",
+      "change": "履歴のglobal入口・会話別の表示要求・sidebar排他",
+      "steps": [
+        "使い捨てprojectで複数の保存会話と開いた会話A/Bを用意する。Agent content未生成時はM+A+'で会話やToolWindowを生成しない。生成後は通常editor/Terminal/他ToolWindowのfocusから同じキーで既存の選択中会話の履歴を開く。別projectへ転送せず、providerの送信/再開は起こさない。",
+        "Agent panelを隠してAへの履歴を要求する。panelは隠れたままで、run/draft/予約は変化しない。通常の入口で同じAを表示した時に履歴を開く。先にBを選んだ場合はBへ要求を転送せず、Aへ戻った時だけ表示する。要求したAを閉じた場合は再表示しない。",
+        "sidebar表示中は履歴キーとheader操作で履歴を開かず、既存の会話・検索・予約を変更しない。履歴の読込み中または表示中にsidebarを表示すると、その会話の要求を解除して履歴を閉じる。sidebarを隠しても取消済み要求が復活しない。",
+        "履歴キーを反復/長押ししても読込みを重ねず、表示済みの履歴を閉じない。headerクリックは開閉切替として、読込み中/表示中の要求を取り消せる。globalキーから開いた場合もheader clickで閉じた直後に再表示されない。icon非表示時はtab strip直下から履歴へ到達できる。閉じた後の再要求では新しい履歴を読み込む。",
+        "遅い履歴読込みの間にpanelを隠す、会話を切り替える、対象を閉じる、projectを閉じる。古いcallbackから履歴メニュー/本文検索を開いたり、別会話へ選択/削除/書出しを適用しない。再表示時は新しい世代で読み直す。読込み失敗時は保存データを保持し、自動再試行しない。",
+        "IME変換・入力候補・子popup中はキーを奪わない。読込み後にguardが失効した場合も遅れて履歴メニュー/本文検索を開かない。要求の記録や読込み取消だけでは予約をpauseせず、実際の履歴メニュー表示直前に既存の一時停止を行う。Stop/Revert等の明示pauseを解除しない。",
+        "ヘッダー直下の履歴メニューから保存本文/旧print履歴を選び、元の表示・provider再開制約を確認する。通常候補のpin優先/更新順と各20件/More、Archived初期折畳み、検索変更時の件数リセットを確認する。「保存した会話を検索…」から本文検索の一致移動、削除時の確認/開いた会話の保護、Markdown出力を確認する。メニューcloseが遅れて通知されても新しい表示要求を消費せず、本文検索を別の会話へ開かない。表示要求を記録しただけで保存形式や会話IDを変更しない。",
+        "macOS/Windows/LinuxとUS/JIS配列でM+A+'、IDE既存割当、Keymap変更/解除を確認する。固定Cursor版のheader flyoutとの配置/focus/読み上げ、header iconを隠した時の到達、editor表示の履歴は未確認の差として記録し、入口の接続だけで全対象をpassにしない。",
+        "同じ会話をnative editorへ移しToolWindowを隠す。editorのheader/現在Keymapから履歴の開閉、More、本文検索へ進む。2会話・split・非表示/閉鎖・遅いloadを組み合わせ、旧会話の要求が別会話へ表示されず、元header buttonのtoggleと表示先を保つ。ToolWindow側sidebarとeditor側履歴を混同せず、popup/IMEを優先する。"
+      ],
+      "expected": "既存の選択中会話だけが履歴の表示要求を所有し、globalキー・header切替・sidebar排他・非表示/再表示と非同期取消が混線しない。content生成/強制表示や別会話への遅い操作がなく、既存の履歴検索と保存保護を維持する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-MODE-CYCLE",
+      "change": "既存Mode Actionの循環とShift+Tab優先",
+      "steps": [
+        "使い捨てprojectで2会話に異なるmode/model・draft・選択範囲を用意する。M+. / M+A+. / Shift+Tabで選択中会話だけがAgent→Plan→Ask→Agentと循環し、ラベル/読み上げ名も更新する。menuを開かず、クリックでは従来の選択menuを使えることを確認する。",
+        "入力focusで本文なし/日本語/複数行/選択ありを試す。Shift+Tabはmode循環となり、入力・caret/選択・貼付済みtab文字を変更しない。通常Tabは字下げせずnativeの次focusへ進む。別editor/別projectではIDE既存操作を保つ。",
+        "KeymapからMode ActionのShift+Tabを変更・解除し、旧キーは逆focus移動、新キーはmode循環になることを確認する。Shift+Tabで始まる複数strokeも設定し、IDEのstroke待ちをfocus移動が奪わないことを確認する。ユーザー割当を再読込/変更しても同じActionが使われることを確認する。",
+        "print実行中は次turn用のmodeを変更し、既に送信済みのturn設定や別会話のmode/共有既定が変わらないことを確認する。予約編集中は編集draftにだけ反映し、取消で元draftへ戻る。ACP実行中・入力不可ではmodeを変更しない。",
+        "送信/入力有効状態変更等でnative editorが再生成された後も同じキーを試す。古いeditorや閉鎖済みtabに配送せず、現在のfocus/IME/候補popup・要求card内の移動を保つ。Actionの破棄後に副作用を残さない。",
+        "固定Cursor版の条件付きmode候補、Plan/Debug自動提案・project/background/複数model制約を記録する。Pluginの既存3 mode循環だけで全分岐やP02過去message編集の対応完了とはしない。IME/Keymap/focusの実配送と未対応分岐を分けて残す。"
+      ],
+      "expected": "現在の会話のmodeだけをキーで循環し、クリックの選択menu・Keymap変更・入力保護・ACP busy制約を維持する。旧M+.のmenu表示との違いを修正し、未対応の提案/拡張modeとP02を合格へ読み替えない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-INITIAL-SUBMIT",
+      "change": "空会話の初回メッセージをM+Shift+Enterで送信",
+      "steps": [
+        "PRINT/ACPの使い捨て会話に非空の日本語draftを用意し、macOSのCmd+Shift+Enter、Windows/LinuxのCtrl+Shift+Enterで選択中会話だけに1回送る。mode/model・command・明示context/自動context・画像は既存送信と一致し、別会話のdraft/run/provider IDを変更しない。",
+        "空白のみ・本文のある会話・本文来歴不明の旧履歴・準備中/実行中・予約編集中・入力不可では送信も予約も取消も行わない。画像import・IME変換中・@/command候補・子popupでキーを試し、候補操作やdraftを保つ。",
+        "M+Shift+Enterを長押しし、押したままShift/主修飾キーを変えて通常送信キーへ移っても重複送信しない。Enter解放後は新しい空会話の明示送信ができる。失敗後は既存エラー/保存条件を保ち自動再送しない。",
+        "Keymapを変更/解除し、変更したActionが現在の入力欄で動き、通常editor/別projectへ漏れないことを確認する。入力Editor再生成、Action update後の会話変更/開始/close/破棄でも最新のownerと可否で拒否し、古い会話やrunへ送らない。",
+        "固定Cursorの初回submitと照合し、選択済みworkspace/rootで既存送信が行われることを確認する。Action名だけでnamed Git worktreeを作成/変更せず、P06のbranch/setup等とP08の履歴後・空draftのreview/Apply・実行中取消は未達のまま別記する。"
+      ],
+      "expected": "現在の空会話の非空draftだけを既存送信へ一度渡す。入力保護・Keymap・run/会話所有を維持し、特殊送信やnative worktree選択の未実装を初回送信の合格に置き換えない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts"
+      ],
+      "id": "KEYMAP-QUEUE-SEND-NOW",
+      "change": "選択した予約1件を確定停止後または待機中に送信",
+      "steps": [
+        "PRINT/ACP合成fixtureで継続ID取得済みの会話に異なる本文/mode/model/command/context/画像の予約を3件、入力欄に別のdraftを用意する。待機/一時停止中にinline一覧の中間行を選んで送信し、そのsnapshotだけが届き、残る順序と一時停止、元draft/画像/caretを保つことを確認する。管理一覧でも選択1件を送り、全件再開ボタンと区別する。元の自動配送が有効なinline一覧から送る場合は、選択行の完了後に残りを元の順序で配送する。待機中や送信準備中の新しいpause/予約変更・元runの未送信入力復元があれば、そのpauseを解除しない。",
+        "実行中・準備中のrunから同じ操作を行い、対象runだけが停止し、物理process終了またはACPの確定終端/静止後に新しいturnへ1件送る。Stop要求だけやprint Result/ACP prompt応答だけで開始しない。正常終了がStopと競合して先に観測された場合も、重複せず1回送る。",
+        "停止確定前と終端後のEDT配送前にStop、別会話選択、Revert、管理一覧表示、行編集/削除、tab/project閉鎖を試す。遅い送信は行わず、存続する予約と画像を保持する。別run/世代や古いrow objectを新しい行へ付け替えず、編集中の行は送らない。",
+        "終了不確定/切断/失敗/停止要求の失敗、継続ID欠落、command/画像非対応、準備失敗を合成する。行とdraftを保持して自動再試行せず、状態説明と明示再送が可能なことを確認する。停止した元runの未送信画像が別途復元されても、選択した行と混同せず残りを全件再開しない。",
+        "送信設定EnterではEnter/M+Enter、M+Enter設定ではM+Enter/M+Alt+EnterをOS別に確認し、後者のplain Enterで送らない。長押し中に修飾キーを変えても隣の予約を続けて送らず、解放後の明示操作だけを受け付ける。Keymap変更/解除・IME/子popup・通常editor/別project・focus喪失・破棄時解除も確認する。",
+        "固定CursorのSend Now/Steer設定と反転キーを比較する。本実装は既存PRINT/ACPの停止後送信であり、同じrunへのsteering、Cloud/SDKの即時入力を合格扱いにしない。"
+      ],
+      "expected": "選択された同一snapshotの予約だけを、元runの確定終端と後片付け後に一度送る。失敗/不確定/取消/owner変更では保持して送らず、残る予約・draft・画像所有・通常停止を維持する。steeringとの違いを残す。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8"
+      ],
+      "id": "KEYMAP-FULL-INVENTORY",
+      "change": "全対象と未対応能力の照合",
+      "steps": [
+        "固定Cursor 3.23.12のKeyboard Shortcutsと入力欄/各popup/提案/検索/承認を、対応表の43登録行（40静的in-IDE、2所属未確定、1Inline対象外）と17入力群（15静的確認）に逐一照合する。共有部品6群・公式/動的4候補も所属を判定し、未確定から対象を落とさず全キー・OS・focus/mode条件を記録する。",
+        "対応表の未確定項目と未実装能力を具体Issue/依存へ対応付け、完了した調査を機能実装の合格に置換しない。必要なsub-issueと親の全対象を照合する。 会話内findはnative子Issue #518（条件切替・一致位置/総数・stream/タブ所有を含む）へ実分解済みで、未実装/GUI未確認として追跡する。Milestone 8の全件受入を子1件の完了に縮めない。",
+        "全対象についてPluginのAction、同等操作、IDE競合とユーザー変更、固定buildの結果を照合する。現行panel専用19/global8操作のpassで未対応を省略しない。"
+      ],
+      "expected": "全対象が根拠付きで確定し、未対応/条件差と次のownerを追跡する。全件未達の間は#212を完了にしない。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://cursor.com/docs/agent/overview",
+        "https://www.jetbrains.com/help/ai-assistant/chat-mode.html"
+      ],
+      "id": "KEYMAP-ALL-CHATS-ARCHIVE",
+      "change": "All Agentsのアーカイブ区分と復元、会話ownerの保持",
+      "steps": [
+        "使い捨てproject/profileに保存済みPRINT/ACP・旧print履歴・未送信draft/画像/予約付き会話と別会話を用意し、All Agentsのsidebarとヘッダー履歴メニュー双方でアーカイブする。global All Agents検索にはアーカイブ操作やアーカイブ済み候補が出ないことも確認する。対象runだけ停止要求、本文保持、通常一覧/最近使用/単一tab履歴循環からの除外を確認する。停止要求後も物理終了まで新runへ取り違えず、別会話は停止しない。",
+        "アーカイブ済み区分をEnter/クリックで展開・検索する。sidebarの6件/More、ヘッダー履歴の通常/アーカイブ各20件/Moreと検索変更での件数リセット、部分一致とpin優先/更新順、IME中・検索待ち・古い結果・非表示後の操作拒否を確認する。native focus/読み上げで区分・件数・操作名を識別する。",
+        "sidebarの実行中会話では確認を取消すと停止/区分変更がないこと、確認中に対象/run/検索/metadataが変わると中止することを確認する。選択中会話は検索済み全区分（折り畳み/Moreの非表示候補を含む）の次、末尾なら直前へ進む。隣がarchived/不明なら新規会話になる。閉じた候補の遅い読込み中に別会話/非表示へ移動した場合は戻されない。履歴メニューでは現在view維持。sidebarはpin解除、履歴メニューではpin metadata保持と上限からの除外。復元で送信やqueue再開・自動表示が起きず、明示表示で元draft/画像/予約が保持される。",
+        "保存済み本文を含むprojectをIDE再起動し、同じ本文ID/旧履歴IDの区分と復元後の更新順を確認する。本文/会話再開/Revertの既存制限を維持し、未保存draftの再起動保存は期待しない。別projectの同名会話に影響しない。",
+        "Cursor 3.23.12のin-IDE local archive/restoreと比較し、ヘッダー履歴の20件追加/配置・sidebarの確認と全区分からの隣候補選択・global All Agents検索の通常200件を入口別に記録する。Archive Prior ChatsはKEYMAP-ARCHIVE-PRIORで照合し、sectionのArchive Allの到達条件とCloud/Find with Agent/transient/editor-groupは残作業のまま区別する。Cloud/private RPCや通常の履歴削除の合格へ読み替えない。"
+      ],
+      "expected": "対象会話だけを停止要求し、本文を削除せず区分を変更する。遅い終了/保存でownerや区分を取り違えず、復元は自動送信しない。入力/画像/予約はproject内の同じownerへ戻り、保存済み本文と区分は再起動後も保持される。操作条件と残る表示差を固定buildで記録する。"
+    },
+    {
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "今回はGUI操作を行わない。CLI/stateテストはToolWindowの実画面合格ではない。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "失敗条件と専用fix Issue/PR、新fixed buildを特定して再確認。旧build/部分/合成passを転記しない。",
+      "main_eligible": false,
+      "issue": 212,
+      "preconditions": "指定GUI担当のhost lease、使い捨てproject/profile、#212の固定source SHA/ZIP SHA256/ロードJAR照合。必要な通信は既存print/ACP合成fixture。既存認証・作業・実providerは変更しない。Cursorとの比較は別途許可された固定版の実測。",
+      "next_action": "GUI操作再開後に指定担当が実施。全対象の未実装は#212の継続作業で解消し、GUI/main未反映をQAへ双方向追跡。",
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/212",
+        "https://cursor.com/docs/reference/keyboard-shortcuts",
+        "https://github.com/shinma06/cursor-in-android-studio/issues/518",
+        "https://github.com/shinma06/cursor-in-android-studio/milestone/8",
+        "https://cursor.com/docs/agent/overview",
+        "https://www.jetbrains.com/help/ai-assistant/chat-mode.html"
+      ],
+      "id": "KEYMAP-ARCHIVE-PRIOR",
+      "change": "検索結果内の古い未固定会話を一括アーカイブ",
+      "steps": [
+        "使い捨てproject/profileで保存済みPRINT/ACP・旧print履歴・未送信draft/画像/予約付き会話を用意する。基準会話より古い候補、同時刻、新しい候補、pin、archive済み、検索対象外を混在させ、日付区分を折り畳み、同区分に13件以上を置いてMoreの外にも対象を作る。sidebarの検索後に基準行を右クリックし「これより前のチャットをアーカイブ」を選ぶ。厳密に古い未pin/未archiveの検索一致候補だけが移り、非表示候補も含まれる。",
+        "一覧へkeyboard focusを移し、IDE KeymapのShowPopupMenuを既定/変更後/解除後で比較する。「…」ボタンへTabで移動してSpaceで同じメニューへ到達し、上下/Enter/Escapeの選択/取消と読み上げを確認する。右クリック/popup trigger/macOSのControl-clickでは会話を先に開かず、見出し/More/空白から別の会話を対象にせず、ヘッダー履歴/global検索にはこの操作を置かない。メニューを開いた後に行・検索・pin・IME・履歴読込み状態が変わった場合、古いActionを実行しない。",
+        "複数の実行中対象と非対象を合成fixtureで用意し、一括操作を実行する。個別確認dialogや表示会話の移動/pin解除を発生させず、対象だけにStopを要求する。元view/draft/画像/予約を保持し、物理終了前にrun所有を解放しない。停止失敗の対象はarchiveせず、成功/失敗件数を表示して他対象の結果を区別する。復元だけで送信/予約を再開しない。",
+        "遅い履歴読込み中にpin/検索/表示会話を変更、一覧を隠す、projectを破棄する場合を確認する。保存本文が行表示後に更新/削除された場合、古い更新時刻で処理しない。読込み失敗/破損があれば一括処理を開始せず、同じActionの連打/古いメニューの再実行でも別runや対象外へ影響しない。",
+        "保存済み本文の区分は同じprojectのIDE再起動後に確認する。Cursor 3.23.12のArchive Prior Chatsと同じ検索/pin/時刻/実行中条件で比較し、Cloud/linked backgroundとsectionのArchive Allは別の未確認契約として記録する。未保存draftの再起動復元を保証せず、部分/合成passを全対象GUI合格にしない。"
+      ],
+      "expected": "検索済み全候補から厳密に古い未pin/未archiveだけを処理する。停止と物理終了を分け、表示中会話・未送信作業・pinと失敗対象を保持する。古い検索/メニュー/履歴応答は拒否し、本文削除や自動送信を行わない。"
+    }
+  ]
+}

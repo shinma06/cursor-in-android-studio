@@ -41,7 +41,7 @@ internal class ImageAttachmentPanel(private val draft: ImageDraft) : JPanel(Bord
     fun refresh() {
         val image = draft.preview
         preview.isVisible = image != null
-        remove.isVisible = image != null || draft.importing
+        remove.isVisible = draft.attachment != null || draft.importing
         preview.icon = image?.let {
             // Paint a thumbnail from the already decoded snapshot; the original preview/sent pixels remain intact.
             val scale = minOf(1.0, 80.0 / it.width, 80.0 / it.height)
@@ -53,9 +53,9 @@ internal class ImageAttachmentPanel(private val draft: ImageDraft) : JPanel(Bord
                 }
             }
         }
-        message.text = draft.error ?: if (draft.importing) "画像を読み込んでいます…" else ""
+        message.text = draft.error ?: if (draft.importing || draft.attachment != null && image == null) "画像を読み込んでいます…" else ""
         message.isVisible = message.text.isNotEmpty()
-        isVisible = image != null || draft.importing || draft.error != null
+        isVisible = draft.attachment != null || draft.importing || draft.error != null
         revalidate()
         repaint()
     }

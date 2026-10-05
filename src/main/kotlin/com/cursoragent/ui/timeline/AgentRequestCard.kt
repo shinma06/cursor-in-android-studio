@@ -18,9 +18,19 @@ import javax.swing.JTextArea
 import javax.swing.SwingUtilities
 
 /** Request IDs and answers stay typed; agent text is displayed as plain text, never Swing HTML. */
-class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
+class AgentRequestCard(private val request: AgentInputRequest, private val isCurrent: () -> Boolean = { true }) : JPanel() {
     private val controls = mutableListOf<AbstractButton>()
     private val state = plainText("返答を選択してください")
+    private var acceptButton: JButton? = null
+    private var rejectButton: JButton? = null
+    internal val isPending: Boolean get() = isCurrent() && request.isPending
+    internal val isToolPermission: Boolean get() = request.input is AgentInput.Permission
+
+    internal fun canRespond(accept: Boolean): Boolean = isPending && (if (accept) acceptButton else rejectButton)?.isEnabled == true
+
+    internal fun respond(accept: Boolean) {
+        if (canRespond(accept)) (if (accept) acceptButton else rejectButton)?.doClick(0)
+    }
 
     init {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -40,15 +50,21 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
                         "reject_always" -> "今後も拒否"
                         else -> "未対応の選択肢"
                     }
-                    button("$label: ${option.name}", AgentAnswer.Permission(option.id)).isEnabled = request.isPending &&
+                    val control = button("$label: ${option.name}", AgentAnswer.Permission(option.id))
+                    control.isEnabled = isPending &&
                         (option.kind in setOf("reject_once", "reject_always") ||
                             option.kind in setOf("allow_once", "allow_always") && input.tool.hasPermissionTarget)
+                    // Never infer a persistent permission, or choose between two opaque options.
+                    if (input.options.count { it.kind == option.kind } == 1) {
+                        if (option.kind == "allow_once") acceptButton = control
+                        if (option.kind == "reject_once") rejectButton = control
+                    }
                 }
             }
             is AgentInput.Plan -> {
                 add(plainText(listOfNotNull(input.title, input.overview, input.markdown).joinToString("\n\n")))
-                button("計画を承認", AgentAnswer.Accept)
-                button("計画を却下", AgentAnswer.Reject)
+                acceptButton = button("計画を承認", AgentAnswer.Accept)
+                rejectButton = button("計画を却下", AgentAnswer.Reject)
             }
             is AgentInput.Questions -> {
                 input.title?.let { add(plainText(it)) }
@@ -60,7 +76,7 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
                         choice.text = option.label
                         choice.putClientProperty("html.disable", true)
                         choice.isOpaque = false
-                        choice.isEnabled = request.isPending
+                        choice.isEnabled = isPending
                         controls.add(choice)
                         add(choice)
                         option.id to choice
@@ -69,17 +85,18 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
                 val send = JButton("回答を送信").apply {
                     isEnabled = false
                     addActionListener {
-                        request.answer(AgentAnswer.Questions(selections.mapValues { (_, options) ->
+                        answer(AgentAnswer.Questions(selections.mapValues { (_, options) ->
                             options.filterValues { it.isSelected }.keys.toList()
                         }))
                     }
                 }
                 selections.values.flatMap { it.values }.forEach { choice ->
-                    choice.addActionListener { send.isEnabled = request.isPending && selections.values.all { values -> values.values.any { it.isSelected } } }
+                    choice.addActionListener { send.isEnabled = isPending && selections.values.all { values -> values.values.any { it.isSelected } } }
                 }
                 controls.add(send)
                 add(send)
-                button("回答をスキップ", AgentAnswer.Skip)
+                acceptButton = send
+                rejectButton = button("回答をスキップ", AgentAnswer.Skip)
             }
         }
         button("取り消す", AgentAnswer.Cancel)
@@ -109,10 +126,12 @@ class AgentRequestCard(private val request: AgentInputRequest) : JPanel() {
         }
     }
 
-    private fun button(label: String, answer: AgentAnswer): JButton = JButton(label).apply {
+    private fun answer(value: AgentAnswer) { if (isPending) request.answer(value) }
+
+    private fun button(label: String, value: AgentAnswer): JButton = JButton(label).apply {
         putClientProperty("html.disable", true)
-        isEnabled = request.isPending
-        addActionListener { request.answer(answer) }
+        isEnabled = isPending
+        addActionListener { answer(value) }
         controls.add(this)
         this@AgentRequestCard.add(this)
     }

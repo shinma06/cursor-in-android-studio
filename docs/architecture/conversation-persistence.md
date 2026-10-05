@@ -15,7 +15,7 @@
 
 ## ID・形式・更新
 
-v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMode、updatedMs、turns。SavedTurnはid(UUID)、state、messages。ChatMessageはid(UUID)、role(user/assistant/tool/error)、text。配列が順序。会話ID、tab ID、turn UUID、run tokenの参照同一性、provider IDは別物。provider IDはPRINT/ACPと組で解釈する。providerから取得できないIDを生成して補わない。
+v1のConversationはid(UUID)、transport、nullable providerId、root/worktreeMode、updatedMs、turns。SavedTurnはid(UUID)、state、messages。#525では任意の`modelSettings`（mode・exact model ID・parameter ID/value map）を追加し、所有turnのACP Configurationで確認した最新値を保存する。未確認や旧JSONのfield不在はnull。failed turnの設定記録はprompt実行や適用成功を証明せず、再開・再送の実行命令として使わない。label・全候補・wireは保存しない。ChatMessageはid(UUID)、role(user/assistant/tool/error)、text。配列が順序。会話ID、tab ID、turn UUID、run tokenの参照同一性、provider IDは別物。provider IDはPRINT/ACPと組で解釈する。providerから取得できないIDを生成して補わない。
 
 root/worktreeModeは直近の実行先来歴でありturn別の復元権限ではない。履歴を開くsnapshotはそのview/controllerへ渡すだけでrootにキャッシュせず、closeで解放する。
 
@@ -30,6 +30,10 @@ IDE config配下のcursor-agent-conversations/project.locationHashへ1会話1フ
 元入力と表示済みassistant本文はそのまま保存する（ユーザー/Agent自身が本文に書いた秘密を自動検出・完全除去する保証はない）。注入context・環境変数・credential設定・raw wire・思考・tool引数/command/stdout/stderr/diff全文・permission回答/実行callbackは保存しない。toolは許可した種別/状態、errorは安全な固定文/終了コードのみ。タイトル取得は#66を待ち、履歴previewから正式な会話名を作らない。
 
 保持期間は無期限、上限100会話/各8 MiB。超過は既存会話を自動削除せず保存失敗として表示する。破損/未来形式も会話ファイル件数に数えて保護する。履歴から明示確認で1会話ずつ削除し、開いている会話は先に閉じる。元XMLに同print IDがあれば同時にmetadataも削除する。外部providerの会話を削除する操作ではない。未送信draftは保存対象外。Close Savedを新設せず、bulk closeはdraft/保存失敗データの消失を確認する。
+
+#212の入力欄からの新規会話への表示置換では、元の会話owner/view/controllerをproject内メモリに保持する。これはディスク保存とは別で、JSON v1や旧XML、未送信draftの保存範囲は変更しない。All Agents/最近使用一覧から同じownerへ戻る場合は、保持中のdraft・queue・接続を再利用し、保存本文からprovider sessionやRevert権限を復活させない。明示closeとproject/root破棄で通常の解放処理を行う。表示から外れたownerも、破棄するまで履歴の削除保護対象となる。
+
+All Agentsのアーカイブ区分はprojectの`PropertiesComponent`に本文UUID/旧print IDを区別して保存する。本文を移動・削除せず、JSON v1と旧XMLの互換性を保つ。アーカイブ後の遅い本文保存で通常一覧へ戻らず、復元でprovider再開やRevertの可否を変更しない。sidebarで現在viewを隠す場合も上記のowner保持を使い、対象runへStopを要求してqueueを一時停止する。Stop要求と実終了は別で、復元だけでqueueを再開しない。metadataから未保存draftや欠落した本文を再生成しない。
 
 ## 本文・再開・Revertを別々に判定
 

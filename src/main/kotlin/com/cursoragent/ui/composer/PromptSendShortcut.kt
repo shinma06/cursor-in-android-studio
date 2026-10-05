@@ -1,6 +1,9 @@
 package com.cursoragent.ui.composer
 
+import com.cursoragent.actions.AgentPanelCommand
+import com.cursoragent.actions.toolReviewOwnsShortcut
 import com.cursoragent.settings.SendKeyMode
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
@@ -11,9 +14,28 @@ import javax.swing.KeyStroke
 
 /** Replace only our send action. Native editor newline, paste and caret handling stay intact. */
 internal class PromptSendShortcut(private val submit: () -> Unit) : AnAction() {
-    override fun actionPerformed(e: AnActionEvent) = submit()
+    private var enterPressed = false
+
+    override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabled = !toolReviewOwnsShortcut(e, AgentPanelCommand.APPROVE_TOOL)
+    }
+
+    override fun actionPerformed(e: AnActionEvent) {
+        if (toolReviewOwnsShortcut(e, AgentPanelCommand.APPROVE_TOOL)) return
+        val key = e.inputEvent as? KeyEvent
+        if (key?.id == KeyEvent.KEY_PRESSED && key.keyCode == KeyEvent.VK_ENTER) {
+            if (enterPressed) return
+            enterPressed = true
+        }
+        submit()
+    }
+
+    fun release() { enterPressed = false }
 
     fun install(component: JComponent, mode: SendKeyMode, isMac: Boolean) {
+        release()
         unregisterCustomShortcutSet(component)
         val modifiers = when (mode) {
             SendKeyMode.ENTER -> 0

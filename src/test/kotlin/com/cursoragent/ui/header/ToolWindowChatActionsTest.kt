@@ -34,7 +34,7 @@ class ToolWindowChatActionsTest {
         }
         val actions = actions(settings)
         assertEquals(listOf("新規チャット", "履歴"), actions.titleActions.map { it.templatePresentation.text })
-        assertEquals(listOf("新規チャット", "履歴", "会話を書き出す…", "ファイルの変更…", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "Request IDをコピー", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
+        assertEquals(listOf("新規チャット", "履歴", "会話のパネル／エディター表示を切り替える", "会話を書き出す…", "ファイルの変更…", "開いているチャット…", "すべてのチャットを閉じる…", "ブラウザーを開く…", "Request IDをコピー", "操作の確認", "実行範囲", "作業場所", "接続方法", "このセッションの内容を要約", "MCPサーバー設定", "設定", "ファイル編集について", "フィードバック…", "ファイルエディター", "上部アイコンの表示"),
             actions.gearActions.childActionsOrStubs.filterNot { it is Separator }.map { it.templatePresentation.text })
         actions.titleActions.forEach {
             assertNotNull(it.templatePresentation.icon)
@@ -254,6 +254,24 @@ class ToolWindowChatActionsTest {
         assertEquals(second, tabs.snapshot().selectedId)
         assertEquals("未送信", tabs.snapshot().selected.draft)
         assertTrue(tabs.snapshot().tabs.all { it.title == "New Agent" })
+    }
+
+    @Test
+    fun `open chat menu and bulk close exclude retained owners whose tabs were replaced`() {
+        val tabs = SessionTabs()
+        val hidden = tabs.snapshot().selectedId
+        tabs.updateComposer(hidden, AgentMode.AGENT, "model", "request", 0)
+        val token = tabs.beginTurn(hidden)!!.token
+        val visible = tabs.replaceSelected().id
+        assertEquals(listOf(visible), openedChatEntries(tabs.snapshot()).map { it.first })
+        confirmCloseChats(tabs.snapshot(), { count, running ->
+            assertEquals(1, count)
+            assertEquals(0, running)
+            true
+        }) { ids -> assertEquals(listOf(visible), ids); tabs.closeAll(ids) }
+        assertTrue(tabs.accepts(token), "closing visible tabs must not cancel a replaced conversation")
+        assertEquals(1, tabs.snapshot().visibleTabs.size)
+        assertTrue(tabs.select(hidden), "the retained owner can be reopened from All Agents or recent chats")
     }
 
     @Test

@@ -19,7 +19,7 @@ class PromptContextBuilder(
         val selections = context.selectionBlocks(automatic, fileContents)
         val activeFile = automatic?.takeUnless { it.path in fileContents || context.selections.any { selection -> selection.fileUrl == it.fileUrl } }
             ?.let { "Active file: ${it.path}" }
-        return (listOfNotNull(activeFile, referenceContext) + selections)
+        return (listOfNotNull(activeFile, referenceContext) + selections + context.terminals.map { it.block() })
             .joinToString("\n\n").takeIf { it.isNotBlank() }
     }
 

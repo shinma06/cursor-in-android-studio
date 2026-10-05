@@ -18,6 +18,26 @@ class ComposerControlsTest {
     )
 
     @Test
+    fun `ACP native selectors expose exact dependent IDs and literal accessible labels`() = SwingUtilities.invokeAndWait {
+        val parameters = listOf(com.cursoragent.service.ModelParameter("thinking-id", "Thinking", "thought_level", "lo", listOf(
+            ModelOption("lo", "Low"), ModelOption("hi", "<html>High</html>"),
+        )))
+        val configuration = com.cursoragent.service.AgentEvent.Configuration("agent", "model-id", listOf(ModelOption("model-id", "Model")), parameters)
+        val changes = mutableListOf<Pair<String, String>>()
+        val panel = AcpModelOptionsPanel(configuration) { id, value -> changes += id to value }
+        assertEquals(listOf("model", "thinking-id"), panel.selectors.keys.toList())
+        assertFalse(panel.selectors.getValue("model").isEnabled)
+        val thinking = panel.selectors.getValue("thinking-id")
+        assertEquals("Thinking", thinking.accessibleContext.accessibleName)
+        assertTrue(changes.isEmpty())
+        thinking.selectedIndex = 1
+        assertEquals(listOf("thinking-id" to "hi"), changes)
+        val rendered = thinking.renderer.getListCellRendererComponent(javax.swing.JList(), parameters.single().options.last(), 1, false, false) as javax.swing.JLabel
+        assertEquals("<html>High</html>", rendered.text)
+        assertEquals(true, rendered.getClientProperty("html.disable"))
+    }
+
+    @Test
     fun `search by label or id and keyboard selection only changes model on confirmation`() = SwingUtilities.invokeAndWait {
         val selected = mutableListOf<String>()
         var closed = false
