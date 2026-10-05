@@ -111,7 +111,7 @@ def promotion_history(candidate, head, base, allowed, git):
         if len(parents) == 2:
             if git('rev-list', '--max-count=1', parents[1], '--not', base):
                 raise ValueError('Unexpected promotion ancestry; merge parent must be an ancestor of main')
-        changed = set(git('diff', '--no-renames', '--name-only', previous, commit).splitlines())
+        changed = set(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', previous, commit).splitlines())
         for path in changed & allowed:
             entry = git('ls-tree', commit, '--', path).split()
             if entry and (len(entry) != 4 or entry[:2] != ['100644', 'blob']):
@@ -129,7 +129,7 @@ def promotion_history(candidate, head, base, allowed, git):
                 if not inputs:
                     raise ValueError('Unexpected root in main sync history')
                 for parent in inputs:
-                    raw = git('diff', '--raw', '--no-abbrev', '--no-renames', '-z', parent, incoming).split('\0')
+                    raw = git('diff', '--ignore-submodules=none', '--raw', '--no-abbrev', '--no-renames', '-z', parent, incoming).split('\0')
                     if raw[-1] != '':
                         raise ValueError('Malformed main sync diff')
                     for index in range(0, len(raw) - 1, 2):
@@ -148,13 +148,13 @@ def promotion_history(candidate, head, base, allowed, git):
             tree = git('merge-tree', '--write-tree', '--no-messages', *parents)
             if not SHA.fullmatch(tree):
                 raise ValueError('Main sync did not produce a clean merge tree')
-            if set(git('diff', '--no-renames', '--name-only', tree, commit).splitlines()) - allowed:
+            if set(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', tree, commit).splitlines()) - allowed:
                 raise ValueError('Main sync differs from the clean merge result')
             synced_paths.update(changed - allowed)
         previous = commit
     if previous != head or set(chain) != set(git('rev-list', head, '--not', candidate, base).splitlines()):
         raise ValueError('Unexplained commit in promotion history')
-    if set(git('diff', '--no-renames', '--name-only', candidate, head).splitlines()) - allowed - synced_paths:
+    if set(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', candidate, head).splitlines()) - allowed - synced_paths:
         raise ValueError('Promotion tree differs from tested candidate outside acceptance metadata or main sync')
 
 

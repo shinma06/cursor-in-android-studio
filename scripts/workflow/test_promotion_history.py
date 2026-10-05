@@ -140,6 +140,28 @@ class PromotionMainSyncTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
                     self.verify(head, main)
 
+    def test_submodules_cannot_be_hidden_by_git_configuration(self):
+        self.git('config', 'diff.ignoreSubmodules', 'all')
+        for scenario in ('main_import', 'direct_add_then_revert'):
+            with self.subTest(scenario=scenario):
+                first = self.main if scenario == 'main_import' else self.legacy
+                self.git('checkout', '--detach', first)
+                self.git('update-index', '--add', '--cacheinfo', '160000', self.common,
+                         'src/main/unobserved-submodule')
+                tree = self.git('write-tree')
+                added = self.git('commit-tree', tree, '-p', first, '-m', 'add gitlink')
+                if scenario == 'main_import':
+                    main = added
+                    tree = self.git('merge-tree', '--write-tree', '--no-messages', self.legacy, main)
+                    head = self.git('commit-tree', tree, '-p', self.legacy, '-p', main, '-m', 'sync')
+                    error = 'Product, build or unknown'
+                else:
+                    main = self.main
+                    head = self.git('commit-tree', self.legacy + '^{tree}', '-p', added, '-m', 'revert gitlink')
+                    error = 'Untested commit'
+                with self.assertRaisesRegex(ValueError, error):
+                    self.verify(head, main)
+
     def test_acceptance_and_environment_cannot_be_revised_by_main_sync(self):
         for path, data in ((PROMOTION, {}), ('docs/verification/environments/rabbit1.json', {}),
                            ('docs/verification/scopes/issue-3.json', {}),
