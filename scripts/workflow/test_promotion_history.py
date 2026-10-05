@@ -120,6 +120,75 @@ class PromotionMainSyncTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
             self.verify(self.merge(main), main)
 
+    def test_main_edit_revert_is_rejected_even_without_a_merge_diff(self):
+        self.git('config', 'diff.ignoreSubmodules', 'all')
+        for path, mode in (('src/main/product.txt', None), ('build.gradle.kts', None),
+                           ('docs/link.md', '120000'), ('docs/submodule', '160000')):
+            for metadata_only in (False, True):
+                with self.subTest(path=path, metadata_only=metadata_only):
+                    self.git('checkout', '--detach', self.old_main)
+                    if mode:
+                        obj = self.common if mode == '160000' else self.git('rev-parse', self.main + ':docs/shared.md')
+                        self.git('update-index', '--add', '--cacheinfo', mode, obj, path)
+                        self.git('commit', '-qm', 'unobserved main change')
+                        mutation = self.git('rev-parse', 'HEAD')
+                    else:
+                        self.write(path, 'unobserved mutation\n')
+                        mutation = self.commit('unobserved main change')
+                    self.git('revert', '--no-edit', mutation)
+                    main = self.git('rev-parse', 'HEAD')
+                    self.git('checkout', '-B', 'promotion', self.legacy)
+                    head = self.merge(main)
+                    self.assertEqual(self.git('rev-parse', head + '^{tree}'),
+                                     self.git('rev-parse', self.legacy + '^{tree}'))
+                    if metadata_only:
+                        self.write(self.path, dict(self.acceptance(35), reason='merge metadata'))
+                        self.git('add', self.path)
+                        self.git('commit', '--amend', '--no-edit')
+                        head = self.git('rev-parse', 'HEAD')
+                        self.assertEqual(self.git('diff', '--name-only', self.legacy, head), self.path)
+                    with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
+                        self.verify(head, main)
+
+    def test_reverted_tooling_without_a_merge_diff_remains_valid(self):
+        self.git('checkout', '--detach', self.old_main)
+        self.write('docs/temporary.md', 'temporary knowledge\n')
+        mutation = self.commit('main knowledge')
+        self.git('revert', '--no-edit', mutation)
+        main = self.git('rev-parse', 'HEAD')
+        head = self.merge(main)
+        self.assertEqual(self.git('rev-parse', head + '^{tree}'),
+                         self.git('rev-parse', self.legacy + '^{tree}'))
+        self.verify(head, main)
+
+    def test_empty_main_merge_still_checks_its_side_branch_history(self):
+        self.git('checkout', '--detach', self.old_main)
+        self.write('src/main/product.txt', 'unobserved side branch\n')
+        mutation = self.commit('side product change')
+        self.git('revert', '--no-edit', mutation)
+        side = self.git('rev-parse', 'HEAD')
+        main = self.git('commit-tree', self.old_main + '^{tree}',
+                        '-p', self.old_main, '-p', side, '-m', 'empty main merge')
+        head = self.merge(main)
+        self.assertEqual(self.git('rev-parse', head + '^{tree}'),
+                         self.git('rev-parse', self.legacy + '^{tree}'))
+        with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
+            self.verify(head, main)
+
+    def test_main_merge_cannot_introduce_its_own_product_change(self):
+        self.git('checkout', '--detach', self.old_main)
+        self.write('docs/side.md', 'safe side branch\n')
+        side = self.commit('main side knowledge')
+        self.write('src/main/product.txt', 'unobserved merge resolution\n')
+        self.git('add', '.')
+        main = self.git('commit-tree', self.git('write-tree'),
+                        '-p', self.old_main, '-p', side, '-m', 'forged main merge')
+        # Hiding the new content in the outer merge cannot hide its provenance.
+        head = self.git('commit-tree', self.legacy + '^{tree}',
+                        '-p', self.legacy, '-p', main, '-m', 'empty promotion merge')
+        with self.assertRaisesRegex(ValueError, 'Product, build or unknown'):
+            self.verify(head, main)
+
     def test_build_unknown_symlink_and_submodule_imports_are_rejected(self):
         for path, mode in (('build.gradle.kts', None), ('scripts/workflow/plugin_compatibility.json', None),
                            ('scripts/workflow/change_impact.py', None), ('unknown.txt', None),
