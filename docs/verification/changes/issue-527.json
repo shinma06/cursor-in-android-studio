@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "issue": 527,
+  "gui_required": false,
+  "reason": "既存の開発workflow、Agent入口、CLI workerの役割別モデル設定/実設定照合/停止と再開のみ。製品のUI・runtime・保存・build契約は変更しない。独立モデル実行/GUI passや運用効果を模擬試験から主張しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests: workflow/loop testsとdiff check。製品変更がないためGradle/buildPlugin/GUIは対象外",
+    "WorkerTests: review=Astra High、fix=6.1 Sol Highの明示起動、CLI header readback、未知/不一致/利用不可・モデル自己申告/タスク内偽headerの拒否",
+    "LoopTests: 設定未確認の旧review停止/明示再開後の再レビュー、未確認fixer dirty差分をtick/resumeでpublishしない。実run_worker＋合成CLIでheader欠落/不一致timeout・communicate I/O中断・controller終了を再現し、差分保全/commit-push未呼出を確認。検証正常終了後のpublishingだけ復旧可能",
+    "既存test_agent_loop/test_verification: 単一writer/registry不一致の停止、review→fix→再review、HEAD/base/受入/feedback変更の承認失効、GUI未達のdevelop追跡/main拒否、QA/cleanup保護",
+    "github-workflow.md「有限の運用例」の9場面を机上評価: ready増減、重複claim/無応答、停止/結果未回収、子依存解消と親同期、レビュー滞留、重いbuild競合、GUI fail/承認/質問待ち、モデル未確認。期待次操作は各行に記載。実GUI/性能測定の代替にしない",
+    "AGENTS symlink、両client start/finish Skill一致、Cursor alwaysApplyとリンク/アンカー、Codex #135・4 checks・ownership/source/registry・PAUSED heartbeat保持を照合",
+    "実運用適用: Issue #527 claimとProject Status readback、PM=Astra High/実装=6.1 Sol Highの現在session設定と直近turn一致を非公開で照合。独立reviewer実設定/固定HEAD-base評価、統合/QA-main/cleanupはPMの次工程。未実施を完了にしない",
+    "実運用の既存担当再利用: PMが空きAstra High監査担当Bを#512へ割当済み（https://github.com/shinma06/cursor-in-android-studio/issues/512#issuecomment-5996000720）。実装1＋監査1、負荷/依存から追加sessionと重いbuildを増やさず、別PRの承認待ち/GUI lease待ちcleanupを保持。この初回実装時点の編成では独立レビューAは予約のみ。その後Astra Highで初回レビュー済み・停止済みとなり、P1修正の新固定版はPMの独立再レビュー割当待ち。private実設定は私的運用記録で確認し、raw ID/pathは公開しない。",
+    "独立レビュー初回（HEAD 17dbbc8）でP1: モデル照合前のtimeout後にfixing差分を復旧公開できる指摘を受領。復旧対象phaseと公開準備の永続化境界を修正。新固定HEAD/baseの独立再レビューとPM最終readbackは未実施。"
+  ],
+  "cases": []
+}
