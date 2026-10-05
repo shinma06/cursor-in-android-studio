@@ -51,7 +51,7 @@ class RunProgressDispatchTest {
         val first = sessions.beginTurn(firstTab.id)!!.token
         val other = sessions.beginTurn(otherTab.id)!!.token
         val notices = mutableListOf<String>()
-        val finished = mutableListOf<Boolean>()
+        val finished = mutableListOf<RunPhase>()
         var disposed = false
         val project = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(Project::class.java)) { _, method, _ ->
             if (method.name == "isDisposed") disposed else error("Unexpected Project access: ${method.name}")
@@ -100,7 +100,7 @@ class RunProgressDispatchTest {
         }
         SwingUtilities.invokeAndWait {
             assertEquals(RunPhase.STOPPED, firstTimeline.runStatus.phase)
-            assertEquals(listOf(false, true), finished)
+            assertEquals(listOf(RunPhase.STOPPED, RunPhase.COMPLETED), finished)
             assertEquals(listOf("start:${first.turnId}", "STOPPED:${first.turnId}", "COMPLETED:${other.turnId}", "request:synthetic"), notices)
             disposed = true
             firstTimeline.runStatus.dispose()

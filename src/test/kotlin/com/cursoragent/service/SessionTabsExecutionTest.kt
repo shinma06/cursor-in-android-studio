@@ -50,6 +50,9 @@ class SessionTabsExecutionTest {
         val b = tabs.open().id
         val (runB, prepB, processB) = start(b)
         runA.emit { it.onAssistantText("A while B selected") }
+        val replacement = tabs.replaceSelected().id
+        runB.emit { it.onAssistantText("B while its view is replaced") }
+        tabs.close(replacement)
         tabs.select(a)
         runB.emit { it.onAssistantText("B while A selected") }
         tabs.close(a)
@@ -62,7 +65,7 @@ class SessionTabsExecutionTest {
         processB.close()
         assertNull(gate.tryRestore())
         assertEquals(listOf("A while B selected"), events[a])
-        assertEquals(listOf("B while A selected"), events[b])
+        assertEquals(listOf("B while its view is replaced", "B while A selected"), events[b])
         processA.close()
         runA.complete(137)
         gate.tryRestore()!!.close()

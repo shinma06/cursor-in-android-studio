@@ -29,6 +29,7 @@ class ChatEditorPresentationTest {
                 fun get(owner: Any, name: String): Any = owner.javaClass.getDeclaredField(name)
                     .apply { isAccessible = true }.get(owner)
                 val root = com.cursoragent.ui.AgentToolWindowRootPanel(fixture.project) {}
+                var host: JPanel? = null
                 try {
                     val sessions = get(root, "sessions") as SessionTabs
                     val views = get(root, "views") as Map<*, *>
@@ -40,13 +41,27 @@ class ChatEditorPresentationTest {
                     first.selectNotify()
                     val selectedId = sessions.open().id
                     root.javaClass.getDeclaredMethod("showSelected", com.cursoragent.history.Conversation::class.java,
-                        Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
-                        .apply { isAccessible = true }.invoke(root, null, false, false)
+                        Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+                        .apply { isAccessible = true }.invoke(root, null, false, false, false)
                     val selectedView = requireNotNull(views[selectedId])
                     val queue = get(get(selectedView, "controller"), "queue") as com.cursoragent.ui.PromptQueue
                     assertTrue(queue.add("selected chat queued prompt", AgentMode.AGENT, "model"))
                     val ticket = requireNotNull(queue.ticket(1))
-                    val history = get(selectedView, "history")
+                    host = JPanel().apply {
+                        add(javax.swing.JRootPane().apply {
+                            glassPane = com.intellij.openapi.wm.impl.IdeGlassPaneImpl(this, false)
+                            contentPane.add(JPanel().apply { add(root); add(first.component); add(second.component) })
+                        })
+                        addNotify()
+                    }
+                    val history = get(root, "history") as com.cursoragent.ui.PastChatsCoordinator
+                    var loads = 0
+                    history.javaClass.getDeclaredField("load").apply { isAccessible = true }.set(history,
+                        { _: (Result<com.cursoragent.history.ConversationStore.Loaded>) -> Unit -> loads++; Unit })
+                    root.requestHistory()
+                    assertEquals(1, loads, "History must start for the selected visible owner: " +
+                        (get(history, "context") as Function0<*>).invoke())
+                    assertEquals(selectedId, get(history, "loadingOwner"))
                     val historyGeneration = get(history, "generation")
                     val snapshot = sessions.snapshot()
                     val content = get(presentation, "view") as javax.swing.JComponent
@@ -56,6 +71,8 @@ class ChatEditorPresentationTest {
                     assertEquals(snapshot, sessions.snapshot(), "Closing a background split must not change the selected chat")
                     assertEquals(ticket, queue.ticket(1), "The selected chat's scheduled queue dispatch must remain valid")
                     assertEquals(historyGeneration, get(history, "generation"), "Pending history must not be cancelled")
+                    assertEquals(selectedId, get(history, "loadingOwner"))
+                    assertEquals(1, loads)
                     assertTrue(SwingUtilities.isDescendingFrom(content, second.component))
                     assertFalse(SwingUtilities.isDescendingFrom(content, first.component))
                     val selection = com.cursoragent.ui.composer.context.SelectionContext(
@@ -70,7 +87,7 @@ class ChatEditorPresentationTest {
                     assertEquals(firstId, sessions.snapshot().selectedId, "A real editor selection still selects its owner")
                     assertTrue(queue.paused)
                     assertNotEquals(historyGeneration, get(history, "generation"))
-                } finally { Disposer.dispose(root) }
+                } finally { Disposer.dispose(root); host?.removeNotify() }
             }
         } finally {
             settings.agentExecutablePath = executable
@@ -304,12 +321,19 @@ class ChatEditorPresentationTest {
                         invoked = e.getData(ChatEditorPresentation.KEY)
                     }
                 }
+                val focusManager = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                val previousListeners = focusManager.getPropertyChangeListeners("focusOwner").toSet()
                 val presentation = ChatEditorPresentation(fixture.project, field, field, { true }, {}, {}, {},
                     headerActions = { listOf(action) })
                 field.setDisposedWith(presentation)
                 try {
                     val first = presentation.createEditor()
                     val second = presentation.createEditor()
+                    second.selectNotify()
+                    val listener = (focusManager.getPropertyChangeListeners("focusOwner").toSet() - previousListeners).single()
+                    listener.propertyChange(java.beans.PropertyChangeEvent(focusManager, "focusOwner", null, first.component))
+                    assertTrue(SwingUtilities.isDescendingFrom(field, first.component), "focusing an inactive split header must move the owned view to that host")
+                    assertSame(first.component, presentation.component)
                     fun invokeHeader(editor: com.intellij.openapi.fileEditor.FileEditor) {
                         val header = (editor.component as JPanel).components.first { it is JPanel && (it.layout as? BorderLayout)?.getLayoutComponent(BorderLayout.WEST) != null } as JPanel
                         val context = com.intellij.openapi.actionSystem.impl.Utils.createAsyncDataContext(header)

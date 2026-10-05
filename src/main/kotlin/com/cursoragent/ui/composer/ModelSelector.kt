@@ -19,7 +19,8 @@ class ModelSelector(
     internal var providerConfiguration: AgentEvent.Configuration? = null
         private set
     internal var onConfigure: (AgentEvent.Configuration, String, String) -> Unit = { _, _, _ -> }
-    internal val parameterValues: Map<String, String> get() = acpConfiguration?.parameterValues().orEmpty()
+    internal var parameterValues: Map<String, String> = emptyMap()
+        private set
     var onRetry: () -> Unit = {}
     private var catalog: ModelCatalogState = ModelCatalogState.Loading
     private var printModelId: String? = null
@@ -99,11 +100,22 @@ class ModelSelector(
 
     override fun createToolTip() = super.createToolTip().apply { putClientProperty("html.disable", true) }
 
+    internal fun restoreSelection(id: String, configuration: AgentEvent.Configuration? = null,
+        parameters: Map<String, String> = configuration?.parameterValues().orEmpty()) {
+        // A saved draft is local selection, not confirmation that the resident provider still uses it.
+        acpConfiguration = configuration?.takeIf { it.model == id && it.parameterValues() == parameters }
+        parameterValues = parameters.toMap()
+        settings.selectedModel = id
+        showSelection((acpConfiguration?.models ?: models).firstOrNull { it.id == id } ?: ModelOption(id, id.ifEmpty { "既定モデル" }))
+        if (acp) isEnabled = acpConfiguration != null && providerConfiguration != null
+    }
+
     fun waitForAcp() {
         if (!acp) printModelId = settings.selectedModel
         settings.selectedModel = ""
         acp = true
         acpConfiguration = null
+        parameterValues = emptyMap()
         providerConfiguration = null
         models = emptyList()
         families = emptyList()
@@ -120,8 +132,9 @@ class ModelSelector(
     internal fun setAcpConfiguration(state: AgentEvent.Configuration?, preserveDraft: Boolean = false) {
         closePopup()
         providerConfiguration = state
-        if (preserveDraft && state != null && acpConfiguration != null) return
+        if (preserveDraft) return
         acpConfiguration = state
+        parameterValues = state?.parameterValues().orEmpty()
         if (state == null) {
             models = emptyList()
             isEnabled = false
@@ -150,6 +163,7 @@ class ModelSelector(
         }
         acp = false
         acpConfiguration = null
+        parameterValues = emptyMap()
         providerConfiguration = null
         catalog = state
         showsChevron = state is ModelCatalogState.Loaded && state.models.isNotEmpty()

@@ -27,10 +27,12 @@ class MentionPopupController(
         field.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {
                 popup?.cancel()
-                if (field.isComposing || event.newLength != 1 || event.newFragment.toString() != "@") return
+                if (field.isComposing || field.isReplacingDraft || event.newLength != 1 || event.newFragment.toString() != "@") return
                 val stamp = field.document.modificationStamp
+                val generation = field.draftGeneration
                 SwingUtilities.invokeLater {
-                    if (!project.isDisposed && field.isShowing && !field.isComposing && field.document.modificationStamp == stamp) showPopup(event.offset)
+                    if (!project.isDisposed && field.isShowing && !field.isComposing && generation == field.draftGeneration &&
+                        field.document.modificationStamp == stamp) showPopup(event.offset)
                 }
             }
         })

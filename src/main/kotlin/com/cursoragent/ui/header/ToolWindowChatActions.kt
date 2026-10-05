@@ -48,9 +48,12 @@ internal class ToolWindowChatActions(
     onRequestIdCopyFeedback: (String) -> Unit = {},
     onToggleEditor: () -> Unit = {},
 ) {
+    val historyAction = action("履歴", "このプロジェクトの過去のチャットを開きます。", AllIcons.Vcs.History,
+        toolbarVisible = { settings.showHistoryIcon }, perform = onHistory)
+
     val titleActions = listOf(
         action("新規チャット", "新しいタブでチャットを開始します。", AllIcons.General.Add, toolbarVisible = { settings.showNewChatIcon }) { onNewChat() },
-        action("履歴", "このプロジェクトの過去のチャットを開きます。", AllIcons.Vcs.History, toolbarVisible = { settings.showHistoryIcon }, perform = onHistory),
+        historyAction,
     )
 
     val gearActions = DefaultActionGroup(titleActions + listOf(

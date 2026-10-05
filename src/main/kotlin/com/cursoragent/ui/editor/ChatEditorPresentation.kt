@@ -37,6 +37,8 @@ internal class ChatEditorPresentation(
     private val onFailure: (Throwable?) -> Unit,
     private val shortcutAllowed: () -> Boolean = { true },
     private val headerActions: () -> List<com.intellij.openapi.actionSystem.AnAction> = { emptyList() },
+    private val shortcutContext: (DataSink) -> Unit = {},
+    private val contextShortcuts: List<com.intellij.openapi.actionSystem.AnAction> = emptyList(),
 ) : Disposable {
     @Volatile private var disposed = false
     private var returning = false
@@ -48,22 +50,31 @@ internal class ChatEditorPresentation(
     val shortcutAvailable: Boolean get() = available && shortcutAllowed()
     private val shortcut = ActionManager.getInstance().getAction(ChatEditorToggleAction.ID)
     private val view = object : JPanel(BorderLayout()), UiDataProvider {
-        override fun uiDataSnapshot(sink: DataSink) { if (alive) sink[KEY] = this@ChatEditorPresentation }
+        override fun uiDataSnapshot(sink: DataSink) { if (alive) publishContext(sink) }
     }.apply {
         isOpaque = false
         add(content)
     }
     val panel = JPanel(BorderLayout()).apply { isOpaque = false; add(view) }
+    val component: JComponent get() = editors.firstOrNull { view.parent === it.body }?.component ?: panel
+
+    private fun publishContext(sink: DataSink) {
+        sink[KEY] = this
+        shortcutContext(sink)
+    }
 
     // Returning focus from the tool window to the already selected native editor has no selectNotify.
     private val focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
     private val focusListener = PropertyChangeListener { event ->
         val target = event.newValue as? Component
-        if (alive && !returning && target != null && editors.any { SwingUtilities.isDescendingFrom(target, it.component) }) selectOwner()
+        if (alive && !returning && target != null) {
+            editors.firstOrNull { SwingUtilities.isDescendingFrom(target, it.component) }?.let { showEditor(it) }
+        }
     }
 
     init {
         shortcut?.registerCustomShortcutSet(shortcut.shortcutSet, view)
+        contextShortcuts.forEach { it.registerCustomShortcutSet(it.shortcutSet, view) }
         focusManager.addPropertyChangeListener("focusOwner", focusListener)
     }
 
@@ -100,7 +111,7 @@ internal class ChatEditorPresentation(
         }
     }
 
-    fun returnToPanel(focus: Boolean) {
+    fun returnToPanel(focus: Boolean, notify: Boolean = true) {
         if (!alive || returning) return
         returning = true
         try {
@@ -110,7 +121,7 @@ internal class ChatEditorPresentation(
             returning = false
         }
         if (focus) selectOwner()
-        onReturn(focus)
+        if (notify) onReturn(focus)
     }
 
     private fun restorePanel() {
@@ -147,6 +158,7 @@ internal class ChatEditorPresentation(
         if (disposed) return
         disposed = true
         shortcut?.unregisterCustomShortcutSet(view)
+        contextShortcuts.forEach { it.unregisterCustomShortcutSet(view) }
         focusManager.removePropertyChangeListener("focusOwner", focusListener)
         try {
             if (!project.isDisposed) FileEditorManager.getInstance(project).closeFile(file)
@@ -163,7 +175,7 @@ internal class ChatEditorPresentation(
         @Volatile private var closed = false
         val body = JPanel(BorderLayout()).apply { isOpaque = false }
         private val component = object : JPanel(BorderLayout()), UiDataProvider {
-            override fun uiDataSnapshot(sink: DataSink) { if (alive && !closed) sink[KEY] = this@ChatEditorPresentation }
+            override fun uiDataSnapshot(sink: DataSink) { if (alive && !closed) publishContext(sink) }
         }.apply {
             isOpaque = false
             val back = JButton("Agentパネルに戻す").apply {
@@ -185,6 +197,7 @@ internal class ChatEditorPresentation(
             }, BorderLayout.NORTH)
             add(body)
         }
+        init { contextShortcuts.forEach { it.registerCustomShortcutSet(it.shortcutSet, component) } }
         fun showPlaceholder() {
             body.removeAll()
             body.add(JButton("この場所に会話を表示").apply {
@@ -206,6 +219,7 @@ internal class ChatEditorPresentation(
         override fun dispose() {
             if (closed) return
             closed = true
+            contextShortcuts.forEach { it.unregisterCustomShortcutSet(component) }
             val ownedView = view.parent === body
             editors.remove(this)
             body.removeAll()

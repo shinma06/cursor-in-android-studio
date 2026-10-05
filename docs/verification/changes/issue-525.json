@@ -140,7 +140,8 @@
       "steps": [
         "model-config-queueの新規launcherを使用し、先行turnを合成permissionで保留する。実行中にmodel/parameterを変更できないことを確認し、現在の選択で予約Aを追加し、予約一覧を開いて一時停止する。その後、先行turnの合成permissionを拒否して終了させる。",
         "前turn終了後に予約を一時停止し、下書き側を別model/parameterへ変更する。日本語の未送信本文とcaretを置き、予約Aの本文を編集してもAの設定snapshotが変わらないことを確認する。",
-        "予約を明示再開し、Aの合成permissionを拒否して終了する。Aが登録時の値で送信されることと、元の下書き本文・caret・mode/model/parameterが保持されることを照合する。予約後に下書きparameterを変更し、下書きmodelへ再設定したうえで次turnへ適用されることを確認する。親#212の予約editor統合後にも同じ操作を行う。"
+        "予約を明示再開し、Aの合成permissionを拒否して終了する。Aが登録時の値で送信されることと、元の下書き本文・caret・mode/model/parameterが保持されることを照合する。予約後に下書きparameterを変更し、下書きmodelへ再設定したうえで次turnへ適用されることを確認する。親#212の予約editor統合後にも同じ操作を行う。",
+        "親#212のinline予約editorで、Aの登録時広告/設定と退避した下書きを別々に保持する。本文のみの更新、idleで設定変更後の保存と取消、設定応答待ちの保存/取消拒否、切断後の値保持とselector無効化、未送信復旧を確認する。元下書きへ戻ってもproviderがその値で確認済みとみなさず、次の明示設定操作/送信時に応答を照合する。native editor移動とTerminal/画像添付も組み合わせる。"
       ],
       "expected": "予約と下書きは独立したsnapshotを持ち、予約実行・編集・未送信復旧で設定を取り違えない。実行/設定要求中に二重送信や別会話の設定変更を起こさない。"
     },
@@ -184,7 +185,8 @@
       "steps": [
         "macOS Cmd+Shift+/、Windows Ctrl+Alt+/およびCtrl+Shift+/、Linux XWin Ctrl+Shift+/を各対象環境で確認する。model-configのcomposerでキーを押し、最初の複数値Thinkingが循環して最後から先頭へ戻り、Fastを勝手に循環しないことを確認する。単一値/追加設定なしのmodelでは変更しない。",
         "KeymapでActionを別キーへ変更・解除する。変更後だけ動作し、解除後は発火しないことを確認する。通常editor・別tab・背景window・候補popup・IME変換中・画像import中・実行中・設定応答待ちでは変更しないことを確認する。キー長押しで複数回要求しないこと、release後は再び操作できることを確認する。",
-        "親#212を含む統合buildで、WindowsのCtrl+Shift+/が入力focus/追加設定選択可の条件でparameter循環に届くことと、その他の条件ではAll Agentsの意図した優先に従うことを照合する。不要なキー文字やIDEコメント操作が入力に混ざらないことを確認する。"
+        "親#212を含む統合buildで、WindowsのCtrl+Shift+/が入力focus/追加設定選択可の条件でparameter循環に届くことと、その他の条件ではAll Agentsの意図した優先に従うことを照合する。不要なキー文字やIDEコメント操作が入力に混ざらないことを確認する。",
+        "ToolWindowを隠しnative editorの入力で操作する。別project、別会話へ切替後の古いevent、非選択split、header focusでは元入力を変更しない。Windowsの共通キーでは利用可能なparameterだけを優先し、候補なしならAll Agentsへ届く。設定要求中の表示移動・予約編集開始・送信を拒否し、長押しとrelease/focus離脱の後で動作を再確認する。"
       ],
       "expected": "native Keymapの変更/解除に追随し、対象composerだけで1打鍵につき1回設定する。各OS・親Action競合の未実施をpass扱いにしない。"
     },

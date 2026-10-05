@@ -18,6 +18,7 @@ class ModeSelector(
     private val settings: AgentSettingsState = AgentSettingsState.getInstance(),
 ) : SelectorButton() {
     private val popupController = SelectorPopupController(this)
+    private val modes = listOf(AgentMode.AGENT, AgentMode.PLAN, AgentMode.ASK)
 
     init {
         showsChevron = true
@@ -26,7 +27,7 @@ class ModeSelector(
             popupController.toggle {
                 val renderer = DefaultListCellRenderer()
                 JBPopupFactory.getInstance()
-                    .createPopupChooserBuilder(listOf(AgentMode.AGENT, AgentMode.PLAN, AgentMode.ASK))
+                    .createPopupChooserBuilder(modes)
                     .setSelectedValue(settings.mode, true)
                     .setRequestFocus(true)
                     .setCancelOnClickOutside(true)
@@ -56,6 +57,10 @@ class ModeSelector(
                     .createPopup()
             }
         }
+    }
+
+    internal fun cycleMode() {
+        if (isEnabled) selectMode(modes[(modes.indexOf(settings.mode) + 1) % modes.size])
     }
 
     internal fun selectMode(mode: AgentMode) {

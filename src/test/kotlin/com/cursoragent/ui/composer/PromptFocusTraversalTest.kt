@@ -75,6 +75,70 @@ class PromptFocusTraversalTest {
     }
 
     @Test
+    fun `configured mode shortcuts outrank reverse traversal and remapping restores native focus`() = SwingUtilities.invokeAndWait {
+        var focused = true
+        var allowed = true
+        var moved = 0
+        val prompt = object : JTextArea("日本語\nselected text") {
+            override fun isFocusOwner() = focused
+            override fun transferFocusBackward() { moved++ }
+        }
+        val settings = com.cursoragent.settings.AgentSettingsState()
+        val selector = ModeSelector(settings)
+        val cycle = com.cursoragent.actions.AgentPanelAction.ModeMenu()
+        val shiftTab = KeyStroke.getKeyStroke("shift TAB")
+        cycle.shortcutSet = com.intellij.openapi.actionSystem.CustomShortcutSet(shiftTab)
+        val target = com.cursoragent.actions.AgentPanelActions(
+            available = { allowed && focused && prompt.isEnabled && selector.isEnabled },
+            perform = { command, _ ->
+                assertEquals(com.cursoragent.actions.AgentPanelCommand.MODE_MENU, command)
+                selector.cycleMode()
+            },
+        )
+        val context = DataContext { if (com.cursoragent.actions.AgentPanelActions.KEY.`is`(it)) target else null }
+        installPromptFocusTraversal(prompt, cycle)
+        val actions = ActionUtil.getActions(prompt)
+        assertTrue(cycle in actions)
+        val reverse = actions.last()
+        fun event(action: com.intellij.openapi.actionSystem.AnAction) = AnActionEvent(
+            context, action.templatePresentation.clone(), "test", ActionUiKind.NONE, null, 0, unusedActionManager,
+        )
+        prompt.selectAll()
+        val text = prompt.text
+        val selection = prompt.selectionStart to prompt.selectionEnd
+        val reverseEvent = event(reverse)
+        reverse.update(reverseEvent)
+        assertFalse(reverseEvent.presentation.isEnabled)
+        reverse.actionPerformed(reverseEvent)
+        assertEquals(0, moved, "a stale traversal action must not run alongside mode selection")
+        cycle.actionPerformed(event(cycle))
+        assertEquals(com.cursoragent.settings.AgentMode.PLAN, settings.mode)
+        assertEquals(text, prompt.text)
+        assertEquals(selection, prompt.selectionStart to prompt.selectionEnd)
+
+        cycle.shortcutSet = com.intellij.openapi.actionSystem.CustomShortcutSet(KeyStroke.getKeyStroke("control alt PERIOD"))
+        reverse.update(reverseEvent)
+        assertTrue(reverseEvent.presentation.isEnabled)
+        reverse.actionPerformed(reverseEvent)
+        assertEquals(1, moved)
+        assertEquals(com.cursoragent.settings.AgentMode.PLAN, settings.mode)
+        cycle.shortcutSet = com.intellij.openapi.actionSystem.CustomShortcutSet(
+            KeyboardShortcut(shiftTab, KeyStroke.getKeyStroke("control M")))
+        reverse.update(reverseEvent)
+        assertFalse(reverseEvent.presentation.isEnabled, "a configured chord prefix also belongs to the mode Action")
+        allowed = false
+        reverse.update(reverseEvent)
+        assertTrue(reverseEvent.presentation.isEnabled, "disabled mode selection still permits reverse focus")
+        cycle.actionPerformed(event(cycle))
+        assertEquals(com.cursoragent.settings.AgentMode.PLAN, settings.mode)
+        focused = false
+        reverse.actionPerformed(reverseEvent)
+        assertEquals(1, moved, "another component or popup cannot receive stale traversal")
+        cycle.unregisterCustomShortcutSet(prompt)
+        assertFalse(cycle in ActionUtil.getActions(prompt))
+    }
+
+    @Test
     fun `Tab and Shift Tab are consumed for traversal without changing prompt text`() = SwingUtilities.invokeAndWait {
         val moved = mutableListOf<String>()
         val manager = object : DefaultKeyboardFocusManager() {

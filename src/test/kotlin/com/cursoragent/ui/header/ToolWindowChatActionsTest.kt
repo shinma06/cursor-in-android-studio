@@ -257,6 +257,24 @@ class ToolWindowChatActionsTest {
     }
 
     @Test
+    fun `open chat menu and bulk close exclude retained owners whose tabs were replaced`() {
+        val tabs = SessionTabs()
+        val hidden = tabs.snapshot().selectedId
+        tabs.updateComposer(hidden, AgentMode.AGENT, "model", "request", 0)
+        val token = tabs.beginTurn(hidden)!!.token
+        val visible = tabs.replaceSelected().id
+        assertEquals(listOf(visible), openedChatEntries(tabs.snapshot()).map { it.first })
+        confirmCloseChats(tabs.snapshot(), { count, running ->
+            assertEquals(1, count)
+            assertEquals(0, running)
+            true
+        }) { ids -> assertEquals(listOf(visible), ids); tabs.closeAll(ids) }
+        assertTrue(tabs.accepts(token), "closing visible tabs must not cancel a replaced conversation")
+        assertEquals(1, tabs.snapshot().visibleTabs.size)
+        assertTrue(tabs.select(hidden), "the retained owner can be reopened from All Agents or recent chats")
+    }
+
+    @Test
     fun `confirmed bulk close rejects late callbacks and leaves one fresh tab without touching newer or other projects`() {
         val tabs = SessionTabs()
         val first = tabs.snapshot().selected.id

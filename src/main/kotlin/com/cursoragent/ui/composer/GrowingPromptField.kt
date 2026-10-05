@@ -26,12 +26,36 @@ import javax.swing.SwingUtilities
 /** Grow by actual editor visual lines (including soft wraps), then let the editor scroll. */
 class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextFileType.INSTANCE) {
     internal var onImageTransfer: ((java.awt.datatransfer.Transferable) -> Boolean)? = null
-    internal var modelParameterKeyHeld = false
+    internal var onQueueNavigate: (Boolean) -> Boolean = { false }
+    internal var onSendKeyReleased: () -> Unit = {}
     internal var clipboardContextAvailable: () -> Boolean = { true }
     internal var onClipboardContext: ((ClipboardContextData) -> Unit)? = null
+    internal var modelParameterKeyHeld = false
     private var resizePending = false
     private val ime = PromptImeGuard()
     val isComposing: Boolean get() = ime.isComposing
+    internal var isReplacingDraft = false
+        private set
+    internal var draftGeneration = 0L
+        private set
+
+    /** Text and attachments change together; native Undo must not cross between distinct drafts. */
+    internal fun replaceDraftText(value: String, carets: List<com.intellij.openapi.editor.CaretState>?) {
+        draftGeneration++
+        isReplacingDraft = true
+        try {
+            WriteCommandAction.runWriteCommandAction(project) {
+                document.setText(value)
+                UndoManager.getInstance(project).nonundoableActionPerformed(
+                    DocumentReferenceManager.getInstance().create(document), false,
+                )
+            }
+            editor?.caretModel?.let { model ->
+                if (carets != null) model.caretsAndSelections = carets
+                else { model.removeSecondaryCarets(); model.moveToOffset(value.length); editor?.selectionModel?.removeSelection() }
+            }
+        } finally { isReplacingDraft = false }
+    }
 
     init {
         // Keep the PSI-backed document, but create it before composer listeners are registered.
@@ -61,7 +85,11 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
         // A prompt is an embedded form field, even though it supports multiple lines.
         // Use prompt-local shortcuts as well: selection indentation ignores this flag.
         editor.isEmbeddedIntoDialogWrapper = true
-        installPromptFocusTraversal(editor.contentComponent)
+        installPromptFocusTraversal(editor.contentComponent,
+            com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction(com.cursoragent.actions.AgentPanelCommand.MODE_MENU.actionId))
+        installPromptQueueNavigation(editor) { reverse ->
+            isEnabled && !isComposing && onQueueNavigate(reverse)
+        }
         editor.putUserData(
             PROMPT_CONTEXT_PASTE,
             PromptContextPaste(
@@ -76,15 +104,24 @@ class GrowingPromptField(project: Project) : EditorTextField(project, PlainTextF
             if (!isEnabled || isComposing) true else onImageTransfer?.invoke(value) ?: false
         }
         modelParameterKeyHeld = false
+        // Both matches must live at the nearest component; a disabled cycle must not mask All Agents.
+        listOf("CursorAgent.CycleModelParameter", "CursorAgent.AllChats").forEach { id ->
+            ActionManager.getInstance().getAction(id)?.let { it.registerCustomShortcutSet(it.shortcutSet, editor.contentComponent) }
+        }
+        ime.reset()
+        onSendKeyReleased()
         editor.contentComponent.addKeyListener(object : java.awt.event.KeyAdapter() {
-            override fun keyReleased(e: java.awt.event.KeyEvent) { modelParameterKeyHeld = false }
+            override fun keyReleased(event: java.awt.event.KeyEvent) {
+                modelParameterKeyHeld = false
+                if (event.keyCode == java.awt.event.KeyEvent.VK_ENTER) onSendKeyReleased()
+            }
         })
         editor.contentComponent.addFocusListener(object : java.awt.event.FocusAdapter() {
-            override fun focusLost(e: java.awt.event.FocusEvent) { modelParameterKeyHeld = false }
+            override fun focusLost(event: java.awt.event.FocusEvent) {
+                modelParameterKeyHeld = false
+                onSendKeyReleased()
+            }
         })
-        val cycle = com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("CursorAgent.CycleModelParameter")
-        cycle?.registerCustomShortcutSet(cycle.shortcutSet, editor.contentComponent)
-        ime.reset()
         editor.contentComponent.addInputMethodListener(ime)
         editor.settings.apply {
             isUseSoftWraps = true

@@ -15,6 +15,7 @@ internal data class QueuedPrompt(
     val image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment? = null,
     val retryUnsentImage: Boolean = false,
     val modelParameters: Map<String, String> = emptyMap(),
+    val modelConfiguration: com.cursoragent.service.AgentEvent.Configuration? = null,
 )
 
 internal data class QueueDispatch(val generation: Long, val revision: Long, val prompt: QueuedPrompt)
@@ -23,17 +24,20 @@ internal data class QueueDispatch(val generation: Long, val revision: Long, val 
 internal class PromptQueue(val conversationId: String,
     private val releaseImage: (com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment) -> Unit = { it.close() }) {
     private var revision = 0L
+    val version: Long get() = revision
     private val entries = mutableListOf<QueuedPrompt>()
+    private var editingId: String? = null
     var paused = false
         private set
     val size get() = entries.size
     fun snapshot(): List<QueuedPrompt> = entries.toList()
 
-    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null, command: String? = null, image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment? = null, modelParameters: Map<String, String> = emptyMap()): Boolean {
+    fun add(text: String, mode: AgentMode, model: String, context: PromptContextSnapshot? = null, command: String? = null, image: com.cursoragent.ui.composer.image.ImageAttachmentStore.ImageAttachment? = null, modelParameters: Map<String, String> = emptyMap(), modelConfiguration: com.cursoragent.service.AgentEvent.Configuration? = null): Boolean {
         if (text.isBlank() && command == null && image == null) return false
         if (entries.isEmpty()) paused = false
         revision++
-        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context, command = command, image = image, modelParameters = modelParameters.toMap()))
+        entries.add(QueuedPrompt(text = text, mode = mode, model = model, context = context, command = command, image = image,
+            modelParameters = modelParameters.toMap(), modelConfiguration = modelConfiguration))
         return true
     }
 
@@ -44,16 +48,40 @@ internal class PromptQueue(val conversationId: String,
 
     fun pause() { revision++; paused = true }
     fun resume() { revision++; paused = false }
-    fun clear() { entries.mapNotNull { it.image }.forEach(releaseImage); entries.clear(); pause() }
-    fun next(): QueuedPrompt? = if (paused) null else entries.firstOrNull()
+    fun clear() { entries.mapNotNull { it.image }.forEach(releaseImage); entries.clear(); editingId = null; pause() }
+    fun next(): QueuedPrompt? = if (paused) null else entries.firstOrNull()?.takeUnless { it.id == editingId }
     fun ticket(generation: Long): QueueDispatch? = next()?.let { QueueDispatch(generation, revision, it) }
+
+    /** Hold the edited row when it reaches the head, without pausing earlier rows or undoing Stop. */
+    fun beginEdit(expected: QueuedPrompt): Boolean {
+        if (editingId != null || entries.none { it === expected }) return false
+        editingId = expected.id
+        revision++
+        return true
+    }
+
+    fun endEdit(id: String) {
+        if (editingId != id) return
+        editingId = null
+        revision++
+    }
 
     /** Recheck the scheduled action, conversation/selection, and idle run at actual dispatch time. */
     fun dispatch(ticket: QueueDispatch, generation: Long, ownerIsIdle: Boolean, start: (QueuedPrompt) -> Boolean): Boolean {
         if (!ownerIsIdle || ticket.generation != generation || ticket.revision != revision || next() != ticket.prompt) return false
-        return if (start(ticket.prompt)) {
+        return dispatchSelected(ticket.prompt, true, start = start)
+    }
+
+    /** An explicit idle submit may send this row even while automatic dispatch is paused. */
+    fun dispatchSelected(expected: QueuedPrompt, ownerIsIdle: Boolean, resumeAutomatic: Boolean = false, start: (QueuedPrompt) -> Boolean): Boolean {
+        if (!ownerIsIdle || expected.id == editingId || entries.none { it === expected }) return false
+        revision++
+        val startingRevision = revision
+        return if (start(expected)) {
             // Ownership transfers to the started turn; removal here must not release its image.
-            entries.removeIf { it.id == ticket.prompt.id }
+            entries.removeIf { it.id == expected.id }
+            // Send Now may preserve prior automatic delivery, but never undo a newer pause/recovery.
+            if (resumeAutomatic && revision == startingRevision) paused = false
             revision++
             true
         } else { pause(); false }
@@ -79,6 +107,16 @@ internal class PromptQueue(val conversationId: String,
         if (index < 0 || text.isBlank() && entries[index].command == null && entries[index].image == null) return false
         pause()
         entries[index] = entries[index].copy(text = text)
+        return true
+    }
+    /** The editor owns replacement.image until this accepts it; stale edits never replace another item. */
+    fun replace(expected: QueuedPrompt, replacement: QueuedPrompt): Boolean {
+        val index = entries.indexOfFirst { it.id == expected.id }
+        if (index < 0 || entries[index] !== expected || replacement.id != expected.id ||
+            replacement.text.isBlank() && replacement.command == null && replacement.image == null) return false
+        revision++
+        entries[index] = replacement
+        if (expected.image !== replacement.image) expected.image?.let(releaseImage)
         return true
     }
     fun move(id: String, offset: Int) {

@@ -18,13 +18,22 @@ class CycleModelParameterAction : DumbAwareAction() {
             SwingUtilities.getAncestorOfClass(ComposerPanel::class.java, source) as? ComposerPanel ?: return null
         val editor = composer.inputArea.editor ?: return null
         return composer.takeIf {
-            event.project?.isDisposed == false && it.isShowing && editor.contentComponent.isFocusOwner &&
+            event.project?.isDisposed == false && editor.project === event.project &&
+                event.getData(AgentPanelActions.KEY)?.available?.invoke(AgentPanelCommand.MODEL_MENU) == true &&
+                it.isShowing && editor.contentComponent.isFocusOwner &&
                 it.canConfigureModel && it.modelSelector.isEnabled &&
                 it.modelSelector.acpConfiguration?.parameters?.any { parameter -> parameter.options.size > 1 } == true
         }
     }
 
     override fun update(e: AnActionEvent) { e.presentation.isEnabled = composer(e) != null }
+
+    internal fun ownsShortcut(e: AnActionEvent): Boolean {
+        val key = e.inputEvent as? KeyEvent ?: return false
+        return shortcutSet.shortcuts.filterIsInstance<com.intellij.openapi.actionSystem.KeyboardShortcut>().any {
+            it.firstKeyStroke == javax.swing.KeyStroke.getKeyStrokeForEvent(key)
+        } && composer(e) != null
+    }
 
     override fun actionPerformed(e: AnActionEvent) {
         val composer = composer(e) ?: return

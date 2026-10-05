@@ -78,11 +78,36 @@ class AgentUiController(
         } }
     }
     private val queue = PromptQueue(recorder.conversation.id, agentService::releaseImage)
+    private val queueEditor = PromptQueueEditor(queue, composer,
+        isCurrent = { !disposed && !project.isDisposed && composer.isShowing && isSelectedConversation() },
+        releaseImage = agentService::releaseImage, changed = ::refreshQueue, error = timeline::showStatus,
+        onQueueReady = ::scheduleNextQueuedPrompt, onSend = ::sendEditedQueuedPrompt)
+    private val queueSubmission = PromptQueueSubmission(queue,
+        isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() && composer.isShowing &&
+            !composer.modelConfigurationBusy && !queueEditor.isEditing && composer.inputArea.isEnabled && composer.panelShortcutAvailable &&
+            !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(composer) },
+        activeRun = { activeRun }, generation = { turnGeneration },
+        dispatchLater = { SwingUtilities.invokeLater(it) }, start = { startPrompt(it.text, it) },
+        stop = ::stopActiveRun, changed = ::refreshQueue,
+        stopFailed = { timeline.showStatus("停止を確認できません。選択した予約を保持しました。") })
     private var queueDialog: PromptQueueDialog? = null
-    val hasQueuedPrompts: Boolean get() = queue.size > 0
+    private val queueUiLifetime = com.intellij.openapi.util.Disposer.newDisposable()
+    private val inlineQueue: PromptQueueList = PromptQueueList(queue,
+        isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
+        shortcutAvailable = {
+            !queueEditor.isEditing && composer.isShowing && inlineQueue.isFocusOwner &&
+                !com.intellij.openapi.ui.popup.JBPopupFactory.getInstance().isChildPopupFocused(inlineQueue)
+        },
+        onEdit = { queueSubmission.cancel(); queueEditor.begin(it.id) },
+        onChanged = ::refreshQueue,
+        onReturnToInput = { inlineQueue.clearSelection(); composer.inputArea.requestFocusInWindow() },
+        canSubmit = { queueSubmission.available },
+        onSubmit = { queueSubmission.submit(it) },
+    )
+    val hasQueuedPrompts: Boolean get() = queue.size > 0 || queueEditor.isEditing
 
     fun enqueuePrompt(text: String) {
-        if (disposed || project.isDisposed || activeRun?.isActive != true || !isSelectedConversation()) return
+        if (disposed || project.isDisposed || queueEditor.isEditing || activeRun?.isActive != true || !isSelectedConversation()) return
         val context = try {
             composer.promptContext.snapshot()
         } catch (error: IllegalArgumentException) {
@@ -96,7 +121,8 @@ class AgentUiController(
         }
         if (imageDraft.importing) return
         val image = imageDraft.retain()
-        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context, command, image, composer.modelSelector.parameterValues)) {
+        if (queue.add(text, composer.selection.mode, composer.selection.selectedModel, context, command, image,
+                composer.modelSelector.parameterValues, composer.modelSelector.acpConfiguration)) {
             composer.clearInput()
             refreshQueue()
         } else image?.let(agentService::releaseImage)
@@ -107,7 +133,19 @@ class AgentUiController(
         return selected.id == tabId && selected.conversationId == queue.conversationId
     }
 
-    fun pauseQueue() { cancelModelChange(); queue.pause(); refreshQueue() }
+    fun pauseQueue() { cancelModelChange(); queueSubmission.cancel(); queue.pause(); refreshQueue() }
+    private fun refreshQueue() {
+        val returnToInput = inlineQueue.isFocusOwner && queue.size == 0 && isSelectedConversation()
+        inlineQueue.refresh()
+        inlineQueue.isEnabled = !queueEditor.isEditing
+        composer.showQueueState(queue.size, queue.paused)
+        if (returnToInput && !disposed && !project.isDisposed) composer.inputArea.requestFocusInWindow()
+    }
+
+    private fun focusQueue(reverse: Boolean): Boolean {
+        if (disposed || project.isDisposed || queueEditor.isEditing || !isSelectedConversation() || !composer.isShowing || queue.size == 0) return false
+        return inlineQueue.selectFromPrompt(reverse) && inlineQueue.requestFocusInWindow()
+    }
 
     private fun cancelModelChange() {
         ++modelChangeGeneration
@@ -138,10 +176,9 @@ class AgentUiController(
         }
         if (modelRequestGeneration == generation) cancelModelRequest = cancel else cancel()
     }
-    private fun refreshQueue() { composer.showQueueState(queue.size, queue.paused) }
 
     fun showQueue() {
-        if (disposed || project.isDisposed || !isSelectedConversation() || queueDialog != null) return
+        if (disposed || project.isDisposed || queueEditor.isEditing || !isSelectedConversation() || queueDialog != null) return
         pauseQueue()
         val dialog = PromptQueueDialog(project, queue,
             isCurrent = { !disposed && !project.isDisposed && isSelectedConversation() },
@@ -153,10 +190,15 @@ class AgentUiController(
                     scheduleNextQueuedPrompt()
                 }
             },
+            canSubmit = { queueSubmission.available },
+            onSubmit = queueSubmission::submit,
         )
         queueDialog = dialog
         dialog.show()
-        if (queueDialog === dialog) queueDialog = null
+        if (queueDialog === dialog) {
+            queueDialog = null
+            if (!disposed && !project.isDisposed && isSelectedConversation()) composer.inputArea.requestFocusInWindow()
+        }
     }
 
     private fun scheduleNextQueuedPrompt() {
@@ -166,6 +208,12 @@ class AgentUiController(
             queue.dispatch(ticket, turnGeneration, ownerIsIdle) { startPrompt(it.text, it) }
             if (!disposed) refreshQueue()
         }
+    }
+
+    private fun sendEditedQueuedPrompt(entry: QueuedPrompt) {
+        val ownerIsIdle = !disposed && !project.isDisposed && composer.isShowing && activeRun == null && isSelectedConversation()
+        queue.dispatchSelected(entry, ownerIsIdle) { startPrompt(it.text, it) }
+        if (!disposed) refreshQueue()
     }
 
     private val changes = ConversationChanges(recorder.conversation.id)
@@ -226,6 +274,12 @@ class AgentUiController(
     )
 
     init {
+        composer.installQueueList(inlineQueue)
+        inlineQueue.installShortcuts(queueUiLifetime)
+        composer.onFocusQueue = ::focusQueue
+        composer.onSubmitQueueEdit = queueEditor::submit
+        composer.onCancelQueueEdit = queueEditor::cancel
+        composer.installInputShortcuts(queueUiLifetime)
         imagePanel = composer.installImages(imageDraft)
         checkpointService.pruneExpired()
         composer.modelSelector.onRetry = modelLoader::load
@@ -287,7 +341,8 @@ class AgentUiController(
         }, onConfiguration = { state ->
             runOnEdt {
                 if (!disposed && !project.isDisposed && commandConnection.isCurrent(generation) && transportState().first == AgentTransport.ACP) {
-                    composer.showAcpModelConfiguration(state)
+                    composer.showAcpModelConfiguration(state,
+                        preserveDraft = state == null || (queuedTurn || queueEditor.isEditing) && modelRequestGeneration == null)
                 }
             }
         }) { state ->
@@ -331,6 +386,12 @@ class AgentUiController(
         cancelModelChange()
         recorder.finish("interrupted")
         disposed = true
+        composer.onFocusQueue = { false }
+        composer.onSubmitQueueEdit = {}
+        composer.onCancelQueueEdit = {}
+        queueSubmission.cancel()
+        queueEditor.close()
+        com.intellij.openapi.util.Disposer.dispose(queueUiLifetime)
         timeline.runStatus.dispose()
         activeToken?.let { com.cursoragent.notification.AgentNotificationService.clearToolCall(project, it.turnId) }
         sessions.clearRequestId(tabId)
@@ -375,7 +436,7 @@ class AgentUiController(
     }
 
     fun sendPrompt(userText: String) {
-        if (composer.modelConfigurationBusy || activeRun != null || userText.isBlank() && composer.commands.selectedName == null && imageDraft.attachment == null) return
+        if (composer.modelConfigurationBusy || queueEditor.isEditing || activeRun != null || userText.isBlank() && composer.commands.selectedName == null && imageDraft.attachment == null) return
         pauseQueue()
         startPrompt(userText)
     }
@@ -412,6 +473,7 @@ class AgentUiController(
             shared.permissionMode, shared.sandboxMode,
             queued?.modelParameters ?: composer.modelSelector.parameterValues,
         )
+        val modelConfiguration = if (queued == null) composer.modelSelector.acpConfiguration else queued.modelConfiguration
         val workspace = agentService.captureWorkspace(tab.chatId, shared.worktreeMode)
         agentService.settingsUnavailableReason(tab.transport, settings, workspace.mode)?.let { reason ->
             timeline.showStatus(reason)
@@ -463,7 +525,8 @@ class AgentUiController(
         }
         val sentImage = if (queued == null) imageDraft.retain() else sourceImage
         if (sentImage != null) {
-            val retry = queued ?: QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command, image = sentImage, modelParameters = settings.modelParameters)
+            val retry = queued ?: QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command,
+                image = sentImage, modelParameters = settings.modelParameters, modelConfiguration = modelConfiguration)
             finishImage = { successful ->
                 if (successful || disposed) agentService.releaseImage(sentImage)
                 else SwingUtilities.invokeLater {
@@ -500,7 +563,8 @@ class AgentUiController(
                         context.mentions.forEach(composer.promptContext::addMention)
                         context.terminals.forEach(composer.promptContext::addTerminal)
                     } else {
-                        queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command, modelParameters = settings.modelParameters))
+                        queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command,
+                            modelParameters = settings.modelParameters, modelConfiguration = modelConfiguration))
                         timeline.showStatus("送信前に失敗した入力を予約一覧へ保持しました。内容を確認してから再開してください。")
                     }
                 }
@@ -627,25 +691,31 @@ class AgentUiController(
     fun stopRun() {
         pauseQueue()
         val run = activeRun ?: return
+        stopActiveRun(run)
+    }
+
+    private fun stopActiveRun(run: AgentRun) {
         try {
             run.stop()
         } finally {
             // An already-observed exit wins over a later Stop click.
-            if (run.wasStopped) {
+            if (run.wasStopped && activeRun === run) {
                 composer.contextUsage.stop()
                 timeline.runStatus.update(com.cursoragent.ui.timeline.RunPhase.STOPPING)
             }
         }
     }
 
-    private fun finishRun(successful: Boolean) {
+    private fun finishRun(phase: com.cursoragent.ui.timeline.RunPhase) {
+        val successful = phase == com.cursoragent.ui.timeline.RunPhase.COMPLETED
+        val finishedRun = activeRun
         finishImage?.invoke(successful)
         finishImage = null
         if (!successful) releaseUnsentTransport?.invoke()
         releaseUnsentTransport = null
         if (!successful) recoverUnsentCommand?.invoke()
         recoverUnsentCommand = null
-        if (!successful) queue.pause()
+        if (!successful && !queue.paused) queue.pause()
         activeToken?.let(sessions::finishTurn)
         activeToken = null
         activeRun = null
@@ -654,7 +724,8 @@ class AgentUiController(
         composer.setRunning(false)
         composer.commands.update(commandConnection.catalog, !transportState().second)
         refreshQueue()
-        if (successful) scheduleNextQueuedPrompt()
+        val explicitSend = queueSubmission.finished(finishedRun, phase)
+        if (successful && !explicitSend) scheduleNextQueuedPrompt()
     }
 
     private fun runOnEdt(block: () -> Unit) {
