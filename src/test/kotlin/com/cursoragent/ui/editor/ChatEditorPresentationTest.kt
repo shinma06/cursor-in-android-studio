@@ -59,7 +59,8 @@ class ChatEditorPresentationTest {
                     history.javaClass.getDeclaredField("load").apply { isAccessible = true }.set(history,
                         { _: (Result<com.cursoragent.history.ConversationStore.Loaded>) -> Unit -> loads++; Unit })
                     root.requestHistory()
-                    assertEquals(1, loads)
+                    assertEquals(1, loads, "History must start for the selected visible owner: " +
+                        (get(history, "context") as Function0<*>).invoke())
                     assertEquals(selectedId, get(history, "loadingOwner"))
                     val historyGeneration = get(history, "generation")
                     val snapshot = sessions.snapshot()

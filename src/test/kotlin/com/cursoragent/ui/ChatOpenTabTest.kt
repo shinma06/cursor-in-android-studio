@@ -42,6 +42,8 @@ class ChatOpenTabTest {
         val executable = settings.agentExecutablePath
         settings.agentExecutablePath = Path.of(fixture.project.basePath!!, "missing-open-tab-${UUID.randomUUID()}").toString()
         val properties = PropertiesComponent.getInstance(fixture.project)
+        val sidebarKey = "CursorAgent.allChatsSidebar"
+        val originalSidebar = properties.getValue(sidebarKey)
         val collapsedKey = "CursorAgent.chatSection.archived.collapsed"
         val collapsed = properties.getValue(collapsedKey)
         val store = fixture.project.getService(ConversationHistory::class.java)
@@ -186,6 +188,7 @@ class ChatOpenTabTest {
                 host?.removeNotify()
                 panel?.dispose()
                 properties.unsetValue("CursorAgent.chatArchive." + pinnedChatKey(savedEntry.id))
+                if (originalSidebar == null) properties.unsetValue(sidebarKey) else properties.setValue(sidebarKey, originalSidebar)
                 if (collapsed == null) properties.unsetValue(collapsedKey) else properties.setValue(collapsedKey, collapsed)
             }
             metadata.forEach { runCatching { it.get(10, TimeUnit.SECONDS) } }
