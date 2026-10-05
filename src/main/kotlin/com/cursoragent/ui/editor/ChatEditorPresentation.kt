@@ -225,7 +225,7 @@ internal class ChatEditorPresentation(
             body.removeAll()
             if (!alive || returning) return
             if (editors.isEmpty()) { restorePanel(); onReturn(false) }
-            else if (ownedView) showEditor(editors.last())
+            else if (ownedView) showEditor(editors.last(), select = false)
         }
     }
 

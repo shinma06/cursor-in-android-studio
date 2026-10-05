@@ -65,7 +65,7 @@ model menuの既定値はWindowsではCtrl+/、LinuxではCtrl+/とCtrl+Alt+/、
 
 ## 会話のeditor表示
 
-同じ会話をパネルとnative editorタブで切り替える（#523）。上部menuと`CursorAgent.ToggleChatEditor`（Mac Cmd+D / Windows・Linux Ctrl+D、Keymap変更可能）から、既存のtimeline/composerを移動する。FileEditorProviderは自前のメモリ内VirtualFileと同じprojectだけを受理する。通常のファイルは扱わず、会話保存・provider session・run token・controllerは作り直さない。パネル側の会話タブは保持し、表示リンクからeditorへfocusできる。コードの明示context追加も既存ownerの現在の表示先へ戻る。
+同じ会話をパネルとnative editorタブで切り替える（#523）。上部menuと`CursorAgent.ToggleChatEditor`（Mac Cmd+D / Windows・Linux Ctrl+D、Keymap変更可能）から、既存のtimeline/composerを移動する。FileEditorProviderは自前のメモリ内VirtualFileと同じprojectだけを受理する。通常のファイルは扱わず、会話保存・provider session・run token・controllerは作り直さない。パネル側の会話タブは保持し、表示リンクからeditorへfocusできる。コードの明示context追加も既存ownerの現在の表示先へ戻る。 非選択会話のviewを持つsplitを閉じるときは、残るsplitへのview移動だけを行い、現在の会話選択・予約ticket・履歴要求・context追加先を変えない。残るeditorを実際に選択またはfocusしたときにownerを選択する。`ChatEditorPresentationTest`は実rootでこの境界を確認する。
 
 editorのheaderは既存の新規チャット・履歴・会話menuを共有し、各操作時にそのtab UUIDの生きたviewを引き直す。ToolWindowへfocusを移してから同じeditorへ戻った場合も、nativeタブの再選択通知に加えてfocus ownerを照合する。履歴の読込・dialogは会話ごとの表示componentに結び付け、非表示・別会話選択・閉鎖でgenerationを無効化する。editor側の新規チャット・履歴・開いているチャット選択は移動先もeditorで開く。通常ファイルのfocusで選択会話を変えず、破棄時にはfocus listenerを解除する。
 
