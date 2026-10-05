@@ -28,11 +28,19 @@ data class SelectionContext(
 
 data class EditorContext(val fileUrl: String, val path: String, val selection: SelectionContext?)
 
+/** Copy-time Terminal output, independent of the live tab, its later output and its lifetime. */
+data class TerminalContext(val id: String, val name: String, val startLine: Long, val endLine: Long, val text: String) {
+    init { require(id.isNotBlank() && startLine > 0 && endLine >= startLine && text.isNotEmpty()) }
+    val label: String get() = "Terminal: ${name.ifBlank { "Terminal" }}:$startLine–$endLine"
+    fun block(): String = "Copied terminal output: $label\n```\n$text\n```"
+}
+
 /** A send/queue owns a copy; editing another draft never changes its explicit attachments. */
 data class PromptContextSnapshot(
     val selections: List<SelectionContext>,
     val mentions: List<Mention>,
     val automaticEnabled: Boolean,
+    val terminals: List<TerminalContext> = emptyList(),
 ) {
     fun selectionBlocks(automatic: EditorContext?, fileContents: Map<String, String>): List<String> {
         val explicit = selections.filter { selection -> fileContents[selection.path]?.let(selection::coveredBy) != true }
@@ -47,21 +55,24 @@ data class PromptContextSnapshot(
 class PromptContextDraft {
     private val selections = linkedMapOf<String, SelectionContext>()
     private val mentions = linkedMapOf<Pair<MentionKind, String>, Mention>()
+    private val terminals = linkedMapOf<String, TerminalContext>()
     var automaticEnabled = true
-    val hasExplicit: Boolean get() = selections.isNotEmpty() || mentions.isNotEmpty()
+    val hasExplicit: Boolean get() = selections.isNotEmpty() || mentions.isNotEmpty() || terminals.isNotEmpty()
 
     fun add(selection: SelectionContext) { selections[selection.key] = selection }
     fun add(mention: Mention) { mentions[mention.kind to mention.insertToken] = mention }
+    fun add(terminal: TerminalContext) { terminals[terminal.id] = terminal }
     fun removeSelection(key: String) { selections.remove(key) }
     fun removeMention(mention: Mention) { mentions.remove(mention.kind to mention.insertToken) }
+    fun removeTerminal(id: String) { terminals.remove(id) }
     fun replaceSelection(key: String, selection: SelectionContext) {
         selections.remove(key)
         add(selection)
     }
-    fun clearExplicit() { selections.clear(); mentions.clear() }
+    fun clearExplicit() { selections.clear(); mentions.clear(); terminals.clear() }
     fun snapshot(isCurrent: (SelectionContext) -> Boolean = { true }): PromptContextSnapshot {
         val stale = selections.values.filterNot(isCurrent)
         require(stale.isEmpty()) { "追加後に変更された選択があります。再追加または削除してください: ${stale.joinToString { it.label }}" }
-        return PromptContextSnapshot(selections.values.toList(), mentions.values.toList(), automaticEnabled)
+        return PromptContextSnapshot(selections.values.toList(), mentions.values.toList(), automaticEnabled, terminals.values.toList())
     }
 }
