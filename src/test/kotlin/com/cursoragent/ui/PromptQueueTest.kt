@@ -108,6 +108,8 @@ class PromptQueueTest {
         val draft = com.cursoragent.ui.composer.context.PromptContextDraft()
         val selection = com.cursoragent.ui.composer.context.SelectionContext("file:///A.kt", "A.kt", 0, 3, 1, 1, "old", 1)
         draft.add(selection)
+        val terminal = com.cursoragent.ui.composer.context.TerminalContext("copy", "Build", 1, 2, "old\noutput")
+        draft.add(terminal)
         val queue = PromptQueue("owner")
         queue.add("queued", AgentMode.ASK, "auto", draft.snapshot())
         val id = queue.next()!!.id
@@ -119,6 +121,7 @@ class PromptQueueTest {
         assertTrue(queue.dispatch(ticket, 1, true) { item ->
             assertEquals("edited queued text", item.text)
             assertEquals(listOf(selection), item.context!!.selections)
+            assertEquals(listOf(terminal), item.context!!.terminals)
             assertTrue(draft.snapshot().selections.isEmpty())
             true
         })

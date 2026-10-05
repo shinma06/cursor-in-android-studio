@@ -222,6 +222,8 @@ class ComposerPanel(private val project: Project, newPrintConversation: Boolean 
                 commands.selectedName == null && images?.hasUnsent != true &&
                 onFocusQueue(reverse)
         }
+        inputArea.clipboardContextAvailable = { !project.isDisposed && !commands.popupOpen && !mentionPopupController.popupOpen }
+        inputArea.onClipboardContext = promptContext::addClipboard
 
         val inputWrapper = RoundedSurface(AgentUiColors.composerBackground).apply {
             border = AgentUiColors.RoundedBorder()

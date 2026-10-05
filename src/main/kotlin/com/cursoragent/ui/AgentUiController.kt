@@ -500,6 +500,7 @@ class AgentUiController(
                         composer.commands.restoreSelection(command)
                         context.selections.forEach(composer.promptContext::addSelection)
                         context.mentions.forEach(composer.promptContext::addMention)
+                        context.terminals.forEach(composer.promptContext::addTerminal)
                     } else {
                         queue.restoreUnsent(QueuedPrompt(text = arguments, mode = settings.mode, model = settings.model, context = context, command = command))
                         timeline.showStatus("送信前に失敗した入力を予約一覧へ保持しました。内容を確認してから再開してください。")

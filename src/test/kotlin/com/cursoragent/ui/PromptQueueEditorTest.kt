@@ -5,6 +5,7 @@ import com.cursoragent.ui.composer.ComposerPanel
 import com.cursoragent.ui.composer.PromptImeGuard
 import com.cursoragent.ui.composer.context.PromptContextSnapshot
 import com.cursoragent.ui.composer.context.SelectionContext
+import com.cursoragent.ui.composer.context.TerminalContext
 import com.cursoragent.ui.composer.image.ImageAttachmentStore
 import com.cursoragent.ui.composer.image.ImageDraft
 import com.cursoragent.ui.composer.image.ImageInput
@@ -57,7 +58,10 @@ class PromptQueueEditorTest {
                     composer.installImages(imageDraft)
                     val queue = PromptQueue("owner") { worker.execute { it.close() } }
                     val selection = SelectionContext("file:///synthetic.kt", "synthetic.kt", 0, 3, 1, 1, "old", 1)
-                    val context = PromptContextSnapshot(listOf(selection), emptyList(), false)
+                    val queuedTerminal = TerminalContext("queued-terminal", "Build", 5, 6, "queued output\nunchanged")
+                    val draftTerminal = TerminalContext("draft-terminal", "Run", 10, 11, "draft output\nretained")
+                    val context = PromptContextSnapshot(listOf(selection), emptyList(), false, listOf(queuedTerminal))
+                    val draftContext = context.copy(terminals = listOf(draftTerminal))
                     composer.inputArea.text = "draft\ntext"
                     editor.caretModel.moveToOffset(3)
                     editor.selectionModel.setSelection(1, 3)
@@ -65,7 +69,7 @@ class PromptQueueEditorTest {
                     val carets = editor.caretModel.caretsAndSelections
                     composer.modeSelector.selectMode(AgentMode.ASK)
                     composer.modelSelector.restoreSelection("draft-model")
-                    composer.promptContext.restore(context)
+                    composer.promptContext.restore(draftContext)
                     composer.commands.restoreSelection("original-command")
                     imageDraft.restore(originalImage)
                     queue.add("queued", AgentMode.PLAN, "queued-model", context, "queued-command", queuedImage)
@@ -92,6 +96,7 @@ class PromptQueueEditorTest {
                         assertNull(queue.next(), "the edited head is held without a manual pause")
                         assertFalse(queue.dispatch(ticket, 1, true) { error("pre-edit send must be invalidated") })
                         assertEquals("queued", composer.inputArea.text)
+                        assertEquals(context, composer.promptContext.draft.snapshot(), "queue editing replaces the draft context, including Terminal snapshots")
                         assertEquals("queued-command", composer.commands.selectedName)
                         assertEquals(AgentMode.PLAN, composer.selection.mode)
                         assertEquals("queued-model", composer.selection.selectedModel)
@@ -134,7 +139,7 @@ class PromptQueueEditorTest {
                         assertEquals(AgentMode.ASK, composer.selection.mode)
                         assertEquals("draft-model", composer.selection.selectedModel)
                         assertEquals("original-command", composer.commands.selectedName)
-                        assertEquals(context, composer.promptContext.draft.snapshot())
+                        assertEquals(draftContext, composer.promptContext.draft.snapshot())
                         assertEquals(20, imageDraft.attachment!!.width)
 
                         editing.begin(updated.id)
@@ -153,6 +158,8 @@ class PromptQueueEditorTest {
                         assertEquals("edited-model", queue.snapshot().single().model)
                         assertEquals(AgentMode.AGENT, queue.snapshot().single().mode)
                         assertTrue(queue.snapshot().single().context!!.automaticEnabled)
+                        assertEquals(listOf(queuedTerminal), idleSubmissions.single().context!!.terminals)
+                        assertEquals(draftContext, composer.promptContext.draft.snapshot())
                         assertEquals(60, queue.snapshot().single().image!!.width)
                         assertEquals(20, imageDraft.attachment!!.width)
                         assertEquals("original-command", composer.commands.selectedName)
@@ -167,6 +174,8 @@ class PromptQueueEditorTest {
                         editing.cancel()
                         assertEquals("draft\ntext", composer.inputArea.text)
                         assertTrue(queue.paused, "a concurrent explicit pause must survive cancellation")
+                        assertEquals(draftContext, composer.promptContext.draft.snapshot())
+                        assertEquals(listOf(queuedTerminal), queue.snapshot().single().context!!.terminals)
                         assertTrue(queueReady > 0)
 
                         // Undo within a draft remains native; it cannot put queue text into the restored draft.

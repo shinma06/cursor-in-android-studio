@@ -65,6 +65,7 @@ internal class PromptQueueDialog(
                     entry.image?.let { append("画像: ${it.width} × ${it.height}（登録時の画像を保持）\n") }
                     append("登録時のコマンド: ").append(entry.command?.let { "/$it" } ?: "なし").append("\n登録時の明示context\n")
                     snapshot?.selections?.forEach { append(it.block()).append("\n\n") }
+                    snapshot?.terminals?.forEach { append(it.block()).append("\n\n") }
                     snapshot?.mentions?.forEach { append(it.displayLabel).append(" — ").append(it.insertToken).append("\n") }
                     append("\n参照内容と自動contextは次turn開始時。自動context: ")
                     append(if (snapshot?.automaticEnabled != false) "有効" else "無効")

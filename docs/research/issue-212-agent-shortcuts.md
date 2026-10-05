@@ -115,13 +115,13 @@ panel内の初期接続は`CursorAgent.NewChat`、`CloseChat`、`PreviousChat`�
 
 A1は既存操作のOS/focus/入口/設定、A2は既存navigation/queueと最近使用順の移動、A3は既存permission/question/Plan等の保留要求に対するkeyboard操作を#212内で進める。既存機能へキーを付けるだけのIssueを量産しない。
 
-P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、親との合流・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
+P01/P03/P07/P10は下表のnative sub-issueへ実分解し、それぞれの専用PRに実装がある。2026-10-05の照合ではいずれもDraft・develop未統合であり、P03は親Draftへ合流して予約編集/復元を接続し、他の子との合流・固定build GUI・QA/main反映は未完了。最新HEAD、検証、レビューと統合判断の正本は各PRとIssueに置く。その他は分割候補で、能力と公開契約の不足を確認したものを実際のsub-issue/必要な依存として登録する。閉じた研究Issueを実装済み扱いせず、#212の全対応条件を減らさない。
 
 | 区分 | 不足能力・有限範囲 | 既存再利用・先に必要な確認 |
 | --- | --- | --- |
 | P01 | [#518](https://github.com/shinma06/cursor-in-android-studio/issues/518): 開いている会話の本文findと次/前/解除 | [PR #520](https://github.com/shinma06/cursor-in-android-studio/pull/520)に実装。#45の保存履歴検索と区別し、大文字小文字/単語単位/正規表現、一致強調と位置/総数、長い本文/不正な式、stream・owner・IME/focusを扱う。独立再レビュー後の統合操作はユーザー承認待ち。GUIは未達。 |
 | P02 | 過去human messageの選択/編集と前後移動 | #42/#205のaccessibilityとIME、draftを保持する。下記の履歴変更契約が未確定であり、末尾への通常再送に置換しない。 |
-| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。外部rich clipboardや複数inline nodeの一括copyとの差、独立review・親の予約編集との合流・8 GUI Caseは未達。 |
+| P03 | [#521](https://github.com/shinma06/cursor-in-android-studio/issues/521): コピー元を識別できるcodeのcontext付き貼付け | [PR #522](https://github.com/shinma06/cursor-in-android-studio/pull/522)にコード/Terminal/添付行のCopy・context paste・plain pasteを実装。#24/#343を再利用し、取得済みの出典とsnapshotだけを使う。親Draftの予約編集・元draft復元・即時送信でもTerminal snapshotを保持する。外部rich clipboardや複数inline nodeの一括copyとの差、独立review・8 GUI Caseは未達。 |
 | P04 | 同一実行turnへの即時入力 | #278のACP/print調査とSDKの公開`run.steer()`を区別する。下記の別方式候補を評価し、次turn queueやStop後再送を代替にしない。 |
 | P05 | 実行中terminal toolだけの取消 | #147/#297/#300のrun取消/permissionと区別。providerのtool ID付き取消契約が必要。 |
 | P06 | 初回draftのbranch/native Git worktree選択 | #301/#39のroot所有を保持。ISOLATED作業コピーをGit worktreeと呼ばず、公開起動・setup/cancel/cleanupを確定。 |
