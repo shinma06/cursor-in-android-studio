@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "issue": 552,
+  "gui_required": true,
+  "reason": "送信準備のPlatform取消を停止として終端しPCEを再throwする局所修正。実worker境界の合成例外注入JUnitと実IDEの表示・入力・予約配送は分けて確認する。",
+  "cli_checks": [
+    "./gradlew test --tests '*PromptPreparationTest' --tests '*AgentSettingsBoundaryTest' --console=plain（provider/SDKを起動せず、実製品が呼ぶ境界へ合成PCEを注入）",
+    "修正前の実worker try/catch/finallyを同ファイル内へ抽出したbaselineでPCEの3回帰が失敗し通常Exceptionの対照が成功。修正後は同一PCE伝播・errorなし・stopped一度・後続送信なし・finally予約解放を確認する。",
+    "同期service.prepareTurnのlistener取消でも同一PCEと予約解放を確認。ControllerのprepareTurn/EDT context/worker投入catchの配線と所有資源は固定HEAD/baseの独立レビューで確認する。",
+    "既存AgentRun/WorkspaceOperationGate/AgentTurnDispatchのStop・遅着・owner/token・構築/物理終了待ちをChange Impactが選ぶ製品JUnitで回帰確認する。",
+    "#313の既存隔離overlayを抽出後の実workerへ接続し、準備保留/送信入口/予約解放の計測を維持。git apply --checkと既存DeferFixtureTestで通常製品sourceとの隔離を確認する。固定PR496候補は変更しない。",
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests（commit済みclean HEAD、製品KotlinとCase JSONの混在を維持）",
+    "git diff --check、Case JSONの検査、固定HEAD/baseの独立レビュー。ローカルbuildPlugin・runIde・provider/SDK実行・認証変更は今回の割当で実施しない。"
+  ],
+  "cases": [
+    {
+      "id": "PREPARATION-PCE",
+      "issue": 552,
+      "change": "manual/予約送信の準備取消を失敗表示にせず停止として処理し、PlatformへPCEを伝播する",
+      "preconditions": "#552を含む新たな固定候補SHA・ZIP hash・loaded JAR・対象Rabbit/JBRを照合し、指定GUI担当が使い捨てfixtureで実施する。PR496のebac候補・174 Case・ZIP・gateには変更を加えない。PCEの自然発生は未測定。安全な管理fixtureで例外注入を再現できなければ該当項目を未確認のまま残す。",
+      "steps": [
+        "管理fixtureでmanual送信の準備worker（VFS flush/context）へPCEを発生させ、通常の失敗通知・errorカードが出ず停止として一度だけ終端することを確認する。取消後に新しい送信が可能で、旧turnの遅着が新turnや別タブへ表示されないことを確認する。",
+        "同期prepareTurn、EDT context、worker投入境界で再現できる取消について、未送信入力・添付/commandと予約の保全、Running状態の解除、準備予約の解放を確認する。例外注入が再現できない境界は未確認と記録する。",
+        "予約配送中の同じ取消でも後続provider開始・自動再送へ進まず予約が停止することを確認する。通常Exceptionは既存の失敗表示に残り、明示Stopと物理process終了待ちの復元排他が維持されることを関連Caseと同じ新固定buildで確認する。"
+      ],
+      "expected": "PCEは通常エラーとしてreport/logされず同一例外がPlatformへ戻る。所有turnだけが停止として一度終端し、取得済み資源は解放される。未送信準備の後続providerは起動しない。process予約がある場合は物理終了まで復元を拒否する。通常Exceptionの失敗、Stopの遅着抑制、別tab/tokenの保護を維持する。",
+      "history": [],
+      "fix_issue": null,
+      "fix_pr": null,
+      "recheck": "実IDEで製品不一致があれば専用修正Issue/PRと再確認buildを記録する。合成JUnit成功を自然発生/GUI/main合格へ転用しない。",
+      "next_action": "PMがdevelop統合後に専用QAへ全Caseとmain残条件を双方向link/readbackで移譲する。指定GUI担当が新固定buildで実施するまでpendingを保持する。",
+      "main_eligible": false,
+      "gpt": {
+        "actor": "gpt",
+        "status": "pending",
+        "reason": "今回はユーザー指示によりGUI/IDE起動を実施しない。実worker境界の合成PCE回帰のみ実施し、実IDEの表示・入力・予約配送と自然発生は未確認。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "human": {
+        "actor": "human",
+        "status": "pending",
+        "reason": "新固定buildによる実IDE確認は未実施。QA移譲後に指定担当が確認する。",
+        "head": null,
+        "artifact_sha256": null,
+        "observer": null,
+        "at": null,
+        "evidence": null,
+        "loaded_identity": null
+      },
+      "provenance": [
+        "https://github.com/shinma06/cursor-in-android-studio/issues/552",
+        "https://plugins.jetbrains.com/docs/intellij/background-processes.html#handling-cancellation",
+        "https://www.jetbrains.com/help/inspectopedia/IncorrectCancellationExceptionHandling.html",
+        "src/main/kotlin/com/cursoragent/ui/AgentUiController.kt: startPrompt, runPromptPreparation, rethrowPromptCancellation",
+        "src/test/kotlin/com/cursoragent/ui/PromptPreparationTest.kt",
+        "src/test/kotlin/com/cursoragent/service/AgentSettingsBoundaryTest.kt"
+      ]
+    }
+  ]
+}
