@@ -7,6 +7,8 @@
 `0.1.0-verification-313`。同じplugin IDなので、将来のGUI担当は通常版と同時導入せず、
 専用IDE環境とhost leaseの手順に従う。ここではIDE操作・インストールは実施していない。
 
+#562のmain準備で置いた本fixtureは、固定C `ebac56fe441c08a6c869b8be3b1aa906a887c14e` ＋局所PCE向けです。準備workerのpatchは `runPromptPreparation` の内側へ接続し、予約解放はそのwrapperの既存finallyを使います。現main製品へ適用せず、段階Bの新candidate固定後に必要helper/testの存在とpatch適用を再確認します。試験variantと正式ZIPの区別は [限定計画](../scopes/issue-562.md) を参照してください。
+
 ## 接続する境界
 
 | Case | 接続点・識別 | 解放後に確認する既存処理 |

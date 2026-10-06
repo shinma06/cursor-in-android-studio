@@ -1,8 +1,8 @@
 # Android選択対象の新fixture
 
 #150の三経路比較用。旧candidate `55a4e28a05c2756a36046f395cc6d1991cdfa58a` の復元ではなく、別source/4 APKを固定する。
-[比較手順](../../../research/issue-150-comparison.md)の仕様・8選択組・C01–C10を維持する。
-[Case正本](../../changes/issue-150.json)はA/B/Cの30件。ビルド/静的検証はGUI成功を示さない。
+[固定Cの比較手順](https://github.com/shinma06/cursor-in-android-studio/blob/ebac56fe441c08a6c869b8be3b1aa906a887c14e/docs/research/issue-150-comparison.md)の仕様・8選択組・C01–C10を維持する。
+[元Case正本](https://github.com/shinma06/cursor-in-android-studio/blob/ebac56fe441c08a6c869b8be3b1aa906a887c14e/docs/verification/changes/issue-150.json)はA/B/Cの30件。#562の新候補では [限定計画](../../scopes/issue-562.md) の対応Caseを使い、元buildの結果は転用しない。ビルド/静的検証はGUI成功を示さない。
 
 ## 固定入力
 

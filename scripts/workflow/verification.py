@@ -295,7 +295,7 @@ def scoped_history(base, head, allowed, git, compatibility=None):
                     (header[4] not in ('A', 'M') if allowed[path] != '000000' else
                      header[4] != 'D' or header[0] == ':000000' or header[3] != '0' * 40)):
                 raise ValueError('Path or file mode outside trusted scope: ' + path)
-            if path == COMPATIBILITY and regular_json(commit, path, git) != compatibility:
+            if path == COMPATIBILITY and json_hash(regular_json(commit, path, git)) != json_hash(compatibility):
                 raise ValueError('Candidate compatibility policy must equal the trusted scope policy')
         previous = commit
     if previous != head:
@@ -330,7 +330,7 @@ def scoped_candidate(base, candidate, issue, git=git_read):
         if (len(original) != 4 or original[0] not in ('100644', '100755') or original[1] != 'blob' or
                 original[3] != deleted or git('ls-tree', candidate, '--', deleted)):
             raise ValueError('Declared deletion must remove a regular file from the fixed base: ' + deleted)
-    if COMPATIBILITY in allowed and regular_json(candidate, COMPATIBILITY, git) != compatibility:
+    if COMPATIBILITY in allowed and json_hash(regular_json(candidate, COMPATIBILITY, git)) != json_hash(compatibility):
         raise ValueError('Candidate compatibility policy must equal the trusted scope policy')
     scoped_environment_cases(base, candidate, issue, git)
     return change

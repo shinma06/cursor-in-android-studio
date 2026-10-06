@@ -197,7 +197,7 @@ class ScopedPromotionTests(unittest.TestCase):
 
     def test_policy_is_frozen_on_every_edge_and_cannot_whitelist_other_gates(self):
         self.git('checkout', '--detach', '-q', self.base)
-        policy = {'compile': {'target': 'rabbit1'}, 'reviewed_api_reports': {'fixed': 'reviewed'}}
+        policy = {'compile': {'target': 'rabbit1', 'class_major': 69}, 'reviewed_api_reports': {'fixed': 'reviewed'}}
         self.plan['files'][COMPATIBILITY] = '100644'
         self.plan['compatibility_policy'] = policy
         self.write(COMPATIBILITY, {'old': True}); self.write(self.plan_path, self.plan)
@@ -209,6 +209,20 @@ class ScopedPromotionTests(unittest.TestCase):
         for head in (changed, reverted):
             with self.assertRaisesRegex(ValueError, 'compatibility policy'):
                 scoped_candidate(base, head, 35, self.git)
+        self.git('checkout', '--detach', '-q', candidate)
+        numeric_type = copy.deepcopy(policy); numeric_type['compile']['class_major'] = 69.0
+        self.write(COMPATIBILITY, numeric_type); head = self.commit()
+        with self.assertRaisesRegex(ValueError, 'compatibility policy'):
+            scoped_candidate(base, head, 35, self.git)
+        self.git('checkout', '--detach', '-q', candidate)
+        self.write(COMPATIBILITY, '{"compile":{},"compile":{}}'); duplicate = self.commit()
+        with self.assertRaisesRegex(ValueError, 'Duplicate key'):
+            scoped_candidate(base, duplicate, 35, self.git)
+        self.git('checkout', '--detach', '-q', base)
+        self.plan.pop('compatibility_policy'); self.write(self.plan_path, self.plan); unfrozen = self.commit()
+        self.write(COMPATIBILITY, policy); head = self.commit()
+        with self.assertRaisesRegex(ValueError, 'frozen compatibility policy'):
+            scoped_candidate(unfrozen, head, 35, self.git)
         self.git('checkout', '--detach', '-q', base)
         self.plan['files']['scripts/workflow/plugin_compatibility.py'] = '100644'
         self.write(self.plan_path, self.plan); other_base = self.commit()
@@ -242,7 +256,7 @@ class ScopedPromotionTests(unittest.TestCase):
         self.promotion['results']['35:QA-1'] = result; self.results_commit()
         self.assertEqual(self.verify()['cases'], 1)
         self.assertIn('Case合格', render_queue([self.root/self.case_path], self.promotion, self.git))
-        for mutation in ({'environment_revision': None}, {'environment': dict(identity, java_version='21')},
+        for mutation in ({'environment_revision': None}, {'environment_revision': '0' * 64}, {'environment': dict(identity, java_version='21')},
                          {'execution': 'manual'}, {'artifact_sha256': 'e' * 64}):
             self.promotion['results']['35:QA-1'] = dict(result, **mutation); self.results_commit()
             with self.assertRaises(ValueError): self.verify()
@@ -258,3 +272,10 @@ class ScopedPromotionTests(unittest.TestCase):
             def git(*args):
                 return json.dumps(plan) if args == ('show', self.base+':'+self.plan_path) else self.git(*args)
             with self.assertRaises(ValueError): scoped_candidate(self.base, self.candidate, 35, git)
+        def wrong_sdk(*args):
+            if args == ('show', self.candidate+':'+COMPATIBILITY):
+                return json.dumps({'compile': {'target': 'rabbit1', 'jvm_target': '21', 'class_major': 65},
+                                   'targets': {'rabbit1': {k: identity[k] for k in ('build', 'java_version')}}})
+            return self.git(*args)
+        with self.assertRaisesRegex(ValueError, 'SDK differs'):
+            scoped_candidate(self.base, self.candidate, 35, wrong_sdk)
