@@ -2,9 +2,9 @@
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
-import tomllib
 import uuid
 
 REPORT_SCHEMA = {
@@ -21,27 +21,30 @@ REPORT_SCHEMA = {
 }
 
 
+class WorkerSettingsError(ValueError):
+    """Unverified execution must not be recovered as a publishable fix."""
+
+
 def worker_environment():
     return {k: v for k, v in os.environ.items() if not k.startswith('GIT_') and
             k not in {'GH_TOKEN', 'GITHUB_TOKEN', 'OPENAI_API_KEY', 'CODEX_API_KEY'}}
 
 
 def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda pid: None):
+    if role not in ('review', 'fix'):
+        raise ValueError('Unknown worker role')
+    model = 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol'
+    effort = 'high'
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     session = f'{role}-{uuid.uuid4()}'
     schema = output_dir / (session + '.schema.json')
     result = output_dir / (session + '.json')
     schema.write_text(json.dumps(REPORT_SCHEMA))
-    command = ['codex', 'exec', '--ignore-user-config', '--ephemeral', '--color', 'never',
+    command = ['codex', 'exec', '--model', model, '-c', f'model_reasoning_effort="{effort}"',
+               '--ignore-user-config', '--ephemeral', '--color', 'never',
                '--sandbox', 'read-only' if role == 'review' else 'workspace-write',
                '-C', str(checkout), '--output-schema', str(schema), '-o', str(result), '-']
-    # Preserve the user's chosen model while disabling user MCP/plugin configuration.
-    config = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'config.toml'
-    if config.exists():
-        model = tomllib.loads(config.read_text()).get('model')
-        if model:
-            command[2:2] = ['--model', model]
     instructions = (
         'You are an independent code reviewer. Read the diff against base and the Issue criteria. '
         'Do not edit files, commit, push, contact GitHub or operate any GUI. '
@@ -88,7 +91,14 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
                 pass
             process.wait()
     if process.returncode or not result.exists():
-        raise RuntimeError(f'{role} worker failed ({process.returncode}); inspect {log}')
+        raise WorkerSettingsError(f'{role} worker failed ({process.returncode}); inspect {log}')
+    # Only trust the CLI startup header, never model-generated text or packet fields.
+    startup, separator, _ = log.read_text().partition('\nuser\n')
+    header = re.search(r'^OpenAI Codex v[^\n]+\n-+\n(.*?)\n-+\n?$', startup, re.M | re.S) if separator else None
+    settings = dict(re.findall(r'^(model|reasoning effort): ([^\n]+)$', header[1], re.M)) if header else {}
+    if settings != {'model': model, 'reasoning effort': effort}:
+        raise WorkerSettingsError('Worker model/effort readback missing or mismatched; preserve files and stop')
     report = json.loads(result.read_text())
+    report.update(model=model, reasoning_effort=effort, model_evidence='Codex CLI startup header readback')
     report['session'] = session
     return report

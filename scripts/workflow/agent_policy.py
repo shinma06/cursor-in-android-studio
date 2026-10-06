@@ -34,6 +34,10 @@ def binding(pr, issue):
 
 
 def validate_review(report, expected):
+    if (report.get('model') != 'gpt-6-astra' or
+            report.get('reasoning_effort') not in ('high', 'xhigh', 'max', 'ultra') or
+            not report.get('model_evidence')):
+        raise ValueError('Independent review requires verified Astra High-or-above settings')
     for key in ('head', 'base'):
         if report.get(key) != expected[key]:
             raise ValueError('Stale reviewer ' + key)

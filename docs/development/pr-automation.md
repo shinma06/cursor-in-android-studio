@@ -3,7 +3,7 @@
 trusted mainの `agent_loop.py` が、明示登録された同一repository/maintainerのIssue PRだけを処理します。
 #83以降はdevelopとmainの[target別gate](github-workflow.md)を使います。既存heartbeatはPAUSEDのままです。設定変更だけで再開しません。
 
-役割の選定は[共通の担当条件](github-workflow.md#正本と役割)に従います。現行の`agent_worker.py`はCodex用の起動実装です。Claude/Cursor担当を自動起動・接続するadapterがあるとは扱いません。別の独立top-level sessionでレビューを行う場合も、固定HEAD/baseの証拠と既存gateを通してPM/coordinatorへ引き継ぎます。
+役割の選定・実モデル/effortの照合・有限の枠/待ち行列の再評価は[共通の担当条件](github-workflow.md#正本と役割)に従います。現行の`agent_worker.py`はCodex用の起動実装です。Claude/Cursor担当を自動起動・接続するadapterがあるとは扱いません。別の独立top-level sessionでレビューを行う場合も、固定HEAD/baseの証拠と既存gateを通してPM/coordinatorへ引き継ぎます。
 
 ## 引継ぎ
 
@@ -35,10 +35,10 @@ queued → reviewing → reviewed
                    └ approved → acceptance待ち / CI待ち → merging → cleanup → done
 ```
 
-reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。GitHub token/設定MCP/GUI権限を渡しません。
+reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。現行CLI workerはreview=`gpt-6-astra`/`high`、fix=`gpt-6.1-sol`/`high`を明示し、個人の既定model/effortを流用しません。CLI起動headerの実設定を照合してreportへ保存し、未確認/不一致/利用不可なら成果採用を停止します。旧レビューに設定証拠がなければ再利用せず停止し、PMが適格な独立担当へ戻します。起動headerの形式変更も未確認として停止し、モデルの自己申告は代替にしません。設定を確認できないfixerのdirty差分は保持して停止し、通常tick/resumeだけでcommit/pushへ自動回復しません。`fixing`は未確認で復旧対象外です。workerが正常終了して実設定照合と履歴確認を終えた後だけ`publishing`を保存します。timeout・通信/起動/結果読込等の例外とcontroller停止/再起動でも、この境界より前の差分は採用しません。PMが実装担当へ差分確認・適格設定での再実行/検証を戻し、独立再レビューを行います。現在の担当とは別の独立top-level実行かどうかの確認は、CLI引数だけでは証明できません。GitHub token/設定MCP/GUI権限を渡しません。
 GPT-6 Astraがメインの場合は[Codex実行規約](codex-execution-policy.md)に従い、reviewer/fixerを現在のAgentの子として生成・委譲してはいけません。独立top-level Sessionとの連携かどうかを実行構造で確認し、workerという名称や自動化スクリプト経由を禁止回避の根拠にしません。
 GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認を拒否しません。コード不具合、必要テスト失敗、Case追跡不足は修正対象です。
-最大3 PRを交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。
+PMが選んだ有限の対象を、既存coordinatorは最大3 PRで交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。この3 PR上限はsessionやbuildの同時枠ではなく、PMの実負荷判断とGUI leaseを代替しません。
 
 coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/本文/Issue条件/feedback変更は承認を失効させます。
 base同期は通常merge → [共通Change Impact](change-impact.md)の必要テスト → 非force push → 独立再レビューです。知識のみのskipも判定結果を残し、dirty/remote HEAD/受入の照合は省略しません。未解決会話とstrict baseはGitHub保護も検査します。

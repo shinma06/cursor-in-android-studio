@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 546,
+  "gui_required": false,
+  "reason": "公開済み#527/PR545の開発workflow・Agent入口・CLI workerの役割別model/effort実設定照合と未確認fix公開拒否を現在mainへ限定反映する。差分はdocs/scripts/agent入口のみで製品UI/runtime/保存/buildを変更しないためGUI不要。合成CLI回帰と実chat編成の過去証拠、新HEADでのCLI成功、実モデルworker/GUI/性能・費用の未測定を区別する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests: 今回のclean commit済みHEADとmain baseの全差分からworkflow/loop/diff checkを実行。旧developの246/39件を今回の成功へ転記しない。製品Gradle/Plugin ZIP/GUIは分類とscopeにより不要。",
+    "現mainのtest_agent_loop: review=Astra High/fix=6.1 Sol Highの明示引数とCLI header照合、未知/不一致/利用不可/偽header拒否、旧未確認review失効、未確認fixのtimeout/I/O中断/controller終了とtick/resume後のcommit-push未呼出、検証済みpublishing復旧を合成CLIで確認する。実モデルworkerは起動しない。",
+    "既存test_verification/test_promotion_history/PR policy: GUI不要main tooling metadataとCase schema、固定候補/DAG・#533/#535の変更後revert拒否、4required checks/strict base/独立レビュー/ownership保護を維持する。",
+    "元PR545 HEAD000dec5b57492d55d42ac6964e053b856959d754/basee08836d4161ceba04da14ef0b5e1a87fcd5da133（develop merge26c525f6a23280a113eb6124de50dc8cc7866f61）から13pathだけ移植。10pathの固定blob一致と残りCLAUDE/workflow/pr-automationの局所適用を照合し、main固有文書・protected source/build/verification/CIのhash不変と#552混入なしを確認する。元issue-527.jsonとQA546内の歴史受入は書き換えない。",
+    "AGENTS→CLAUDE symlink、両client start/finish Skill一致/frontmatter、Cursor alwaysApply、相対linkと役割アンカーを確認。Agent専用入口/開発promptは英語、共有workflow/QAは日本語。knowledge.mdの正本/配置/読込条件と旧権限・受入・原証拠例外を保持し、実client検出/model効果/資源削減を静的検査だけで合格にしない。",
+    "github-workflow.mdの5段階の有限編成と9場面、子PR→親同期→全差分再レビューを現mainの役割節へ配置。PMとwriter/独立review分離、#135子Agent制約、既存owner/source/registryとPAUSED heartbeatを保持する。既存QA546/親527/M6/Projectを保持し、PMの新固定HEAD/base独立レビュー・現行4checks・実main merge/内容対応readbackまでMAIN-REFLECTION pendingを維持する。"
+  ],
+  "cases": []
+}
