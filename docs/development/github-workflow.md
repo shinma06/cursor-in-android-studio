@@ -87,17 +87,19 @@ PMは以下の順で自律的に編成を再評価する。ユーザーから委
 
 ## 個人情報・非公開情報の公開前確認
 
-GitHubへpush・投稿・編集・添付・配布する担当は、送信する差分/本文/成果物とそのメタデータに、個人情報や公開してはいけない情報が含まれていないかを送信前に確認する。Issue/PR（MR相当）のtitle/body、コメント・レビュー、画像/動画、Actionsログ/summary/artifact、Release本文/asset、Wiki/Discussions、Project/Milestone等も対象とする。
+GitHubへpush・投稿・編集・添付・配布する担当は、送信する差分/本文/成果物とメタデータを次の3区分で確認する。Issue/PR、画像/動画、Actionsログ/artifact、Release、Wiki/Discussions、Project/Milestone等も、今回公開する内容を対象とする。
 
-- **個人情報・環境情報**: 氏名、個人メール、住所、電話番号、顧客/利用者識別子、端末ID、host名、ローカルユーザー名・絶対パス、社内URL/IP等。commit author/committerのname/email、commit message、branch/tag名、画像に映った通知/アカウント、ファイルのメタデータも確認する。
-- **認証情報**: token、API key、password、秘密鍵、署名用keystoreと資格情報、cookie/session、接続文字列、`.env`や認証設定、ログ内のAuthorization header等。テスト/fixtureの値も実資格情報でないことを確認する。
-- **非公開情報**: 顧客・業務データ、私的な会話/実wire/rawログ、未公開仕様・ソース・契約・内部資料、公開承認待ちの証拠や成果物。既存の#146等の公開承認範囲を維持する。
+| 区分 | 例と判断 |
+| --- | --- |
+| 通常公開できる情報 | 通常のGit author/committerのname/email（業務ドメインも含む）、公開アカウント・公開repositoryの識別子、実データを含まない合成値。個別の非公開義務、本人の公開拒否、具体的な危険がなければ利用できる。明示承認の証跡がないことや業務メールであることだけで漏えいにせず、毎回の追加承認を求めない。 |
+| 用途・閲覧範囲で判断する識別情報 | ローカルパス、host名、非公開session ID、端末/利用者識別子、社内URL/IP、画像やファイルのメタデータ。結び付く個人・業務情報と具体的な危険を確認する。識別用のopaque IDと、アクセスを許す認証cookie/tokenは別物。過去の残存だけで重大事故や全履歴削除必須としない。 |
+| 保護する秘密・非公開データ | API key、password、秘密鍵、署名資格情報、認証cookie/token、秘密を含む接続文字列/設定/Authorization header、非公開の顧客・業務データ、私的な住所/電話番号、私的会話・実wire/rawログ、未公開仕様/契約/内部資料、公開承認待ちの原証拠。#146等の承認・所有境界を維持し、fixtureも実資格情報を含めない。 |
 
-情報の用途・公開承認・対象repository/resourceの閲覧範囲を照合する。private repositoryのソース/投稿/添付にも秘密や不要な個人情報を保存しない。明示的に公開承認された著者情報等や実データを含まない合成値は、根拠を確認して扱い、一律に漏えい扱いしない。ただし本規約が公開記録への記載を禁止するhost/ローカル絶対パス/token/private rawログは維持する。不明なら当該情報の送信を保留し、安全な残作業を進める。
+非公開義務・公開拒否・具体的な危険がある通常情報は保護対象として扱う。保護対象か判断できない送信内容は当該部分だけ保留・安全な値へ置換し、残作業を進める。private repositoryでも秘密や不要な非公開データを保存しない。
 
-必要な説明は伏字化・合成データ・repository相対パスで置き換え、原本は承認済みの非公開保管先だけに残す。[GitHub noreply email](https://docs.github.com/ja/account-and-profile/reference/email-addresses-reference)等の公開可能なcommit identityを確認する。`.gitignore`だけに依存せず、staged diff、commit metadata、送信内容と生成物を実際に確認する。
+今後の公開文面はrepository相対パス・安全な担当参照・合成値を使い、host/ローカル絶対パス/private rawログを出さない既存方針を保持する。保護対象の原本は承認済みの非公開保管先へ置く。通常のcommit identityを一律に変更せず、必要なら[GitHub noreply email](https://docs.github.com/ja/account-and-profile/reference/email-addresses-reference)を選べる。`.gitignore`だけに依存せず、staged diff、commit metadata、今回の送信内容と生成物を確認する。
 
-既存GitHub上の情報は[定期監査の情報公開確認](git-governance-audit.md#個人情報非公開情報の監査)で点検する。漏えい候補を見つけた場合も同節の報告・対応境界を使い、公開Issue/PRへ問題の値やraw証拠を転載しない。
+既存公開物の点検・範囲拡大・是正と終了は[情報公開監査](git-governance-audit.md#個人情報非公開情報の監査)に従う。低リスクな識別情報だけを理由に高コストな履歴書換え・旧版削除・網羅再調査へ進めず、保護対象の値やraw証拠を公開報告へ転載しない。
 
 ## 参照する範囲と進行判断
 
