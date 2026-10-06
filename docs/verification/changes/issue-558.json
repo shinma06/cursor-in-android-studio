@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 558,
+  "gui_required": false,
+  "reason": "PR #559 / main merge 24f405ec895e7ea66062e62e6167f420a8f55563で独立レビュー・統合済みの公開分類/有限監査方針を、developの同じ既存2文書へ反映する。製品source/build/UI/provider/認証・履歴は無変更でGUI不要。共通修正以外のdevelop固有記述を保持し、机上評価を実model挙動・GUI・費用改善の実測にしない。両branch/PM処置の最終確認はPMが行う。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests（固定commitの実差分。既存通常pre-push/required checksを保持）",
+    "git diff --check、JSON読込、変更相対リンク/アンカー、AGENTS/CLAUDE/Skill/Context入口と3ファイル範囲を確認",
+    "既存intended-develop-propagation.private.patchをそのまま反映した2文書を照合し、公開分類の節・監査の範囲/停止/終了共通文がmain merge 24f405ec895e7ea66062e62e6167f420a8f55563と一致すること、残りのdevelop固有記述を保持すること",
+    "PR #559の承認済み8机上判断（普通作者/業務email、公開ID/合成値、path/host、opaque ID、credential、非公開業務、私的会話/wire/#146、取得不能旧artifact）を同一共通文の根拠として再利用。新しい全域監査や実model/GUI/費用評価を実行せず、未観察をpass/全域安全へ変更しない"
+  ],
+  "cases": []
+}
