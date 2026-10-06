@@ -11,6 +11,7 @@ SHA = re.compile(r'[0-9a-f]{40}')
 HASH = re.compile(r'[0-9a-f]{64}')
 PROMOTION = 'docs/verification/promotion.json'
 ENVIRONMENT = 'docs/verification/environments/rabbit1.json'
+COMPATIBILITY = 'scripts/workflow/plugin_compatibility.json'
 STATUSES = {'pending', 'blocked', 'fail', 'pass'}
 TOOLING = ('docs/', 'scripts/', '.github/', '.githooks/', '.agents/', '.claude/skills/', '.cursor/rules/')
 
@@ -276,7 +277,7 @@ def validate_environment(result, revision):
         raise ValueError('Case requires a new observation bound to the exact environment revision and runtime')
 
 
-def scoped_history(base, head, allowed, git):
+def scoped_history(base, head, allowed, git, compatibility=None):
     """Inspect every edge, including changes later reverted; never follow symlinks."""
     previous = base
     commits = git('rev-list', '--reverse', f'{base}..{head}').splitlines()
@@ -290,8 +291,12 @@ def scoped_history(base, head, allowed, git):
         for index in range(0, len(fields) - 1, 2):
             header, path = fields[index].split(), fields[index + 1]
             if (len(header) != 5 or path not in allowed or header[0] not in (':000000', ':100644', ':100755')
-                    or header[1] != allowed[path] or header[4] not in ('A', 'M')):
+                    or header[1] != allowed[path] or
+                    (header[4] not in ('A', 'M') if allowed[path] != '000000' else
+                     header[4] != 'D' or header[0] == ':000000' or header[3] != '0' * 40)):
                 raise ValueError('Path or file mode outside trusted scope: ' + path)
+            if path == COMPATIBILITY and regular_json(commit, path, git) != compatibility:
+                raise ValueError('Candidate compatibility policy must equal the trusted scope policy')
         previous = commit
     if previous != head:
         raise ValueError('Scoped candidate is not descended from the fixed base')
@@ -307,16 +312,64 @@ def scoped_candidate(base, candidate, issue, git=git_read):
         raise ValueError('Trusted scope Issue mismatch')
     allowed = plan.get('files')
     if (not isinstance(allowed, dict) or not allowed or
-            any(not isinstance(p, str) or p.startswith(('/', 'scripts/workflow/', 'docs/verification/')) or
-                any(part in ('', '.', '..') for part in p.split('/')) or '\\' in p or m not in ('100644', '100755') for p, m in allowed.items())):
+            any(not isinstance(p, str) or p.startswith(('/', 'docs/verification/')) or
+                (p.startswith('scripts/workflow/') and p != COMPATIBILITY) or
+                any(part in ('', '.', '..') for part in p.split('/')) or '\\' in p or m not in ('000000', '100644', '100755') for p, m in allowed.items())):
         raise ValueError('Scope cannot modify its plan, acceptance or release gates')
     protected = {'.github/workflows/acceptance.yml', '.github/workflows/pr-policy.yml', '.github/workflows/agent-review.yml'}
     if set(allowed) & protected:
         raise ValueError('Scope cannot modify trusted check workflows')
     change = validate_change(plan['acceptance'], issue, True)
-    if not scoped_history(base, candidate, allowed, git):
+    compatibility = plan.get('compatibility_policy')
+    if COMPATIBILITY in allowed and (allowed[COMPATIBILITY] != '100644' or not isinstance(compatibility, dict) or not compatibility):
+        raise ValueError('Scope requires a frozen compatibility policy')
+    if not scoped_history(base, candidate, allowed, git, compatibility):
         raise ValueError('Scoped candidate has no changes')
+    for deleted in (p for p, mode in allowed.items() if mode == '000000'):
+        original = git('ls-tree', base, '--', deleted).split()
+        if (len(original) != 4 or original[0] not in ('100644', '100755') or original[1] != 'blob' or
+                original[3] != deleted or git('ls-tree', candidate, '--', deleted)):
+            raise ValueError('Declared deletion must remove a regular file from the fixed base: ' + deleted)
+    if COMPATIBILITY in allowed and regular_json(candidate, COMPATIBILITY, git) != compatibility:
+        raise ValueError('Candidate compatibility policy must equal the trusted scope policy')
+    scoped_environment_cases(base, candidate, issue, git)
     return change
+
+
+def scoped_environment_cases(base, candidate, issue, git=git_read):
+    """Project trusted historical Rabbit revisions without fetching or executing old sources."""
+    plan = regular_json(base, f'docs/verification/scopes/issue-{issue}.json', git)
+    bindings = plan.get('environment_cases', {})
+    if not isinstance(bindings, dict):
+        raise ValueError('Scoped environment bindings must be an object')
+    if not bindings:
+        return {}
+    environment = regular_json(base, ENVIRONMENT, git)
+    if environment.get('schema') != 1 or environment.get('issue') != 479 or json_hash(environment) != plan.get('environment_revision'):
+        raise ValueError('Scoped environment revision must match trusted main')
+    sdk = regular_json(candidate, COMPATIBILITY, git)
+    compile = sdk['compile']
+    target = sdk['targets'][compile['target']]
+    if environment['environment'] != {**{k: target[k] for k in ('build', 'java_version')},
+                                     **{k: compile[k] for k in ('jvm_target', 'class_major')}}:
+        raise ValueError('Candidate SDK differs from the reviewed environment revision')
+    cases = {case['id']: case for case in plan['acceptance']['cases']}
+    revised = {}
+    for case_id, original_key in bindings.items():
+        entry = environment['cases'].get(original_key)
+        origin = plan.get('case_origins', {}).get(case_id, {})
+        if case_id not in cases or not entry or origin.get('old_key') != original_key:
+            raise ValueError('Scoped environment binding requires its original Case identity')
+        sources = [source for source in origin.get('original_merged_requirements', [])
+                   if source.get('source_pr') == entry['source_pr'] and source.get('source_merge') == entry['source_merge'] and
+                   source.get('verification') == entry['source_path'] and
+                   source.get('original_case_sha256') == entry['original_case_sha256'] and
+                   json_hash(source.get('case')) == entry['original_case_sha256']]
+        if len(sources) != 1:
+            raise ValueError('Scoped environment original Case hash/provenance mismatch: ' + original_key)
+        revised[f'{issue}:{case_id}'] = dict(entry, case=cases[case_id], original=sources[0]['case'],
+                                           revision=json_hash(environment), environment=environment['environment'])
+    return revised
 
 
 def verify_pr(pr, api, git=git_read):
@@ -351,6 +404,7 @@ def verify_pr(pr, api, git=git_read):
         if not gui or 'changes' in promotion:
             raise ValueError('Scoped promotion requires GUI and uses trusted plan, not develop changes')
         change = scoped_candidate(base, candidate, issue, git)
+        revisions = scoped_environment_cases(base, candidate, issue, git)
         if data != change:
             raise ValueError('Scoped acceptance must equal the trusted plan; observations belong in results')
         scoped_history(candidate, head, {PROMOTION: '100644', path: '100644'}, git)
@@ -438,6 +492,8 @@ def render_queue(paths, promotion=None, git=git_read):
     for path in paths:
         data = json.loads(Path(path).read_text())
         validate_change(data, data['issue'], data['gui_required'])
+        if candidate and promotion.get('scope') == 'main':
+            revisions.update(scoped_environment_cases(promotion['base'], candidate, data['issue'], git))
         rows.extend((data, revisions.get(f'{data["issue"]}:{case["id"]}', {}).get('case', case))
                     for case in data['cases'])
     lines = ['# 今回の動作確認一覧', '',

@@ -1,0 +1,26 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/targetLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="I150 appBlue"
+        android:textIsSelectable="true" />
+
+    <Button
+        android:id="@+id/emitMarker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="観測ログを出す" />
+
+    <Button
+        android:id="@+id/crashNow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="この実行だけ失敗させる" />
+</LinearLayout>

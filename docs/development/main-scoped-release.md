@@ -37,3 +37,13 @@ main受入後は既存 `release_candidate.py publish` が同じvalidatorを実�
 移行準備の#471では既存mainのQuail検査と次のRabbit計画を別枠で固定した。#470統合後の#474で現行policyをRabbit単一対象へ切り替え、現行ZIPの検査から一時的な計画選択を除去した。過去のRCを読む場合だけ、その固定sourceのpolicyと検証資料を使う。QuailのAPI警告承認をRabbitへ転用せず、旧RCのbytes/manifestは変更しない。
 
 新候補の必要CaseはRabbit/JBR25・Terminal ON/OFFと非同期保存境界の3件。過去の#409やdevelopの#466での結果は転用しない。#470では`scoped_candidate`で固定mainからの全commitを検査し、標準`buildPlugin`のSNAPSHOT ZIPをsealして、同一ZIPでVerifierとGUIを実施する。上記のversion 0.1.0によるRC生成は#409の履歴であり、#470の前提にしない。正式version・Release公開は今回のmain反映とは別の指示を必要とする。既存のscope=main gate、線形候補、候補後の2 JSONだけの更新、独立レビューと4 checksを維持する。
+
+## 元C＋局所PCEの新限定候補（#562）
+
+#562は親#485の2段階の作業。段階AはGUI不要のmain toolingで、段階BはA統合後の最新mainから別branch/worktreeを作る。旧#485の3候補・原証拠・Case結果は保存する。後続developの新機能は含めない。隔離preflightのsource/ZIPを正式candidateやGUI合格と扱わない。
+
+既存scope gateを次の3点だけ拡張する。`files` のmode `000000` は固定baseに実在するregular fileの宣言削除に限る。symlink/gitlink削除、未宣言削除、削除後の再追加とrevertも拒否する。`scripts/workflow/plugin_compatibility.json` だけは `compatibility_policy` に固定されたJSON全体と完全一致する変更を認め、各commitと最終treeを検査する。他のgate・workflow・受入JSONは候補から変更できない。
+
+歴史CaseのRabbit環境移行は、信頼するmainの `environments/rabbit1.json` のhashを `environment_revision`、新Case ID→元Case keyを `environment_cases` へ固定する。`case_origins` の原本本文/hash/merged PR・merge SHA・pathと照合し、candidate SDKも一致させる。結果は新candidate/hashに加えて同じenvironment revision/runtimeへ拘束する。生成された一覧もこの条件を満たさなければCase合格を表示しない。元sourceを実行したり、移動するdevelopの最新Caseを使ったりしない。
+
+active main policyは段階Aでは変更しない。C＋局所PCEの同一ZIP preflightで得たreport hashと判断をscope計画へ固定し、段階Bで製品sourceと一緒にcandidateへ配置する。既存Verifier/RC/CIの通常policy読込を維持する。Case原本395件の対応と承認済み訂正の競合解消を独立レビューし、新buildの受入は最低175件すべてpendingから開始する。

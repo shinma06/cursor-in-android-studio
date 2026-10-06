@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 562,
+  "gui_required": false,
+  "reason": "段階Aはmain限定candidateを拘束する検証gate・信頼計画・GUI試験入力の準備。製品source/active compatibility policyを変更せずGUI/IDE起動を含まない。C＋局所PCEの有限preflightは隔離し、そのbuildを正式candidate/GUI passへ転用しない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --run-tests",
+    "python3 -m unittest discover -s scripts/workflow -p test_scoped_promotion.py",
+    "python3 -m unittest discover -s scripts/workflow -p test_verification.py",
+    "隔離C＋局所PCE: ./gradlew test buildPlugin verifyPluginStructure、470 tests成功・445 classes",
+    "隔離同一ZIP Verifier: Compatible判定。元C experimental reportの呼出元差分を固定policy案で評価、独立レビュー待ち。"
+  ],
+  "cases": []
+}
