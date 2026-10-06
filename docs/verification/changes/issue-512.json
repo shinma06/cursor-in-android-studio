@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 512,
+  "gui_required": false,
+  "reason": "監査#512の部分是正として、現在mainに存在する旧開発・GUI記録2件の識別表記3行だけを、develop統合済みPR#515/#543の非公開証拠参照へ置き換える。製品実装、build、当時の観察・未確認、既存GUI Caseや固定候補PR#496・174 Caseを変更しない。mainに存在しない旧記録は新規取り込みせず、fixture匿名化・Git履歴等の残存と監査全体は未完了として別追跡する。",
+  "cli_checks": [
+    "固定mainとPR#515/#543のbase/head/merge blobをprivateで照合し、元の独立レビュー・原証拠保全と限定置換を再利用する。原値・旧snapshotを公開出力に転載しない。",
+    "差分を既存文書2件の3行と本JSONだけに限定し、日時・版・SHA・観察・未確認・既存linkと変更行以外の全byteを保持する。存在しないtoken-panel記録は追加しない。",
+    "固定main baseに対しpython3 scripts/workflow/change_impact.py --base origin/main --run-tests、git diff --check、既存Acceptance validator/schema、別sessionの固定HEAD/baseレビューと4必須checksを確認する。",
+    "main merge後にQA#516/#544のMAIN-REFLECTIONを適用対象ごとにreadbackする。mainにない記録は不存在を明記し、QA#542のfixture反映はpendingを保持する。監査#512全体をcloseせず、履歴・編集履歴・過去配布物等の残存確認を継続する。"
+  ],
+  "cases": []
+}
