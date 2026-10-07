@@ -6,6 +6,40 @@ import org.junit.jupiter.api.Test
 
 class SessionTabsTest {
     @Test
+    fun `failed initial ACP preparation releases transport but a bound provider or stale token cannot`() {
+        val sessions = SessionTabs()
+        val tab = sessions.snapshot().selectedId
+        sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.ACP)
+        sessions.updateComposer(tab, com.cursoragent.settings.AgentMode.AGENT, "", "prompt", 6)
+        val first = sessions.beginTurn(tab)!!
+        assertTrue(sessions.abortUnsentAcpTurn(first.token))
+        assertTrue(sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.PRINT))
+        assertFalse(sessions.abortUnsentAcpTurn(first.token))
+        sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.ACP)
+        sessions.updateComposer(tab, com.cursoragent.settings.AgentMode.AGENT, "", "prompt", 6)
+        val sent = sessions.beginTurn(tab)!!
+        sessions.bindChat(sent.token, "provider")
+        assertFalse(sessions.abortUnsentAcpTurn(sent.token))
+        assertFalse(sessions.selectTransport(tab, com.cursoragent.service.AgentTransport.PRINT))
+    }
+
+    @Test
+    fun `transport belongs to tab and locks on first send including failed or stopped turns`() {
+        val tabs = SessionTabs()
+        val first = tabs.snapshot().selected.id
+        assertTrue(tabs.selectTransport(first, com.cursoragent.service.AgentTransport.ACP))
+        tabs.updateComposer(first, com.cursoragent.settings.AgentMode.AGENT, "", "hello", 5)
+        val turn = tabs.beginTurn(first)!!
+        assertEquals(com.cursoragent.service.AgentTransport.ACP, turn.transport)
+        assertFalse(tabs.selectTransport(first, com.cursoragent.service.AgentTransport.PRINT))
+        tabs.finishTurn(turn.token)
+        assertFalse(tabs.selectTransport(first, com.cursoragent.service.AgentTransport.PRINT))
+        val old = tabs.open("legacy-print")
+        assertEquals(com.cursoragent.service.AgentTransport.PRINT, old.transport)
+        assertFalse(tabs.selectTransport(old.id, com.cursoragent.service.AgentTransport.ACP))
+    }
+
+    @Test
     fun `switch and reorder preserve independent composer values and selection`() {
         val store = SessionTabs(AgentMode.AGENT, "auto")
         val first = store.snapshot().selected.id

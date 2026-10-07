@@ -1,0 +1,4 @@
+<idea-plugin>
+    <!-- JCEF owns both APIs and native provider discovery in Rabbit. Keep recovery
+         registered unconditionally; the product ZIP never contains provider binaries. -->
+</idea-plugin>

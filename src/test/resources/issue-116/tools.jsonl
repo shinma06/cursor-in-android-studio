@@ -1,0 +1,41 @@
+{"type":"system","subtype":"init","model":"Auto"}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206889641}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206889720}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206889760}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206889841}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206889883}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206889962}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206890004}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206890090}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206893927}
+{"type":"assistant","timestamp_ms":1789206893930,"message":{"role":"assistant","content":[{"type":"text","text":"START"}]}}
+{"type":"assistant","timestamp_ms":1789206893931,"message":{"role":"assistant","content":[{"type":"text","text":"-"}]}}
+{"type":"assistant","timestamp_ms":1789206893931,"message":{"role":"assistant","content":[{"type":"text","text":"A"}]}}
+{"type":"assistant","timestamp_ms":1789206893931,"message":{"role":"assistant","content":[{"type":"text","text":"\n"}]}}
+{"type":"assistant","timestamp_ms":1789206893931,"message":{"role":"assistant","content":[{"type":"text","text":"START-A\n"}]},"model_call_id":"model-call-1"}
+{"type":"tool_call","subtype":"started","timestamp_ms":1789206893931,"model_call_id":"model-call-1","call_id":"read-1","tool_call":{"readToolCall":{"args":{"path":"alpha.txt"}}}}
+{"type":"tool_call","subtype":"completed","timestamp_ms":1789206894719,"model_call_id":"model-call-1","call_id":"read-1","tool_call":{"readToolCall":{"args":{"path":"alpha.txt"}}}}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206896278}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206896278}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206896278}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206896278}
+{"type":"assistant","timestamp_ms":1789206896279,"message":{"role":"assistant","content":[{"type":"text","text":"BETWEEN"}]}}
+{"type":"assistant","timestamp_ms":1789206896279,"message":{"role":"assistant","content":[{"type":"text","text":"-"}]}}
+{"type":"assistant","timestamp_ms":1789206896279,"message":{"role":"assistant","content":[{"type":"text","text":"B"}]}}
+{"type":"assistant","timestamp_ms":1789206896279,"message":{"role":"assistant","content":[{"type":"text","text":"BETWEEN-B"}]},"model_call_id":"model-call-2"}
+{"type":"tool_call","subtype":"started","timestamp_ms":1789206896279,"model_call_id":"model-call-2","call_id":"read-2","tool_call":{"readToolCall":{"args":{"path":"beta.txt"}}}}
+{"type":"tool_call","subtype":"completed","timestamp_ms":1789206896507,"model_call_id":"model-call-2","call_id":"read-2","tool_call":{"readToolCall":{"args":{"path":"beta.txt"}}}}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206899347}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206899347}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206899347}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206899347}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206899347}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206899347}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206899347}
+{"type":"assistant","timestamp_ms":1789206899348,"message":{"role":"assistant","content":[{"type":"text","text":"DONE"}]}}
+{"type":"assistant","timestamp_ms":1789206899348,"message":{"role":"assistant","content":[{"type":"text","text":"-"}]}}
+{"type":"assistant","timestamp_ms":1789206899348,"message":{"role":"assistant","content":[{"type":"text","text":"C"}]}}
+{"type":"assistant","timestamp_ms":1789206899348,"message":{"role":"assistant","content":[{"type":"text","text":" "}]}}
+{"type":"assistant","timestamp_ms":1789206899348,"message":{"role":"assistant","content":[{"type":"text","text":"46"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"DONE-C 46"}]}}
+{"type":"result","subtype":"success","result":"START-A\nBETWEEN-BDONE-C 46","is_error":false}

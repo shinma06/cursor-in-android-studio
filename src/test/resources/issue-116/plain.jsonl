@@ -1,0 +1,57 @@
+{"type":"system","subtype":"init","model":"Auto"}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206761557}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206762047}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206762048}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206762048}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206762049}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206762049}
+{"type":"assistant","timestamp_ms":1789206762051,"message":{"role":"assistant","content":[{"type":"text","text":"red"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":"\n"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":"red"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206762052,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":"\n"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":"red"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206762053,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206764619}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206764702}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206764785}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206764864}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206764948}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206765505}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206765506}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206765506}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206765506}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206765507}
+{"type":"assistant","timestamp_ms":1789206765508,"message":{"role":"assistant","content":[{"type":"text","text":"red"}]}}
+{"type":"assistant","timestamp_ms":1789206765508,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206765508,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":"\n"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":"red"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765509,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":"\n"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":"red"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":" red"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}
+{"type":"assistant","timestamp_ms":1789206765510,"message":{"role":"assistant","content":[{"type":"text","text":" blue"}]}}

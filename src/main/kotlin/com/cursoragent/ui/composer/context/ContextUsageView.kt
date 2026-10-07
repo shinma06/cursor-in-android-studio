@@ -9,6 +9,7 @@ import com.intellij.util.ui.JBUI
 import java.awt.BasicStroke
 import java.awt.BorderLayout
 import java.awt.Component
+import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
@@ -16,6 +17,7 @@ import java.awt.geom.Line2D
 import java.awt.geom.RoundRectangle2D
 import java.text.NumberFormat
 import java.util.Locale
+import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.Icon
 import javax.swing.JButton
@@ -27,13 +29,32 @@ import javax.swing.SwingConstants
 class ContextUsageView {
     private val state = ContextUsageState()
     private val counters = List(4) { JLabel() }
-    private val status = label("直近の応答")
-    private val emptyMessage = label("応答後に表示します")
+    private val status = label("直近の応答").apply {
+        font = font.deriveFont(font.size2D * 0.9f)
+        border = JBUI.Borders.empty(2, 0, 10, 0)
+    }
+    private val modelLabel = label("").apply {
+        putClientProperty("html.disable", true)
+        minimumSize = JBUI.emptySize()
+        border = JBUI.Borders.emptyBottom(4)
+    }
+    private val emptyMessage = label("まだ応答を開始していません").apply {
+        border = JBUI.Borders.empty(8, 0, 2, 0)
+    }
     private val counterRows = listOf("入力", "出力", "キャッシュ読み取り", "キャッシュ書き込み").mapIndexed { index, title ->
         row(label(title), counters[index].apply {
-            font = AgentUiMetrics.textFont()
-            foreground = AgentUiColors.mutedText
+            font = AgentUiMetrics.textFont().deriveFont(Font.BOLD)
+            horizontalAlignment = SwingConstants.RIGHT
         })
+    }
+    private val cacheDivider = JPanel(BorderLayout()).apply {
+        isOpaque = false
+        alignmentX = Component.LEFT_ALIGNMENT
+        border = JBUI.Borders.empty(7, 0)
+        add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            border = BorderFactory.createMatteBorder(JBUI.scale(1), 0, 0, 0, AgentUiColors.bubbleBorder)
+        }, BorderLayout.CENTER)
     }
     val button: JButton = TokenCountsButton().apply {
         icon = TokenCountsIcon()
@@ -62,10 +83,16 @@ class ContextUsageView {
         val content = JPanel().apply {
             isOpaque = false
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            border = JBUI.Borders.empty(10, 12)
-            add(row(label("トークン数"), close))
+            border = JBUI.Borders.empty(10, 12, 12, 12)
+            add(row(JLabel("トークン数").apply {
+                font = AgentUiMetrics.textFont().let { it.deriveFont(Font.BOLD, it.size2D * 1.08f) }
+            }, close).apply { border = JBUI.Borders.empty() })
             add(status.apply { alignmentX = Component.LEFT_ALIGNMENT })
-            counterRows.forEach { add(it) }
+            add(modelLabel.apply { alignmentX = Component.LEFT_ALIGNMENT })
+            counterRows.forEachIndexed { index, row ->
+                if (index == 2) add(cacheDivider)
+                add(row)
+            }
             add(emptyMessage.apply { alignmentX = Component.LEFT_ALIGNMENT })
         }
         panel.add(RoundedSurface(AgentUiColors.panelBackground).apply {
@@ -76,11 +103,16 @@ class ContextUsageView {
         refresh()
     }
 
-    fun beginTurn(): Long = state.clear().also { refresh() }
+    fun beginTurn(model: String = ""): Long = state.begin(model).also { refresh() }
     fun reset() { state.clear(); refresh() }
     fun update(ticket: Long, usage: TokenUsage?) {
         if (state.accept(ticket, usage)) refresh()
     }
+
+    fun finish(ticket: Long, outcome: UsagePhase) {
+        if (state.finish(ticket, outcome)) refresh()
+    }
+    fun stop() { if (state.stop()) refresh() }
 
     private fun setExpanded(expanded: Boolean) {
         panel.isVisible = expanded
@@ -97,9 +129,27 @@ class ContextUsageView {
             counterRows[index].isVisible = value != null
         }
         val hasCounters = values.any { it != null }
-        status.isVisible = hasCounters
+        cacheDivider.isVisible = values.take(2).any { it != null } && values.drop(2).any { it != null }
+        status.text = when (state.phase) {
+            UsagePhase.NOT_STARTED -> "直近の応答"
+            UsagePhase.RUNNING -> "応答を準備・実行中"
+            UsagePhase.STOPPING -> "停止処理中の応答"
+            UsagePhase.COMPLETED -> "完了した応答"
+            UsagePhase.STOPPED -> "停止した応答"
+            UsagePhase.FAILED -> "失敗した応答"
+        }
+        status.isVisible = state.phase != UsagePhase.NOT_STARTED
+        modelLabel.text = "送信時のモデル: ${state.model.ifEmpty { "接続先の既定" }}"
+        modelLabel.toolTipText = "送信時の選択です。Autoや既定から実際のモデルは推定しません。${state.model}"
+        modelLabel.isVisible = state.phase != UsagePhase.NOT_STARTED
+        emptyMessage.text = when (state.phase) {
+            UsagePhase.NOT_STARTED -> "まだ応答を開始していません"
+            UsagePhase.RUNNING -> "トークン数の報告待ちです"
+            UsagePhase.COMPLETED -> "この応答では情報未提供です"
+            UsagePhase.STOPPING, UsagePhase.STOPPED, UsagePhase.FAILED -> "トークン数は未取得です"
+        }
         emptyMessage.isVisible = !hasCounters
-        status.toolTipText = "応答完了時に報告された値です。入力とキャッシュの重複関係は未確認のため合計しません。"
+        status.toolTipText = "この応答で受信した値です。入力とキャッシュの重複関係は未確認のため合計しません。"
         panel.revalidate()
         panel.repaint()
         panel.parent?.revalidate()
@@ -120,7 +170,7 @@ class ContextUsageView {
     }
 }
 
-/** Keep the keyboard focus outline outside the glyph, without the selector's circular pill. */
+/** Share the hover background for keyboard focus, without an extra outline around the glyph. */
 internal open class TokenCountsButton : JButton() {
     init {
         isOpaque = false
@@ -135,19 +185,14 @@ internal open class TokenCountsButton : JButton() {
             copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val inset = JBUI.scale(1).toDouble()
             val arc = JBUI.scale(6).toDouble()
-            // Both shapes use width/2, height/2, including odd sizes and fractional device scales.
+            // Background and glyph share width/2, height/2 at odd sizes and fractional scales.
             val outline = RoundRectangle2D.Double(
                 inset, inset, (width - inset * 2).coerceAtLeast(0.0),
                 (height - inset * 2).coerceAtLeast(0.0), arc, arc,
             )
             if (model.isRollover || model.isPressed || hasFocus()) {
-                copy.color = AgentUiColors.userBubbleBackground
+                copy.color = JBUI.CurrentTheme.ActionButton.pressedBackground()
                 copy.fill(outline)
-            }
-            if (hasFocus() && isFocusPainted) {
-                copy.color = AgentUiColors.mutedText
-                copy.stroke = BasicStroke(JBUI.scale(1).toFloat())
-                copy.draw(outline)
             }
             icon?.let {
                 copy.translate((width - it.iconWidth) / 2.0, (height - it.iconHeight) / 2.0)
