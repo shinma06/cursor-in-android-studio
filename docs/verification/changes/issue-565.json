@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 565,
+  "gui_required": false,
+  "reason": "main段階はPM承認済みGit公開の継続許可を共有workflowへ記録し、CLAUDE/AGENTSの読込参照を追加する文書・検証メタデータ変更のみ。製品/UI/schema、GUI/provider/auth・正式Releaseの許可は変更せず、GUI/IDE起動を含まない。developへの同じ規約反映と全体readback/cleanupは別段階で追跡する。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests",
+    "既存validate_changeでGUI不要Case JSONのschema・理由・CLI checks・空casesを検証",
+    "CLAUDE/AGENTSから共有workflowの固定anchorへ到達し、AGENTS symlinkと既存制約・全リンクを保持することを確認",
+    "机上評価: PM承認済みの通常Git公開、PM未承認の新内容、保護/承認待ち証拠、GUI/provider/auth・正式Release、tool拒否時の境界を照合。実Agent挙動/GUI passや効果測定と区別",
+    "git diff --checkと今回の差分・commit metadata・PR本文の公開前確認3区分を照合。main段階でIssueを自動closeしない"
+  ],
+  "cases": []
+}
