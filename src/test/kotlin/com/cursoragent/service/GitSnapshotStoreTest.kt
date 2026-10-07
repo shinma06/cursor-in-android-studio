@@ -1,5 +1,6 @@
 package com.cursoragent.service
 
+import com.cursoragent.settings.WorktreeMode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -44,7 +45,7 @@ class GitSnapshotStoreTest {
         sampleFile.writeText("modified by agent\n")
         assertEquals("modified by agent\n", sampleFile.readText())
 
-        assertTrue(store.restore(sha!!, emptyList()))
+        assertTrue(store.restore(sha!!, emptyList(), target(), target()).restored)
         assertEquals("original content\n", sampleFile.readText())
     }
 
@@ -58,7 +59,7 @@ class GitSnapshotStoreTest {
         newFile.writeText("created after snapshot\n")
         assertTrue(newFile.exists())
 
-        assertTrue(store.restore(sha, untrackedAtSnapshot))
+        assertTrue(store.restore(sha, untrackedAtSnapshot, target(), target()).restored)
         assertFalse(newFile.exists())
     }
 
@@ -71,7 +72,7 @@ class GitSnapshotStoreTest {
         assertTrue(untrackedAtSnapshot.contains("pre_existing.txt"))
 
         val sha = store.createSnapshot()!!
-        assertTrue(store.restore(sha, untrackedAtSnapshot))
+        assertTrue(store.restore(sha, untrackedAtSnapshot, target(), target()).restored)
         assertTrue(preExisting.exists())
     }
 
@@ -82,11 +83,85 @@ class GitSnapshotStoreTest {
 
         val sha = store.createSnapshot()!!
         sampleFile.writeText("modified by agent\n")
-        store.restore(sha, emptyList())
+        store.restore(sha, emptyList(), target(), target()).restored
 
         assertEquals("", git("stash", "list").trim())
         assertEquals(logBefore, git("log", "--oneline").trim())
     }
+
+    @Test
+    fun `isolated target cannot restore tracked or delete untracked files after switching back`() {
+        val store = GitSnapshotStore(repoDir)
+        val sha = store.createSnapshot()!!
+        sampleFile.writeText("later content")
+        val untracked = File(repoDir, "keep.txt").apply { writeText("keep") }
+        val isolated = RestoreTarget.capture(repoDir.absolutePath, WorktreeMode.ISOLATED)
+        assertEquals(RestorePolicy.ISOLATED, store.restore(sha, emptyList(), isolated, target()).rejectionReason)
+        assertEquals("later content", sampleFile.readText())
+        assertEquals("keep", untracked.readText())
+    }
+
+    @Test
+    fun `old unknown targets refuse all writes`() {
+        val store = GitSnapshotStore(repoDir)
+        val sha = store.createSnapshot()!!
+        sampleFile.writeText("later content")
+        assertFalse(store.restore(sha, emptyList(), RestoreTarget.UNKNOWN, target()).restored)
+        assertEquals("later content", sampleFile.readText())
+    }
+
+    @Test
+    fun `same git objects in another worktree do not authorize restoring that worktree`(@TempDir other: File) {
+        val store = GitSnapshotStore(repoDir)
+        val sha = store.createSnapshot()!!
+        val linked = File(other, "linked")
+        git("worktree", "add", "--detach", linked.absolutePath, "HEAD")
+        val linkedFile = File(linked, "sample.txt").apply { writeText("linked changes") }
+        sampleFile.writeText("original root changes")
+        val linkedTarget = RestoreTarget.capture(linked.absolutePath, WorktreeMode.DEFAULT)
+        assertFalse(GitSnapshotStore(linked).restore(sha, emptyList(), target(), linkedTarget).restored)
+        // Also reject a mismatched store even when the caller supplies identical old targets.
+        assertFalse(GitSnapshotStore(linked).restore(sha, emptyList(), target(), target()).restored)
+        assertEquals("linked changes", linkedFile.readText())
+        assertEquals("original root changes", sampleFile.readText())
+        assertTrue(GitSnapshotStore(linked).restore(sha, emptyList(), linkedTarget, linkedTarget).restored)
+        assertEquals("original content\n", linkedFile.readText())
+        assertEquals("original root changes", sampleFile.readText())
+    }
+
+    @Test
+    fun `nested directory is not accepted as snapshot root`() {
+        val child = File(repoDir, "child").apply { mkdir() }
+        assertFalse(GitSnapshotStore(child).isGitRepo())
+    }
+
+    @Test
+    fun `untracked names preserve whitespace unicode and newlines`() {
+        val names = listOf(" leading.txt", "末尾 .txt", "line\nbreak.txt")
+        names.forEach { File(repoDir, it).writeText("existing") }
+        val store = GitSnapshotStore(repoDir)
+        val before = store.listUntrackedFiles()
+        assertEquals(names.toSet(), before.toSet())
+        val sha = store.createSnapshot()!!
+        val added = File(repoDir, "new\nfile.txt").apply { writeText("new") }
+        assertTrue(store.restore(sha, before, target(), target()).restored)
+        names.forEach { assertEquals("existing", File(repoDir, it).readText()) }
+        assertFalse(added.exists())
+    }
+
+    @Test
+    fun `untracked symlink cleanup never deletes its external target`(@TempDir other: File) {
+        val store = GitSnapshotStore(repoDir)
+        val sha = store.createSnapshot()!!
+        val external = File(other, "external.txt").apply { writeText("keep") }
+        val link = File(repoDir, "link.txt").toPath()
+        java.nio.file.Files.createSymbolicLink(link, external.toPath())
+        assertTrue(store.restore(sha, emptyList(), target(), target()).restored)
+        assertFalse(java.nio.file.Files.exists(link, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        assertEquals("keep", external.readText())
+    }
+
+    private fun target() = RestoreTarget.capture(repoDir.absolutePath, WorktreeMode.DEFAULT)
 
     private fun git(vararg args: String): String {
         val process = ProcessBuilder(listOf("git") + args)

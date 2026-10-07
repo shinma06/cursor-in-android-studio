@@ -2,9 +2,9 @@
 
 **開発ルール:** Gitへの言及がなくても [Issue → worktree → PR](docs/development/github-workflow.md) を必須とします。main直接commit/pushは禁止。GUIは[ホスト単位の予約](docs/development/gui-coordination.md)で直列化し、実装は並列化します。
 
-Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI をサブプロセスとして起動し、
-`stream-json` 出力をパースして独自のSwing/JBUI製チャットUIに描画する(CLIをブラックボックスとして
-ラップする方式)。
+Android Studio 向け Cursor Agent 統合プラグイン。既定の `agent -p --output-format stream-json` と、新しい会話で明示選択するACPをSwing/JBUI製チャットUIへ接続します。
+
+このソースは[#562のmain限定候補](docs/verification/scopes/issue-562.md)です。元C `ebac56fe441c08a6c869b8be3b1aa906a887c14e` の機能、局所PCE取消修正、現mainの運用規約を含み、後続developの機能は含めません。[実装と制約](docs/architecture/current-implementation.md)を参照してください。新buildの175 Caseはすべて未受入で、下記の既存正式版0.1.0とは別です。
 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。

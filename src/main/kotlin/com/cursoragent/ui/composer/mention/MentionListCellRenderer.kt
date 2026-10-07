@@ -17,6 +17,8 @@ class MentionListCellRenderer : ListCellRenderer<Mention> {
         cellHasFocus: Boolean,
     ): Component {
         return JBLabel(value.displayLabel, iconFor(value.kind), JBLabel.LEFT).apply {
+            putClientProperty("html.disable", true)
+            toolTipText = value.contextDescription()
             border = JBUI.Borders.empty(2, 8)
             isOpaque = true
             background = if (isSelected) list.selectionBackground else list.background

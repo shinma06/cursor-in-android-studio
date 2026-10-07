@@ -1,9 +1,9 @@
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    id("java")
     id("org.jetbrains.kotlin.jvm") version "2.4.20"
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
@@ -53,6 +53,16 @@ dependencies {
             androidStudio("2026.2.1.8")
         }
         bundledPlugins("org.jetbrains.plugins.terminal")
+        // Rabbit moved JCEF APIs out of the SDK. Gradle supplies this optional
+        // plugin to compile/test/runIde, never inside our distributable ZIP.
+        val jcefOs = when {
+            System.getProperty("os.name").startsWith("Mac") -> "mac"
+            System.getProperty("os.name").startsWith("Windows") -> "windows"
+            else -> "linux"
+        }
+        val jcefArch = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x86_64"
+        plugin("com.intellij.modules.jcef", "262.9437.22-$jcefOs-$jcefArch")
+        testFramework(TestFrameworkType.Bundled) // Exercise the resolved SDK's native Document/Undo behavior.
         pluginVerifier("1.410")
     }
 }
@@ -145,8 +155,10 @@ tasks.verifyPlugin {
     ides.setFrom(providers.gradleProperty("verificationIdePath").map { file(it) })
     runtimeDirectory.set(layout.dir(providers.gradleProperty("verificationRuntime").map { file(it) }))
     useBundledRuntime.set(false) // Explicit per-job bundled JBR; never a JAVA_HOME fallback.
-    freeArgs.add("-ignore-os-arch") // The wrapper checks host/SDK and fixed provider identity.
     offline.set(true) // Resolve the target distribution, not mutable Marketplace dependencies.
+    // These are IDE runtime constraints, not class-bearing modules. The wrapper
+    // checks the SDK launch platform and pins the matching JCEF archive first.
+    freeArgs.add("-ignore-os-arch")
     doFirst {
         systemProperty("plugin.verifier.home.dir", verificationReportsDirectory.get().asFile.resolveSibling("verifier-cache"))
     }

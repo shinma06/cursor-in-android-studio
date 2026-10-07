@@ -1,0 +1,26 @@
+{"type":"system","subtype":"init","model":"Auto"}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206960809}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206960963}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206961070}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206963032}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206963155}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206963600}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206963601}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206963601}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206963601}
+{"type":"assistant","timestamp_ms":1789206963605,"message":{"role":"assistant","content":[{"type":"text","text":"START-A\n"}]},"model_call_id":"model-call-1"}
+{"type":"tool_call","subtype":"started","timestamp_ms":1789206963605,"model_call_id":"model-call-1","call_id":"read-1","tool_call":{"readToolCall":{"args":{"path":"alpha.txt"}}}}
+{"type":"tool_call","subtype":"completed","timestamp_ms":1789206964386,"model_call_id":"model-call-1","call_id":"read-1","tool_call":{"readToolCall":{"args":{"path":"alpha.txt"}}}}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206966516}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206966516}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206966517}
+{"type":"assistant","timestamp_ms":1789206966518,"message":{"role":"assistant","content":[{"type":"text","text":"BETWEEN-B"}]},"model_call_id":"model-call-2"}
+{"type":"tool_call","subtype":"started","timestamp_ms":1789206966518,"model_call_id":"model-call-2","call_id":"read-2","tool_call":{"readToolCall":{"args":{"path":"beta.txt"}}}}
+{"type":"tool_call","subtype":"completed","timestamp_ms":1789206966743,"model_call_id":"model-call-2","call_id":"read-2","tool_call":{"readToolCall":{"args":{"path":"beta.txt"}}}}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206968919}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206968920}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206968920}
+{"type":"thinking","subtype":"delta","timestamp_ms":1789206968920}
+{"type":"thinking","subtype":"completed","timestamp_ms":1789206968920}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"DONE-C 46"}]}}
+{"type":"result","subtype":"success","result":"START-A\nBETWEEN-BDONE-C 46","is_error":false}
