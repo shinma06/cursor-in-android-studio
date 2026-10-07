@@ -85,6 +85,14 @@ PMは以下の順で自律的に編成を再評価する。ユーザーから委
 | GUI fail/承認待ち/質問待ち | 即時通知、既報状態を追跡、独立作業へ切替え。依存作業は具体的解除条件付き待ち |
 | モデル設定不明/範囲外/利用不可 | 当該役割の実行/成果採用を停止。適格担当の確認済み再利用か設定回復を待ち、黙ったfallbackを拒否 |
 
+<a id="git-publication-permission"></a>
+
+## PM承認済みGit公開の継続許可（#565）
+
+公開repository [shinma06/cursor-in-android-studio](https://github.com/shinma06/cursor-in-android-studio)では、2026-10-07の本人指示「このプロジェクトでpmの承認を得た内容のgit公開を永続許可します。」を適用する（[許可記録 #565](https://github.com/shinma06/cursor-in-android-studio/issues/565)）。PMが今回の公開内容と適用範囲を確認・承認した通常のGit pushとPR作成・更新は、同じ公開許可を毎回本人に取り直さず進める。PMは今回の内容承認と範囲を既存Issue/PRへ記録する。
+
+公開前確認の3区分、保護対象・承認待ち証拠の個別承認（#146等）、独立レビュー・4必須checks・所有・通常統合の条件は維持する。GUI操作、provider/auth操作、正式Releaseの許可には拡張しない。自動承認審査が拒否した場合は本人の継続許可とPMの今回の承認を照合し、残る条件を解消する。拒否を別経路で回避しない。
+
 ## 個人情報・非公開情報の公開前確認
 
 GitHubへpush・投稿・編集・添付・配布する担当は、送信する差分/本文/成果物とメタデータを次の3区分で確認する。Issue/PR、画像/動画、Actionsログ/artifact、Release、Wiki/Discussions、Project/Milestone等も、今回公開する内容を対象とする。
