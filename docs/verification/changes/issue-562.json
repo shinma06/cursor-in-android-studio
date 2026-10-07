@@ -2,16 +2,41 @@
   "schema": 1,
   "issue": 562,
   "gui_required": false,
-  "reason": "段階Aはmain限定candidateを拘束する検証gate・信頼計画・GUI試験入力の準備。製品source/active compatibility policyを変更せずGUI/IDE起動を含まない。C＋局所PCEの有限preflightは隔離し、そのbuildを正式candidate/GUI passへ転用しない。",
+  "reason": "先行main tooling補修は、元Cの既存テスト入力1pathをtrusted scopeへ予約し説明と今回の受入記録を更新するだけ。mainへfixture本体を追加せず、製品source/build・validator・workflow・固定policy・元175 Case/395原本/D7/環境10件を変更しないためGUI不要。旧B1の470件中1件失敗を解消したとは判定せず、計画統合後の新main基点候補で再検証する。",
   "cli_checks": [
-    "python3 scripts/workflow/change_impact.py --run-tests",
-    "python3 -m unittest discover -s scripts/workflow -p test_scoped_promotion.py",
-    "python3 -m unittest discover -s scripts/workflow -p test_verification.py",
-    "隔離C＋局所PCE: ./gradlew test buildPlugin verifyPluginStructure、470 tests成功・445 classes",
-    "隔離同一ZIP Verifier: Compatible判定。元C experimental reportの呼出元差分を固定policy案で評価、独立レビュー待ち。",
-    "原本395出現の固定Git Case/hash、174＋PCE1、233path/D7、CU4件・artifact対応、環境10件を照合",
-    "隔離Git gateデータ: 175要求の全キー・新key環境10件を検査、欠落/別revision/別runtimeの30入力を拒否。合成データを実Case観察へ保存しない",
-    "python3 scripts/workflow/verification.py: scope=main一覧とgateの共通環境判定、原本/履歴保持を回帰検査"
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests",
+    "既存test_scoped_promotion.pyの成功・拒否回帰（Change Impactのtooling suite内で実施）",
+    "既存test_verification.pyの受入・環境・旧結果拒否回帰（Change Impactのtooling suite内で実施）",
+    "固定mainとの差分はscope562 JSON/説明/本tooling受入JSONの3filesだけ。files/path_sourcesへ同一の100644 fixture 1pathを追加し、外枠234・D7を照合。",
+    "元C公開blob4606820038e5a9aefd5475af2b3eaaf900dda70f/SHA256d5d6a4b61b964fc97fd9b4e347c3f2ba45bbc34bdd4b10e3e2ef7f7964283a3bを照合。mainへのfixture実体追加なし。",
+    "元175受入Case/395原本/環境10/互換性policyを固定baseと完全一致で照合。旧PR564受入証拠はhistoryへ保持し、過去preflight・B1失敗を新候補passへ転用しない。"
   ],
-  "cases": []
+  "cases": [],
+  "history": [
+    {
+      "scope": "historical_stage_A_PR564_not_current_tooling_or_candidate_results",
+      "source_pr": 564,
+      "source_head": "2eb40eaaf57e459f30b67eca5a672df66b48f2a4",
+      "source_merge": "1cf639f7f973baa781ef8f8aed32e0f2fcb64ca6",
+      "source_path": "docs/verification/changes/issue-562.json",
+      "source_base": "24f405ec895e7ea66062e62e6167f420a8f55563",
+      "acceptance": {
+        "schema": 1,
+        "issue": 562,
+        "gui_required": false,
+        "reason": "段階Aはmain限定candidateを拘束する検証gate・信頼計画・GUI試験入力の準備。製品source/active compatibility policyを変更せずGUI/IDE起動を含まない。C＋局所PCEの有限preflightは隔離し、そのbuildを正式candidate/GUI passへ転用しない。",
+        "cli_checks": [
+          "python3 scripts/workflow/change_impact.py --run-tests",
+          "python3 -m unittest discover -s scripts/workflow -p test_scoped_promotion.py",
+          "python3 -m unittest discover -s scripts/workflow -p test_verification.py",
+          "隔離C＋局所PCE: ./gradlew test buildPlugin verifyPluginStructure、470 tests成功・445 classes",
+          "隔離同一ZIP Verifier: Compatible判定。元C experimental reportの呼出元差分を固定policy案で評価、独立レビュー待ち。",
+          "原本395出現の固定Git Case/hash、174＋PCE1、233path/D7、CU4件・artifact対応、環境10件を照合",
+          "隔離Git gateデータ: 175要求の全キー・新key環境10件を検査、欠落/別revision/別runtimeの30入力を拒否。合成データを実Case観察へ保存しない",
+          "python3 scripts/workflow/verification.py: scope=main一覧とgateの共通環境判定、原本/履歴保持を回帰検査"
+        ],
+        "cases": []
+      }
+    }
+  ]
 }

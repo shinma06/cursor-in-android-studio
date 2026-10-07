@@ -10,6 +10,7 @@
     "README.md": "100644",
     "build.gradle.kts": "100644",
     "docs/architecture/current-implementation.md": "100644",
+    "docs/research/issue-149-fixtures.json": "100644",
     "scripts/gui-fixture/README.md": "100644",
     "scripts/gui-fixture/SwingCuaFixture.java": "100644",
     "scripts/gui-fixture/build.py": "100644",
@@ -276,6 +277,14 @@
       "reference_path": "docs/architecture/current-implementation.md",
       "rules_source": "24f405ec895e7ea66062e62e6167f420a8f55563",
       "decision": "固定mainには存在しない新規文書。固定Cの実装説明と現main CLAUDE/運用規約から作成する。最新developへのfallbackは禁止。後続211/212等の機能とGUI成功を持ち込まない。"
+    },
+    "docs/research/issue-149-fixtures.json": {
+      "mode": "100644",
+      "source": "ebac56fe441c08a6c869b8be3b1aa906a887c14e",
+      "operation": "port_exact_C_blob",
+      "current_main_mode": "000000",
+      "current_main_blob": null,
+      "reference_blob": "4606820038e5a9aefd5475af2b3eaaf900dda70f"
     },
     "scripts/gui-fixture/README.md": {
       "mode": "100644",
