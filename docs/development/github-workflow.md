@@ -53,6 +53,14 @@ GUI toolがない担当は実装・CLI検証を進め、GUIだけを対応可能
 上の兼任範囲でも単一writer/GUI leaseを守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
 モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
 
+<a id="git-publication-permission"></a>
+
+## PM承認済みGit公開の継続許可（#565）
+
+公開repository [shinma06/cursor-in-android-studio](https://github.com/shinma06/cursor-in-android-studio)では、2026-10-07の本人指示「このプロジェクトでpmの承認を得た内容のgit公開を永続許可します。」を適用する（[許可記録 #565](https://github.com/shinma06/cursor-in-android-studio/issues/565)）。PMが今回の公開内容と適用範囲を確認・承認した通常のGit pushとPR作成・更新は、同じ公開許可を毎回本人に取り直さず進める。PMは今回の内容承認と範囲を既存Issue/PRへ記録する。
+
+公開前確認の3区分、保護対象・承認待ち証拠の個別承認（#146等）、独立レビュー・4必須checks・所有・通常統合の条件は維持する。GUI操作、provider/auth操作、正式Releaseの許可には拡張しない。自動承認審査が拒否した場合は本人の継続許可とPMの今回の承認を照合し、残る条件を解消する。拒否を別経路で回避しない。
+
 ## 個人情報・非公開情報の公開前確認
 
 GitHubへpush・投稿・編集・添付・配布する担当は、送信する差分/本文/成果物とメタデータを次の3区分で確認する。Issue/PR、画像/動画、Actionsログ/artifact、Release、Wiki/Discussions、Project/Milestone等も、今回公開する内容を対象とする。
