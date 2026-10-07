@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import release_candidate as rc
-from verification import scoped_candidate, verify_pr
+from verification import scoped_candidate, verify_pr, render_queue, ENVIRONMENT, COMPATIBILITY, json_hash
 from test_verification import change, observation
 
 
@@ -164,3 +164,118 @@ class ScopedPromotionTests(unittest.TestCase):
                         return json.dumps(plan)
                     return self.git(*args)
                 with self.assertRaises(ValueError): scoped_candidate(self.base, self.candidate, 35, git)
+
+    def test_declared_deletion_rejects_restore_undeclared_and_nonregular_sources(self):
+        self.git('checkout', '--detach', '-q', self.base)
+        self.write('obsolete.kt', 'obsolete')
+        self.plan['files']['obsolete.kt'] = '000000'
+        self.write(self.plan_path, self.plan)
+        base = self.commit()
+        self.git('rm', 'obsolete.kt'); candidate = self.commit()
+        self.assertEqual(scoped_candidate(base, candidate, 35, self.git), self.acceptance)
+        self.write('obsolete.kt', 'restored'); restored = self.commit()
+        self.git('rm', 'obsolete.kt'); reverted = self.commit()
+        for head in (restored, reverted):
+            with self.assertRaisesRegex(ValueError, 'outside trusted scope'):
+                scoped_candidate(base, head, 35, self.git)
+        self.git('checkout', '--detach', '-q', base)
+        self.git('rm', 'build.gradle.kts'); undeclared = self.commit()
+        with self.assertRaisesRegex(ValueError, 'outside trusted scope'):
+            scoped_candidate(base, undeclared, 35, self.git)
+        self.git('checkout', '--detach', '-q', base)
+        self.write('build.gradle.kts', 'modern'); retained = self.commit()
+        with self.assertRaisesRegex(ValueError, 'Declared deletion'):
+            scoped_candidate(base, retained, 35, self.git)
+        for mode, ref in (('120000', self.git('rev-parse', base+':obsolete.kt')), ('160000', base)):
+            self.git('read-tree', base)
+            self.git('update-index', '--cacheinfo', mode, ref, 'obsolete.kt')
+            nonregular = self.git('commit-tree', self.git('write-tree'), '-p', base, '-m', 'nonregular base')
+            self.git('update-index', '--force-remove', 'obsolete.kt')
+            deleted = self.git('commit-tree', self.git('write-tree'), '-p', nonregular, '-m', 'delete')
+            with self.assertRaisesRegex(ValueError, 'outside trusted scope'):
+                scoped_candidate(nonregular, deleted, 35, self.git)
+
+    def test_policy_is_frozen_on_every_edge_and_cannot_whitelist_other_gates(self):
+        self.git('checkout', '--detach', '-q', self.base)
+        policy = {'compile': {'target': 'rabbit1', 'class_major': 69}, 'reviewed_api_reports': {'fixed': 'reviewed'}}
+        self.plan['files'][COMPATIBILITY] = '100644'
+        self.plan['compatibility_policy'] = policy
+        self.write(COMPATIBILITY, {'old': True}); self.write(self.plan_path, self.plan)
+        base = self.commit()
+        self.write(COMPATIBILITY, policy); candidate = self.commit()
+        self.assertEqual(scoped_candidate(base, candidate, 35, self.git), self.acceptance)
+        self.write(COMPATIBILITY, dict(policy, blanket_waiver=True)); changed = self.commit()
+        self.write(COMPATIBILITY, policy); reverted = self.commit()
+        for head in (changed, reverted):
+            with self.assertRaisesRegex(ValueError, 'compatibility policy'):
+                scoped_candidate(base, head, 35, self.git)
+        self.git('checkout', '--detach', '-q', candidate)
+        numeric_type = copy.deepcopy(policy); numeric_type['compile']['class_major'] = 69.0
+        self.write(COMPATIBILITY, numeric_type); head = self.commit()
+        with self.assertRaisesRegex(ValueError, 'compatibility policy'):
+            scoped_candidate(base, head, 35, self.git)
+        self.git('checkout', '--detach', '-q', candidate)
+        self.write(COMPATIBILITY, '{"compile":{},"compile":{}}'); duplicate = self.commit()
+        with self.assertRaisesRegex(ValueError, 'Duplicate key'):
+            scoped_candidate(base, duplicate, 35, self.git)
+        self.git('checkout', '--detach', '-q', base)
+        self.plan.pop('compatibility_policy'); self.write(self.plan_path, self.plan); unfrozen = self.commit()
+        self.write(COMPATIBILITY, policy); head = self.commit()
+        with self.assertRaisesRegex(ValueError, 'frozen compatibility policy'):
+            scoped_candidate(unfrozen, head, 35, self.git)
+        self.git('checkout', '--detach', '-q', base)
+        self.plan['files']['scripts/workflow/plugin_compatibility.py'] = '100644'
+        self.write(self.plan_path, self.plan); other_base = self.commit()
+        self.write('scripts/workflow/plugin_compatibility.py', 'untrusted'); head = self.commit()
+        with self.assertRaisesRegex(ValueError, 'release gates'):
+            scoped_candidate(other_base, head, 35, self.git)
+
+    def test_projected_environment_requires_revision_identity_execution_and_artifact(self):
+        self.git('checkout', '--detach', '-q', self.base)
+        original = copy.deepcopy(self.acceptance['cases'][0])
+        original.update(required_execution='computer_use', artifact='swing_fixture')
+        self.acceptance['cases'][0].update(required_execution='computer_use', artifact='swing_fixture', preconditions='Rabbitの新候補')
+        identity = {'build': 'AI-262.9437.185.2621.16467767', 'java_version': '25.0.3', 'jvm_target': '25', 'class_major': 69}
+        entry = {'source_pr': 9, 'source_merge': 'a' * 40, 'source_path': 'docs/verification/changes/issue-9.json',
+                 'original_case_sha256': json_hash(original), 'preconditions': 'Rabbitの新候補'}
+        environment = {'schema': 1, 'issue': 479, 'environment': identity, 'cases': {'9:QA-1': entry}}
+        self.plan.update(acceptance=self.acceptance, environment_revision=json_hash(environment), environment_cases={'QA-1': '9:QA-1'},
+                         case_origins={'QA-1': {'old_key': '9:QA-1', 'original_merged_requirements':
+                             [{'source_pr': 9, 'source_merge': 'a' * 40, 'verification': entry['source_path'],
+                               'original_case_sha256': json_hash(original), 'case': original}]}})
+        self.write(ENVIRONMENT, environment)
+        self.write(COMPATIBILITY, {'compile': {'target': 'rabbit1', 'jvm_target': '25', 'class_major': 69},
+                                   'targets': {'rabbit1': {k: identity[k] for k in ('build', 'java_version')}}})
+        self.write(self.plan_path, self.plan); self.base = self.commit()
+        self.write('build.gradle.kts', 'modern'); self.candidate = self.commit()
+        self.pr['base']['sha'] = self.base
+        self.promotion.update(base=self.base, candidate=self.candidate, artifacts={'swing_fixture': 'f' * 64})
+        result = observation()
+        result.update(head=self.candidate, artifact_sha256='f' * 64, execution='computer_use',
+                      environment_revision=json_hash(environment), environment=identity)
+        self.promotion['results']['35:QA-1'] = result; self.results_commit()
+        self.assertEqual(self.verify()['cases'], 1)
+        self.assertIn('Case合格', render_queue([self.root/self.case_path], self.promotion, self.git))
+        for mutation in ({'environment_revision': None}, {'environment_revision': '0' * 64}, {'environment': dict(identity, java_version='21')},
+                         {'execution': 'manual'}, {'artifact_sha256': 'e' * 64}):
+            self.promotion['results']['35:QA-1'] = dict(result, **mutation); self.results_commit()
+            with self.assertRaises(ValueError): self.verify()
+            self.assertNotIn('Case合格', render_queue([self.root/self.case_path], self.promotion, self.git))
+        self.promotion['results']['35:QA-1'] = result
+        for mutation in ('revision', 'hash', 'key', 'provenance'):
+            plan = copy.deepcopy(self.plan)
+            if mutation == 'revision': plan['environment_revision'] = '0' * 64
+            if mutation == 'key': plan['environment_cases']['QA-1'] = '10:QA-1'
+            source = plan['case_origins']['QA-1']['original_merged_requirements'][0]
+            if mutation == 'hash': source['case']['steps'] = ['Skip']
+            if mutation == 'provenance': source['source_pr'] = 10
+            def git(*args):
+                return json.dumps(plan) if args == ('show', self.base+':'+self.plan_path) else self.git(*args)
+            with self.assertRaises(ValueError): scoped_candidate(self.base, self.candidate, 35, git)
+        def wrong_sdk(*args):
+            if args == ('show', self.candidate+':'+COMPATIBILITY):
+                return json.dumps({'compile': {'target': 'rabbit1', 'jvm_target': '21', 'class_major': 65},
+                                   'targets': {'rabbit1': {k: identity[k] for k in ('build', 'java_version')}}})
+            return self.git(*args)
+        with self.assertRaisesRegex(ValueError, 'SDK differs'):
+            scoped_candidate(self.base, self.candidate, 35, wrong_sdk)
