@@ -6,7 +6,7 @@
 
 段階AはGUI不要のmain tooling。製品sourceとactive compatibility policyを維持し、計画・最小gate拡張・GUI試験入力25ファイルを先に用意する。段階BはA統合後に正式割当を受け、最新mainから別branch/worktreeで新candidateを作る。線形履歴、許可path/mode、候補後の2 JSON限定、独立レビュー・4必須checks、同一buildの全Case受入を維持する。
 
-製品の移植元は旧C `ebac56fe441c08a6c869b8be3b1aa906a887c14e`。PCE修正は [PR #553](https://github.com/shinma06/cursor-in-android-studio/pull/553) のmerge `495ddc5ccbf00f01ce4a62ee2dd4d3ad7a62f145` にあるControllerの取消境界と必要testだけ。最新developのController全体や後続#211/#212等をコピーしない。許可pathは233、うち削除7件。具体的移植元と操作はJSONの `path_sources` に固定する。
+製品の移植元は旧C `ebac56fe441c08a6c869b8be3b1aa906a887c14e`。PCE修正は [PR #553](https://github.com/shinma06/cursor-in-android-studio/pull/553) のmerge `495ddc5ccbf00f01ce4a62ee2dd4d3ad7a62f145` にあるControllerの取消境界と必要testだけ。最新developのController全体や後続#211/#212等をコピーしない。許可pathは234、うち削除7件。具体的移植元と操作はJSONの `path_sources` に固定する。
 
 `docs/architecture/current-implementation.md` は固定mainには存在しない新規文書。固定Cの同文書と実装、現main CLAUDE/運用規約から限定C＋PCEを説明し、最新developへのfallbackを禁止する。CLAUDE/READMEは現mainを基に限定製品の説明だけ更新し、現在の規約を巻き戻さない。
 
@@ -37,5 +37,11 @@ privateの本文/秘密/raw wire禁止、0700/0600、128試行上限、property�
 ## fixtureと残条件
 
 GUI試験入力25ファイルは元C由来。`defer/instrumentation.patch` だけはC＋局所PCE向けに準備workerを追従させた。旧mainへ適用せず、試験専用のinstrumented buildと正式ZIPを区別する。既存fixtureの使い方・対象source・観察の限界は各READMEを参照する。
+
+段階B1で、元Cの `ContextUsageLifecycleTest` が参照する `docs/research/issue-149-fixtures.json` の計画漏れが判明した。元C全体を使った段階Aの隔離preflightにはこのfileが存在したため、当時の470件成功では、main限定の許可pathだけを移す際の欠落を検出できなかった。過去preflightの結果は変更せず、限定B1の470件中1件失敗を別の結果として保持する。
+
+先行main tooling補修は、この1pathを `files` / `path_sources` へ予約するだけで、mainへfixture本体は追加しない。移植時は元C `ebac56fe441c08a6c869b8be3b1aa906a887c14e` の公開blob `4606820038e5a9aefd5475af2b3eaaf900dda70f`、SHA256 `d5d6a4b61b964fc97fd9b4e347c3f2ba45bbc34bdd4b10e3e2ef7f7964283a3b` と同一byteを使用する（[固定原本](https://github.com/shinma06/cursor-in-android-studio/blob/ebac56fe441c08a6c869b8be3b1aa906a887c14e/docs/research/issue-149-fixtures.json)）。有限な合成値と公開済みallowlist投影だけが対象で、関連研究本文・raw証拠・後続機能は追加しない。
+
+補修後のmainから新candidateを作り、470件と必要CLIを改めて実施する。保全B1のsource/ZIPを合格候補にせず、テストの削除/skipや候補側の計画変更で回避しない。175 Case・395原本出現・7削除・環境10件・固定policy/validatorはこの補修で変更しない。
 
 旧#485の3source/branch・原Case/ZIP/観察、QA、owner/registry/PAUSED、GUI保留を維持する。段階Aの統合だけで#562/#485やM6を完了にしない。旧C履歴のSHA特例は追加せず、既存#534/#536の履歴保護・回帰を維持する。追加GUI差が判明した場合だけ、先にmain toolingで計画を改訂してから新candidateを固定する。
