@@ -11,7 +11,7 @@
 | `release_delivery.py` / `release_candidate.py publish` | `ENABLED = False`で外部操作前に拒否する。環境変数・secret・既存eventでは解除できない |
 | 新しいRC Release保存 | `release_candidate.py store`は書込み前に拒否する。保存済みRCは読取り可能なまま保全 |
 | 既存`branch-zip.yml` / `branch_zip.py` | **従来の配布・毎時巡回/cleanupを変更せず残す**。NEW CLIを呼ばない。これは有効化前の接続保全であり、恒久的な別配布方針ではない |
-| 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。公開やNEW経路のdispatchは追加しない |
+| 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。構文検査だけ限定queue互換処理を通す。公開やNEW経路のdispatchは追加しない |
 
 従って、この定義のPR push/merge、遅着・pendingのCI通知、旧毎時eventからNEW経路の公開・削除・dispatch・移行は起動しません。**repository全体の旧公開処理が止まるという意味ではありません。** 旧branch配布は既存条件で引き続き実行し得ます。既存workflowの無効化・pending取消し、variables/secrets設定、App登録、権限付与、旧接続の撤去は今回実施しません。実APIで確認したtrigger/状態・確認不能項目と採用元の固定版はIssue/PRに記録します。
 
@@ -102,7 +102,9 @@ python3 scripts/workflow/release_delivery.py stable \
 
 ## 排他・権限・復旧
 
-新workflowは全channelを `plugin-release-delivery` groupで直列化し、実行中runを取消しません。現在固定しているactionlint 1.7.12が`queue: max`を受理しないため、通常concurrencyの「待機中1runは後着runで置換される」制約を残します。有効化前に対応する固定linter/CIを通常レビューして最大100待機へ揃えるか、復旧を含む明示的な接続方針を決めます。event発生順そのものは保証しません。取消し/失敗を完了扱いにせず、正式版は同じpromotion PRの明示復旧、earlyは元製品CI再実行などから現在HEADを再解決します。ローカルCLIはActions lockを共有しません。有効化時に担当1名・実run終了/排他を確認し、workflowと並行実行しない手順を確定します。
+新workflowは全channelを `plugin-release-delivery` groupで直列化し、`queue: max` と `cancel-in-progress: false` を定義します。実行中A、待機中の正式配布Bへearly Cが後着しても、BをCで置き換えず両方を待機させます。待機は最大100runで、上限を超えた追加runは取消しになります。待機を開始した順の処理で、event発生順そのものは保証しません。取消し/失敗を完了扱いにせず、正式版は同じpromotion PRの明示復旧、earlyは元製品CI再実行などから現在HEADを再解決します。これはGitHub native queueの定義であり、現在は全jobが無効のため実動作を試行していません。ローカルCLIはActions lockを共有しません。有効化時に担当1名・実run終了/排他を確認し、workflowと並行実行しない手順を確定します。[GitHubのqueue仕様](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs)
+
+固定actionlint 1.7.12の[parser](https://github.com/rhysd/actionlint/blob/v1.7.12/parse.go#L756)はこのnative属性を未対応です。既存の固定version/checksumは維持し、[actionlint_check.py](../../scripts/workflow/actionlint_check.py)で当該deliveryの固定concurrency節を厳密に検査します。group・`queue: max`・`cancel-in-progress: false`が揃う1節だけを認め、そのqueue行だけをlint入力上の空行にして残りを[公式stdin入口](https://github.com/rhysd/actionlint/blob/v1.7.12/docs/usage.md#actionlint-command)で検査します。他workflowは原文で全検査し、他の構文・式・未知keyや重複・誤値をignoreしません。repository内のworkflow自体は変更せず、行番号も保持します。固定linterがnative対応した版へ通常更新できた時点でこの限定処理を外します。前回の未対応診断は履歴として保持し、queue定義を有効化scopeへ先送りしません。
 
 publishはレビュー済みmain、buildはwrite tokenのない別runnerです。GitHub Actionsで固定targetと現在default branchのworkflowが異なる場合、標準GITHUB_TOKENでは必要なWorkflows writeを得られないので、最初の書込みと本文/公開切替前に停止します。取得不能やその他の権限エラーも失敗です。この定義はApp/secret/variable名や回避信号を追加しません。認証管理と実際に許された復旧経路は有効化担当が解決し、同じtokenの再実行で権限が増えると扱いません。
 

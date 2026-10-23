@@ -6,7 +6,7 @@
   "cli_checks": [
     "python3 scripts/workflow/change_impact.py --base origin/main --run-tests（clean committed HEAD。公開前提待ちの固定版検査と、後の現行main再照合・有効pre-pushを区別する）",
     "workflow/loop suite。無効入口、source/run/workflow/manifest/ZIP identity、docs/test-only no-op、遅着eventと新製品の欠落、必要checks、Artifact期限/transport/候補、途中失敗と所有cleanup、旧正式/RC互換を合成fixtureとmockで検査",
-    "固定actionlintのActions構文検査、git diff --check、GUI不要verification schema、旧配布/CI/classifier接続の不変照合とNEW consumerの静的到達検査",
+    "固定actionlintと限定native queue互換処理のActions構文検査。queue:max/cancel:falseの厳密検査、他workflow原文・残りのdelivery構文/式のエラー伝播、git diff --check、GUI不要verification schema、旧配布/classifierとCIのlint入口以外の不変照合・NEW consumerの静的到達検査",
     "required Gradle test。製品build/ZIP生成・GUI・実配布の成功や新運用の効果測定には代用しない"
   ],
   "cases": []
