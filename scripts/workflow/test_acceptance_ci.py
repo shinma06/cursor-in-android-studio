@@ -15,7 +15,7 @@ MOVED = 'c' * 40
 
 def pr_data():
     return {
-        'number': 90, 'state': 'open', 'merged': False,
+        'number': 90, 'title': 'chore: 検査状態を確認する (#90)', 'state': 'open', 'merged': False,
         'body': 'Issue: #90\nIntegration: tooling\n'
                 'Verification: docs/verification/changes/issue-90.json\n'
                 'GUI: not-required\nGUI reason: CI state handling only',
@@ -117,13 +117,14 @@ class DelayedAcceptanceTests(unittest.TestCase):
         self.assertEqual(api.call_count, 3)  # No new-base lookup for a closed PR.
 
     def test_open_final_head_target_body_or_base_race_still_fails(self):
-        for change in ('head', 'target', 'body', 'base'):
+        for change in ('head', 'target', 'body', 'base', 'title'):
             with self.subTest(change=change):
                 latest = pr_data()
                 latest_base = BASE
                 if change == 'head': latest['head']['sha'] = MOVED
                 if change == 'target': latest['base']['ref'] = 'develop'
                 if change == 'body': latest['body'] += '\nchanged scope'
+                elif change == 'title': latest['title'] = 'fix: 検査の対象を変える (#90)'
                 if change == 'base': latest_base = MOVED
                 api = Mock(side_effect=[pr_data(), {'object': {'sha': BASE}}, latest, {'object': {'sha': latest_base}}])
                 with self.assertRaisesRegex(ValueError, 'changed during acceptance validation'):

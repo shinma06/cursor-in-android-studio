@@ -4,7 +4,7 @@
 
 ## 何をどこへ残すか
 
-恒久指示は[CLAUDE/AGENTS](../../CLAUDE.md)、方針は[Mission](../project-mission.md)と[ACP First](cursor-integration.md)、製品の要件は[要件書](../cursor-agent-plugin-requirements.md)、進捗/一時的な作業順/レビューは対象Issue・PR、Case/固定候補の証拠は[verification JSON](../verification/README.md)が正本。既存の正本を複製しない。
+恒久指示は[AGENTS](../../AGENTS.md)（CLAUDEは参照入口）、方針は[Mission](../project-mission.md)と[ACP First](cursor-integration.md)、製品の要件は[要件書](../cursor-agent-plugin-requirements.md)、進捗/一時的な作業順/レビューは対象Issue・PR、Case/固定候補の証拠は[verification JSON](../verification/README.md)が正本。既存の正本を複製しない。
 
 恒久知識は将来の判断に必要で、適用範囲と対象版が明確、根拠または限界を追えるものに限る。原証拠、仮説、合成、未確認は区別する。固定SHAはその版の証拠であり、他branchの現在状態を証明しない。変更時は参照先と消費側を確認する。
 
@@ -22,7 +22,7 @@
 
 開発コメント/docstringは用途で判断する。実行時、生成、テスト抽出で使う文字列は説明文と推測して変えない。CLI引数、保存済みID、固有名詞、正確なコード例、製品テスト期待値は翻訳しない。開発/製品が共用し影響を分離できないものは維持し、理由を当該Issue/PRへ残す。外部管理plugin・個人共有設定は影響と提案だけを記録し、無関係なプロジェクトへ適用範囲を広げない。#146、未解放claim、公開承認待ち、PAUSED automationを保全する。
 
-作成・更新時は上の配置表を使い、正本・用途・読む条件・現行/履歴・対象版・編集可否を選ぶ。関連する既存文書/コードの消費側を確認し、重複なら参照へ統合する。移動は旧要件→新配置→維持条件をPRに残し、新経路の到達を確認するまで旧入口を切らない。規定ファイル名、frontmatter、symlink、client別Skill経路、リンク/アンカー、schemaを保持する。全ファイルへのfrontmatter追加や新しい知識台帳は不要。
+作成・更新時は上の配置表を使い、正本・用途・読む条件・現行/履歴・対象版・編集可否を選ぶ。関連する既存文書/コードの消費側を確認し、重複なら参照へ統合する。移動は旧要件→新配置→維持条件をPRに残し、新経路の到達を確認するまで旧入口を切らない。規定ファイル名、frontmatter、client別Skill経路、リンク/アンカー、schemaを保持する。AGENTS.mdを正本、CLAUDE.mdを参照入口にし、両Skillsの意味を揃える。全ファイルへのfrontmatter追加や新しい知識台帳は不要。
 
 レビュー・監査時も同じ表で判定する。必須/推奨/禁止、適用条件、例外、権限/承認/所有、互換性、受入と完了条件を比較し、正当な原証拠例外を言語違反にしない。形式、意味、実client検出、実model挙動、資源量は別判定。発見/読込/意味/出力言語/互換性が後退する候補は展開せず、保留担当と再開条件を記録する。
 
@@ -40,18 +40,22 @@
 | 開発promptの生成/消費 | agent_worker.pyのreview/fix prompt → 本節。packet/schemaと日本語報告を保持 |
 | 今後のコンテキスト監査 | Governance AuditのContext行 → 本節。個人監査Skillは改変せず、project側のAGENTS/監査入口から適用 |
 
-## mainへの限定反映と旧要件の保持
+## mainへの限定反映と旧要件の保持（#423当時の履歴）
 
 元の開発規則は[#420](https://github.com/shinma06/cursor-in-android-studio/issues/420)、main反映は[#423](https://github.com/shinma06/cursor-in-android-studio/issues/423)、残受入の正本は[QA #422](https://github.com/shinma06/cursor-in-android-studio/issues/422)。試行結果と統合SHAはIssue/PRで追跡する。恒久的な試験台帳を追加しない。
 
 | 対象 | mainでの配置・保持 |
 | --- | --- |
-| CLAUDE/AGENTS | Agent専用の英語指示と条件付き参照。symlinkと旧アンカーを保持。Mission/ACP設計、GitHub所有・gate、UI日本語、製品ID・print/復元/解析/EDTの制約を残す |
+| CLAUDE/AGENTS | Agent専用の英語指示と条件付き参照。旧アンカーと両clientの読込導線を保持。Mission/ACP設計、GitHub所有・gate、UI日本語、製品ID・print/復元/解析/EDTの制約を残す |
 | 両client start/finish・Cursor 2 rules | #420と同一本文。frontmatter、既存パス、alwaysApplyを保持。製品未確認をpassにせず、GUI時だけ詳細を読む |
 | 本書・workflow参照表・PR template・Governance Context | 作成/更新/レビュー/監査は本書の同一規則を参照。共有本文は日本語。mainの#408限定候補導線を保持 |
 | loop/review依頼とagent_worker | #420の共通本文/参照を再利用。人間向け説明と報告は日本語、Agent本文は英語。予算・権限・packet/schema・tool無効reviewを保持 |
-| main製品状態とbuild | printが既定、ACPはdevelop別記録。旧履歴はmetadata、本文永続化はmainへ取り込まない。JDK21/Quail1固定SDK、local SDK明示opt-in、#408の限定取り込み・同一ZIP公開を維持 |
+| main製品状態とbuild | 当時はprint既定・JDK21/Quail1固定SDK。現行SDK/JBR/実装は対象branchのAGENTS/build/policyを確認し、旧実観察と混同しない。local SDK明示opt-in、#408の限定取り込み・同一ZIP公開を維持 |
 | 固定履歴/採取fixture/製品試験入力 | [変更前CLAUDE](https://github.com/shinma06/cursor-in-android-studio/blob/67348d75264254e39e964915bfc66a98f227764d/CLAUDE.md)に元の説明と時点別結果を保持。語句・ID・rawデータを翻訳しない。旧MV/runは履歴、現行Case JSONを二重編集しない |
 | 製品source/test/resources/runtime prompt・外部plugin/個人設定 | 本反映では編集対象外。根拠として必要な範囲だけ参照し、秘密・#146の公開承認待ち・既存ownerを保全 |
 
 mainとdevelopで製品状態や固定履歴の記述が違うことは正常。共通規則・client入口・開発promptの意味が一致する限り、この限定反映だけを理由に製品差分やmain専用の過去記録をdevelopへ重複同期しない。後のpromotionで必要なDAG/Case照合は既存手順に従う。
+
+## 現行運用と古い管理前提
+
+#571により共通運用はAGENTS・workflow・verificationが正本です。旧文書のモデル下限、全機能調査、no-Cases QA、無条件の全native反復は現行契約へ読み替えます。製品の実観察・原失敗・固定Caseは変更しません。古い依頼文/templateを次の割当前に整合し、変更時点・根拠・残条件だけ既存Issue/PRへ残します。実tool権限や人間の停止、未解放所有を読み替えで免除しません。

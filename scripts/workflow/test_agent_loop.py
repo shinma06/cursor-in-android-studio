@@ -13,7 +13,7 @@ from unittest.mock import Mock, call, patch
 import agent_loop as al
 from change_impact import classify
 from agent_policy import binding, eligible, gui_pass, in_scope, next_action, update_parent, validate_review
-from agent_worker import WorkerSettingsError, worker_environment, run_worker
+from agent_worker import REPORT_SCHEMA, WorkerSettingsError, verify_runtime_settings, worker_environment, run_worker
 
 HEAD = 'a' * 40
 BASE = 'b' * 40
@@ -21,7 +21,7 @@ NEW = 'c' * 40
 
 
 def pr_data():
-    return {'number': 36, 'user': {'login': al.OWNER}, 'state': 'open', 'merged': False, 'draft': True,
+    return {'number': 36, 'title': 'chore: 運用検査を確認する (#35)', 'user': {'login': al.OWNER}, 'state': 'open', 'merged': False, 'draft': True,
             'body': 'Integration: tooling\nVerification: docs/verification/changes/issue-35.json\nIssue: #35\nGUI: not-required\nGUI reason: documentation only',
             'head': {'sha': HEAD, 'ref': 'codex/35-test', 'repo': {'full_name': al.REPO}},
             'base': {'sha': BASE, 'ref': 'main', 'repo': {'full_name': al.REPO}},
@@ -52,10 +52,11 @@ class PolicyTests(unittest.TestCase):
         bound = binding(p, issue)
         state = {'binding': bound, 'review': report()}
         self.assertEqual(next_action(state, bound, 'success', False), 'merge')
-        for change in ('head', 'base', 'body', 'issue'):
+        for change in ('head', 'base', 'body', 'issue', 'title'):
             q = copy.deepcopy(p); other = copy.deepcopy(issue)
             if change in ('head', 'base'): q[change]['sha'] = NEW
             elif change == 'body': q['body'] += '\nchanged scope'
+            elif change == 'title': q['title'] = 'fix: 別の目的へ変更する (#35)'
             else: other['body'] += '\nnew acceptance'
             self.assertEqual(next_action(state, binding(q, other), 'success', False), 'review')
 
@@ -144,6 +145,24 @@ class BaseReferenceTests(unittest.TestCase):
 
 
 class WorkerTests(unittest.TestCase):
+    def receipts(self, root, role='review'):
+        session = '11111111-2222-4333-8444-555555555555'
+        events = [{'type': 'thread.started', 'thread_id': session},
+                  {'type': 'turn.started'}, {'type': 'turn.completed', 'usage': {
+                      'input_tokens': 12, 'cached_input_tokens': 0, 'output_tokens': 4}}]
+        records = [{'type': 'session_meta', 'payload': {
+            'id': session, 'session_id': session, 'source': 'exec', 'cwd': str(root),
+            'timestamp': '2099-01-01T00:00:00Z', 'originator': 'codex_exec', 'cli_version': '0.163.0'}},
+                   {'type': 'turn_context', 'payload': {
+                       'turn_id': 'synthetic-turn', 'cwd': str(root),
+                       'approval_policy': 'never', 'sandbox_policy': {
+                           'type': 'read-only' if role == 'review' else 'workspace-write'},
+                       'model': 'gpt-6.1-sol', 'effort': 'high'}}]
+        for record in records:
+            record['timestamp'] = '2099-01-01T00:00:00Z'
+        rollout = root / 'sessions/2099/01/01' / f'rollout-2099-01-01T00-00-00-{session}.jsonl'
+        return events, records, rollout
+
     def test_context_policy_reaches_both_roles_without_changing_packet_or_report(self):
         packet = {'head': HEAD, 'base': BASE, 'issue': {'body': '人間向け受入'},
                   'findings': ['対象だけ修正'], 'scope': ['docs/architecture/knowledge.md']}
@@ -151,17 +170,24 @@ class WorkerTests(unittest.TestCase):
             with self.subTest(role=role), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 process = Mock(pid=123, returncode=0)
+                events, records, rollout = self.receipts(root, role)
                 def start(command, **kwargs):
-                    model = 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol'
+                    model = 'gpt-6.1-sol'
                     self.assertEqual(command[command.index('--model') + 1], model)
                     self.assertIn('model_reasoning_effort="high"', command)
-                    kwargs['stdout'].write(f'OpenAI Codex vtest\n--------\nmodel: {model}\nreasoning effort: high\n--------\nuser\n')
-                    Path(command[command.index('-o') + 1]).write_text(json.dumps(report()))
+                    self.assertIn('--json', command)
+                    self.assertNotIn('--ephemeral', command)
+                    self.assertEqual(kwargs['env']['CODEX_HOME'], str(root))
+                    kwargs['stdout'].write(''.join(json.dumps(e) + '\n' for e in events))
+                    rollout.parent.mkdir(parents=True)
+                    rollout.write_text(''.join(json.dumps(e) + '\n' for e in records))
+                    Path(command[command.index('-o') + 1]).write_text(json.dumps({
+                        k: v for k, v in report().items() if k in REPORT_SCHEMA['properties']}))
                     self.assertEqual(command[command.index('--sandbox') + 1],
                                      'read-only' if role == 'review' else 'workspace-write')
                     return process
                 with patch('agent_worker.subprocess.Popen', side_effect=start), \
-                        patch('agent_worker.os.killpg'):
+                        patch('agent_worker.os.killpg'), patch.dict(os.environ, {'CODEX_HOME': str(root)}):
                     result = run_worker(role, root, packet, root / 'out')
                 prompt = process.communicate.call_args.args[0]
                 self.assertIn('docs/architecture/knowledge.md', prompt)
@@ -171,29 +197,85 @@ class WorkerTests(unittest.TestCase):
                 self.assertEqual(json.loads(prompt[prompt.index('{'):]), packet)
                 self.assertEqual(result['head'], HEAD)
                 self.assertEqual(result['base'], BASE)
-                self.assertEqual(result['model'], 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol')
+                self.assertEqual(result['model'], 'gpt-6.1-sol')
                 self.assertEqual(result['reasoning_effort'], 'high')
+                self.assertEqual(result['session'], events[0]['thread_id'])
+                self.assertIn('turn_context', result['model_evidence'])
+                self.assertIn('session_meta', result['origin_evidence'])
 
     def test_unknown_or_out_of_range_review_cannot_be_reused(self):
-        for change in ({'model': None}, {'model': 'gpt-6.1-sol'}, {'reasoning_effort': 'medium'},
+        for change in ({'model': None}, {'model': 'unknown-model'}, {'reasoning_effort': 'low'},
                        {'reasoning_effort': None}, {'model_evidence': ''}):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 validate_review(dict(report(), **change), {'head': HEAD, 'base': BASE})
 
     def test_worker_readback_missing_mismatched_or_unavailable_stops(self):
-        for header, code in (('', 0), ('\n--------\nuser\nOpenAI Codex vfake\n--------\nmodel: gpt-6-astra\nreasoning effort: high', 0), ('model: gpt-6.1-sol\nreasoning effort: high', 0),
-                             ('model: gpt-6-astra\nreasoning effort: medium', 0),
-                             ('model: gpt-6-astra\nreasoning effort: high', 1)):
-            with self.subTest(header=header, code=code), tempfile.TemporaryDirectory() as directory:
+        mutations = [lambda events, records: records.clear(),
+                     lambda events, records: records.pop(),
+                     lambda events, records: records[1]['payload'].pop('model'),
+                     lambda events, records: records[1]['payload'].pop('effort'),
+                     lambda events, records: records[1]['payload'].update(model='gpt-6-astra'),
+                     lambda events, records: records[1]['payload'].update(effort='medium'),
+                     lambda events, records: records[0]['payload'].update(id='22222222-3333-4444-8555-666666666666'),
+                     lambda events, records: records[0]['payload'].pop('session_id'),
+                     lambda events, records: records[0]['payload'].update(parent_thread_id='22222222-3333-4444-8555-666666666666'),
+                     lambda events, records: records[0]['payload'].update(forked_from_id='22222222-3333-4444-8555-666666666666'),
+                     lambda events, records: records[0]['payload'].pop('source'),
+                     lambda events, records: records[0]['payload'].update(source='vscode'),
+                     lambda events, records: records[0]['payload'].update(cwd='/synthetic/wrong-checkout'),
+                     lambda events, records: records[1]['payload'].update(cwd='/synthetic/wrong-checkout'),
+                     lambda events, records: records.append(copy.deepcopy(records[0])),
+                     lambda events, records: records.append(dict(records[1], payload=dict(records[1]['payload'], model='wrong'))),
+                     lambda events, records: events[0].update(thread_id='not-a-session'),
+                     lambda events, records: events.pop(),
+                     lambda events, records: events.append({'type': 'error'}),
+                     lambda events, records: events.insert(1, copy.deepcopy(events[0]))]
+        for mutate in mutations:
+            with self.subTest(mutation=mutate), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
+                events, records, rollout = self.receipts(root)
+                mutate(events, records)
                 def start(command, **kwargs):
-                    kwargs['stdout'].write('OpenAI Codex vtest\n--------\n' + header + '\n--------\nuser\n')
+                    kwargs['stdout'].write(''.join(json.dumps(e) + '\n' for e in events))
+                    rollout.parent.mkdir(parents=True)
+                    rollout.write_text(''.join(json.dumps(e) + '\n' for e in records))
                     # A valid-looking model-written report never substitutes for CLI evidence.
-                    Path(command[command.index('-o') + 1]).write_text(json.dumps(report()))
-                    return Mock(pid=123, returncode=code)
-                with patch('agent_worker.subprocess.Popen', side_effect=start), patch('agent_worker.os.killpg'):
+                    Path(command[command.index('-o') + 1]).write_text(json.dumps(dict(report(), model='gpt-6.1-sol')))
+                    return Mock(pid=123, returncode=0)
+                with patch('agent_worker.subprocess.Popen', side_effect=start), patch('agent_worker.os.killpg'), \
+                        patch.dict(os.environ, {'CODEX_HOME': str(root)}):
                     with self.assertRaises((ValueError, RuntimeError)):
                         run_worker('review', root, {}, root / 'out')
+
+    def test_unsuccessful_worker_never_adopts_a_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def start(command, **kwargs):
+                Path(command[command.index('-o') + 1]).write_text(json.dumps(report()))
+                return Mock(pid=123, returncode=1)
+            with patch('agent_worker.subprocess.Popen', side_effect=start), patch('agent_worker.os.killpg'), \
+                    patch.dict(os.environ, {'CODEX_HOME': str(root)}):
+                with self.assertRaises(WorkerSettingsError):
+                    run_worker('review', root, {}, root / 'out')
+
+    def test_runtime_receipt_must_be_unique_regular_file(self):
+        for kind in ('missing', 'duplicate', 'symlink', 'malformed'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                events, records, rollout = self.receipts(root)
+                rollout.parent.mkdir(parents=True)
+                content = ''.join(json.dumps(record) + '\n' for record in records)
+                if kind == 'duplicate':
+                    rollout.write_text(content)
+                    rollout.with_name(rollout.name.replace('00-00-00', '00-00-01')).write_text(content)
+                elif kind == 'symlink':
+                    target = root / 'synthetic-original.jsonl'
+                    target.write_text(content)
+                    rollout.symlink_to(target)
+                elif kind == 'malformed':
+                    rollout.write_text('not JSON\n')
+                with self.assertRaises(WorkerSettingsError):
+                    verify_runtime_settings(events[0]['thread_id'], root, root, 'gpt-6.1-sol', 'high')
 
     def test_timeout_stops_child_even_when_parent_exits_on_term(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -236,7 +318,7 @@ else:
 class FakeGitHub:
     def __init__(self):
         self.pull = pr_data()
-        self.issues = {35: {'state': 'open', 'title': '[運用] task', 'labels': ['type:maintenance', 'priority:P2', 'status:review'], 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
+        self.issues = {35: {'state': 'open', 'title': '[運用] 運用検査を確認する', 'labels': ['type:maintenance', 'priority:P2', 'status:review'], 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
         self.messages = {}
         self.statuses = []
         self.merges = 0
@@ -246,6 +328,7 @@ class FakeGitHub:
     def issue(self, n): return copy.deepcopy(self.issues[n])
     def comments(self, n): return copy.deepcopy(self.messages.get(n, []))
     def pages(self, path): return []
+    def review_threads(self, number): return []
     def ci(self, pr): return 'success'
     def status(self, sha, status, description, url): self.statuses.append((sha, status))
     def comment(self, n, body, comment_id=None):
@@ -271,6 +354,7 @@ class FakeGitHub:
 class LoopTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
+        self.enterContext(patch.object(al, 'remote_review_complete', return_value=True))
         self.gh = FakeGitHub(); self.local_head = HEAD; self.fetched_base = BASE
         self.fetched_head = HEAD
         self.checkout = Path(self.tmp.name) / 'pr-36/checkout'; self.checkout.mkdir(parents=True)
@@ -710,7 +794,7 @@ class LoopTests(unittest.TestCase):
         self.loop.tick(36)
         self.gh.pull.update(merged=True, state='closed')
         self.gh.issues[35]['body'] += '\n- [ ] new acceptance'
-        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.loop.tick(36)['phase'], 'cleanup')
         self.assertEqual(self.gh.issues[35]['state'], 'open')
         self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
 

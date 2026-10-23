@@ -30,23 +30,17 @@ Cursor IDE内Agent panelの主要な体験について、可能な限り同等�
 
 ## 公式仕様と競合比較
 
-機能仕様のPrimary Referenceは **Cursor公式の最新IDE内Agent panel** とする。新機能を設計・実装するときは最新の公式仕様を確認し、古い仕様・過去UI・第三者の再現実装を基準にしない。公式変更時は関連要件を再評価する。過去の調査は日付・環境を持つ証拠として残し、現仕様の保証には使わない。
+機能仕様のPrimary Referenceは **Cursor公式の最新IDE内Agent panel** とする。仕様判断に不足がある場合は関連する最新公式仕様を確認し、古い仕様・過去UI・第三者の再現実装だけで現在の能力を断定しない。公式変更時は関連要件を再評価する。過去の調査は日付・環境を持つ証拠として残し、現仕様の保証には使わない。
 
 競合ベースラインは、利用可能な範囲で最も強い **JetBrains AI Assistant + Cursor ACP + IntelliJ / Android Studio integration + IntelliJ MCP Server + MCP tools** とする。本Pluginは少なくともこの構成で利用できるCursor関連機能を包含し、その上でより優れたAndroid Studio統合を提供することを目標とする。
 
-新機能の設計・実装では、必ず次を確認し、対象Issueまたは設計資料に記録する。
+設計の判断に不足がある場合だけ、固定した既存証拠と現在の公式仕様を照合する。Cursor panelの対象能力、JetBrains/ACP/IDE/MCPの該当能力、本PluginのUXとAndroidへの追加価値のうち、今回の判断に必要な部分を対象Issue/設計へ記録する。全機能で同じ5項目・全製品比較を反復する義務にはしない。既存の十分な固定調査を再利用し、変化・矛盾・未知の部分だけ調べる。
 
-1. Cursor IDE内Agent panelでは何ができるか。
-2. JetBrains AI Assistant + Cursor ACPでは何ができるか。
-3. JetBrains側のMCP / IDE integrationと利用可能なtoolsを含めると何ができるか。
-4. 本Pluginで同等以上のUXをどう実現するか。
-5. Android Studioとの直接統合で、さらに何を提供できるか。
-
-比較には対象版・構成・公式根拠・実測範囲・未確認事項を添える。競合に既にある機能を独自の差別化として扱わない。未確認は `[要検証]` とし、MCP等の存在だけで全機能が利用可能とも断定しない。既存の比較調査は [#115](https://github.com/shinma06/cursor-in-android-studio/issues/115) を利用する。
+採用する比較には対象版・構成・公式根拠・実測範囲・未確認を添える。競合にある能力を独自の差別化と呼ばず、MCP等の存在だけで利用成功を断定しない。旧[#115](https://github.com/shinma06/cursor-in-android-studio/issues/115)の調査と失敗は履歴として保持し、新しい調査/移行作業を自動的に開始しない。
 
 ## Android Studioによる差別化と完成像
 
-IDE内Agent panelのAndroid Studio版を実現した上で、Cursor IDEでは取得・操作しづらく、Android Studio Pluginなら直接扱える情報・機能によって競争優位を築く。候補には以下を含むが、採用は技術的実現可能性と上記の競合比較を検証して決める。
+IDE内Agent panelのAndroid Studio版を実現した上で、Cursor IDEでは取得・操作しづらく、Android Studio Pluginなら直接扱える情報・機能によって競争優位を築く。候補には以下を含むが、採用は目的・必要保証・既存証拠・不足事実と技術的実現可能性を照合して決める。
 
 - Android Emulator、Physical Android Device、ADB、Logcat、install / launch / stop。
 - Gradle、Build Variant、Run Configuration、Debug Configuration、APK / AAB。

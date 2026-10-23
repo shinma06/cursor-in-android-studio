@@ -41,7 +41,7 @@ flowchart LR
 | 許可外変更・予期しない外部操作・復元先不明 | Stopし差分を確認する。原因不明のまま再送しない |
 | 予算上限・同じ修正で改善なし | 証拠を保存し、分割または次の操作を引き継ぐ |
 
-再開時は`next_action`、claim、HEAD、ロードbuild、fixture差分、lease token/期限を再確認します。修正後は新run IDを作り、前runをリンクします。古いGUI要素番号やpassを引き継がず、停止するプロセスを特定します。全IDE/agentの一括killはしません。
+再開時は`next_action`、claim、HEAD、ロードbuild、fixture差分、lease token/期限を再確認します。修正後は新run IDを作り、前runをリンクします。古いGUI要素番号を使い回さず、passは正式な証拠再利用条件だけで扱い、停止するプロセスを特定します。全IDE/agentの一括killはしません。
 
 ## 利用する環境と入口
 
@@ -54,3 +54,5 @@ flowchart LR
 - [証跡形式とコマンド](evidence.md)
 
 promptの旧ファイル名はリンク互換のため残しています。セッションごとの継続開発手順であり、常駐処理や無限再送を追加しません。定期実行が依頼された場合は、利用環境の対応機能・GUI占有・予算・停止条件を確認します。
+
+[製品責任](../verification/responsibility.md)と[現行検証](../verification/README.md)から必要な証拠と再利用を判断し、過去レシピだけでnative反復を要求しません。

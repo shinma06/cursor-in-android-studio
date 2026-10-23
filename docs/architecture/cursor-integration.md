@@ -8,7 +8,7 @@ ACP導入自体を目的にせず、IDE内Agent panelの構造化されたAgent�
 
 ## 統合手段の選択
 
-新しいCursor連携機能では、最初にACPで実現可能かを調査する。原則の優先順は以下とする。
+変更の保証と現行実装・固定証拠を先に確認する。新しい連携契約を選ぶ判断が必要な場合に、目的に合う既存能力と不足を調べる。ACPを重視する設計の候補は以下だが、全変更で一律に全経路を調査する手順にはしない。
 
 1. ACP標準機能
 2. Cursor ACP extensions
@@ -21,7 +21,7 @@ ACP導入自体を目的にせず、IDE内Agent panelの構造化されたAgent�
 
 CLI専用能力、CLIが適した処理、必要なfallbackにはCLIを継続利用する。ACPとCLIの排他的な設計にはせず、ACP + CLI + IDE APIs + MCPを必要に応じて組み合わせる。なお、Cursor公式のACP入口自体も `agent acp` をstdio/JSON-RPCで起動する。ACP FirstはCLI実行ファイルの廃止ではなく、連携契約の選択である。[Cursor ACP公式](https://cursor.com/docs/cli/acp)
 
-既存方式Bのstream-jsonも構造化されたJSONであり、非構造テキストと一括りにしない。ただし新機能の設計ではACP契約を先に調べ、CLI経路を選ぶ場合は合理的理由と制約を残す。
+既存方式Bのstream-jsonも構造化されたJSONであり、非構造テキストと一括りにしない。新たに契約を選ぶ場合は、既存経路の再利用とACPによる不足解消を照合し、採用理由と制約を残す。
 
 ## 構造化されたAgent体験
 
@@ -51,7 +51,7 @@ Cursor Agent本体は可能な限りブラックボックスとして扱う。�
 
 ## 機能ごとの設計確認と現状
 
-実装時は [必須の競合比較](../project-mission.md#公式仕様と競合比較)に加え、ACP標準で取得可能か、Cursor拡張があるか、IDE APIから直接取得すべきか、MCP toolとして提供すべきか、CLIを選ぶ合理的理由があるか、脆弱な表示文字列への依存を増やさないか、Agents Window専用機能を誤って含めていないかを確認する。
+実装時は[条件付きの公式調査](../project-mission.md#公式仕様と競合比較)を使い、不足する判断に関係する範囲で、ACP標準で取得可能か、Cursor拡張があるか、IDE APIから直接取得すべきか、MCP toolとして提供すべきか、CLIを選ぶ合理的理由があるか、脆弱な表示文字列への依存を増やさないか、Agents Window専用機能を誤って含めていないかを確認する。
 
 現行の所有関係・送受信・停止・復元の詳細は [developの固定実装記録](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/architecture/current-implementation.md)、指示・命名の点検は [固定監査記録](https://github.com/shinma06/cursor-in-android-studio/blob/23807d4bea07d3fd1b390ef4d1c466b9b36f54ca/docs/development/project-context-audit.md)を参照する。
 

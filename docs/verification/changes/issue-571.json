@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 571,
+  "gui_required": false,
+  "reason": "本段階はAGENTS/両client Skills/rules・共通運用・必要な開発/管理/検証consumerと合成回帰だけを変更する。製品runtime/source/build/成果物と既存Case・原観察は変更せず、GUI/device/新運用実案件試行・job/Release操作を実行しないためGUI不要。配布consumerの二経路化とdevelopへの共通運用同期はOMILが別scopeで引き継ぎ、Issue571全体を完了/自動closeしない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests（clean committed HEAD。push時は有効hookの同一目的検査を使い、直前の手動suiteを重ねない）",
+    "Python workflow/loop suite。原NG全保証・固定candidate・独立実origin/証明・履歴revert・no-Cases custody・新旧命名・URL限定Project・provider pending/全feedback境界の合成回帰",
+    "既存validate_changeによるGUI不要schema・理由・CLI checks・空cases、両client Skillsの同一本文・正本/旧anchor/相対リンク・必要consumerの静的整合",
+    "git diff --check、shell構文、inline CIと共有validatorの一致、Actions構文検査。製品/GUI/効果測定は別事実として未実施を保持",
+    "固定source/main/develop差分と採用/既存同等/非適用/後続scopeをIssue571/PRの同じcoverage記録でreadback。#565今回内容承認とpre-adoption独立レビュー経路はPM保管"
+  ],
+  "cases": []
+}

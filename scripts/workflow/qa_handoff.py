@@ -1,8 +1,9 @@
 """Read-back verified QA transfer. Called only by the single coordinator after merge."""
 import json
 import re
+from html import escape
 from issue_schema import validate_issue
-from verification import metadata, validate_change
+from verification import field, metadata, validate_change
 
 
 def handoff(gh, repo, pr, origin, change):
@@ -10,44 +11,47 @@ def handoff(gh, repo, pr, origin, change):
     if mode != 'develop' or not pr.get('merged') or not re.fullmatch(r'[0-9a-f]{40}', pr.get('merge_commit_sha', '')):
         raise ValueError('QA transfer requires a confirmed develop merge')
     axes = validate_issue(origin)
-    validate_change(change, number, 'GUI: required' in pr['body'])
+    validate_change(change, number, field(pr['body'], 'GUI') == 'required')
     marker = f'<!-- issue-qa-handoff:v1 origin={number} -->'
+    qa_prefixes = (f'test: #{number} ', f'[試験] #{number} ')
     # List all Issues (not search indexing) so a lost create response is retryable.
     candidates = [x for x in gh.pages(f'repos/{repo}/issues?state=all&per_page=100')
-                  if 'pull_request' not in x and marker in (x.get('body') or '')]
+                  if 'pull_request' not in x and (marker in (x.get('body') or '') or x.get('title', '').startswith(qa_prefixes))]
     if len(candidates) > 1:
         raise ValueError('Multiple QA Issues match origin; reconcile before closing')
     record = f'<!-- issue-qa-record:v1 origin={number} pr={pr["number"]} merge={pr["merge_commit_sha"]} -->'
-    main_tracking = {
-        'id': 'MAIN-REFLECTION', 'origin': number, 'pr': pr['number'],
-        'merge_sha': pr['merge_commit_sha'], 'status': 'pending',
-        'steps': ['固定候補とbuildを識別し、元PRの全Caseを確認する',
-                  'promotion PRとmain履歴で元変更の反映を照合する'],
-        'expected': '全必要Caseの証拠とmainへの反映が一致する',
-        'gpt': {'status': 'pending', 'reason': 'main反映未確認'},
-        'human': {'status': 'pending', 'reason': 'main反映未確認'},
-        'fixed_build': None, 'fix_issue': None, 'fix_pr': None,
-        'next_action': 'PMが候補/buildを固定して試験・main反映を照合する',
-        'recheck': '製品failは専用修正Issue/PRから新候補を再確認する'}
-    payload = (record + f'\n元Issue: #{number}\nPR: #{pr["number"]}\nmerge SHA: {pr["merge_commit_sha"]}\n'
-               f'Verification: https://github.com/{repo}/blob/{pr["merge_commit_sha"]}/{path}\n\n'
-               '## 受入・次操作・依存\n固定候補とbuildを指定し、全必要Caseを確認後main反映を照合する。'
-               '元IssueのcloseはGUI pass/main反映を意味しない。固定build: 未登録。'
-               '既存の観察は履歴であり新候補のpassではない。製品failは修正Issue/PRと再確認へ引き継ぐ。\n'
-               'GUI不要でもmain反映確認をこのマトリクスで追跡する。\n\n```json\n' +
-               json.dumps({'change': change, 'main_tracking': main_tracking}, ensure_ascii=False, indent=2) + '\n```')
+    title = escape(' '.join(origin['title'].split()), quote=False)
+    title = re.sub(r'([\\`*_{}\[\]()#+.!|>@$~-])', r'\\\1', title)
+    source = (record + f'\n元Issue: #{number}\n元Issue題名: {title}\nPR: #{pr["number"]}\nmerge SHA: {pr["merge_commit_sha"]}\n'
+              f'Verification: https://github.com/{repo}/blob/{pr["merge_commit_sha"]}/{path}\n')
+    if not change['cases']:
+        if candidates:
+            raise ValueError('Existing QA requires explicit reconciliation before a no-Case transfer')
+        receipt = source + ('\nCaseなし。独立した残試験なし。main反映は未確認でPMが保管し、'
+                            '次の適用可能な固定候補/promotion PRとmain履歴へ対応付ける。'
+                            'QAは作成せず、この元Issue/PRの記録を引き継ぐ。GUI合格を意味しない。')
+        for target in (number, pr['number']):
+            if not any(c['body'] == receipt for c in gh.comments(target)):
+                gh.comment(target, receipt)
+            if not any(c['body'] == receipt for c in gh.comments(target)):
+                raise ValueError('No-Case main custody readback failed')
+        return None
+    payload = source + ('\n受入・次操作: 固定mergeの全Case・前提・手順・期待・actor・再確認を正本として'
+                        'PMが候補/buildと未達を照合し、必要な残試験とmain反映を割り当てる。'
+                        '元IssueのcloseはGUI/main合格ではない。\nCase: ' +
+                        ', '.join(case['id'] for case in change['cases']))
     milestone = origin.get('milestone')
     if not candidates:
-        summary = re.sub(r'^\[[^]]+\]\s*', '', origin['title'])
-        data = {'title': f'[試験] #{number} {summary}', 'body': marker + '\n' + payload,
+        data = {'title': f'test: #{number} 残る動作確認を引き継ぐ', 'body': marker + '\n' + payload,
                 'labels': ['type:qa', 'priority:' + axes['priority'], 'status:ready']}
+        validate_issue(dict(data, state='open'), allow_legacy=False)
         if milestone:
             data['milestone'] = milestone['number']
         qa = gh.api(f'repos/{repo}/issues', 'POST', data)
     else:
         qa = candidates[0]
     qa = gh.issue(qa['number'])
-    if validate_issue(qa)['type'] != 'qa' or marker not in (qa.get('body') or '') or not qa['title'].startswith(f'[試験] #{number} '):
+    if validate_issue(qa)['type'] != 'qa' or marker not in (qa.get('body') or '') or not qa['title'].startswith(qa_prefixes):
         raise ValueError('QA identity readback failed')
     if qa['state'] != 'open':
         raise ValueError('Existing QA is closed; reconcile remaining verification before closure')
