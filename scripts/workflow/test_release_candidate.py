@@ -12,9 +12,16 @@ import zipfile
 import release_candidate as rc
 import plugin_compatibility as pc
 import branch_zip
+import release_delivery
 
 
 class ReleaseTest(unittest.TestCase):
+    def setUp(self):
+        self.enabled = patch.object(release_delivery, 'ENABLED', True)
+        self.enabled.start(); self.addCleanup(self.enabled.stop)
+        actions = patch.dict(rc.os.environ, {'GITHUB_ACTIONS': 'false'})
+        actions.start(); self.addCleanup(actions.stop)
+
     def notes(self):
         document = (rc.ROOT / 'docs/releases/0.1.0.md').read_text()
         return document, document.split(rc.NOTES_START)[1].split(rc.NOTES_END)[0].strip()
@@ -117,6 +124,8 @@ class ReleaseTest(unittest.TestCase):
                      'assets': [], 'bytes': b'', 'fail_patch': True}
             writes = []
             def api(endpoint, method='GET', data=None):
+                if endpoint.startswith('git/matching-refs/'):
+                    return []
                 self.assertEqual((endpoint, method), ('releases/1', 'PATCH'))
                 if 'body' in data and state['fail_patch']:
                     raise RuntimeError('interrupted body patch')
@@ -157,7 +166,7 @@ class ReleaseTest(unittest.TestCase):
                 preserve.assert_not_called()
             def tag_api(endpoint):
                 return [] if endpoint.startswith('git/matching-refs/') else {'object': {'type': 'commit', 'sha': 'a' * 40}}
-            with patch.object(rc, 'release_notes', return_value=notes), patch.object(rc, 'fetch', return_value=manifest), \
+            with patch.object(rc, 'release_notes', return_value=notes), patch.object(release_delivery, 'candidate_artifact', return_value=manifest), \
                     patch.object(rc.github, 'api', side_effect=tag_api), patch.object(rc, 'read', return_value={}):
                 rc.publish(Path('.'), 'c' * 64, 411)
                 body = preserve.call_args.args[5]

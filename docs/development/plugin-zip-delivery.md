@@ -1,161 +1,119 @@
 # Plugin ZIPの配布
 
+## 現在の状態と非有効化の境界
+
+[#572](https://github.com/shinma06/cursor-in-android-studio/issues/572)は、配布を **developの単一early → 固定正式候補Artifact → 受入・main promotion → 同じbytesの正式Release** へ統一する定義です。実有効化・運用試行・旧配布物の移行は含みません。製品はroot GradleのAndroid Studioプラグインです。製品source/build設定・既存Case・原失敗・main/developの機能差を変更しません。
+
+| 入口 | この定義を採用した時の状態 |
+| --- | --- |
+| `delivery.yml` | CI完了通知と手動入口を定義するが、全jobは固定 `false && main参照`。checkout・token利用・公開・削除に到達しない |
+| `release-candidate.yml` | 手動入口のみ。全jobは同じliteral false。build・Artifact uploadにも到達しない |
+| `release_delivery.py` / `release_candidate.py publish` | `ENABLED = False`で外部操作前に拒否する。環境変数・secret・既存eventでは解除できない |
+| 新しいRC Release保存 | `release_candidate.py store`は書込み前に拒否する。保存済みRCは読取り可能なまま保全 |
+| 既存`branch-zip.yml` / `branch_zip.py` | **従来の配布・毎時巡回/cleanupを変更せず残す**。NEW CLIを呼ばない。これは有効化前の接続保全であり、恒久的な別配布方針ではない |
+| 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。公開やNEW経路のdispatchは追加しない |
+
+従って、この定義のPR push/merge、遅着・pendingのCI通知、旧毎時eventからNEW経路の公開・削除・dispatch・移行は起動しません。**repository全体の旧公開処理が止まるという意味ではありません。** 旧branch配布は既存条件で引き続き実行し得ます。既存workflowの無効化・pending取消し、variables/secrets設定、App登録、権限付与、旧接続の撤去は今回実施しません。実APIで確認したtrigger/状態・確認不能項目と採用元の固定版はIssue/PRに記録します。
+
+有効化担当は別の許可範囲で、旧自動接続と実行中runを照合し、所有を保って切替手順・認証・排他・停止/復旧条件を確定します。その後にコード上のgateとworkflowを通常レビューで変更します。値だけの設定で有効化したり、旧scheduleへNEW CLIを差し替えたりしません。develop側の共通運用同期は#573です。mainの定義採用だけで、develop CIやlive運用の切替済みと扱いません。
+
 ## 正式版0.1.0
 
-[正式Release](https://github.com/shinma06/cursor-in-android-studio/releases/tag/v0.1.0)の `cursor-in-android-studio-0.1.0.zip` を取得し、Settings → Plugins → ⚙ → Install Plugin from Disk... で選択して再起動する。Source code (zip)はインストール用ではない。
+[正式Release](https://github.com/shinma06/cursor-in-android-studio/releases/tag/v0.1.0)の `cursor-in-android-studio-0.1.0.zip` を取得し、Settings → Plugins → ⚙ → Install Plugin from Disk... で選択して再起動します。Source code (zip)はインストール用ではありません。
 
-SHA-256は `0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70`。Quail 1/JBR21・Quail 4 Patch 1/JBR25の4Caseを確認した同じZIPを公開済み。[正式版の最終報告](../releases/0.1.0.md)に対応範囲・source/tag・依存・残warningを記載する。以下のbranch prereleaseは開発用で、正式版とは別に更新・掃除する。
+SHA-256は `0a404a9b20a22a8de24cbeecbb34ff568ec661310d1c54c4d0e7afbf5ffeeb70`。Quail 1/JBR21・Quail 4 Patch 1/JBR25の4Caseを確認した同じZIPを公開済みです。[正式版の最終報告](../releases/0.1.0.md)に対応範囲・source/tag・依存・残warningを記載しています。この履歴・公開物を新定義へ移行、再検証、再公開しません。
 
-## ブランチごとの最新Plugin ZIP
+## 試験と配布生成を分ける
 
-[GitHub Releases](https://github.com/shinma06/cursor-in-android-studio/releases) の **Plugin ZIP — ブランチ名** を開き、Assets の `cursor-in-android-studio-<実buildの40桁SHA>.zip` を取得する。
-Settings → Plugins → ⚙ → Install Plugin from Disk... でそのまま選択できる。GitHubが自動生成する **Source code (zip)** はソース一式であり、インストール用ではない。
+既存[Change Impact](change-impact.md)の `gradle_test` / `tooling_test` が試験の要否、`plugin_zip` が標準ZIPの生成要否です。新しい同義keyや別classifierは追加しません。runtime/resources・build設定・wrapper・依存・生成helper・未知入力は生成対象です。docs/test-onlyは必要な検査を残し、配布のための追加build/uploadを要求しません。試験自体がarchiveを必要とする場合、その試験依存は維持します。
 
-## 保存と更新
+CIの `compatibility-input` は標準 `build/distributions/*.zip` と `manifest.json` を14日保持します。publisherは同じrepositoryの**識別済み成功push CI**、現行workflow ID/path、元run/source、完全なArtifact一覧、期限・transport digestとsize、ZIP/manifest内部のsource/version/clean状態を照合します。別run・PR Artifact・期限切れ・欠落・未知の入力/履歴・不完全な必須checkを、古いZIPや成功へ置き換えません。ZIPを展開して実行したり、再build/再圧縮したりしません。
 
-`push / 定期確認 → 共通Change Impact → 必要な場合だけbuildPlugin → ブランチ専用ReleaseのZIP更新`
+運用docs/test-onlyの通知では、過去Artifact探索、Releaseの読取り/書込み、marker更新をせず終了します。元CIの成功とGUI受入は別の事実です。
 
-[Change Impact](change-impact.md)で生成不要なら既存ZIPを保持する。知識だけの新規branchはReleaseを作らない。最後に実buildしたSHAと現branch HEADは異なり得るため、本文/asset名のSHAで対象を識別する。古いZIPを新SHAへ改名しない。
+## 単一develop earlyの定義
 
-- 生成はJetBrains Gradle Plugin標準の `buildPlugin`。元の出力は `build/distributions/<project名>-<version>.zip`。公開時は名前だけ変えてコピーし、内容は再圧縮・加工しない。旧ブランチのproject名もそのままビルドできる。
-- 1ブランチに可変prereleaseを1件。タグは `branch-zip-<UTF-8ブランチ名のSHA-256全64桁>`。`/`、日本語、大文字小文字の異なる名前でも分離する。人間はハッシュではなくReleaseのタイトルで選ぶ。
-- Release作成・更新の `target_commitish` はrepository APIの `default_branch` を使う（`main` 固定ではない）。新規タグは作成時の既定ブランチを参照し、既存タグは旧方式で作成したものも移動・force更新しない。ソースブランチ固有のworkflow変更を含むSHAへのタグ作成で、GITHUB_TOKENの権限不足になることを避ける。**ZIPのソースはRelease本文とZIP名のHEAD SHA**を参照する。タグ/Source codeリンクはZIPのソースや最新ソースの表示には使わない。
-- 新ZIPのアップロード成功後に本文を更新し、旧assetを削除する。通常は1 ZIPのみ。中断時に2件残る場合は次回で整理する。失敗した新ビルドのために最後の正常なZIPは削除しない。
-- ブランチ別に公開を直列化し、公開前に現在のHEADを照合する。古いビルドは巻き戻し公開しない。
-- Release assetにActions Artifactの保持期限はない。ブランチに長期間pushしなくても残る。定期処理は公開済みZIPの延命・再ビルドには使わない。
-- buildは読取権限のみのrunner、publishは別runner。Actions Artifactは両者間の**1日限りの転送**だけで、配布先ではない。PRイベントではZIPを作らない。
-- `build/` はGit管理対象外。ZIPのコミットやcommit別のReleaseを追加する必要はない。
+配布先は1つの `early` prereleaseです。asset名は `cursor-in-android-studio-<ZIPのSHA256>.zip`。`early` tagは保管場所の固定識別子で、force移動しません。実製品sourceは本文とZIP内部の40桁SHAです。branch HEADが文書だけ進んでも、古いZIPを新sourceへ改名しません。
 
-## 既存ブランチと復旧
+製品commit AのCI通知より先にdocs commit BがHEADになった場合、Aの通知は現在develop HEADを固定し、第一親履歴の各成功CI・merged develop PR・4必須checksと生成入力不変を確認してAのZIPを選べます。Bのdocs-only通知自体はAの公開を代行しません。新製品CがあればCの成功CI/Artifactが必要です。未完了・失敗・期限切れ・欠落を越えてAへ戻りません。探索は最大100commitで、範囲内に確認できなければ停止します。開始時・履歴解決中・本文切替直前・cleanup時に現在developを再確認します。
 
-新workflowを持つすべてのブランチでpushに反応する。ブランチ名の固定フィルターはない。
-新workflowを持たない既存ブランチ、およびGITHUB_TOKEN経由のpush/mergeは、既定ブランチで毎時実行する**生存ブランチのHEADだけ**の確認で補完する。全commit走査やsource保存タグは廃止した。
+公開順序は次のとおりです。
 
-手動復旧: Actions → **Branch Plugin ZIP** → Run workflow。新workflowを含む既定ブランチを選ぶ。`branch` が空なら全生存ブランチ、入力すればその1本のHEADを確認する。共通判定で必要なHEADをビルドする。`force_build`を有効にすれば、知識変更を含む現HEADのZIPも明示生成できる。
+1. 上限内のprivate一時ファイルへZIPのbytesを固定し、hash/size/内部identityを再確認する。
+2. 所有marker、Release・固定tag・assetのidentityと権限上の既知条件を確認する。新規はdraftにする。
+3. 新hash名のZIPをuploadし、metadataと再downloadのhash/sizeを確認する。
+4. develop/Releaseを再照合して本文を切り替え、公開状態・本文・tag・最新ZIPを読戻す。
+5. その後だけ、同じearly内で名前/hash/digest/state/sizeが一致する所有旧ZIPを整理する。各削除直前と最後にもdevelop・Release・tag・全asset identityを確認する。
 
-生成不要と判定したHEAD、CI待ち・ビルド失敗の間は新HEADのZIPは存在しない。Release本文のSHAとブランチHEADを照合し、失敗原因を直して再実行する。GitHubのscheduleは遅延し得るほか、公開repositoryでは60日無活動で停止するため必要なら再有効化する。公開済みZIPには影響しない。
-ブランチが256本を超えて同時に未公開の場合はActionsのmatrix制限で明示停止するので、手動でbranchを指定する。
+本文切替前の失敗では旧本文と旧ZIPを残します。切替後のcleanup失敗では新しい検証済みZIPと残存旧ZIPを保持し、失敗として記録します。同一製品の再実行は本文のrun/develop_headを変えず、検証と所有残存の整理だけ行います。形式の異なるassetは保全し、所有形式でもidentity不明/不一致なら停止します。正式Releaseや旧branch/RCはこのcleanupに含めません。
 
-### 削除済み作業ブランチの掃除（#219）
-
-既定ブランチの毎時scheduleは、削除済み作業ブランチの管理対象Release・Assets・専用タグを掃除する。手動では `cleanup` がfalseなら候補/保留理由をJob summaryに出すdry-runのみ、trueなら実行する。`branch` 指定は配布と掃除の両方をその名前に限定する。pushでは掃除しないため、イベント取りこぼしも次の定期/手動実行で回収する。
-
-管理対象はタグの完全なbranch名SHA-256、本文の単一branch/sha marker、配布タイトル、mutable prerelease、正常な単一ZIPの名前/状態/サイズを照合する。main/master/developと現在のdefault branch、現存ブランチは更新日によらず保護する。識別不能な履歴、draft、タグ単独残存、タグ欠落Releaseは保留し、名前のprefixだけでは削除しない。API/認証失敗は処理失敗であり、不存在の証拠にしない。
-
-cleanupとpublishは同じtagのActions concurrency groupを共有する。lock取得後に候補のRelease ID/ソースSHA/識別情報を再照合し、削除直前にも全branch APIを取得する。Release（Assetsを含む）削除後、branch再作成・Release再作成・tag object変更がなければタグを削除し、両方の不存在をreadbackする。
-
-GitHubの複数APIは原子的ではなく、人間のbranch再作成や直接Release操作をlockできない。観測した再作成/変更は保留し、生存branchの配布は次の通常plan/publishで復旧する。最終確認直後の外部変更まで無競合と保証しない。pending jobが別runに置換された場合も次のschedule/manualで再照合する。
-
-途中失敗はActionsを失敗として残し、削除前のRelease ID/branch/ソースSHA/tag objectのreceiptと次操作をJob summaryへ記録する。Release削除失敗は次回も候補を再検証できる。Release削除後のtag削除失敗は**タグ単独の保留**となり、自動再試行で推測削除しない。PMが当該runのreceiptと新鮮なbranch/ref情報を照合して残存を引き継ぐ。過去QAの配布リンクは履歴のため書き換えない。
-
-初回は `GITHUB_REPOSITORY=owner/repo python3 scripts/workflow/branch_zip.py cleanup-plan` でread-only一覧を記録する。実削除は同じ排他を使う既定branchのActionsで行い、ローカルCLIをpublishと並行実行しない。
-
-根拠: [Release API](https://docs.github.com/en/rest/releases/releases)、[Git reference API](https://docs.github.com/en/rest/git/refs)、[Actions concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency)。
-
-## 旧運用からの移行
-
-以前は全履歴のSHA別Release、`plugin-source-*` 保持タグ、通知workflow、ローカルcacheとcheckout/pull同期runtimeを使っていた。現在の要件には不要なため削除した。pre-pushは変更保護とテストだけを行う。
-旧runtime導入済みのworktreeは、この変更を取り込んだIssueブランチで一度 `bash scripts/workflow/bootstrap.sh` を実行すると `.githooks` へ戻る。独自のhook設定は勝手に上書きしない。`.git/plugin-zip` のcache/runtimeは旧worktreeでの利用がなくなってから削除でき、配布には使わない。
-
-初回移行では全生存ブランチのReleaseを確認してから、旧 `plugin-build-<SHA>` Releaseと同名タグ、`plugin-source-<SHA>` タグを限定削除する。過去のIssue/QA証拠は書き換えず、削除済み配布物のリンクは履歴として扱う。
-
-旧ブランチでは `verifyPluginStructure` が日本語descriptionの先頭条件で失敗したため、当時は標準 `buildPlugin` と実ZIP/IDEで確認した。これは旧運用の記録である。正式0.1.0ではdescriptionを整え、構造検査・両IDEのVerifierも成功している。Marketplace公開は今回の対象外。
-
-## 方式の選択
-
-| 候補 | 判断 |
-| --- | --- |
-| Actions Artifactだけ | 保持期限があるため不採用 |
-| commit別Release / GitへのZIPコミット | 不要な履歴が増えるため不採用 |
-| ブランチ別Release asset | 期限に依存せず、同じページで最新ZIPを取得できるため採用 |
-
-根拠: [JetBrains標準buildPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#build-plugin)、[ZIPからのインストール](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html)、[GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)、[Actionsイベントとschedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
-
-初回確認（#127）: [push実行](https://github.com/shinma06/cursor-in-android-studio/actions/runs/34348315165) で標準ZIPの生成・Release公開が成功。取得したZIPのCRC、プラグインID `com.cursoragent.plugin` と依存JAR同梱を確認した。公開後の更新・全ブランチ移行の結果は [Issue #127](https://github.com/shinma06/cursor-in-android-studio/issues/127) に記録する。
+結果不明のupload/PATCH/DELETEを盲目的に再試行しません。Release・asset一覧・tagを読戻し、失敗/不明を残して担当へ渡します。読戻し自体が失敗しても成功にしません。固定targetを持つdraftはmainが進んでもそのtargetを保ちます。外部の手動編集・tag移動・branch変更まで原子的にlockできる保証はありません。
 
 ## 正式候補RCと同一ZIPの公開
 
-開発用の可変branch prereleaseとは別に、`plugin-rc-<正式version>-<ZIPのSHA256>`という専用prereleaseへ候補を保存する。`release_candidate.py`は既存assetの上書き・削除を実装しない。途中失敗は同じbytesのdraftだけ再開でき、異なるbytes/metadataや公開済み不完全Releaseは停止する。管理者の直接編集・削除までGitHub側で禁止する方式ではない。候補を使っている間は手動削除しない。
+以下は**有効化後に使用する定義**です。#572の実装・検査では実行しません。正式versionは人間が受入前に決めます。例示のversionを採番したり、SNAPSHOT受入後にZIP内versionを書き換えたりしません。
 
-GitHubのrelease immutabilityはrepository/organization単位で今後のReleaseへ適用され、可変branch配布と両立しないため、ここでは有効化しない。強制ロックが必要になったら配布先分離を先に設計する。[公式の設定範囲](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes)
+### 1. sourceと正式versionを固定し、一度だけ生成する
 
-正式RCと正式Releaseにはbranch-zip markerを付けず、既存cleanupは削除対象にしない。Actions artifactは転送用のまま。専用RC Releaseに保持期限は設けず、全検証・公開後も元候補を保持する。失敗時は既存RCを更新せず、新しい入力・source・hashの候補を作り、必要検証をやり直す。
+候補workflowはレビュー済みmainのtoolingを隔離して使い、cleanな固定sourceを標準root Gradleで `clean test buildPlugin verifyPluginStructure` します。version/source/build引数・設定hash・実JDKをbuild前に `inputs.json` へ固定します。通常はdevelopに包含された候補、main限定候補は[既存の事前計画](main-scoped-release.md)と `scope_issue` を使います。別候補・現行計画不適合・未知JDK/SDKは拒否します。
 
-### 1. versionとsourceを決め、一度だけ生成する
+現行Rabbit/JVM25・class major69・Platform262の内部identity、標準ZIP・同梱JAR・manifest/hash/sizeを確認し、同じZIPへ既存Rabbit Verifierを実施します。製品build設定やpolicyをこの定義で更新しません。main/developや旧Quailの差は各固定sourceの事実として保持します。
 
-正式versionはユーザーが決める。以下の変数は実値を担当が設定する（例示の架空versionを採番しない）。通常は必要な実装・文書をdevelopへ統合してからsource SHAを固定する。main起点の限定候補では[限定取り込み](main-scoped-release.md)の事前計画と `--scope-issue` を使う。cleanな専用候補checkoutをそのSHAに置き、JDK 25を指定する。RC作業ディレクトリはcheckoutの外に置く。GitHub公開用のwrite tokenをbuildへ渡さず、通常のbuild権限と公開権限を分ける。
+公開候補bundleは標準ZIP・`manifest.json`・`inputs.json`・`compatibility-rabbit1.zip`・`bundle.json` の5ファイルです。完走・全class・依存・report hashとZIP hashを既存validatorで照合します。raw logのパス・host・秘密は公開せず、検査済み資料だけをbundle化します。GUI結果は既存verification JSONが正本で、候補Artifactに未観察のpassを書きません。
 
-```bash
-# VERSION=承認済みの正式version、SOURCE=固定developの40桁SHA、RC=未使用の外部ディレクトリ
-python3 scripts/workflow/release_candidate.py build \
-  --source "$SOURCE" --version "$VERSION" --directory "$RC"
-```
+### 2. 固定候補Artifactを取得し、同じZIPを受け入れる
 
-処理はversion/source/build引数・設定ファイルhash・実JDKを先に`inputs.json`へ記録し、`clean test buildPlugin verifyPluginStructure`を一度実行する。local SDK overrideを無効にし、Rabbit SDKの実full build、JVM25・class major69・Platform262 metadata、内部version、clean sourceを照合する。Plugin ZIPは再圧縮せずコピーし、manifestにhash/size/内部identity、inputsに同梱JAR一覧を残す。依存の宣言版は固定sourceのbuild/settings/Wrapperとそれらのhashへ対応付ける。既存出力ディレクトリへ再buildする操作は拒否する。
-
-### 2. 同じZIPをRabbitで検証し、RCとして保存する
-
-`HASH`には生成時に表示されたSHA256を固定する。`RABBIT`は未使用の検証出力ディレクトリ、`SDK_CACHE`は公式SDK取得用ディレクトリ。
+保存先は `candidate-<ZIPのSHA256>` Actions Artifact、保持は90日です。Release/tagを候補保管に使いません。保持期限はあるため、受入担当は同じbundleを別途保全します。取得は成功した同一repository・main・手動candidate workflowのID/path/run/source、mainへの包含、期限・transport digestと全ファイルhashを照合します。
 
 ```bash
-python3 scripts/workflow/plugin_compatibility.py verify --target rabbit1 \
-  --archive "$RC/cursor-in-android-studio-$VERSION.zip" --manifest "$RC/manifest.json" \
-  --sha256 "$HASH" --output "$RABBIT" --sdk-cache "$SDK_CACHE/rabbit1"
-python3 scripts/workflow/release_candidate.py bundle --directory "$RC" \
-  --sha256 "$HASH" --rabbit1 "$RABBIT"
-```
-
-API検証は固定Rabbit 1 `AI-262.9437.185.2621.16467767` / JBR 25.0.3。現行policyのVerifier・固定JCEF provider・限定optional例外・report判定を使う。失敗、全クラス未完、別hash、詳細欠落を拒否する。公開bundleはZIP・manifest・入力とRabbitの検証レポート。SDKパスを含むraw logはローカルに保持し、公開するログは検査済み完了行の抜粋のみ。GUI結果は既存promotion.jsonが正本で、未実施の結果をRCへ書き込まない。保存済みQuail RCの読み取りでは当時の固定sourceと両IDEのレポートを照合する。
-
-公開担当は上のbundleを受け取り、レビュー済みtoolingから次を実行する。`GITHUB_REPOSITORY=shinma06/cursor-in-android-studio`と必要なGitHub権限を公開段階だけで設定する。同じ候補の公開操作は担当を1名にし、並行実行しない。
-
-```bash
-python3 scripts/workflow/release_candidate.py store --directory "$RC" --sha256 "$HASH"
-```
-
-RC tagは保存場所の識別子で、権限を増やさず作成できるよう既定branchへ置く。**RC ZIPのsourceはmanifestの固定SHA**であり、RC tagのSource code ZIPではない。正式tagは後述のmain promotion mergeへ対応付ける。これはGITHUB_TOKENでdevelop側のworkflow変更を含むcommitへtagを作る権限上の制約も避ける。[Release APIの権限](https://docs.github.com/en/rest/releases/releases#create-a-release)
-
-### 3. 保存したRCを取得して全GUIを確認する
-
-保存時のRC tagと、別途固定した`HASH`を指定し、新しい出力ディレクトリへ取得する。Git履歴は固定sourceを含む完全なfetchが必要。
-
-```bash
+# CANDIDATE_RUN / HASH / RCは実在する固定run・承認対象hash・未使用の出力先。
 python3 scripts/workflow/release_candidate.py fetch \
-  --tag "$RC_TAG" --sha256 "$HASH" --directory "$DOWNLOADED_RC"
+  --run "$CANDIDATE_RUN" --sha256 "$HASH" --directory "$RC"
 ```
 
-取得処理は固定sourceのpolicyが要求する全assets/hash、内部version/source/SDK、Verifier結果を照合する（現行Rabbitは5 assets、旧Quailは6）。GUI担当はこのZIPをインストールし、host共通leaseとロードJAR照合の後、固定候補の**全必要Case**を確認する。Rabbitのmain限定候補は#470の3Caseで確認する。main限定0.1.0の旧Quail両IDE・Terminal有効/無効は#409の4Caseへ記録済みで、Rabbitのpassへ転用しない。旧#397/#392のdevelop全体Caseをその代わりにしない。Case結果には同じcandidate/hashを使い、過去buildのpassを転用しない。[正式promotion手順](../verification/README.md#固定候補からmainへ)
+GUI担当はこのZIPを使い、host lease・ロードJAR照合と、固定候補の全必要Caseまたはverificationで明示認定された既存証拠を評価します。新しいZIPや新しい方法だけでは、過去の原失敗・未達・実行義務を消しません。全commit/Caseを既存[promotion gate](../verification/README.md#固定候補からmainへ)で確認します。必要QAを保全し、空CaseのためのQAは作りません。
 
-### 4. main昇格後、同じbytesを正式公開する
+### 3. 保護付きmain promotionの後、同じbytesを正式公開する
 
-公開前に `docs/releases/<version>.md` の `<!-- release-notes:start -->` と `<!-- release-notes:end -->` の間へ日本語の説明を用意し、tooling PRで独立レビューしてmainへ反映する。見出しは `## 主な変更`・`## 対応環境`・`## インストール`・`## 制約・詳細` の順。各節の本文と、そのversionのインストール用ZIP/詳細報告リンクを必須とし、TODOや未記入を残さない。 リンクは絶対HTTPS URLの通常の `[ラベル](URL)` 形式に限定する。HTML（山括弧のautolinkを含む）・参照形式リンク・バックスラッシュのescapeは検査対象形式に含めず、公開前に拒否する。複雑な記述は詳細報告の掲載範囲外へ置き、公開説明に持ち込まない。対応環境・変更点・制約が固定成果物の実測と一致するかはレビュアーが確認する。機械検査は内容の正しさを保証しない。
-
-公開処理は**promotion検証で取得したorigin/mainをSHAへ固定**してこの説明を読み、欠落・空欄・別versionへのリンク・未完成の説明をRelease作成前に拒否する。手元のHEADが別の作業branchでも、未commit/未統合の説明は公開しない。正しいリンクを残していても、別versionや別repositoryの配布/版別報告リンクが混在すれば拒否する。公開後はReleaseページの表示で、取得リンク・必要4節が見え、生JSONが本文に露出しないことを確認する。既存CIの公開toolingテストでも生成・欠落拒否・旧形式移行を回帰検証する。
-
-
-Phase 6担当は通常のpromotion PRをmerge commitでmainへ統合してから、次を実行する。Phase 4ではこの実公開を行わない。
+正式説明は `docs/releases/<version>.md` の既存release-notes blockへ日本語4節（主な変更・対応環境・インストール・制約・詳細）を用意し、通常PRの独立レビューでmainへ反映します。公開処理は取得済みのmain SHAから説明を読み、欠落・未完成・別version/repositoryのリンク・非対応Markdownを最初の書込み前に拒否します。既存 `validate_notes` が要求する見出しは `## 制約・詳細` です。機械検査は説明内容の正しさを保証しません。
 
 ```bash
-python3 scripts/workflow/release_candidate.py publish --directory "$DOWNLOADED_RC" \
-  --sha256 "$HASH" --promotion-pr "$PROMOTION_PR"
+python3 scripts/workflow/release_delivery.py stable --promotion-pr "$PROMOTION_PR"
 ```
 
-既存promotion validatorで全commit・全必要Caseを再確認し、mergeの実親、mainへの包含、candidate/hash、4必須checkを照合する。不足・別候補ならRelease作成前に失敗する。保管RCをもう一度取得し、`v<version>`をそのmain mergeへ、asset名を`cursor-in-android-studio-<version>.zip`へ対応付ける。ZIP内部versionは初めから正式値のまま。Gradleの再実行・再圧縮・version書換えはしない。公開後に全assetをdownloadして実hashを照合する。同じ正式tagの別commitや別assetは拒否する。
+既存のpromotion validatorで実mergeの2親、mainへの包含、固定candidate/hash、全必要Caseと4必須checkを再確認します。正式tag `v<version>` はpromotion merge、実build sourceはmanifestのcandidateです。candidate Artifactから同じbundleを取得し、一時領域へ固定して再検証し、正式Releaseへ保存します。build/依存再resolve・再圧縮・version変更は行いません。CIのmain通知は該当する一意なpromotionだけを扱い、tooling-only commitでは公開しません。
 
-公開済みでもdownload/readbackに失敗したら完了扱いにしない。同じ入力で再照合し、異なるデータなら保持して調査する。RC/正式Releaseの削除やGitHub保護設定変更を復旧手段にしない。公開記録にはsource/version/full build/JBR/hash/公式URL/PRを残し、ローカル絶対パス・host・秘密は記録しない。
+正式Releaseは同じtag/commit/identity/assets/bytesだけ再照合可能です。異なるbytes・公開済み不完全Releaseを自動修復/置換しません。asset削除やtag移動は実装しません。`make_latest: false` を維持し、古い版の復旧でlatestを巻き戻しません。latestの切替やrepository全体のimmutability設定は追加しません。後者はmutable earlyにも影響するため、有効化とは別に判断が必要です。
 
-
-### 5. 公開済みの説明だけを訂正する
-
-成果物の不変性はZIP/検証資料・tag・candidate/source/version/hash/promotionの識別情報に適用する。日本語説明の誤記修正を禁止しない。説明文と識別情報を分離し、JSONは正式Release本文末尾の非表示コメントへ保持する。保管RCの既存形式/本文は変更しない。
-
-同じversion文書を専用PRで修正・レビューし、mainへ反映してから、最新のclean trusted main checkoutで次を実行する。公開担当は1名、同一Releaseの並行編集は行わない。
+Artifact期限切れの場合も、受入で固定した同じbundleがあれば次の定義で再検証できます。CLI自体は現在無効です。
 
 ```bash
-python3 scripts/workflow/release_candidate.py publish --directory "$DOWNLOADED_RC" \
-  --sha256 "$HASH" --promotion-pr "$PROMOTION_PR" --update-notes
+python3 scripts/workflow/release_delivery.py stable \
+  --promotion-pr "$PROMOTION_PR" --directory "$RC" --sha256 "$HASH" --retained-bundle
 ```
 
-通常公開と同じpromotion/Case/4checksと保存RCを検証し、既存の識別情報・tag・全assetの実bytesが一致した後に、本文だけをPATCHする。旧JSONだけの正式Releaseも識別情報が完全一致する場合だけ移行できる。旧形式の未公開draftは通常のpublish再実行で既存asset照合と不足分の追加を行い、本文を移行して公開を再開できる。本文更新後の失敗も同じbytesで再試行する。新規Release・RC・異なる識別情報・欠損/改変assetは説明更新として受け入れない。更新後も本文と全assetを再取得して照合し、失敗を成功にしない。通常のpublish再実行は有効な既存説明を保持し、説明の更新には明示した `--update-notes` を使う。
+同一bytesのローカル保全は別候補の代用品ではありません。期限切れを再buildで補完しません。
 
-記録には対象Release/PR、更新前後の本文、変わらなかったasset/hash/tagを残す。本文更新のためにRC/正式ZIPを再build・再圧縮・再uploadしない。[GitHubのRelease本文更新API](https://docs.github.com/en/rest/releases/releases#update-a-release)を使い、asset削除やtag更新は行わない。
+<a id="5-公開済みの説明だけを訂正する"></a>
+
+### 既存の正式説明を訂正する
+
+既存の正式版の説明訂正は `release_candidate.py publish --update-notes` の元RC・identity・全asset照合を保持し、通常再実行で既存説明を無断変更しません。元RCの取得は `fetch --tag` を使います。取得した同じbundle、元hash・promotion PRと、mainでレビュー済みのrelease-notes blockを指定します。変更できるのは説明だけで、tag・candidate/source/version/hash・全assetは同じままです。欠落/異なるbytes・未統合の説明は拒否します。この入口も現在はgateで無効です。
+
+## 排他・権限・復旧
+
+新workflowは全channelを `plugin-release-delivery` groupで直列化し、実行中runを取消しません。現在固定しているactionlint 1.7.12が`queue: max`を受理しないため、通常concurrencyの「待機中1runは後着runで置換される」制約を残します。有効化前に対応する固定linter/CIを通常レビューして最大100待機へ揃えるか、復旧を含む明示的な接続方針を決めます。event発生順そのものは保証しません。取消し/失敗を完了扱いにせず、正式版は同じpromotion PRの明示復旧、earlyは元製品CI再実行などから現在HEADを再解決します。ローカルCLIはActions lockを共有しません。有効化時に担当1名・実run終了/排他を確認し、workflowと並行実行しない手順を確定します。
+
+publishはレビュー済みmain、buildはwrite tokenのない別runnerです。GitHub Actionsで固定targetと現在default branchのworkflowが異なる場合、標準GITHUB_TOKENでは必要なWorkflows writeを得られないので、最初の書込みと本文/公開切替前に停止します。取得不能やその他の権限エラーも失敗です。この定義はApp/secret/variable名や回避信号を追加しません。認証管理と実際に許された復旧経路は有効化担当が解決し、同じtokenの再実行で権限が増えると扱いません。
+
+失敗時はdraft・旧正常ZIP・新しい検証済みZIP・原失敗を保全します。Release/tag削除や保護回避で成功に見せません。結果不明の書込みは実状態を照合してから担当1名で再開し、同じ入力の再照合と新候補を区別します。実公開URL・source/version/hash/size・run/PRと残条件は既存Issue/PRへ残し、ローカルpath/host/認証情報を公開しません。
+
+## 旧配布・既存証拠の保全
+
+<a id="削除済み作業ブランチの掃除219"></a>
+
+branch別prerelease・毎時巡回/cleanupは切替前の旧接続として残っています。既存branch ZIPの実sourceは従来どおり本文/asset名で識別します。旧RC・正式版・過去QAリンクをearlyへ書き換えず、古いtag/assetの削除・移行は実施しません。旧RCの `fetch --tag` は固定source当時のQuail/Rabbit policy・全資料を読めるまま維持します。
+
+[変更前の配布手順](https://github.com/shinma06/cursor-in-android-studio/blob/66d9735bee4d23fcec2fcb096af1f329ae514cf4/docs/development/plugin-zip-delivery.md)は、旧branch配布/cleanup・旧runtime/bootstrap・初回#127の観察・旧RC保存/取得・既存説明訂正の履歴と、切替前の旧接続を理解する参照先です。現在のNEW経路の有効化指示として実行しません。独自hook・他writer・PAUSED job・未解放claimを保全します。
+
+根拠: [GitHub Release API](https://docs.github.com/en/rest/releases/releases)、[Artifact API](https://docs.github.com/en/rest/actions/artifacts)、[workflow_runの信頼境界](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)、[concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)、[JetBrains標準buildPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#build-plugin)。採用元の固定版・採用/適合/既存同等/非適用と、実装・合成検査・live未実施をIssue/PRで区別します。

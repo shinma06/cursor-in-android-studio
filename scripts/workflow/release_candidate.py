@@ -291,6 +291,21 @@ def fetch(tag, expected_hash, directory):
 
 def preserve(tag, target, directory, names, prerelease, body, update_notes=False):
     """Create only, or resume an identical draft; never replace/delete an asset."""
+    import release_delivery as delivery
+    delivery.require_enabled()
+    def mutate(call, *args):
+        try:
+            return call(*args)
+        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+            try:
+                current = release_for(tag)
+                assets = github.pages(f'releases/{current["id"]}/assets') if current else []
+                refs = github.api('git/matching-refs/tags/' + tag)
+                receipt = f'release={current["id"] if current else None}, assets={len(assets)}, refs={len(refs)}'
+            except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as read_error:
+                receipt = 'readback unavailable: ' + type(read_error).__name__
+            error.add_note('Indeterminate write readback: ' + receipt + '. Preserve and reconcile; no automatic retry.')
+            raise
     release = release_for(tag)
     pc.require(not update_notes or (release and not release['draft'] and not prerelease),
                'Notes update requires an existing published formal release')
@@ -310,7 +325,8 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
         pc.require((update_notes or migrate_draft or release['body'] == body) and release['prerelease'] == prerelease and
                    release['target_commitish'] == target, 'Existing release differs; refuse replacement')
     else:
-        release = github.api('releases', 'POST', {'tag_name': tag, 'target_commitish': target,
+        delivery.automatic_release_target(target)
+        release = mutate(github.api, 'releases', 'POST', {'tag_name': tag, 'target_commitish': target,
                              'name': tag, 'body': body, 'draft': True, 'prerelease': prerelease, 'make_latest': 'false'})
     assets = github.pages(f'releases/{release["id"]}/assets')
     pc.require(len({a['name'] for a in assets}) == len(assets) and {a['name'] for a in assets} <= set(names), 'Unexpected existing assets')
@@ -323,7 +339,8 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
                 pc.require(pc.digest(copy) == pc.digest(directory / name), 'Existing bytes differ; no overwrite allowed')
         else:
             pc.require(release['draft'], 'Published release is incomplete; never repair by replacing it')
-            uploaded = json.loads(github.gh('api', '--method', 'POST',
+            delivery.automatic_release_target(target)
+            uploaded = json.loads(mutate(github.gh, 'api', '--method', 'POST',
                 f'https://uploads.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/releases/{release["id"]}/assets?name={quote(name)}',
                 '-H', 'Content-Type: application/octet-stream', '--input', str(directory / name)))
             pc.require(uploaded.get('digest') == 'sha256:' + pc.digest(directory / name), 'Upload digest mismatch')
@@ -332,9 +349,11 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
         current = release_for(tag)
         pc.require(current and all(current[k] == release[k] for k in
                    ('id', 'body', 'target_commitish', 'draft', 'prerelease')), 'Release changed during notes verification')
-        github.api(f'releases/{release["id"]}', 'PATCH', {'body': body})
+        delivery.automatic_release_target(target)
+        mutate(github.api, f'releases/{release["id"]}', 'PATCH', {'body': body})
     if release['draft']:
-        github.api(f'releases/{release["id"]}', 'PATCH', {'draft': False, 'make_latest': 'false'})
+        delivery.automatic_release_target(target)
+        mutate(github.api, f'releases/{release["id"]}', 'PATCH', {'draft': False, 'make_latest': 'false'})
     published = release_for(tag)
     pc.require(published and not published['draft'] and published['body'] == body and published['prerelease'] == prerelease
                and published['target_commitish'] == target, 'Publication readback differs')
@@ -349,12 +368,7 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
 
 
 def store(directory, expected_hash):
-    manifest = validate_bundle(directory, expected_hash)
-    # RC tag is a storage identifier. A default-branch anchor works with contents:write
-    # without granting Workflows write for a develop-only workflow revision.
-    target = github.api('')['default_branch']
-    body = MARKER + '\n' + json.dumps(manifest, sort_keys=True) + '\nRC: 未GUI受入。正式公開ではありません。'
-    preserve(rc_tag(manifest), target, directory, [*read(directory / 'bundle.json'), 'bundle.json'], True, body)
+    raise ValueError('New RC Release storage is retired; use the inactive candidate Artifact definition. Existing RCs remain readable.')
 
 
 def publication(directory, expected_hash, number):
@@ -375,18 +389,28 @@ def publication(directory, expected_hash, number):
     promotion = json.loads(git_read('show', f'{pr["head"]["sha"]}:{PROMOTION}'))
     pc.require(promotion['artifact_sha256'] == expected_hash, 'GUI was performed on another ZIP')
     checks = json.loads(github.gh('pr', 'checks', str(number), '--repo', repo, '--json', 'name,state'))
-    states = {c['name']: c['state'] for c in checks}
-    pc.require(all(states.get(k) == 'SUCCESS' for k in ('test', 'PR policy', 'Agent review', 'Acceptance gate')), 'Required checks incomplete')
+    for name in ('test', 'PR policy', 'Agent review', 'Acceptance gate'):
+        states = [c['state'] for c in checks if c['name'] == name]
+        pc.require(states and all(s == 'SUCCESS' for s in states), 'Required checks incomplete: ' + name)
     return manifest, merge
 
 
-def publish(directory, expected_hash, number, update_notes=False):
+def publish(directory, expected_hash, number, update_notes=False, retained_bundle=False):
+    import release_delivery as delivery
+    delivery.require_enabled()
     manifest, merge = publication(directory, expected_hash, number)
     notes = release_notes(manifest['identity']['plugin.version'])
-    # Re-fetch the preserved RC, not a caller-provided replacement of equal-looking metadata.
     with tempfile.TemporaryDirectory() as temporary:
         saved = Path(temporary) / 'saved'
-        pc.require(fetch(rc_tag(manifest), expected_hash, saved) == manifest, 'Saved RC differs')
+        if update_notes:
+            # Historical formal releases keep their original archived RC evidence.
+            actual = fetch(rc_tag(manifest), expected_hash, saved)
+        elif retained_bundle:
+            shutil.copytree(directory, saved)
+            actual = validate_bundle(saved, expected_hash)
+        else:
+            actual = delivery.candidate_artifact(expected_hash, saved)
+        pc.require(actual == manifest, 'Saved RC differs')
         tag = 'v' + manifest['identity']['plugin.version']
         refs = github.api('git/matching-refs/tags/' + tag)
         matching = [r for r in refs if r['ref'] == 'refs/tags/' + tag]
@@ -414,17 +438,26 @@ def main():
         if command == 'bundle':
             for target in ('quail1', 'quail4', 'rabbit1'):
                 s.add_argument('--' + target, type=Path)
-        if command == 'fetch': s.add_argument('--tag', required=True)
+        if command == 'fetch':
+            source = s.add_mutually_exclusive_group(required=True)
+            source.add_argument('--tag', help='Read a historical RC Release without modifying it')
+            source.add_argument('--run', type=int, help='Read the fixed candidate workflow Artifact')
         if command == 'publish':
             s.add_argument('--promotion-pr', type=int, required=True)
             s.add_argument('--update-notes', action='store_true', help='Update only reviewed notes after verifying the published identity and all assets')
+            s.add_argument('--retained-bundle', action='store_true', help='Use retained identical accepted bytes after Artifact expiry')
     args = p.parse_args()
     if args.command == 'build': build(args.source, args.version, args.directory.resolve(), args.scope_issue)
     elif args.command == 'bundle':
         bundle(args.directory, args.sha256, {key: getattr(args, key) for key in ('quail1', 'quail4', 'rabbit1') if getattr(args, key) is not None})
     elif args.command == 'store': store(args.directory, args.sha256)
-    elif args.command == 'fetch': fetch(args.tag, args.sha256, args.directory)
-    else: publish(args.directory, args.sha256, args.promotion_pr, args.update_notes)
+    elif args.command == 'fetch':
+        if args.tag:
+            fetch(args.tag, args.sha256, args.directory)
+        else:
+            from release_delivery import candidate_artifact
+            candidate_artifact(args.sha256, args.directory, args.run)
+    else: publish(args.directory, args.sha256, args.promotion_pr, args.update_notes, args.retained_bundle)
 
 
 if __name__ == '__main__':

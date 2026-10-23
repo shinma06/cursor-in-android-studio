@@ -1,5 +1,7 @@
 # Change Impactと検証の選択
 
+配布の定義は[Plugin ZIPの配布](plugin-zip-delivery.md)へ統一します。#572の新delivery/candidate workflowとCLIは明示的に無効で、旧branch配布の接続は切替前のまま保全します。以下のbranch別比較・毎時/force_buildは現在残る旧接続の説明です。新経路は同じ `plugin_zip` 判定と既存CI Artifactを使い、docs/test-only通知では配布をno-opにします。試験義務・未知入力の安全側判定は変更しません。
+
 2026-09-11 / #198。変更がruntime・build・tests・packaging・生成物・依存解決・配布・開発環境の意味を変えるかで、必要な検証を選ぶ。「コード以外」はskipの根拠にしない。分類と実行選択の正本は [change_impact.py](../../scripts/workflow/change_impact.py) だけで、workflow/hookごとにpath条件をコピーしない。
 
 ## 分類と実行

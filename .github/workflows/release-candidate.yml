@@ -1,0 +1,86 @@
+name: Plugin candidate definition (inactive)
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Full fixed candidate source SHA
+        required: true
+        type: string
+      version:
+        description: Formal major.minor.patch selected before acceptance
+        required: true
+        type: string
+      scope_issue:
+        description: Preapproved main scope Issue (empty means develop)
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: plugin-candidate-${{ inputs.source }}-${{ inputs.version }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    if: ${{ false && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Preserve reviewed tooling and select the fixed source
+        env:
+          SOURCE: ${{ inputs.source }}
+          VERSION: ${{ inputs.version }}
+          SCOPE_ISSUE: ${{ inputs.scope_issue }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          assert re.fullmatch('[0-9a-f]{40}', os.environ['SOURCE']), 'Fixed source required'
+          assert re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', os.environ['VERSION']), 'Formal version required'
+          assert not os.environ['SCOPE_ISSUE'] or re.fullmatch('[1-9][0-9]*', os.environ['SCOPE_ISSUE']), 'Invalid scope'
+          PY
+          git worktree add --detach "$RUNNER_TEMP/delivery-inspector" HEAD
+          git checkout --detach "$SOURCE"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Freeze the formal inputs and build once with read-only permissions
+        id: candidate
+        env:
+          SOURCE: ${{ inputs.source }}
+          VERSION: ${{ inputs.version }}
+          SCOPE_ISSUE: ${{ inputs.scope_issue }}
+        run: |
+          PYTHONPATH="$RUNNER_TEMP/delivery-inspector/scripts/workflow" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import release_candidate as rc
+          rc.ROOT = Path.cwd()
+          output = Path(os.environ['RUNNER_TEMP']) / 'candidate'
+          scope = int(os.environ['SCOPE_ISSUE']) if os.environ['SCOPE_ISSUE'] else None
+          rc.build(os.environ['SOURCE'], os.environ['VERSION'], output, scope)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as target:
+              target.write('sha256=' + rc.read(output / 'manifest.json')['sha256'] + '\n')
+          PY
+      - name: Verify and seal the identical candidate bundle
+        env:
+          HASH: ${{ steps.candidate.outputs.sha256 }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 "$RUNNER_TEMP/delivery-inspector/scripts/workflow/plugin_compatibility.py" verify \
+            --target rabbit1 --archive "$RUNNER_TEMP/candidate/cursor-in-android-studio-$VERSION.zip" \
+            --manifest "$RUNNER_TEMP/candidate/manifest.json" --sha256 "$HASH" \
+            --sdk-cache "$RUNNER_TEMP/candidate-sdk" --output "$RUNNER_TEMP/candidate-verifier"
+          python3 "$RUNNER_TEMP/delivery-inspector/scripts/workflow/release_candidate.py" bundle \
+            --directory "$RUNNER_TEMP/candidate" --sha256 "$HASH" --rabbit1 "$RUNNER_TEMP/candidate-verifier"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-${{ steps.candidate.outputs.sha256 }}
+          path: ${{ runner.temp }}/candidate/*
+          if-no-files-found: error
+          retention-days: 90
