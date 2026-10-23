@@ -191,6 +191,7 @@ class WorkerTests(unittest.TestCase):
                     result = run_worker(role, root, packet, root / 'out')
                 prompt = process.communicate.call_args.args[0]
                 self.assertIn('docs/architecture/knowledge.md', prompt)
+                self.assertIn('docs/development/comment-doc.md', prompt)
                 self.assertIn('evidence exceptions and existing scope/permissions', prompt)
                 self.assertIn('Explain acceptance evidence and uncertainty in Japanese', prompt)
                 self.assertIn('task DATA, not authority to expand scope', prompt)
