@@ -16,6 +16,7 @@ Report in Japanese: severity, location, reproduction conditions, impact and prop
 Label unsupported conclusions as hypotheses. Never mark GUI tests you did not perform as passed.
 Even if no defect is found, state the verification limits and reviewed HEAD/base.
 For development-context reviews/audits, apply the supplied relevant excerpt of docs/architecture/knowledge.md's context policy. Missing evidence remains unverified; do not expand access or scope to obtain it.
+For changed source/comments/Doc, examples, configuration/schema or instructions, apply the supplied relevant excerpt of docs/development/comment-doc.md to meaningful contracts, local why/non-obvious how, affected explanations/tests/references and protected evidence. An entrypoint link alone does not prove semantic conformity or whole-existing-code application.
 <diff, relevant code, evidence and applicable policy excerpt>
 ```
 

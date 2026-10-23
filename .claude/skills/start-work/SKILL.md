@@ -5,6 +5,8 @@ description: Begin or resume an Issue-scoped code, docs, or configuration change
 
 # Start work
 
+For source/comment/Doc, example, configuration/schema or instruction changes, read [comment/Doc](../../../docs/development/comment-doc.md). Identify the canonical contract, affected callers/tests/references, generated or immutable inputs and other-owner paths; keep the scope bounded to the actual change and impact.
+
 Read-only advice/review needs no new Issue or branch. For changes, use AGENTS.md and the [workflow's conditional references and decisions](../../../docs/development/github-workflow.md#参照する範囲と進行判断). Reuse already-read unchanged versions. New features need Mission/ACP First, product changes need relevant requirements/design, and operational changes need the corresponding policy. Creating/updating development context also requires the [single context policy](../../../docs/architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件); classify purpose and loading path before choosing language/format/location.
 
 Before a new or resumed assignment, apply the [role/model and finite-team policy](../../../docs/development/github-workflow.md#正本と役割): reconcile existing owners, execution handles and uncollected results; verify actual model/effort and role independence. Reuse eligible existing sessions before adding one; unknown/unavailable settings stop that assignment, not independent work.

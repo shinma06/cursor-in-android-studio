@@ -8,6 +8,8 @@ Choose guarantee → qualified fixed existing evidence → missing fact → mini
 
 Use the project's existing implementation, standard/native facilities and installed dependencies before new code. Preserve trust-boundary validation, data integrity, permissions, privacy, accessibility, concurrency, EDT/disposal/process ownership, storage compatibility and error handling. Keep speculative abstractions, unrequested dependencies and unrelated changes out.
 
+For source/comment/Doc, example, configuration/schema or instruction changes and reviews, use [comment/Doc](comment-doc.md) for the actual scope and impact. Identify canonical contracts, local why/non-obvious how, affected callers/tests/references and protected inputs. Use its conditional coverage rule for an explicitly assigned whole-existing-code application; do not require unrelated full-Doc reads.
+
 Before desktop/device work obtain the shared lease, identify actual target/build/profile/fixture and preserve recovery. Worktrees do not isolate shared IDE/ADB/daemon state. Try an alternative method only within actual permissions and bounded effects; do not infer a denial from an unattempted control or connection failure or bypass a real denial.
 
 On recurring same-guarantee defects or burden, trace the condition to the human/current contract versus the chosen method. Return the concrete conflict, missing fact and sufficient alternative to the owner. An authorized method improvement needs a bounded reversible trial/result/feedback and residual owner; document-only change is not measured efficacy. Do not add a GUI experiment merely to demonstrate this operating policy.

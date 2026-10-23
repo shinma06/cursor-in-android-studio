@@ -5,6 +5,8 @@ description: Validate an Issue PR and hand off integration, QA, and owned-resour
 
 # Finish work
 
+For changed source/comments/Doc, examples, configuration/schema or instructions, assess [comment/Doc](../../../docs/development/comment-doc.md) against the actual diff and affected contracts, explanations/tests/references and protected evidence. Preserve necessary why/non-obvious how and source/artifact identity; link syntax alone is not semantic conformity or completed application to existing code.
+
 Use the [GitHub workflow](../../../docs/development/github-workflow.md) for validation/progression and [PR automation](../../../docs/development/pr-automation.md) for handoff. A review-only request returns the fixed-diff/acceptance assessment; do not perform writer/coordinator operations.
 
 **Verifiable result:** Run `python3 scripts/workflow/change_impact.py --run-tests` on the fixed Issue diff; record selected checks and skip reasons. Explicit packaging/GUI builds also require `buildPlugin`. Do not expand successful validation of an unchanged diff without a reason; changes, failures or unresolved concerns justify relevant checks. Preserve required CI/hooks, fix relevant failures and push only the owned branch.

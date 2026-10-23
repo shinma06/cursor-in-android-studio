@@ -122,6 +122,7 @@ GitHubへpush・投稿・編集・添付・配布する担当は、送信する�
 | 新機能・連携方式の選定 | Mission、ACP First、該当要件。不足する設計判断に関係する最新公式能力だけ調査 |
 | 製品コード・保存・イベント境界 | 該当要件と現行実装/保存/イベント契約、呼出元と呼出先 |
 | docs・workflow・設定 | 変更する規約と消費側。製品に関係しない修辞修正で全設計を読み直さない |
+| source/コメント/Doc・例・設定/schema・作業入口の変更/レビュー | [コメント・Docの契約](comment-doc.md)と影響するcaller/callee・契約・tests・参照。通常は差分と影響先に限定し、全既存適用が明示された場合は同正本の条件付きcoverage規則。無関係な全Docの読込みは要求しない |
 | 開発コンテキストの新規作成・更新・レビュー・監査 | [知識の正本の共通規則](../architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件)。用途/言語/形式/配置/読込条件/証拠と正当な例外を照合し、製品契約を変更しない |
 | 検証・配布 | Change Impact、対象Case。build/配布/GUIを実施する場合だけ対応runbook |
 | Session追加・引継ぎ・merge・cleanup | Codex実行規約、PR automation、Work Managementの該当工程 |
