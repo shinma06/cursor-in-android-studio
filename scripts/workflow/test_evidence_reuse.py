@@ -87,6 +87,47 @@ class EvidenceReuseTests(unittest.TestCase):
         self.assertNotEqual(self.result['source_result']['artifact_sha256'], 'f' * 64)
         self.assertEqual(self.result['source_result'], self.certificate['result']['source_result'])
 
+    def test_gate_valid_reuse_renders_current_details_and_preserves_originals(self):
+        self.result['confirmation'].update(actor='gpt', observer='current synthetic observer',
+                                           evidence='https://example.invalid/current-confirmation',
+                                           loaded_identity='Current synthetic ZIP and JAR', execution='computer_use')
+        self.certificate['result'] = copy.deepcopy(self.result)
+        self.adopt()
+        self.assertEqual(self.validate(), self.result['confirmation'])
+        before = copy.deepcopy(self.result)
+        promotion = {'scope': 'develop', 'base': self.base, 'candidate': self.candidate,
+                     'artifact_sha256': 'f' * 64, 'results': {'35:QA-1': self.result}}
+        output = v.render_queue([self.root / self.case_path], promotion, self.git)
+        self.assertIn('Case合格', output)
+        self.assertIn('今回の候補結果: reused', output)
+        self.assertIn('確認者: gpt / current synthetic observer', output)
+        self.assertIn('現在の適合確認の詳細（新しいCase実行ではない）', output)
+        self.assertIn('確認日時: ' + before['confirmation']['at'], output)
+        self.assertIn('実施経路: computer_use', output)
+        self.assertIn('観察/失敗理由: ' + before['confirmation']['reason'], output)
+        self.assertIn('証拠: https://example.invalid/current-confirmation', output)
+        self.assertIn('ロード実体: Current synthetic ZIP and JAR', output)
+        self.assertIn('原結果（改変せず保持）: ' + json.dumps(before['source_result'], ensure_ascii=False), output)
+        self.assertIn('trusted証明: ' + json.dumps(before['certificate'], ensure_ascii=False), output)
+        self.assertEqual(self.result, before)
+
+    def test_fresh_pass_and_failure_render_their_own_observation_details(self):
+        for status in ('pass', 'fail'):
+            with self.subTest(status=status):
+                observed = dict(observation(), status=status, head=self.candidate,
+                                artifact_sha256='f' * 64, observer='fresh synthetic observer')
+                promotion = {'scope': 'develop', 'base': self.source, 'candidate': self.candidate,
+                             'artifact_sha256': 'f' * 64, 'results': {'35:QA-1': observed}}
+                output = v.render_queue([self.root / self.case_path], promotion, self.git)
+                self.assertEqual('Case合格' in output, status == 'pass')
+                self.assertIn('今回の候補結果: ' + status, output)
+                self.assertIn('確認者: human / fresh synthetic observer', output)
+                for label, key in [('確認日時: ', 'at'), ('観察/失敗理由: ', 'reason'),
+                                   ('証拠: ', 'evidence'), ('ロード実体: ', 'loaded_identity')]:
+                    self.assertIn(label + observed[key], output)
+                self.assertNotIn('現在の適合確認の詳細', output)
+                self.assertNotIn('原結果（改変せず保持）', output)
+
     def test_candidate_self_adoption_is_not_trusted_main(self):
         self.adopt()
         self.base = self.source
