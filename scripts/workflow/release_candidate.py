@@ -296,7 +296,7 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
     def mutate(call, *args):
         try:
             return call(*args)
-        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+        except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as error:
             try:
                 current = release_for(tag)
                 assets = github.pages(f'releases/{current["id"]}/assets') if current else []
@@ -340,9 +340,9 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
         else:
             pc.require(release['draft'], 'Published release is incomplete; never repair by replacing it')
             delivery.automatic_release_target(target)
-            uploaded = json.loads(mutate(github.gh, 'api', '--method', 'POST',
+            uploaded = mutate(lambda: json.loads(github.gh('api', '--method', 'POST',
                 f'https://uploads.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/releases/{release["id"]}/assets?name={quote(name)}',
-                '-H', 'Content-Type: application/octet-stream', '--input', str(directory / name)))
+                '-H', 'Content-Type: application/octet-stream', '--input', str(directory / name))))
             pc.require(uploaded.get('digest') == 'sha256:' + pc.digest(directory / name), 'Upload digest mismatch')
     if (update_notes or migrate_draft) and release['body'] != body:
         # Only after every existing asset passed byte comparison; never patch identity/assets.

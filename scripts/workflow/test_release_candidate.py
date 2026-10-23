@@ -22,6 +22,19 @@ class ReleaseTest(unittest.TestCase):
         actions = patch.dict(rc.os.environ, {'GITHUB_ACTIONS': 'false'})
         actions.start(); self.addCleanup(actions.stop)
 
+    def test_invalid_upload_response_keeps_failure_and_reads_back_without_repeating_write(self):
+        with tempfile.TemporaryDirectory() as folder, patch.dict(rc.os.environ, {'GITHUB_REPOSITORY': 'owner/repo'}):
+            path = Path(folder); (path / 'fixture.zip').write_bytes(b'synthetic')
+            release = {'id': 1, 'body': 'synthetic', 'draft': True, 'prerelease': True, 'target_commitish': 'main'}
+            with patch.object(rc, 'release_for', return_value=release), patch.object(rc.github, 'pages', return_value=[]) as pages, \
+                    patch.object(rc.github, 'api', return_value=[]) as api, patch.object(rc.github, 'gh', return_value='not-json') as upload:
+                with self.assertRaises(ValueError) as result:
+                    rc.preserve('synthetic-rc', 'main', path, ['fixture.zip'], True, 'synthetic')
+                self.assertIn('Indeterminate write readback', result.exception.__notes__[0])
+                self.assertEqual(upload.call_count, 1)
+                self.assertEqual(pages.call_count, 2)
+                api.assert_called_once_with('git/matching-refs/tags/synthetic-rc')
+
     def notes(self):
         document = (rc.ROOT / 'docs/releases/0.1.0.md').read_text()
         return document, document.split(rc.NOTES_START)[1].split(rc.NOTES_END)[0].strip()
