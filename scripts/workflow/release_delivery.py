@@ -102,7 +102,7 @@ def identity(path, source, expected_hash):
                     if 'META-INF/plugin.xml' in jar.namelist():
                         xml = jar.read('META-INF/plugin.xml')
                         require(b'<!DOCTYPE' not in xml and b'<!ENTITY' not in xml, 'Unexpected XML declarations')
-    policy = rc.read(pc.POLICY)
+    policy = json.loads(git('show', f'{source}:scripts/workflow/plugin_compatibility.json'))
     manifest = pc.seal(path, source, policy)
     require(manifest['sha256'] == expected_hash, 'ZIP changed during identity inspection')
     version = manifest['identity']['plugin.version']

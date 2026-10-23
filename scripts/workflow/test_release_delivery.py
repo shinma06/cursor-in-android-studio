@@ -21,8 +21,8 @@ NEXT = 'b' * 40
 MAIN = 'c' * 40
 
 
-def package(source=SOURCE, state='clean', version='1.2.3'):
-    policy = rc.read(pc.POLICY)
+def package(source=SOURCE, state='clean', version='1.2.3', policy=None):
+    policy = policy or rc.read(pc.POLICY)
     compile = policy['compile']
     jar_bytes = io.BytesIO()
     with zipfile.ZipFile(jar_bytes, 'w') as jar:
@@ -54,6 +54,7 @@ class Repository:
         self.advance_after_upload = False
         self.advance_workflows_after_upload = False
         self.latest = None
+        self.policies = {source: rc.read(pc.POLICY) for source in (SOURCE, NEXT)}
 
     def pages(self, path):
         if path.startswith('releases?'):
@@ -96,6 +97,12 @@ class Repository:
         raise AssertionError((path, method, data))
 
     def git(self, *args):
+        if args[0] == 'show':
+            source, path = args[1].split(':', 1)
+            assert path == 'scripts/workflow/plugin_compatibility.json'
+            return json.dumps(self.policies[source])
+        if args[0] == 'rev-list':
+            return self.head
         return self.workflow_changes if args[0] == 'diff' else ''
 
     def command(self, args):
@@ -275,6 +282,63 @@ class DeliveryTest(unittest.TestCase):
             item['expired'] = False; item['digest'] = 'sha256:' + 'd' * 64
             other = self.root / 'other'; other.mkdir()
             with self.assertRaisesRegex(ValueError, 'transport digest'): delivery.artifact(11, SOURCE, other)
+
+    def test_early_source_policy_binds_artifact_cli_and_staged_bytes_before_writes(self):
+        inspector = rc.read(pc.POLICY)
+        policy = copy.deepcopy(inspector)
+        policy['targets']['rabbit1']['build'] = 'AI-263.1000.1.2631.1'
+        policy['compile'].update(since_build='263.1000.1', until_build='263.*')
+        self.repo.policies[SOURCE] = policy
+        self.path.write_bytes(package(policy=policy))
+        manifest = pc.seal(self.path, SOURCE, policy)
+        item = {'id': 12, 'name': 'compatibility-input', 'expired': False}
+        run = {'id': 11, 'head_sha': SOURCE, 'event': 'push', 'head_branch': 'develop'}
+        def transport():
+            stream = io.BytesIO()
+            with zipfile.ZipFile(stream, 'w') as archive:
+                archive.writestr('standard.zip', self.path.read_bytes())
+                archive.writestr('manifest.json', json.dumps(manifest))
+            data = stream.getvalue()
+            item.update(size_in_bytes=len(data), digest='sha256:' + hashlib.sha256(data).hexdigest())
+            return data
+        def api(path, method='GET', data=None):
+            if path == 'actions/runs/11/artifacts?per_page=100':
+                return {'total_count': 1, 'artifacts': [item]}
+            if path.startswith('actions/workflows/ci.yml/runs?'):
+                return {'total_count': 1, 'workflow_runs': [run]}
+            return self.repo.api(path, method, data)
+        data = transport()
+        def download(endpoint, destination, accept='application/octet-stream'):
+            if endpoint == 'actions/artifacts/12/zip': destination.write_bytes(data)
+            else: self.repo.download(endpoint, destination, accept)
+        with patch.object(delivery, 'api', side_effect=api), patch.object(delivery, 'download', side_effect=download), \
+                patch.object(delivery, 'producer_run', return_value=run), patch.object(delivery, 'distribution_change', return_value=True), \
+                patch.object(delivery, 'git', side_effect=self.repo.git) as git, \
+                patch.object(sys, 'argv', ['delivery', 'early', '--run', '11', '--source', SOURCE]):
+            delivery.main()  # Real early_product -> Artifact -> CLI identity -> captured-byte identity -> stub publisher.
+            self.assertEqual([c.args for c in git.call_args_list if c.args[0] == 'show'],
+                             [('show', SOURCE + ':scripts/workflow/plugin_compatibility.json')] * 3)
+            record = delivery.read_record(self.repo.releases[0]['body'])
+            uploaded = next(a for a in self.repo.assets.values() if a['name'].endswith('.zip'))
+            self.assertEqual(self.repo.files[uploaded['id']], self.path.read_bytes())
+            self.assertEqual(record['source'], SOURCE)
+            writes = len(self.repo.mutations)
+            self.repo.policies[SOURCE] = inspector
+            output = self.root / 'wrong-policy'; output.mkdir()
+            with self.assertRaisesRegex(ValueError, 'supported compile SDK'):
+                delivery.artifact(11, SOURCE, output)
+            with self.assertRaisesRegex(ValueError, 'supported compile SDK'):
+                delivery.publish(self.path, record, MAIN)
+            self.repo.policies[SOURCE] = policy
+            manifest['identity']['since.build'] = 'wrong range'
+            data = transport(); output = self.root / 'wrong-manifest'; output.mkdir()
+            with self.assertRaisesRegex(ValueError, 'manifest identity differs'):
+                delivery.artifact(11, SOURCE, output)
+            self.path.write_bytes(self.path.read_bytes() + b'changed')
+            with self.assertRaisesRegex(ValueError, 'changed after identity'):
+                delivery.publish(self.path, record, MAIN)
+            self.assertEqual(len(self.repo.mutations), writes)
+        self.assertEqual(rc.read(pc.POLICY), inspector)
 
     def test_cleanup_failure_keeps_latest_bytes_and_retry_only_finishes_owned_cleanup(self):
         delivery.publish(self.path, self.record(), MAIN)

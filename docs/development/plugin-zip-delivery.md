@@ -98,7 +98,26 @@ python3 scripts/workflow/release_delivery.py stable \
 
 ### 既存の正式説明を訂正する
 
-既存の正式版の説明訂正は `release_candidate.py publish --update-notes` の元RC・identity・全asset照合を保持し、通常再実行で既存説明を無断変更しません。元RCの取得は `fetch --tag` を使います。取得した同じbundle、元hash・promotion PRと、mainでレビュー済みのrelease-notes blockを指定します。変更できるのは説明だけで、tag・candidate/source/version/hash・全assetは同じままです。欠落/異なるbytes・未統合の説明は拒否します。この入口も現在はgateで無効です。
+既存の正式版の説明訂正は `release_candidate.py publish --update-notes` を使い、通常再実行で既存説明を無断変更しません。公開時に受け入れた同じbundle・元hash・promotion PRと、mainでレビュー済みのrelease-notes blockを照合します。変更できるのは説明だけで、tag・candidate/source/version/hash・全assetは同じままです。欠落/異なるbytes・未統合の説明は拒否します。以下は有効化後の定義で、この入口も現在はgateで無効です。
+
+旧RCを使った正式版は元RCを `fetch --tag` で取得します。NEWのcandidate Artifactが現存する場合は、その固定runを `fetch --run` で指定します。`fetch` は `--tag` / `--run` のどちらか一方だけが必須です。次の取得例は該当する一方だけを使います。
+
+```bash
+# 旧RC: 元のRC tag・受入済みZIP hash・未使用の出力先を指定する。
+python3 scripts/workflow/release_candidate.py fetch \
+  --tag "$RC_TAG" --sha256 "$HASH" --directory "$RC"
+# NEW: 同じ受入済み候補の実在する固定run・hash・未使用の出力先を指定する。
+python3 scripts/workflow/release_candidate.py fetch \
+  --run "$CANDIDATE_RUN" --sha256 "$HASH" --directory "$RC"
+```
+
+取得済みbundle、またはArtifact期限切れ前に保全した同じ受入済みbundleがある場合は、既存directoryを直接再検証します。次の指定では新たなfetchを要求せず、期限切れを再build・再圧縮・別候補で補完しません。元のpromotion PRと正確なZIP hashが必要です。
+
+```bash
+python3 scripts/workflow/release_candidate.py publish \
+  --update-notes --retained-bundle --directory "$RC" --sha256 "$HASH" \
+  --promotion-pr "$PROMOTION_PR"
+```
 
 ## 排他・権限・復旧
 
