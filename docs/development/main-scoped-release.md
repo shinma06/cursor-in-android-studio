@@ -2,6 +2,8 @@
 
 2026-09-22 / #408・#409。ユーザー承認により、モダン化のmain受入にdevelop未反映の新機能を含めない。従来のdevelop全体promotionと別の候補を作る。旧RC/PR #402の結果は保持し、限定候補へ転用しない。#205/#404/#146は一律の前提とせず、今回mainとの差分・更新による影響から必要性を判断する。
 
+配布の新定義と非有効化の境界は[Plugin ZIPの配布](plugin-zip-delivery.md)が正本です。今後正式配布する候補は受入前に正式versionを決め、固定Artifactと同一bytesを使います。main限定候補も既存scope計画・validatorを適用し、develop全体を混ぜません。以下の#409/0.1.0・Quail両IDE・旧RC Releaseと#470のSNAPSHOT受入は当時の履歴です。保存済みZIP・原Case/結果を新候補へ変更しません。#572は定義のみで、公開・移行・再試験を実行しません。
+
 ## 信頼する計画と差分
 
 先にGUI不要のtooling PRで、validator・既存RC/Verifier工具・`docs/verification/scopes/issue-409.json` をmainへ入れる。計画は対象Issue、具体的な許可ファイルとmode、全必須Caseの本文を持つ。候補側で計画や受入/公開コードを変更しない。計画の変更が必要なら別のmain向けtooling PRでレビューしてから、候補を固定し直す。

@@ -1,13 +1,17 @@
 import copy
+import html
+import re
 import unittest
 from unittest.mock import patch
 import qa_handoff as q
+from test_verification import change
 from issue_schema import validate_issue
 from test_agent_loop import FakeGitHub, report, HEAD, BASE
 import test_agent_loop as tal
 import agent_loop as al
 
-CHANGE = {'schema': 1, 'issue': 35, 'gui_required': False, 'reason': 'CLI tooling', 'cli_checks': ['unit tests'], 'cases': []}
+NO_CASES = {'schema': 1, 'issue': 35, 'gui_required': False, 'reason': 'CLI tooling', 'cli_checks': ['unit tests'], 'cases': []}
+CHANGE = change()
 
 
 class GH(FakeGitHub):
@@ -50,14 +54,19 @@ class HandoffTests(unittest.TestCase):
         self.pr = self.gh.pull
         self.pr.update(merged=True, merge_commit_sha='d'*40)
         self.pr['base']['ref'] = 'develop'
-        self.pr['body'] = self.pr['body'].replace('tooling', 'develop')
+        self.pr['body'] = self.pr['body'].replace('tooling', 'develop').replace('GUI: not-required', 'GUI: required')
     def transfer(self):
         return q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), CHANGE)
+
+    def visible_original_title(self, qa):
+        line = next(line for line in qa['body'].splitlines() if line.startswith('元Issue題名: '))
+        escaped = line.removeprefix('元Issue題名: ')
+        return html.unescape(re.sub(r'\\([\\`*_{}\[\]()#+.!|>@$~-])', lambda match: match[1], escaped))
     def test_success_and_retry_reuse_full_snapshot(self):
         self.assertEqual(self.transfer(), 100)
         self.assertEqual(self.transfer(), 100)
         self.assertEqual(self.gh.created, 1)
-        self.assertIn('cases', self.gh.issue(100)['body'])
+        self.assertIn('QA-1', self.gh.issue(100)['body'])
         self.assertEqual(len(self.gh.comments(35)), 1)
     def test_document_link_and_content_are_read_back_and_reused(self):
         self.transfer()
@@ -67,9 +76,14 @@ class HandoffTests(unittest.TestCase):
         self.assertIn('/issues/100#issuecomment-', body)
         documents = [c for c in self.gh.comments(100) if c['body'].startswith('<!-- qa-human-document:v1 -->')]
         self.assertEqual(len(documents), 1)
-        self.assertIn('unit tests', documents[0]['body'].split('<details>', 1)[0])
-        for text in ('前提条件', '試験手順', '期待結果', 'main反映', 'unit tests'):
+        self.assertIn('設定を開く', documents[0]['body'].split('<details>', 1)[0])
+        for text in ('前提条件', '試験手順', '期待結果', 'main反映', 'QA-1'):
             self.assertIn(text, documents[0]['body'])
+
+    def test_existing_no_cases_document_renderer_keeps_cli_checks(self):
+        from qa_document import render_document
+        document = render_document(NO_CASES, 'https://github.com/example/cases')
+        self.assertIn('unit tests', document.split('<details>', 1)[0])
 
     def test_human_amendment_blocks_retry_without_redirecting_current_guide(self):
         self.transfer()
@@ -132,6 +146,65 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(self.gh.issue(35)['state'], 'open')
         self.assertEqual(self.gh.comments(35), [])
 
+    def test_supported_origin_titles_produce_canonical_qa_and_preserve_original_title(self):
+        titles = ['fix: #123 の回帰を修正する', 'fix: 日本語表示を修正する',
+                  '[修正] #123 の回帰を修正する', '[修正] legacy only',
+                  '[修正] #35 legacy summary (#123)', '[修正] legacy\rsummary']
+        for title in titles:
+            with self.subTest(title=title):
+                self.gh = GH()
+                self.gh.issues[35].update(number=35, title=title, labels=['type:bug', 'priority:P2', 'status:in-progress'])
+                validate_issue(self.gh.issue(35))
+                self.assertEqual(self.transfer(), 100)
+                self.assertEqual(self.transfer(), 100)
+                qa = self.gh.issue(100)
+                validate_issue(qa, allow_legacy=False)
+                self.assertTrue(qa['title'].startswith('test: #35 '))
+                self.assertNotIn('#123', qa['title'])
+                self.assertIn('元Issue: #35', qa['body'])
+                self.assertEqual(self.visible_original_title(qa), ' '.join(title.split()))
+                self.assertIn('QA-1', qa['body'])
+                self.assertEqual(self.gh.created, 1)
+                self.assertEqual([i['number'] for i in self.gh.children], [100])
+                self.assertEqual(self.gh.issue(35)['state'], 'open')
+
+    def test_non_issue_literals_and_markup_preserve_visible_title_and_case_body(self):
+        titles = ['fix: 色#123456 と https://example.test/#123 と 識別子#123abc を維持する',
+                  'fix: <!-- 日本語の表示を直す', 'fix: <details> 日本語の表示を直す',
+                  'fix: **表示** と [確認](https://example.test) と `記録` と ~~取消~~ を維持する',
+                  'fix: &lt;details&gt; の文字列を維持する']
+        for title in titles:
+            with self.subTest(title=title):
+                self.gh = GH()
+                self.gh.issues[35].update(number=35, title=title,
+                                         labels=['type:bug', 'priority:P2', 'status:in-progress'])
+                validate_issue(self.gh.issue(35))
+                self.assertEqual(self.transfer(), 100)
+                qa = self.gh.issue(100)
+                line = next(line for line in qa['body'].splitlines() if line.startswith('元Issue題名: '))
+                self.assertNotIn('色Issue 123456', qa['title'])
+                self.assertNotIn('https://example.test/Issue 123', qa['title'])
+                self.assertNotIn('識別子Issue 123abc', qa['title'])
+                self.assertNotIn('<', line)
+                if '**表示**' in title:
+                    self.assertIn(r'\*\*表示\*\*', line)
+                    self.assertIn(r'\~\~取消\~\~', line)
+                self.assertEqual(self.visible_original_title(qa), title)
+                self.assertEqual(qa['title'], 'test: #35 残る動作確認を引き継ぐ')
+                validate_issue(qa, allow_legacy=False)
+                self.assertIn('\nCase: QA-1', qa['body'])
+                self.assertIn('受入・次操作:', qa['body'])
+                self.assertIn('元Issue: #35', qa['body'])
+                self.assertEqual(self.transfer(), 100)
+                self.assertEqual(self.gh.created, 1)
+
+    def test_invalid_origin_title_still_blocks_before_creating_qa(self):
+        self.gh.issues[35].update(number=35, title='fix: #35 自分の番号を題名に含める',
+                                 labels=['type:bug', 'priority:P2', 'status:in-progress'])
+        with self.assertRaises(ValueError):
+            self.transfer()
+        self.assertEqual(self.gh.created, 0)
+        self.assertEqual(self.gh.issue(35)['state'], 'open')
     def test_milestone_and_parent_are_preserved_on_retry(self):
         self.gh.issues[35]['milestone'] = {'number': 7}
         self.transfer()
@@ -192,6 +265,15 @@ class HandoffTests(unittest.TestCase):
             q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), invalid)
         self.assertEqual(self.gh.created, 0)
 
+    def test_no_cases_retains_main_custody_without_creating_qa(self):
+        self.pr['body'] = self.pr['body'].replace('GUI: required', 'GUI: not-required')
+        for _ in range(2):
+            self.assertIsNone(q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), NO_CASES))
+        self.assertEqual(self.gh.created, 0)
+        for number in (35, 36):
+            self.assertEqual(len(self.gh.comments(number)), 1)
+            self.assertIn('PMが保管', self.gh.comments(number)[0]['body'])
+
     def test_unconfirmed_merge_blocks(self):
         self.pr['merged'] = False
         with self.assertRaises(ValueError): self.transfer()
@@ -211,7 +293,7 @@ class ClosureTests(unittest.TestCase):
             gh.comment = comment
         gh.pull.update(merged=True, merge_commit_sha='d'*40)
         gh.pull['base']['ref'] = 'develop'
-        gh.pull['body'] = gh.pull['body'].replace('tooling','develop')
+        gh.pull['body'] = gh.pull['body'].replace('tooling','develop').replace('GUI: not-required', 'GUI: required')
         state = {'binding': al.binding(gh.pull, gh.issue(35)), 'review': dict(report(), issue_complete=complete)}
         h = {'issue':35,'parent':1,'close_issue':False,'gui_required':False}
         with patch.object(al, 'git', return_value=__import__('json').dumps(CHANGE)) as git:
@@ -243,8 +325,20 @@ class ClosureTests(unittest.TestCase):
 
 
 class SchemaTests(unittest.TestCase):
+    def test_all_new_types_keep_legacy_read_compatibility(self):
+        from issue_schema import TYPES, LEGACY_TYPES
+        for kind, prefix in TYPES.items():
+            origin = '#35 ' if kind == 'qa' else ''
+            data = {'number': 100, 'state': 'open', 'title': prefix + ': ' + origin + '対象を確認する',
+                    'labels': ['type:' + kind, 'priority:P2', 'status:ready']}
+            validate_issue(data, allow_legacy=False)
+            old = dict(data, title='[' + LEGACY_TYPES[kind] + '] ' + origin + '旧題名')
+            validate_issue(old)
+            with self.assertRaises(ValueError):
+                validate_issue(old, allow_legacy=False)
+
     def test_axes_title_and_closed_status(self):
-        valid = {'title':'[試験] #35 試験', 'state':'open', 'labels':['type:qa','priority:P1','status:ready']}
+        valid = {'title':'test: #35 試験', 'state':'open', 'labels':['type:qa','priority:P1','status:ready']}
         validate_issue(valid)
         for change in ({'title':'[試験] 試験'}, {'title':'[試験] #35 P1 試験'}, {'state':'closed'},
                        {'labels':['type:qa','priority:P1','status:ready','status:review']},

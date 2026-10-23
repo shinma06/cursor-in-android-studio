@@ -63,8 +63,8 @@ class AcceptanceTests(unittest.TestCase):
         if args[:2] == ('rev-list', '--parents'):
             return args[-1] + ' ' + BASE
         if args[0] == 'rev-list':
-            return '' if '--not' in args else '\n'.join(self.range)
-        if args[0] == 'ls-tree':
+            return HEAD if '--first-parent' in args or args == ('rev-list', HEAD, '--not', NEW, BASE) else ('' if '--not' in args else '\n'.join(self.range))
+        if args[0] in ('ls-tree', 'log'):
             return ''
         if args[0] == 'fetch':
             return ''

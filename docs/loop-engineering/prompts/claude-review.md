@@ -16,9 +16,12 @@ Report in Japanese: severity, location, reproduction conditions, impact and prop
 Label unsupported conclusions as hypotheses. Never mark GUI tests you did not perform as passed.
 Even if no defect is found, state the verification limits and reviewed HEAD/base.
 For development-context reviews/audits, apply the supplied relevant excerpt of docs/architecture/knowledge.md's context policy. Missing evidence remains unverified; do not expand access or scope to obtain it.
+For changed source/comments/Doc, examples, configuration/schema or instructions, apply the supplied relevant excerpt of docs/development/comment-doc.md to meaningful contracts, local why/non-obvious how, affected explanations/tests/references and protected evidence. An entrypoint link alone does not prove semantic conformity or whole-existing-code application.
 <diff, relevant code, evidence and applicable policy excerpt>
 ```
 
 これは提供資料だけを読む依頼例です。選んだクライアントでtoolを無効にできる場合は無効にし、利用可能な起動方法・権限を確認します。自動coordinator連携の対応範囲は[PR automation](../../development/pr-automation.md)に従い、providerごとのadapterを仮定しません。認証ファイルをコピー・抽出しません。
 
 レビュー役から実装役へ変更する場合は、別途Issueのclaim・専用worktree・対象ファイル・base・必要テスト・PRを指定して引き継ぎます。レビュー依頼を実装権限として扱わず、その変更には別sessionのレビューが必要です。
+
+For evidence and method choices, apply the supplied relevant [responsibility contract](../../verification/responsibility.md). Identify the guarantee, existing qualified evidence, missing fact and minimum sufficient method; preserve original failures and actual execution obligations.

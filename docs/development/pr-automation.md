@@ -35,12 +35,14 @@ queued → reviewing → reviewed
                    └ approved → acceptance待ち / CI待ち → merging → cleanup → done
 ```
 
-reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。現行CLI workerはreview=`gpt-6-astra`/`high`、fix=`gpt-6.1-sol`/`high`を明示し、個人の既定model/effortを流用しません。CLI起動headerの実設定を照合してreportへ保存し、未確認/不一致/利用不可なら成果採用を停止します。旧レビューに設定証拠がなければ再利用せず停止し、PMが適格な独立担当へ戻します。起動headerの形式変更も未確認として停止し、モデルの自己申告は代替にしません。設定を確認できないfixerのdirty差分は保持して停止し、通常tick/resumeだけでcommit/pushへ自動回復しません。`fixing`は未確認で復旧対象外です。workerが正常終了して実設定照合と履歴確認を終えた後だけ`publishing`を保存します。timeout・通信/起動/結果読込等の例外とcontroller停止/再起動でも、この境界より前の差分は採用しません。PMが実装担当へ差分確認・適格設定での再実行/検証を戻し、独立再レビューを行います。現在の担当とは別の独立top-level実行かどうかの確認は、CLI引数だけでは証明できません。GitHub token/設定MCP/GUI権限を渡しません。
+reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。現行CLI workerはreview=`gpt-6.1-sol`/`high`、fix=`gpt-6.1-sol`/`high`を明示し、個人の既定model/effortを流用しません。`--json`の`thread.started`→終端`turn.completed`を、同じsessionのCLI保存記録の`session_meta`（id/root session/source=exec/checkout）と`turn_context`（全記録のmodel/effort/checkout）へ結び、reportへ保存します。JSONモードでは人間向け起動headerを要求しません。設定の実証を残すため`--ephemeral`は使わず、`CODEX_HOME/sessions/YYYY/MM/DD/rollout-*-<session>.jsonl`の一致する1原本だけを読みます。raw原本・prompt・診断はprivateに保全し、公開しません。未確認/不一致/利用不可・保存形式変更なら成果採用を停止し、モデルの自己申告は代替にしません。旧レビューに設定証拠がなければ再利用せず停止し、PMが適格な独立担当へ戻します。設定を確認できないfixerのdirty差分は保持して停止し、通常tick/resumeだけでcommit/pushへ自動回復しません。`fixing`は未確認で復旧対象外です。workerが正常終了して実設定照合と履歴確認を終えた後だけ`publishing`を保存します。timeout・通信/起動/結果読込等の例外とcontroller停止/再起動でも、この境界より前の差分は採用しません。PMが実装担当へ差分確認・適格設定での再実行/検証を戻し、独立再レビューを行います。現在の担当とは別の独立top-level実行かどうかの確認は、CLI引数だけでは証明できません。GitHub token/設定MCP/GUI権限を渡しません。
+
+JSONイベント・保存省略flagは[公式CLI説明](https://developers.openai.com/codex/noninteractive)と[CLI reference](https://developers.openai.com/codex/cli/reference)、保存記録の形式/配置は[Codex 0.163.0 protocol](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/protocol/src/protocol.rs#L3245)と[rollout recorder](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/rollout/src/recorder.rs#L1744)に基づきます。別版の互換性や実workerでの稼働確認は、この静的適合と合成検証からは主張しません。
 GPT-6 Astraがメインの場合は[Codex実行規約](codex-execution-policy.md)に従い、reviewer/fixerを現在のAgentの子として生成・委譲してはいけません。独立top-level Sessionとの連携かどうかを実行構造で確認し、workerという名称や自動化スクリプト経由を禁止回避の根拠にしません。
 GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認を拒否しません。コード不具合、必要テスト失敗、Case追跡不足は修正対象です。
 PMが選んだ有限の対象を、既存coordinatorは最大3 PRで交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。この3 PR上限はsessionやbuildの同時枠ではなく、PMの実負荷判断とGUI leaseを代替しません。
 
-coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/本文/Issue条件/feedback変更は承認を失効させます。
+coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/題名/本文/Issue条件/feedback変更は承認を失効させます。
 base同期は通常merge → [共通Change Impact](change-impact.md)の必要テスト → 非force push → 独立再レビューです。知識のみのskipも判定結果を残し、dirty/remote HEAD/受入の照合は省略しません。未解決会話とstrict baseはGitHub保護も検査します。
 `test` / `PR policy` / `Acceptance gate`成功と独立レビューを読み戻し、merge直前に受入を再検証して `Agent review` を発行します。
 
@@ -85,7 +87,9 @@ registry喪失、旧writer再開、予期しないcommitやdirty内容は保持�
 
 ## 完了とcleanup
 
-GitHub mergeを読み戻します。developでは元実装Issue単位の `<!-- issue-qa-handoff:v1 origin=N -->` をQA本文から全件取得で照合し、存在すれば再利用します。複数一致は停止します。元Issue/PR/merge SHA/固定mergeのCase JSON全文（GUI不要の場合もmain反映追跡）をQAへ保存する。元Milestoneを新規QAへ継承し、既存QAの目標と異なれば上書きせず停止する。QAのnative親子関係と内容をreadbackし、人間向けMarkdown試験ドキュメントをコメントへ生成して本文リンクと内容をreadbackし、元Issueコメントの `<!-- issue-qa-link:v1 origin=N qa=Q -->` も読み戻してからstatus:doneでcloseします。API失敗やreadback不一致ではcloseせず、再試行で既存QAを再利用します。親チェック/QA受入は完了にしません。既存QA本文は置換せず引継ぎコメントを追加します。
+GitHub mergeを読み戻します。developでは固定mergeのCaseを読み、残CaseがあるときだけQAを作成/再利用します。新規QAはcanonical `test: #N 日本語の要約`、再利用は旧`[試験] #N `と新形式の元番号を厳密に照合します。重複・closed・所有/目標の矛盾は上書きせず戻します。元Case JSONの全文コピーをQAへ増やさず、固定merge/pathと全必要Case ID・手順/期待/次操作の正本を示し、native親子・内容と元Issue backlinkをreadbackしてから元実装Issueを閉じます。CaseなしならQAを作らず、元IssueとPRへPMのmain反映保管・未確認と次操作を記録し、両端readbackします。既存QAがあるno-Cases変更は自動処理せずownerへ戻します。API失敗/不一致ではcloseしません。既存QA本文/原失敗・履歴は保持します。
+CaseがあるQAでは、既存の[個別試験ドキュメント](../verification/human-qa.md)の生成・本文リンク・内容のreadbackも維持します。人間の追記や不一致を上書きせず、既存qa_document経路で確認してから元Issueを閉じます。
+
 mainで全受入済みのpromotion Issueは新candidate証拠を含む受入判定でclose可能です。元の機能/QA IssuesはPMが残条件を個別照合します。
 remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止・GUI lease空きの場合だけ削除します。
 **main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
@@ -107,16 +111,16 @@ python3 scripts/workflow/agent_loop.py cleanup-branches --apply
 
 | 対象 | 判定と処置 |
 | --- | --- |
-| `origin/*`のremote-tracking ref | `git ls-remote --heads origin`と照合。remoteで削除済みなら`git fetch --prune origin`で同期する。実branch/worktreeの削除ではない。 |
+| `origin/*`のremote-tracking ref | `git ls-remote --heads origin`と照合。remoteで削除済みなら固有commitと実PR/所有を確認し、必要な保全・実復元後にだけpruneする。実branch/worktreeの削除ではない。 |
 | remote/localの実branch | PRのmerged/closed、固定HEAD、取り込み先、claim、dirty/未追跡、worktreeでの使用を確認する。squashは`--merged`だけで判定せずPR HEADも照合する。 |
 | detached worktree | app/reviewer/GUI fixtureの用途・担当・未保存データを別に確認する。branch一覧にないことや古さだけでは削除しない。 |
 
-通常のcloneでoriginのfetch refspecが`+refs/heads/*:refs/remotes/origin/*`であり、tag pruningが有効でないことを確認したら、`git config --local remote.origin.prune true`を一度設定する。以後の通常fetchでも削除済みの追跡refを整理する。設定は本repositoryのoriginに限定し、global設定・他remote・タグ設定を変更しない。独自refspecや`fetch.pruneTags`/`remote.origin.pruneTags`がある場合は削除範囲を先に確認する。`--prune-tags`は使わない。[Git公式のpruning仕様](https://git-scm.com/docs/git-fetch#_pruning)を参照。
+通常fetchは`git fetch --no-prune origin`とし、自動prune設定も上書きします。tracking-only refが最後の未統合commitかもしれないため、`[gone]`だけで削除しません。`--prune-tags`は使いません。mergedとclosed-unmerged/withdrawn/supersededを分け、後者は元指摘・replacement・所有/停止・全refs/dirty/untracked/必要ignored成果物を確認します。退役する固有内容は削除範囲外の既存archive/snapshot/bundleに不変保管し、hash照合だけでなく使い捨て復元先へのfetch/checkout・固定tree/必要ファイル照合まで行います。QA/再開/復旧に必要な資源は残し、owner・理由・再開条件を元Issue/PRへ記録します。新しい保管frameworkや一括purgeは作りません。
 
 PM/coordinatorはmerge後の区切りで以下を確認し、Issue/PRへ結果を残す。
 
 1. **統合**: PRのmerge SHA、受入、必要なQA引継ぎを読み戻す。
-2. **後片付け**: 既存の所有確認付きcleanupを実行し、`git fetch --prune origin`後にremote/localの対象branch、`origin/<branch>`、登録source/managed checkoutの残存を確認する。終了報告は削除済み/保留を分ける。既存`cleanup-branches`は補助監査であり、使用中worktree・remote実ref・未登録/旧形式・mergedでないPR等をすべて整理する仕組みではない。
+2. **後片付け**: 既存の所有確認付きcleanupを実行し、保全済みtracking refの限定整理後にremote/localの対象branch、`origin/<branch>`、登録source/managed checkoutの残存を確認する。終了報告は削除済み/保留を分ける。既存`cleanup-branches`は補助監査であり、使用中worktree・remote実ref・未登録/旧形式・mergedでないPR等をすべて整理する仕組みではない。
 3. **保留**: branch、固定HEAD、残る資源の種類、理由、owner、次の操作/再開条件を元Issue/PRへ記録する。ローカル絶対パスはprivate registryだけに残す。GUI leaseで中断した場合、元coordinatorまたは明示引継ぎ先が解放確認後に既存登録の停止理由を照合し、通常のresume/cleanup手順を再開する。Issueがclosedでもこの後片付け責務は消えない。停止理由不明の自動再開、owner/sourceの付け替え、heartbeatの勝手な再開はしない。
 
 mergedでなくclosed/supersededになったPR、PRのない旧形式branch、未追跡ファイルを持つworktreeは、自動cleanupへ無理に登録し直さない。代替PR/取り込み証拠、担当解放、未保存データの保全と削除範囲を確認してから別途判断する。`main/master/develop`、有効claim、未公開成果物、GUI証拠は保護し、件数ゼロのために削除しない。
@@ -128,3 +132,11 @@ GUI failのdevelop許可/main拒否、privacy registry、旧v1、QA引継ぎ後�
 
 - [GitHub commit statuses](https://docs.github.com/en/rest/commits/statuses)
 - [GitHub branch refs](https://docs.github.com/en/rest/git/refs#get-a-reference)
+
+## 機械検査と実originの限界
+
+現在のCLI adapterはJSON event envelopeと同じsessionのCLI保存記録からmodel/effortとoriginを読む。生成したreport名・role名をsession identityにしない。実originはprivateに保持し、公開進捗はfingerprintで示す。これはtrusted local runtimeを前提とし、敵対的なhostを認証する機能ではない。手動の独立報告は統合担当が実担当sessionから原本を取得し、固定HEAD/base/題名/Issue/全feedback、原証拠と実origin/model/独立性を照合して既存Agent reviewへ結ぶ。公開fingerprint/非空文字列だけで実証や独立性を確認済みにしない。
+
+証拠certificateを登録する場合、Acceptanceは原記録・履歴・正確なresult/Case/保証/参照の構造を検査する。Agent reviewはそのrevisionと指定された実独立reviewer、実質assessmentを要求する。ARBのprivate origin/repair adapterは本repoに移植していないので、それがあると主張しない。自動経路で必要な実origin/原本評価を取得できなければ当該経路を止め、許可された独立top-level評価と統合担当へ戻す。CLI workerが独立top-levelかは従来どおり別途確認が必要。
+
+ready化に伴うprovider reviewと独立レビューは別に扱う。統合担当はcurrent HEADのprovider完了・全review本文/inline/返信/Issue/PR conversation・resolved/outdatedも取得し、指摘IDと元commit、固定版での修正/検査又は根拠付き非該当を確認する。空結果・旧版・reaction・経過時間・CIだけで完了にしない。coordinatorは既存Codex botのcurrent-HEAD Completed summaryを検査し、全PR/Issue conversation・inline/review・解決threadをbindingへ含める。欠落/Running/旧版/未知形式は待機する。他providerへの自動切替adapterはなく、未完了の依頼を消して別経路へ逃がさない。merge直前・merge後・close前にも取得し、後着指摘は原Issue又は専用修正へ残責任を戻す。新しい常駐監視は作らない。
