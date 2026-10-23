@@ -115,8 +115,12 @@ def validate_review(report, expected, acceptance=None):
                 not isinstance(report.get('repair_assessment'), str) or not report['repair_assessment'].strip()):
             raise ValueError('Repair requires independent actual-origin assessment of every original failed guarantee')
     if report['verdict'] == 'approved' and (acceptance or {}).get('certificate_revision'):
+        reviewer = report['session'] if SESSION_HASH.fullmatch(report['session']) else session_fingerprint(report['session'])
+        contributors = acceptance.get('certificate_contributors')
         if (report.get('certificate_revision') != acceptance['certificate_revision'] or
-                (report['session'] if SESSION_HASH.fullmatch(report['session']) else session_fingerprint(report['session'])) not in acceptance['certificate_reviewers'] or
+                acceptance.get('certificate_reviewers') != [reviewer] or
+                not isinstance(contributors, list) or not contributors or reviewer in contributors or
+                not all(isinstance(s, str) and SESSION_HASH.fullmatch(s) for s in contributors) or
                 not report.get('origin_evidence') or
                 not isinstance(report.get('certificate_assessment'), str) or not report['certificate_assessment'].strip()):
             raise ValueError('Certificate requires its actual independent reviewer and substantive fixed assessment')

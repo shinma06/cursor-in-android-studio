@@ -338,7 +338,11 @@ def certificate_registration(data, issue, mode, git):
     if mode != 'tooling' or data['gui_required'] or data['cases']:
         raise ValueError('Evidence adoption requires an independent main tooling PR')
     reviewers = sorted({evidence_certificate(c, git) for c in certificates.values()})
-    return {'certificate_revision': json_hash(certificates), 'certificate_reviewers': reviewers}
+    contributors = sorted({session for c in certificates.values() for session in c['review']['contributors']})
+    if len(reviewers) != 1 or set(reviewers) & set(contributors):
+        raise ValueError('Certificate registration requires one common reviewer independent of every contributor')
+    return {'certificate_revision': json_hash(certificates), 'certificate_reviewers': reviewers,
+            'certificate_contributors': contributors}
 
 
 def certificate_changes(base, head, files, own_path, mode, data, git):

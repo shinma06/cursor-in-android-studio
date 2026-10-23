@@ -155,9 +155,58 @@ class EvidenceReuseTests(unittest.TestCase):
                        {'session': 'another-role-alias'}):
             with self.assertRaises(ValueError):
                 validate_review(dict(assessed, **update), expected, self.acceptance)
+        for update in ({'certificate_reviewers': self.acceptance['certificate_reviewers'] + ['codex-session-sha256:' + '3' * 64]},
+                       {'certificate_contributors': [session_fingerprint(self.reviewer)]},
+                       {'certificate_contributors': []}):
+            with self.subTest(acceptance=update), self.assertRaises(ValueError):
+                validate_review(assessed, expected, dict(self.acceptance, **update))
         with self.assertRaises(ValueError):
             v.certificate_registration(dict(change(), evidence_certificates={'C1': self.certificate}),
                                        35, 'develop', self.git)
+
+    def certificate_bundle(self):
+        second_case = dict(CASE, id='QA-2', expected='Synthetic second guarantee')
+        self.write(self.case_path, json.dumps(dict(change(), cases=[CASE, second_case])))
+        source = self.commit('synthetic two-case source')
+        self.write('src/main/Other.kt', 'class OtherChangedAgain\n')
+        candidate = self.commit('synthetic unrelated candidate')
+        certificates = {}
+        for name, case in [('C1', CASE), ('C2', second_case)]:
+            c = copy.deepcopy(self.certificate)
+            c.update(key='35:' + case['id'], case_sha256=v.json_hash(case),
+                     history=v.evidence_history(source, candidate, self.git))
+            c['result'].update(head=candidate, source_candidate=source)
+            c['result']['source_result']['head'] = source
+            c['result']['confirmation']['head'] = candidate
+            c['original_result_sha256'] = v.json_hash(c['result']['source_result'])
+            certificates[name] = c
+        return certificates
+
+    def test_complete_bundle_requires_one_common_independent_reviewer(self):
+        certificates = self.certificate_bundle()
+        certificates['C2']['review']['contributors'] = ['codex-session-sha256:' + '4' * 64]
+        data = dict(change(571, False), evidence_certificates=certificates)
+        accepted = v.certificate_registration(data, 571, 'tooling', self.git)
+        self.assertEqual(accepted['certificate_reviewers'], [session_fingerprint(self.reviewer)])
+        self.assertEqual(accepted['certificate_contributors'], sorted(
+            certificates['C1']['review']['contributors'] + certificates['C2']['review']['contributors']))
+        assessed = dict(report(), session=self.reviewer,
+                        certificate_revision=accepted['certificate_revision'],
+                        certificate_assessment='Synthetic whole-bundle original/origin assessment',
+                        origin_evidence='Synthetic actual runtime receipt')
+        validate_review(assessed, {'head': assessed['head'], 'base': assessed['base']}, accepted)
+        assessed['certificate_revision'] = '0' * 64
+        with self.assertRaises(ValueError):
+            validate_review(assessed, {'head': assessed['head'], 'base': assessed['base']}, accepted)
+
+    def test_mixed_reviewers_and_cross_certificate_contribution_are_rejected(self):
+        certificates = self.certificate_bundle()
+        certificates['C2']['review']['session'] = 'codex-session-sha256:' + '3' * 64
+        for contributors in (certificates['C2']['review']['contributors'], [session_fingerprint(self.reviewer)]):
+            certificates['C2']['review']['contributors'] = contributors
+            with self.subTest(contributors=contributors), self.assertRaises(ValueError):
+                v.certificate_registration(dict(change(571, False), evidence_certificates=certificates),
+                                           571, 'tooling', self.git)
 
 
 if __name__ == '__main__':
