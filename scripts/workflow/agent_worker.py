@@ -2,7 +2,6 @@
 import json
 import os
 from pathlib import Path
-import re
 import signal
 import subprocess
 import uuid
@@ -56,6 +55,38 @@ def event_session(path):
     return session
 
 
+def verify_runtime_settings(session, checkout, codex_home, model, effort):
+    """Read only this fresh CLI session's runtime records, never model-written output."""
+    try:
+        paths = list((codex_home / 'sessions').glob(f'*/*/*/rollout-*-{session}.jsonl'))
+        if len(paths) != 1 or paths[0].is_symlink() or not paths[0].is_file():
+            raise ValueError('Missing or ambiguous CLI rollout')
+        metadata, contexts = [], []
+        with paths[0].open() as stream:
+            for line in stream:
+                record = json.loads(line)
+                if not isinstance(record, dict):
+                    raise ValueError('Malformed CLI runtime record')
+                if record.get('type') in ('session_meta', 'turn_context'):
+                    payload = record.get('payload')
+                    if not isinstance(payload, dict):
+                        raise ValueError('Malformed CLI runtime payload')
+                    (metadata if record['type'] == 'session_meta' else contexts).append(payload)
+        checkout = Path(checkout).resolve()
+        if (len(metadata) != 1 or metadata[0].get('id') != session or
+                metadata[0].get('session_id') != session or metadata[0].get('source') != 'exec' or
+                metadata[0].get('forked_from_id') or metadata[0].get('parent_thread_id') or
+                not contexts):
+            raise ValueError('Missing or mismatched fresh CLI origin')
+        for record in [metadata[0], *contexts]:
+            if not isinstance(record.get('cwd'), str) or Path(record['cwd']).resolve() != checkout:
+                raise ValueError('CLI runtime checkout mismatch')
+        if any(c.get('model') != model or c.get('effort') != effort for c in contexts):
+            raise ValueError('CLI runtime model/effort mismatch')
+    except (OSError, ValueError) as error:
+        raise WorkerSettingsError('Worker runtime settings/origin missing or mismatched; preserve files and stop') from error
+
+
 def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda pid: None):
     if role not in ('review', 'fix'):
         raise ValueError('Unknown worker role')
@@ -68,7 +99,7 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
     result = output_dir / (session + '.json')
     schema.write_text(json.dumps(REPORT_SCHEMA))
     command = ['codex', 'exec', '--model', model, '-c', f'model_reasoning_effort="{effort}"',
-               '--json', '--ignore-user-config', '--ephemeral', '--color', 'never',
+               '--json', '--ignore-user-config', '--color', 'never',
                '--sandbox', 'read-only' if role == 'review' else 'workspace-write',
                '-C', str(checkout), '--output-schema', str(schema), '-o', str(result), '-']
     instructions = (
@@ -104,11 +135,12 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
     ) + json.dumps(packet, ensure_ascii=False)
     log = output_dir / (session + '.log')
     events = output_dir / (session + '.events.jsonl')
+    environment = worker_environment()
     with log.open('w') as stream, events.open('w') as event_stream:
         os.chmod(log, 0o600)
         os.chmod(events, 0o600)
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=event_stream, stderr=stream,
-                                   text=True, env=worker_environment(), start_new_session=True)
+                                   text=True, env=environment, start_new_session=True)
         try:
             on_start(process.pid)
             process.communicate(prompt, timeout=timeout)
@@ -130,14 +162,11 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
             process.wait()
     if process.returncode or not result.exists():
         raise WorkerSettingsError(f'{role} worker failed ({process.returncode}); inspect {log}')
-    # Only trust the CLI startup header, never model-generated text or packet fields.
-    startup, separator, _ = log.read_text().partition('\nuser\n')
-    header = re.search(r'^OpenAI Codex v[^\n]+\n-+\n(.*?)\n-+\n?$', startup, re.M | re.S) if separator else None
-    settings = dict(re.findall(r'^(model|reasoning effort): ([^\n]+)$', header[1], re.M)) if header else {}
-    if settings != {'model': model, 'reasoning effort': effort}:
-        raise WorkerSettingsError('Worker model/effort readback missing or mismatched; preserve files and stop')
+    actual_session = event_session(events)
+    verify_runtime_settings(actual_session, checkout,
+                            Path(environment.get('CODEX_HOME', str(Path.home() / '.codex'))), model, effort)
     report = json.loads(result.read_text())
-    report.update(model=model, reasoning_effort=effort, model_evidence='Codex CLI startup header readback')
-    report['session'] = event_session(events)
-    report['origin_evidence'] = 'Codex thread.started and terminal turn.completed envelope'
+    report.update(model=model, reasoning_effort=effort, model_evidence='Codex CLI rollout turn_context readback')
+    report['session'] = actual_session
+    report['origin_evidence'] = 'Codex thread.started/turn.completed bound to fresh exec session_meta and checkout'
     return report

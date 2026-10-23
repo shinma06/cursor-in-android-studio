@@ -35,7 +35,9 @@ queued → reviewing → reviewed
                    └ approved → acceptance待ち / CI待ち → merging → cleanup → done
 ```
 
-reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。現行CLI workerはreview=`gpt-6.1-sol`/`high`、fix=`gpt-6.1-sol`/`high`を明示し、個人の既定model/effortを流用しません。CLI起動headerの実設定と`thread.started`→終端`turn.completed`の実originを別streamで照合してreportへ保存し、未確認/不一致/利用不可なら成果採用を停止します。旧レビューに設定証拠がなければ再利用せず停止し、PMが適格な独立担当へ戻します。起動headerの形式変更も未確認として停止し、モデルの自己申告は代替にしません。設定を確認できないfixerのdirty差分は保持して停止し、通常tick/resumeだけでcommit/pushへ自動回復しません。`fixing`は未確認で復旧対象外です。workerが正常終了して実設定照合と履歴確認を終えた後だけ`publishing`を保存します。timeout・通信/起動/結果読込等の例外とcontroller停止/再起動でも、この境界より前の差分は採用しません。PMが実装担当へ差分確認・適格設定での再実行/検証を戻し、独立再レビューを行います。現在の担当とは別の独立top-level実行かどうかの確認は、CLI引数だけでは証明できません。GitHub token/設定MCP/GUI権限を渡しません。
+reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイルのみです。現行CLI workerはreview=`gpt-6.1-sol`/`high`、fix=`gpt-6.1-sol`/`high`を明示し、個人の既定model/effortを流用しません。`--json`の`thread.started`→終端`turn.completed`を、同じsessionのCLI保存記録の`session_meta`（id/root session/source=exec/checkout）と`turn_context`（全記録のmodel/effort/checkout）へ結び、reportへ保存します。JSONモードでは人間向け起動headerを要求しません。設定の実証を残すため`--ephemeral`は使わず、`CODEX_HOME/sessions/YYYY/MM/DD/rollout-*-<session>.jsonl`の一致する1原本だけを読みます。raw原本・prompt・診断はprivateに保全し、公開しません。未確認/不一致/利用不可・保存形式変更なら成果採用を停止し、モデルの自己申告は代替にしません。旧レビューに設定証拠がなければ再利用せず停止し、PMが適格な独立担当へ戻します。設定を確認できないfixerのdirty差分は保持して停止し、通常tick/resumeだけでcommit/pushへ自動回復しません。`fixing`は未確認で復旧対象外です。workerが正常終了して実設定照合と履歴確認を終えた後だけ`publishing`を保存します。timeout・通信/起動/結果読込等の例外とcontroller停止/再起動でも、この境界より前の差分は採用しません。PMが実装担当へ差分確認・適格設定での再実行/検証を戻し、独立再レビューを行います。現在の担当とは別の独立top-level実行かどうかの確認は、CLI引数だけでは証明できません。GitHub token/設定MCP/GUI権限を渡しません。
+
+JSONイベント・保存省略flagは[公式CLI説明](https://developers.openai.com/codex/noninteractive)と[CLI reference](https://developers.openai.com/codex/cli/reference)、保存記録の形式/配置は[Codex 0.163.0 protocol](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/protocol/src/protocol.rs#L3245)と[rollout recorder](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/rollout/src/recorder.rs#L1744)に基づきます。別版の互換性や実workerでの稼働確認は、この静的適合と合成検証からは主張しません。
 GPT-6 Astraがメインの場合は[Codex実行規約](codex-execution-policy.md)に従い、reviewer/fixerを現在のAgentの子として生成・委譲してはいけません。独立top-level Sessionとの連携かどうかを実行構造で確認し、workerという名称や自動化スクリプト経由を禁止回避の根拠にしません。
 GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認を拒否しません。コード不具合、必要テスト失敗、Case追跡不足は修正対象です。
 PMが選んだ有限の対象を、既存coordinatorは最大3 PRで交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。この3 PR上限はsessionやbuildの同時枠ではなく、PMの実負荷判断とGUI leaseを代替しません。
@@ -131,7 +133,7 @@ GUI failのdevelop許可/main拒否、privacy registry、旧v1、QA引継ぎ後�
 
 ## 機械検査と実originの限界
 
-現在のCLI adapterは実起動headerとJSON event envelopeからmodel/effortとoriginを読む。生成したreport名・role名をsession identityにしない。実originはprivateに保持し、公開進捗はfingerprintで示す。これはtrusted local runtimeを前提とし、敵対的なhostを認証する機能ではない。手動の独立報告は統合担当が実担当sessionから原本を取得し、固定HEAD/base/題名/Issue/全feedback、原証拠と実origin/model/独立性を照合して既存Agent reviewへ結ぶ。公開fingerprint/非空文字列だけで実証や独立性を確認済みにしない。
+現在のCLI adapterはJSON event envelopeと同じsessionのCLI保存記録からmodel/effortとoriginを読む。生成したreport名・role名をsession identityにしない。実originはprivateに保持し、公開進捗はfingerprintで示す。これはtrusted local runtimeを前提とし、敵対的なhostを認証する機能ではない。手動の独立報告は統合担当が実担当sessionから原本を取得し、固定HEAD/base/題名/Issue/全feedback、原証拠と実origin/model/独立性を照合して既存Agent reviewへ結ぶ。公開fingerprint/非空文字列だけで実証や独立性を確認済みにしない。
 
 証拠certificateを登録する場合、Acceptanceは原記録・履歴・正確なresult/Case/保証/参照の構造を検査する。Agent reviewはそのrevisionと指定された実独立reviewer、実質assessmentを要求する。ARBのprivate origin/repair adapterは本repoに移植していないので、それがあると主張しない。自動経路で必要な実origin/原本評価を取得できなければ当該経路を止め、許可された独立top-level評価と統合担当へ戻す。CLI workerが独立top-levelかは従来どおり別途確認が必要。
 
