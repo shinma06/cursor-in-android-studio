@@ -141,7 +141,7 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 
 `history`は`verification.evidence_history(source, candidate, git)`の全親edge（commit/parent/paths）です。元Caseはsource/current/途中の各版で同一、sourceはcandidateの祖先。関連するregular component pathごとに両blobを持ち、`guarantees`の各項目へ`disposition: unaffected | equivalent | fresh`、`components`、`evidence`を置きます。`impact`はsource/callers/callees/dataflow/build/configuration/dependencies/fixtures/runtime/display/failure_attributionの具体的証拠/非該当理由です。変更/revertしたcomponentはunaffectedにせず、equivalentには実質的な`equivalence_evidence`、freshには現在の実証が必要です。未知影響は未達です。
 
-`review`は`status: approved / at（現在証拠以後の評価日時） / session（実originのfingerprint） / contributors（全writer/実行/評価/構成担当のfingerprint） / evidence / origin_evidence`で、reviewerは全contributorと別です。新登録のAgent reviewは証明全体の`certificate_revision`と、指定した実独立reviewerの`certificate_assessment`を要求します。実origin、原本の存在/byte hash/内容、全有効保証と条件、元失敗の帰属を実質的に評価し、統合担当が実sessionの原報告へ結びます。文字列やhashの存在は実証/独立性の認証ではありません。機械検査と実質評価の責任を分け、ARBのprivate adapterがtargetにもあるとは主張しません。
+`review`は`status: approved / at（現在証拠以後の評価日時） / session（実originのfingerprint） / contributors（全writer/実行/評価/構成担当のfingerprint） / evidence / origin_evidence`で、reviewerは全contributorと別です。この単一report経路では、登録する全証明書に共通するreviewerが厳密に1名であり、証明書全体のどのcontributorにも含まれないことを要求します。新登録のAgent reviewは、その唯一の実reviewerによる証明全体の`certificate_revision`と`certificate_assessment`を要求します。実origin、原本の存在/byte hash/内容、全有効保証と条件、元失敗の帰属を実質的に評価し、統合担当が実sessionの原報告へ結びます。文字列やhashの存在は実証/独立性の認証ではありません。機械検査と実質評価の責任を分け、ARBのprivate adapterがtargetにもあるとは主張しません。
 
 この最小target経路は**同一の元Case契約と元の成功観察**を対象とします。aggregate FAIL中の成功部分、別系統候補や正式なCase/method契約改訂はこの`reused`へ包装せず、原失敗/保証を保持した具体的な独立改訂を先に行います。現行gateはそれらの自動再評価adapterを持ちません。方法だけの変更で無関係な製品build/導入/全GUIを課さず、不足事実と実施経路を先に固定します。この変更自身は既存結果の再判定/再試験を行いません。
 

@@ -338,7 +338,11 @@ def certificate_registration(data, issue, mode, git):
     if mode != 'tooling' or data['gui_required'] or data['cases']:
         raise ValueError('Evidence adoption requires an independent main tooling PR')
     reviewers = sorted({evidence_certificate(c, git) for c in certificates.values()})
-    return {'certificate_revision': json_hash(certificates), 'certificate_reviewers': reviewers}
+    contributors = sorted({session for c in certificates.values() for session in c['review']['contributors']})
+    if len(reviewers) != 1 or set(reviewers) & set(contributors):
+        raise ValueError('Certificate registration requires one common reviewer independent of every contributor')
+    return {'certificate_revision': json_hash(certificates), 'certificate_reviewers': reviewers,
+            'certificate_contributors': contributors}
 
 
 def certificate_changes(base, head, files, own_path, mode, data, git):
@@ -805,13 +809,19 @@ def render_queue(paths, promotion=None, git=git_read):
                       '現在の適合確認（新しいCase実行ではない）: ' + json.dumps(result.get('confirmation', {}), ensure_ascii=False),
                       'trusted証明: ' + json.dumps(result.get('certificate', {}), ensure_ascii=False), '']
         if result:
-            lines += ['今回の候補結果: ' + result.get('status', 'pending'),
-                      f'確認者: {result.get("actor", "未登録")} / {result.get("observer", "未登録")}',
-                      '確認日時: ' + result.get('at', '未登録'), '実施経路: ' + result.get('execution', '未登録'),
-                      '観察/失敗理由: ' + result.get('reason', '未登録'),
-                      '証拠: ' + result.get('evidence', '未登録'),
-                      'ロード実体: ' + result.get('loaded_identity', '未登録'),
-                      '対象artifact SHA-256: ' + result.get('artifact_sha256', '未登録'), '']
+            lines += ['今回の候補結果: ' + result.get('status', 'pending')]
+            observed = result
+            if result.get('status') == 'reused':
+                lines += ['現在の適合確認の詳細（新しいCase実行ではない）']
+                observed = result.get('confirmation', {})
+            if not isinstance(observed, dict):
+                observed = {}
+            lines += [f'確認者: {observed.get("actor", "未登録")} / {observed.get("observer", "未登録")}',
+                      '確認日時: ' + observed.get('at', '未登録'), '実施経路: ' + observed.get('execution', '未登録'),
+                      '観察/失敗理由: ' + observed.get('reason', '未登録'),
+                      '証拠: ' + observed.get('evidence', '未登録'),
+                      'ロード実体: ' + observed.get('loaded_identity', '未登録'),
+                      '対象artifact SHA-256: ' + observed.get('artifact_sha256', '未登録'), '']
         for actor, label in (('gpt', 'Agent（互換キーgpt）'), ('human', '人間')):
             recorded = case[actor]
             lines += [f'初期登録時の{label}: {recorded["status"]} — {recorded["reason"]}']

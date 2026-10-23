@@ -1,6 +1,7 @@
 """Read-back verified QA transfer. Called only by the single coordinator after merge."""
 import json
 import re
+from html import escape
 from issue_schema import validate_issue
 from verification import field, metadata, validate_change
 
@@ -19,7 +20,9 @@ def handoff(gh, repo, pr, origin, change):
     if len(candidates) > 1:
         raise ValueError('Multiple QA Issues match origin; reconcile before closing')
     record = f'<!-- issue-qa-record:v1 origin={number} pr={pr["number"]} merge={pr["merge_commit_sha"]} -->'
-    source = (record + f'\n元Issue: #{number}\nPR: #{pr["number"]}\nmerge SHA: {pr["merge_commit_sha"]}\n'
+    title = escape(' '.join(origin['title'].split()), quote=False)
+    title = re.sub(r'([\\`*_{}\[\]()#+.!|>@$~-])', r'\\\1', title)
+    source = (record + f'\n元Issue: #{number}\n元Issue題名: {title}\nPR: #{pr["number"]}\nmerge SHA: {pr["merge_commit_sha"]}\n'
               f'Verification: https://github.com/{repo}/blob/{pr["merge_commit_sha"]}/{path}\n')
     if not change['cases']:
         if candidates:
@@ -39,8 +42,7 @@ def handoff(gh, repo, pr, origin, change):
                         ', '.join(case['id'] for case in change['cases']))
     milestone = origin.get('milestone')
     if not candidates:
-        summary = re.sub(r'^\[[^]]+\]\s*|^[a-z]+: ', '', origin['title'])
-        data = {'title': f'test: #{number} {summary}', 'body': marker + '\n' + payload,
+        data = {'title': f'test: #{number} 残る動作確認を引き継ぐ', 'body': marker + '\n' + payload,
                 'labels': ['type:qa', 'priority:' + axes['priority'], 'status:ready']}
         validate_issue(dict(data, state='open'), allow_legacy=False)
         if milestone:

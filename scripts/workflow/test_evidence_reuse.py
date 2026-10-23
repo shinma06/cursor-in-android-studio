@@ -87,6 +87,47 @@ class EvidenceReuseTests(unittest.TestCase):
         self.assertNotEqual(self.result['source_result']['artifact_sha256'], 'f' * 64)
         self.assertEqual(self.result['source_result'], self.certificate['result']['source_result'])
 
+    def test_gate_valid_reuse_renders_current_details_and_preserves_originals(self):
+        self.result['confirmation'].update(actor='gpt', observer='current synthetic observer',
+                                           evidence='https://example.invalid/current-confirmation',
+                                           loaded_identity='Current synthetic ZIP and JAR', execution='computer_use')
+        self.certificate['result'] = copy.deepcopy(self.result)
+        self.adopt()
+        self.assertEqual(self.validate(), self.result['confirmation'])
+        before = copy.deepcopy(self.result)
+        promotion = {'scope': 'develop', 'base': self.base, 'candidate': self.candidate,
+                     'artifact_sha256': 'f' * 64, 'results': {'35:QA-1': self.result}}
+        output = v.render_queue([self.root / self.case_path], promotion, self.git)
+        self.assertIn('Case合格', output)
+        self.assertIn('今回の候補結果: reused', output)
+        self.assertIn('確認者: gpt / current synthetic observer', output)
+        self.assertIn('現在の適合確認の詳細（新しいCase実行ではない）', output)
+        self.assertIn('確認日時: ' + before['confirmation']['at'], output)
+        self.assertIn('実施経路: computer_use', output)
+        self.assertIn('観察/失敗理由: ' + before['confirmation']['reason'], output)
+        self.assertIn('証拠: https://example.invalid/current-confirmation', output)
+        self.assertIn('ロード実体: Current synthetic ZIP and JAR', output)
+        self.assertIn('原結果（改変せず保持）: ' + json.dumps(before['source_result'], ensure_ascii=False), output)
+        self.assertIn('trusted証明: ' + json.dumps(before['certificate'], ensure_ascii=False), output)
+        self.assertEqual(self.result, before)
+
+    def test_fresh_pass_and_failure_render_their_own_observation_details(self):
+        for status in ('pass', 'fail'):
+            with self.subTest(status=status):
+                observed = dict(observation(), status=status, head=self.candidate,
+                                artifact_sha256='f' * 64, observer='fresh synthetic observer')
+                promotion = {'scope': 'develop', 'base': self.source, 'candidate': self.candidate,
+                             'artifact_sha256': 'f' * 64, 'results': {'35:QA-1': observed}}
+                output = v.render_queue([self.root / self.case_path], promotion, self.git)
+                self.assertEqual('Case合格' in output, status == 'pass')
+                self.assertIn('今回の候補結果: ' + status, output)
+                self.assertIn('確認者: human / fresh synthetic observer', output)
+                for label, key in [('確認日時: ', 'at'), ('観察/失敗理由: ', 'reason'),
+                                   ('証拠: ', 'evidence'), ('ロード実体: ', 'loaded_identity')]:
+                    self.assertIn(label + observed[key], output)
+                self.assertNotIn('現在の適合確認の詳細', output)
+                self.assertNotIn('原結果（改変せず保持）', output)
+
     def test_candidate_self_adoption_is_not_trusted_main(self):
         self.adopt()
         self.base = self.source
@@ -155,9 +196,58 @@ class EvidenceReuseTests(unittest.TestCase):
                        {'session': 'another-role-alias'}):
             with self.assertRaises(ValueError):
                 validate_review(dict(assessed, **update), expected, self.acceptance)
+        for update in ({'certificate_reviewers': self.acceptance['certificate_reviewers'] + ['codex-session-sha256:' + '3' * 64]},
+                       {'certificate_contributors': [session_fingerprint(self.reviewer)]},
+                       {'certificate_contributors': []}):
+            with self.subTest(acceptance=update), self.assertRaises(ValueError):
+                validate_review(assessed, expected, dict(self.acceptance, **update))
         with self.assertRaises(ValueError):
             v.certificate_registration(dict(change(), evidence_certificates={'C1': self.certificate}),
                                        35, 'develop', self.git)
+
+    def certificate_bundle(self):
+        second_case = dict(CASE, id='QA-2', expected='Synthetic second guarantee')
+        self.write(self.case_path, json.dumps(dict(change(), cases=[CASE, second_case])))
+        source = self.commit('synthetic two-case source')
+        self.write('src/main/Other.kt', 'class OtherChangedAgain\n')
+        candidate = self.commit('synthetic unrelated candidate')
+        certificates = {}
+        for name, case in [('C1', CASE), ('C2', second_case)]:
+            c = copy.deepcopy(self.certificate)
+            c.update(key='35:' + case['id'], case_sha256=v.json_hash(case),
+                     history=v.evidence_history(source, candidate, self.git))
+            c['result'].update(head=candidate, source_candidate=source)
+            c['result']['source_result']['head'] = source
+            c['result']['confirmation']['head'] = candidate
+            c['original_result_sha256'] = v.json_hash(c['result']['source_result'])
+            certificates[name] = c
+        return certificates
+
+    def test_complete_bundle_requires_one_common_independent_reviewer(self):
+        certificates = self.certificate_bundle()
+        certificates['C2']['review']['contributors'] = ['codex-session-sha256:' + '4' * 64]
+        data = dict(change(571, False), evidence_certificates=certificates)
+        accepted = v.certificate_registration(data, 571, 'tooling', self.git)
+        self.assertEqual(accepted['certificate_reviewers'], [session_fingerprint(self.reviewer)])
+        self.assertEqual(accepted['certificate_contributors'], sorted(
+            certificates['C1']['review']['contributors'] + certificates['C2']['review']['contributors']))
+        assessed = dict(report(), session=self.reviewer,
+                        certificate_revision=accepted['certificate_revision'],
+                        certificate_assessment='Synthetic whole-bundle original/origin assessment',
+                        origin_evidence='Synthetic actual runtime receipt')
+        validate_review(assessed, {'head': assessed['head'], 'base': assessed['base']}, accepted)
+        assessed['certificate_revision'] = '0' * 64
+        with self.assertRaises(ValueError):
+            validate_review(assessed, {'head': assessed['head'], 'base': assessed['base']}, accepted)
+
+    def test_mixed_reviewers_and_cross_certificate_contribution_are_rejected(self):
+        certificates = self.certificate_bundle()
+        certificates['C2']['review']['session'] = 'codex-session-sha256:' + '3' * 64
+        for contributors in (certificates['C2']['review']['contributors'], [session_fingerprint(self.reviewer)]):
+            certificates['C2']['review']['contributors'] = contributors
+            with self.subTest(contributors=contributors), self.assertRaises(ValueError):
+                v.certificate_registration(dict(change(571, False), evidence_certificates=certificates),
+                                           571, 'tooling', self.git)
 
 
 if __name__ == '__main__':
