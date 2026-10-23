@@ -3,10 +3,64 @@ import fnmatch
 import hashlib
 import json
 import re
+import uuid
 from git_guard import BRANCH
 
 CONTEXT = 'Agent review'
 SHA = re.compile(r'[0-9a-f]{40}')
+
+SESSION_HASH = re.compile(r'(?:codex|native)-session-sha256:[0-9a-f]{64}')
+NATIVE_SESSION = re.compile(r'native-session-v1:([0-9a-f]+):([0-9a-f]+)')
+
+
+def native_session(issuer, identity):
+    """Issuer/instance and opaque ID come from the trusted host, never a role/model label."""
+    if (not isinstance(issuer, str) or not re.fullmatch(r'[a-z0-9][a-z0-9./_-]*', issuer) or
+            'codex' in issuer or not isinstance(identity, str) or not identity or
+            any(ord(c) < 32 or ord(c) == 127 for c in identity) or SESSION_HASH.fullmatch(identity) or
+            identity.startswith('native-session-')):
+        raise ValueError('Invalid native issuer/session identity')
+    # UUID identities retain their single historical identity, never a namespace alias.
+    try:
+        uuid.UUID(identity)
+    except ValueError:
+        pass
+    else:
+        return canonical_session(identity)
+    return f'native-session-v1:{issuer.encode().hex()}:{identity.encode().hex()}'
+
+
+def canonical_session(session):
+    match = NATIVE_SESSION.fullmatch(session) if isinstance(session, str) else None
+    if match:
+        try:
+            issuer, identity = (bytes.fromhex(part).decode() for part in match.groups())
+            if native_session(issuer, identity) == session:
+                return session
+        except (ValueError, UnicodeError):
+            pass
+        raise ValueError('Noncanonical native session identity')
+    try:
+        value = uuid.UUID(session) if isinstance(session, str) else None
+    except ValueError:
+        value = None
+    if value is None or str(value) != session or value.variant != uuid.RFC_4122:
+        raise ValueError('Canonical originating session is missing or malformed')
+    return session
+
+
+def codex_session(session):
+    session = canonical_session(session)
+    if session.startswith('native-session-v1:'):
+        raise ValueError('Codex source requires its canonical UUID session')
+    return session
+
+
+def session_fingerprint(session):
+    session = canonical_session(session)
+    if session.startswith('native-session-v1:'):
+        return 'native-session-sha256:' + hashlib.sha256(session.encode()).hexdigest()
+    return 'codex-session-sha256:' + hashlib.sha256(('codex-session-v1:' + session).encode()).hexdigest()
 
 
 def issue_number(pr):
@@ -29,15 +83,17 @@ def eligible(pr, owner, repo):
 
 def binding(pr, issue):
     return {'head': pr['head']['sha'], 'base': pr['base']['sha'], 'target': pr['base']['ref'],
+            'title_hash': hashlib.sha256((pr.get('title') or '').encode()).hexdigest(),
             'body_hash': hashlib.sha256((pr.get('body') or '').encode()).hexdigest(),
+            'issue_bug': any((x.get('name') if isinstance(x, dict) else x) == 'type:bug' for x in issue.get('labels', [])),
             'issue_hash': hashlib.sha256((issue.get('body') or '').encode()).hexdigest()}
 
 
-def validate_review(report, expected):
-    if (report.get('model') != 'gpt-6-astra' or
-            report.get('reasoning_effort') not in ('high', 'xhigh', 'max', 'ultra') or
+def validate_review(report, expected, acceptance=None):
+    if (report.get('model') not in ('gpt-6.1-sol', 'gpt-6-astra') or
+            report.get('reasoning_effort') not in ('medium', 'high', 'xhigh') or
             not report.get('model_evidence')):
-        raise ValueError('Independent review requires verified Astra High-or-above settings')
+        raise ValueError('Independent review requires verified assigned model/effort settings')
     for key in ('head', 'base'):
         if report.get(key) != expected[key]:
             raise ValueError('Stale reviewer ' + key)
@@ -52,6 +108,18 @@ def validate_review(report, expected):
         raise ValueError('Review session/evidence missing')
     if report['verdict'] == 'approved' and (report['findings'] or not report['scope_complete']):
         raise ValueError('Approval conflicts with incomplete scope or unresolved findings')
+    if report['verdict'] == 'approved' and (acceptance or {}).get('repair_revision'):
+        session = report['session'] if SESSION_HASH.fullmatch(report['session']) else session_fingerprint(report['session'])
+        if (report.get('repair_revision') != acceptance['repair_revision'] or
+                session in acceptance['repair_contributors'] or not report.get('origin_evidence') or
+                not isinstance(report.get('repair_assessment'), str) or not report['repair_assessment'].strip()):
+            raise ValueError('Repair requires independent actual-origin assessment of every original failed guarantee')
+    if report['verdict'] == 'approved' and (acceptance or {}).get('certificate_revision'):
+        if (report.get('certificate_revision') != acceptance['certificate_revision'] or
+                (report['session'] if SESSION_HASH.fullmatch(report['session']) else session_fingerprint(report['session'])) not in acceptance['certificate_reviewers'] or
+                not report.get('origin_evidence') or
+                not isinstance(report.get('certificate_assessment'), str) or not report['certificate_assessment'].strip()):
+            raise ValueError('Certificate requires its actual independent reviewer and substantive fixed assessment')
     if report['verdict'] == 'changes_requested' and not report['findings']:
         raise ValueError('Changes requested without concrete findings')
 
@@ -70,6 +138,8 @@ def gui_pass(evidence, bound):
 
 
 def next_action(state, bound, ci, gui, acceptance=None):
+    if bound.get('remote_review_complete') is False:
+        return 'remote-review-wait'
     if state.get('binding') != bound:
         return 'review'
     report = state.get('review')

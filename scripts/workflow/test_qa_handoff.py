@@ -2,12 +2,14 @@ import copy
 import unittest
 from unittest.mock import patch
 import qa_handoff as q
+from test_verification import change
 from issue_schema import validate_issue
 from test_agent_loop import FakeGitHub, report, HEAD, BASE
 import test_agent_loop as tal
 import agent_loop as al
 
-CHANGE = {'schema': 1, 'issue': 35, 'gui_required': False, 'reason': 'CLI tooling', 'cli_checks': ['unit tests'], 'cases': []}
+NO_CASES = {'schema': 1, 'issue': 35, 'gui_required': False, 'reason': 'CLI tooling', 'cli_checks': ['unit tests'], 'cases': []}
+CHANGE = change()
 
 
 class GH(FakeGitHub):
@@ -50,14 +52,14 @@ class HandoffTests(unittest.TestCase):
         self.pr = self.gh.pull
         self.pr.update(merged=True, merge_commit_sha='d'*40)
         self.pr['base']['ref'] = 'develop'
-        self.pr['body'] = self.pr['body'].replace('tooling', 'develop')
+        self.pr['body'] = self.pr['body'].replace('tooling', 'develop').replace('GUI: not-required', 'GUI: required')
     def transfer(self):
         return q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), CHANGE)
     def test_success_and_retry_reuse_full_snapshot(self):
         self.assertEqual(self.transfer(), 100)
         self.assertEqual(self.transfer(), 100)
         self.assertEqual(self.gh.created, 1)
-        self.assertIn('cases', self.gh.issue(100)['body'])
+        self.assertIn('QA-1', self.gh.issue(100)['body'])
         self.assertEqual(len(self.gh.comments(35)), 1)
     def test_milestone_and_parent_are_preserved_on_retry(self):
         self.gh.issues[35]['milestone'] = {'number': 7}
@@ -119,6 +121,15 @@ class HandoffTests(unittest.TestCase):
             q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), invalid)
         self.assertEqual(self.gh.created, 0)
 
+    def test_no_cases_retains_main_custody_without_creating_qa(self):
+        self.pr['body'] = self.pr['body'].replace('GUI: required', 'GUI: not-required')
+        for _ in range(2):
+            self.assertIsNone(q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), NO_CASES))
+        self.assertEqual(self.gh.created, 0)
+        for number in (35, 36):
+            self.assertEqual(len(self.gh.comments(number)), 1)
+            self.assertIn('PMが保管', self.gh.comments(number)[0]['body'])
+
     def test_unconfirmed_merge_blocks(self):
         self.pr['merged'] = False
         with self.assertRaises(ValueError): self.transfer()
@@ -138,7 +149,7 @@ class ClosureTests(unittest.TestCase):
             gh.comment = comment
         gh.pull.update(merged=True, merge_commit_sha='d'*40)
         gh.pull['base']['ref'] = 'develop'
-        gh.pull['body'] = gh.pull['body'].replace('tooling','develop')
+        gh.pull['body'] = gh.pull['body'].replace('tooling','develop').replace('GUI: not-required', 'GUI: required')
         state = {'binding': al.binding(gh.pull, gh.issue(35)), 'review': dict(report(), issue_complete=complete)}
         h = {'issue':35,'parent':1,'close_issue':False,'gui_required':False}
         with patch.object(al, 'git', return_value=__import__('json').dumps(CHANGE)) as git:
@@ -170,8 +181,20 @@ class ClosureTests(unittest.TestCase):
 
 
 class SchemaTests(unittest.TestCase):
+    def test_all_new_types_keep_legacy_read_compatibility(self):
+        from issue_schema import TYPES, LEGACY_TYPES
+        for kind, prefix in TYPES.items():
+            origin = '#35 ' if kind == 'qa' else ''
+            data = {'number': 100, 'state': 'open', 'title': prefix + ': ' + origin + '対象を確認する',
+                    'labels': ['type:' + kind, 'priority:P2', 'status:ready']}
+            validate_issue(data, allow_legacy=False)
+            old = dict(data, title='[' + LEGACY_TYPES[kind] + '] ' + origin + '旧題名')
+            validate_issue(old)
+            with self.assertRaises(ValueError):
+                validate_issue(old, allow_legacy=False)
+
     def test_axes_title_and_closed_status(self):
-        valid = {'title':'[試験] #35 試験', 'state':'open', 'labels':['type:qa','priority:P1','status:ready']}
+        valid = {'title':'test: #35 試験', 'state':'open', 'labels':['type:qa','priority:P1','status:ready']}
         validate_issue(valid)
         for change in ({'title':'[試験] 試験'}, {'title':'[試験] #35 P1 試験'}, {'state':'closed'},
                        {'labels':['type:qa','priority:P1','status:ready','status:review']},

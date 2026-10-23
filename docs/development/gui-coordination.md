@@ -76,3 +76,9 @@ Case結果はsource HEAD、artifact hash、ロード実体、fixture、run ID、
 別PRがmainへ入っても起動中IDEが更新されたとは解釈しない。PR差分が変われば担当が影響を再評価し必要ケースを再queue。
 必須GUIを待つPRだけが待機する。共通IDEに触れない独立PRは通常通り進める。
 既存の[loop手順](../loop-engineering/README.md)、[ビルド証拠形式](../loop-engineering/evidence.md)と併用。
+
+## 検証目的と継続
+
+割当は[責任と最小検証](../verification/responsibility.md)から保証→既存証拠→不足事実→手段を決める。十分なAPI/CLI/FILE/実render経路を先に確認し、残るUI/OS/glue事実だけにGUIを使う。既存の本人委任内でfreeな共有leaseは都度確認なしに取得し、競合は許可された担当間で順序/停止/引継ぎを調整する。未試行や接続不良をtool拒否にせず、実拒否/認証は別経路で迂回しない。
+
+導入/通常再起動は実IDE/profile/所有停止・退避・復元・固定ZIP/JARと実ロードの同一性を保つ。公式local ZIP配置で目的を満たす場合はPlugins画面の探索を一律の試験にせず、対象の有効なCase/明示実施経路と自製品設定・About/actionの実接続を維持する。ARB固有の3 JAR数や停止/OFF条件を本製品へコピーせず、実ZIPの全JARを照合する。本規約は既存Caseを再分類/再試験する指示ではない。

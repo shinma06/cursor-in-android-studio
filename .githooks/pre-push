@@ -8,9 +8,9 @@ if [ "$mode" = skip ]; then exit 0; fi
 while IFS= read -r git_variable; do
   unset "$git_variable"
 done < <(git rev-parse --local-env-vars)
-if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then
-  JAVA_HOME="$(/usr/libexec/java_home -F -v 25)"
-  export JAVA_HOME
+if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ] && \
+    workflow_java_home="$(/usr/libexec/java_home -F -v 25 2>/dev/null)"; then
+  export JAVA_HOME="$workflow_java_home"
 fi
 if [ -f scripts/workflow/change_impact.py ]; then
   python3 scripts/workflow/change_impact.py --run-tests

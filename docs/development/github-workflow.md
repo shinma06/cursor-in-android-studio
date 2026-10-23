@@ -10,10 +10,10 @@
 | 対象 | 必須条件 | GUI未実施/環境blocked/製品fail | merge方式 |
 |---|---|---|---|
 | develop | 必要テスト・独立コードレビュー・Case JSONと修正/再確認追跡 | 状態を残して統合可 | squash |
-| mainへのpromotion | 固定develop候補の全commit・全必要Caseを同じbuildでpass、必要テスト・独立レビュー | 1件でも残れば不可 | merge commit |
+| mainへのpromotion | 固定develop候補の全commit・全必要Caseを同じ固定buildの有効証拠で充足（明示的な再利用はverificationの条件）、必要テスト・独立レビュー | 1件でも残れば不可 | merge commit |
 | mainへのGUI不要tooling | docs/scripts/CI/agent入口だけの差分、具体的理由とCLI検証、独立レビュー | 製品変更の逃げ道にしない | squash |
 
-未解決コードレビュー指摘やテスト失敗をdevelopへ通す方針ではありません。製品failには専用修正Issue/branch/PRが必要です。Agentと人間の適切な実観察はどちらも有効ですが、未確認をpassに変更しません。
+未解決コードレビュー指摘やテスト失敗をdevelopへ通す方針ではありません。製品failには専用修正Issue/branch/PRが必要です。元受入NGの修正は[原失敗保証の修正候補再試験と独立評価](../verification/README.md#元の受入ngを直すdevelop-pr)を追加し、通常のGUI未実施例外では通しません。Agentと人間の適切な実観察はどちらも有効ですが、未確認をpassに変更しません。
 
 [今回の確認一覧](../verification/current.md) / [正本JSONと固定候補の手順](../verification/README.md)が人間の入口です。長大な既存MV matrixは履歴・詳細であり、新候補の結果を二重編集しません。
 
@@ -34,19 +34,23 @@ QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのp
 | 統合担当 | writer停止、固定版レビュー、依存順、現行baseと必須checks → 通常mergeによる同期を実装担当へ戻すか権限内で実施、必要テスト/非force push/再レビュー、順序付きmerge、QA・Project・cleanupの回収 | PMは統合条件とGitHub操作を管理可。競合解消・ソース修正は実装担当へ戻す。同期/修正したsessionはその差分を独立レビューしない |
 | GUI QA担当 | 未達Case、識別build、能力/許可とhost lease → 実観察、pass/fail/環境blocked/未実施、証拠とlease解放・次担当。製品failは修正Issueへ | 指定sessionまたは明示引継ぎ済み人間。host/OS sessionごとに単一operator。実装兼任でも独立コードレビューの代替にならない |
 
-### 役割別モデルと実設定の確認（#527）
+<a id="役割別モデルと実設定の確認527"></a>
 
-2026-10-05のユーザー指定。性能の一般順位ではなく、現ラインナップで本プロジェクトが許可する割当範囲です。
+### 役割・難度と実設定の確認
 
-| 役割 | 許可範囲・通常割当 |
+#571の本人指示により旧#527のAstra-only下限を置き換える。最新の採用内容はOMIL/PMが保持する2026-10-23の実運用合意による。公開された[以前の適用](https://github.com/shinma06/android-replay-buffer/issues/280#issuecomment-6245374062)は狭い履歴であり、下表全体の一次記録とは扱わない。役割の権限はモデル名で生じず、本人の明示指定と実tool制約を優先する。
+
+| 作業 | 通常の選定と切替条件 |
 | --- | --- |
-| PM・独立レビュー | GPT-6 Astra High以上。通常 `gpt-6-astra` / `high`、必要理由があれば同モデルの対応する上位effort |
-| 実装・指摘修正・調査等（AgentのGUI QAを含む） | GPT-6.1 Sol High以上〜GPT-6 Astra High以下。通常 `gpt-6.1-sol` / `high`、難度/失敗に根拠があれば `gpt-6-astra` / `high`へ変更。範囲内の別設定もPMが根拠と利用可否を確認する |
+| 機械的metadata・保管・readback | Sol6.1 low、意味の判断が必要ならmedium |
+| 限定実装・診断・通常の独立コード/証拠評価 | Sol6.1 high。明確な限定作業はmedium。別sessionの独立性を保持し、Solの成果へAstraの二重レビューを一律追加しない |
+| 条件を固定したnative操作 | Sol6.1 medium。難しい方法/証拠分析は操作枠外のhighへ分離 |
+| PM・人間窓口 | 現行編成はPM Astra/high、窓口Sol6.1/medium。普遍的なprovider別職務/権限にはしない |
+| 難しい未解決推論 | 所有・並行性・矛盾証拠など具体的問題が残るときAstra/highへ。横断というラベルだけでは昇格せず、xhighは有限な理由付き例外。max/ultraを既定にしない |
 
-割当前・新規/再開・役割変更・指摘修正・統合/GUI待ちからの再開で、PMはrequested model/effortと実際のsession設定・直近turn/実行記録を照合する。prompt中の自己申告、clientの既定値、旧turnの設定だけで確認済みにしない。役割を兼ねる場合は双方のモデル条件を満たす。モデル追加/廃止時はユーザー指定範囲を再評価し、旧順位を別モデルへ移さない。
+実際のmodel ID/effortとoriginを開始・再開・担当変更時に照合し、requested/actualと確認根拠を既存claim/報告へ残す。promptの自己申告や旧turnだけでは確認済みにしない。不明・不一致・利用不能なら当該成果の採用/公開を止め、差分を保全して確認担当・解除条件を示し、独立作業へ進む。黙ったfallbackやモデル切替を環境修復の代用にしない。難所の終了後は安全な区切りで軽い設定へ戻す。
 
-設定不明・不一致・利用不可なら当該担当の実行/成果採用を停止し、原因・確認担当・解除条件を記録して独立可能な仕事へ進む。範囲外への黙ったfallback、設定未確認のpass、writer所有の付け替えを行わない。実行後のreadback不一致では未公開差分を保持し、修正/再実行と独立レビューを経るまでcommit/pushへ進めない。
-claim/引継ぎ/レビューの既存記録に、公開可能な担当参照・role・requested/actual model/effort・確認根拠・scope・状態・次操作を残す。rawログや実session ID/host/pathはprivate記録へ、公開側は必要な要約だけにする。新しいモデル台帳や必須checkを増やさない。[Codex実行規約](codex-execution-policy.md)のAstra子Agent禁止と独立top-level条件、上位の権限制約を優先する。
+次の通常作業の結果・手戻り・待ち時間・取得可能な実usageから選定を見直す。失敗/中断を含め、追加の有料比較試験・モデル台帳・常駐役・未実測の節約主張は作らない。実origin・rawログ・host/pathはprivateに保持し、公開側は安全な参照と必要な要約だけにする。CLI workerの設定固定は[自動進行の実装範囲](pr-automation.md)であり、この表全体を自動選定する機能ではない。
 
 GUI toolがない担当は実装・CLI検証を進め、GUIだけを対応可能な担当へ引き継ぎます。対応する実行経路が確保できなければGUIはblockedです。`required_execution: computer_use` は人間の直接操作で代替できません。Cursor IDEとプラグインを比較するfixture課題は製品の試験であり、開発担当としてのCursorをfixture専任にする規則ではありません。
 
@@ -80,7 +84,7 @@ PMは以下の順で自律的に編成を再評価する。ユーザーから委
 | 同scopeに有効claim、担当無応答 | 二重割当を停止。同handle/成果を確認し、停止と解放/再割当が揃うまで横取りしない |
 | 担当停止または結果未回収 | 既存成果を保持・回収、次担当/解除条件を明示。再開時は役割/モデル/所有を再確認 |
 | 子の依存解消、親base更新 | 子のmerge readback→親同期/テスト→親全差分再レビュー。旧承認を失効 |
-| 固定PRがレビュー未割当で滞留 | 適格な既存Astra High reviewerを再利用。最大2のread-only枠を検討し、writerを増やす前に回収 |
+| 固定PRがレビュー未割当で滞留 | 適格な既存独立reviewerを再利用。最大2のread-only枠を検討し、writerを増やす前に回収 |
 | 重いbuild実行中/メモリ圧迫 | 次buildを待ちへ。CLI/固定版read-onlyレビューへ切替え、終了/負荷解放で再選択 |
 | GUI fail/承認待ち/質問待ち | 即時通知、既報状態を追跡、独立作業へ切替え。依存作業は具体的解除条件付き待ち |
 | モデル設定不明/範囲外/利用不可 | 当該役割の実行/成果採用を停止。適格担当の確認済み再利用か設定回復を待ち、黙ったfallbackを拒否 |
@@ -115,7 +119,7 @@ GitHubへpush・投稿・編集・添付・配布する担当は、送信する�
 
 | 変更・判断 | 参照する正本 |
 | --- | --- |
-| 新機能・連携方式の選定 | Mission、ACP First、該当要件、最新の公式能力比較 |
+| 新機能・連携方式の選定 | Mission、ACP First、該当要件。不足する設計判断に関係する最新公式能力だけ調査 |
 | 製品コード・保存・イベント境界 | 該当要件と現行実装/保存/イベント契約、呼出元と呼出先 |
 | docs・workflow・設定 | 変更する規約と消費側。製品に関係しない修辞修正で全設計を読み直さない |
 | 開発コンテキストの新規作成・更新・レビュー・監査 | [知識の正本の共通規則](../architecture/knowledge.md#開発コンテキストの用途言語形式と読込条件)。用途/言語/形式/配置/読込条件/証拠と正当な例外を照合し、製品契約を変更しない |
@@ -124,13 +128,46 @@ GitHubへpush・投稿・編集・添付・配布する担当は、送信する�
 
 依頼の完了を、成果物・必要検証・統合先・残QA/cleanupで具体化する。依頼済み範囲の実装、原因修正、必要テスト、レビュー準備は初版で止めず進める。テスト/レビューの追加・再実行は変更・失敗・未解決懸念に対応させ、同じ入力の成功確認をPMと各担当で重複させない。自動gate/hookの必要実行と、HEAD/base/target/本文/Issue条件/feedback変更時の承認失効は維持する。
 
+## 公開操作の承認範囲と失敗の扱い
+
+**担当者が普段の作業でリスクを抑え、依頼範囲の作業を継続することを既定にします。** 承認を安全性の代用にせず、未確認を安全とみなしません。対象確認・隔離・復旧準備など自分で解消できる不足は、その作業を進めて解消します。作業停止にもコストがあるため、具体的な損失や未充足条件を示せない追加承認待ちは設けません。
+
+開始時と影響が変わる時に、次のうち関係する点を確認します。既存のIssue・実行計画・証拠を再利用し、同じ条件を毎操作で審査し直す台帳やチェックリストは増やしません。
+
+- **影響を限定する**: 実際のrepository、相手、画面、端末、保存先と所有者を識別し、使い捨てfixture・対象指定・最小の採取/公開内容を選ぶ。「ローカル」という名前だけで本番非接続や秘密情報なしと判断しない。
+- **失敗から戻せるようにする**: 未保存・未公開データを保全し、変更差分、復元先、停止対象を明確にする。成功した公開も完全には取り消せないため、公開前に宛先と内容を確認する。他担当の変更を全体backupや一括killで巻き戻さない。
+- **広がりを制限する**: 必要な回数・時間・容量・費用と中止条件を定め、無条件の再試行や常駐化を避ける。結果不明の書込みは実状態を読んでから再試行する。
+- **結果を確かめる**: 操作結果、必要な検査、復元・終了を確認する。未達は未達のまま残し、許可や実行開始を成功の証拠にしない。
+
+### 続行・調整・本人確認の分担
+
+条件が揃った通常の編集・検査、専用branchのpush、Issueコメント、PR作成・更新、通常の統合、所有資源の整理は、依頼範囲内で担当判断により進めます。Git公開では下記#565の今回内容に対するPM確認も維持し、確認済みscope内で各pushのGOを取り直しません。GUI操作・導入・通常再起動・限定診断も、対象・保全・復元・実行上限を整えれば都度の本人承認を求めません。独立レビュー・CI・受入・保護条件は継続の品質条件であり、本人承認に置き換えません。
+
+PMは担当・共有資源・依存・実行計画を調整します。既存の割当と計画内の操作ごとにPMのGOを取り直さず、競合や影響が変わる部分だけ担当間で調整します。内部の運用上限を変える必要があれば、次の試行前に理由・影響・復元を記録して計画を更新します。本人の指定上限、正式な受入条件、ツール制約は変更せず、期限を事後に延ばして過去の失敗を成功にしません。「別途承認」だけの記述は、誰が何を判断する条件かを確認し、直ちに本人承認待ちとは解釈しません。
+
+本人へ戻すのは、必要な準備を済ませても、次の境界が残る場合です。
+
+- 依頼外のrepository・相手・公開先・本番利用者などへ影響を広げる必要がある。
+- 重要なデータ消失、私的情報の露出、費用・共有環境への影響を十分に限定できず、本人の選択や引受けが必要。ただし承認があっても禁止事項を実行しない。
+- OS・サービス・実行ツールが本人の認証・同意操作を要求する、または本人の明示した停止・制限を変更する必要がある。
+
+この場合も該当操作だけを止め、何が起き得るか、実施済みの対策、それでも本人にしか決められない点を具体的に示します。独立して進められる依頼済み作業は継続します。正式Releaseや定期実行は最初に対象・公開先/周期・上限・停止条件を含む依頼範囲を確定し、その範囲内の各実行では同じ許可を取り直しません。新しい規約自体を、その開始依頼や権限付与の代わりにしません。
+
+チーム時の本人への相談は[相談・確認窓口](team-communication.md)へ集約し、必要な承認だけ選択カードで求めます。窓口への転送を待って許可済みの独立作業を止めず、実tool/OSの本人同意を窓口の代理判断へ置き換えません。
+
+### 引継ぎと実行失敗
+
+担当へは本人指示の出典・対象・操作範囲と、確認済みの対策・残条件を渡します。受け手は根拠を照合し、既存の許可されたチーム内で継続します。PMや別agentの主張だけを新しい本人承認にしません。公開記録には必要な要約だけを置き、私的会話・認証情報は載せません。
+
+接続・認証・権限エラーと自動承認審査の拒否は原返却から区別します。接続失敗を承認不足と読み替えず、必要な環境修復を行います。実拒否は対象操作・tool/call・返却理由をprivateに保持し、本人指示と未充足条件を照合します。原返却がなければ「拒否は未確認」、実行していなければ「未試行」と記録し、別操作へ拒否を広げません。実拒否や実行権限の不足を別経路で迂回しません。
+
 ## 開始
 
 1. AGENTS.mdと本節の共通契約を確認し、上の参照表から作業に必要な正本を選ぶ。対象Issue全コメント・関連PR・Project/対象Milestoneを確認し、旧#1は必要な判断履歴だけ参照する。
-2. `git status --short --branch`、`git worktree list`、`git fetch --prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
+2. `git status --short --branch`、`git worktree list`、`git fetch --no-prune origin`、HEADと意図したbaseの差を確認する。既存編集をpull/stash/resetに巻き込まない。
 3. [Governance Audit](git-governance-audit.md)のread-only statusと今回の影響から発火条件を判断する。対象なら監査Issueへまとめ、通常のPRごとに全監査しない。重複Issueを検索し、必要な具体作業のIssueを作る。[作成/triage確認](work-management.md#issue作成triageの確認)に従いProjectへ追加、Milestoneを選定、実際の親子/依存をnative設定する。関係なしはStandaloneと明示し、独立した実装やGUI検証を分ける。
 4. claimを投稿して読み戻す。未解放claimは時間で失効しない。同一Issueの最小コメントIDの有効claimだけがwriterになる。競合者は開始せず撤回する。複数Issueの共通ファイルはPMが境界/順序を決める。
-5. 通常はorigin/developから `<codex|claude|cursor>/<Issue>-<slug>` と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
+5. 通常はorigin/developから `codex/<Issue>-<type>-<short-english-purpose>`（既存refは維持） と専用worktreeを作る。main toolingはorigin/mainから、promotionは固定candidateから作る。初期upstreamを解除し `bash scripts/workflow/bootstrap.sh` を実行する。
 6. 最初の意味あるpushでDraft PRを作成する。PR本文はテンプレートに従い、`Issue`、`Integration`、`Verification`、`GUI`、`GUI reason`を記録する。source JSONはGUI不要変更にも必須で、理由・CLI検証を含む。
 
 claim例（パスとhostはprivate local registryだけ）:
@@ -167,7 +204,7 @@ GitHubへ接続できずclaimを確認できないときは新規実装を開始
 最新 `test` / `PR policy` / `Agent review` / `Acceptance gate` がsuccess、会話解決済みであることを確認します。CI未実行・失敗をローカル成功で代替しません。
 
 developではCase不足を拒否しますが、GUI passを要求しません。未実施/blocked/failと次の操作を保ち、`Refs #N`を使います。
-coordinatorは実装受入完了を確認後、QA Issueを先に作成/再利用し、双方向linkと全Caseのreadbackを確認して元実装Issueをstatus:doneでcloseします。GUI不要でもmain未反映分はQAのmain反映マトリクスへ引き継ぎます。失敗時はcloseせず再試行します。親tracking/researchやQA自体は子PRだけでcloseしません。検証担当は区切りで一覧をまとめて実施します。
+coordinatorは実装受入完了を確認後、残Caseがある場合だけQAを作成/再利用し、双方向linkと固定Caseのreadbackを確認します。CaseなしならQAを作らず、元Issue/PRにPMのmain反映保管と次操作を残し読み戻してから元実装Issueをstatus:doneでcloseします。既存QAの自動close/再分類はしません。失敗時はcloseせず再試行します。親tracking/researchやQA自体は子PRだけでcloseしません。検証担当は区切りで一覧をまとめて実施します。
 
 mainは[固定候補手順](../verification/README.md)で範囲全体を確認します。候補後の直接編集はpromotion JSONとそのpromotion IssueのCase JSONだけです。後続main文書/toolingの同期は[限定検証](../verification/README.md#候補固定後のmain同期533)を通し、製品・build・Caseの固定条件を維持します。
 一部Caseだけのpassや未確認製品commitをQA文書変更へ偽装することはgateが拒否します。main先行tooling/前回QA記録は候補固定前に専用develop同期PRへ取り込みます。
@@ -181,6 +218,8 @@ cleanupは自分のclean/停止確認済みIssue branch/worktreeのみ。main/ma
 merge/Issue closeとcleanup完了を分け、[ブランチ残存の判定と完了確認](pr-automation.md#ブランチ残存の判定と完了確認)に従って実ref・追跡ref・worktreeを照合します。残す場合は理由・担当・次の操作を引き継ぎます。
 
 ## 中断・再開
+
+未完了作業を止める直前に[停止の再考](omil-portable.md#reconsider-before-stopping-unfinished-work)を適用します。本人停止・実拒否・安全/実資源の限界を先に守り、局所失敗を全体停止に拡大しません。
 
 引継ぎはowner、状態、branch/target、HEAD、PR、未commitの有無、テスト、Case状態、次の操作、依存、claim継続/解放を公開可能な範囲で記録します。
 新担当は旧ownerの解放またはPM/人間の明示再割当の後にclaimします。再割当は旧コメントID、停止確認、新ownerを記録し、`supersedes claim <ID>`と明記します。
@@ -217,7 +256,7 @@ PMは導入main SHAからdevelopを作成し、両rulesetへAcceptance gateを�
 
 ## Issue命名・分類（2026-09-08 / #96）
 
-題名はtypeに対応する `[機能]` / `[修正]` / `[調査]` / `[試験]` / `[運用]` / `[追跡]` と簡潔な要約。QAは `[試験] #元Issue番号 要約`。優先度は題名に重ねません。
+新規Issueの題名・PR/branch/commitは[Work Management](work-management.md#命名)を使います。旧角括弧形式は読取互換として残し、過去/他担当Issueを一括改名しません。
 必須labelは各軸ちょうど1つ: `type:feature|bug|research|qa|maintenance|tracking`、`priority:P0|P1|P2`、`status:ready|in-progress|review|blocked|deferred|done`。closedはdone、openはdone以外。本文に受入・依存・次操作を記載し、PR policyが命名と3軸を検査します。
 元実装に未実装受入が残る場合は別実装Issueに分離・linkしてから実装完了を判定します。単にPR scopeが済んだだけではcloseしません。元IssueのcloseはGUI pass/main反映済みを意味しません。QA Caseと固定候補promotion gateは従来どおり維持します。
 

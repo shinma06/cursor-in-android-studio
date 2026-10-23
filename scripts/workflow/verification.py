@@ -88,8 +88,10 @@ def validate_observation(result, candidate, artifact=None):
     for key in ('observer', 'at', 'evidence', 'loaded_identity', 'reason'):
         if not nonempty(result.get(key)):
             raise ValueError('Missing observed evidence: ' + key)
-    if not re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:Z|[+-]\d\d:\d\d)', result['at']):
+    if not re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|[+-]\d\d:\d\d)', result['at']):
         raise ValueError('Use an ISO8601 observation timestamp')
+    from datetime import datetime
+    datetime.fromisoformat(result['at'].replace('Z', '+00:00'))
 
 
 def git_read(*args, cwd=None):
@@ -220,6 +222,161 @@ def regular_json(ref, path, git):
 
 def json_hash(data):
     return hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def evidence_history(source, candidate, git):
+    """Inspect every parent edge; a reverted change is still part of the assessment."""
+    if not all(isinstance(ref, str) and SHA.fullmatch(ref) for ref in (source, candidate)):
+        raise ValueError('Evidence needs fixed source and candidate identities')
+    git('merge-base', '--is-ancestor', source, candidate)
+    edges = []
+    for commit in git('rev-list', '--reverse', f'{source}..{candidate}').splitlines():
+        parents = git('rev-list', '--parents', '-n', '1', commit).split()[1:]
+        if not parents:
+            raise ValueError('Evidence history has no parent')
+        for parent in parents:
+            paths = sorted(git('diff', '--ignore-submodules=none', '--no-renames', '--name-only', parent, commit).splitlines())
+            edges.append({'commit': commit, 'parent': parent, 'paths': paths})
+    return edges
+
+
+def evidence_certificate(certificate, git):
+    """Structural checks complement the actual independent evidence assessment."""
+    from agent_policy import SESSION_HASH
+    if not isinstance(certificate, dict) or certificate.get('schema') != 1:
+        raise ValueError('Invalid evidence certificate')
+    key, result = certificate.get('key'), certificate.get('result')
+    match = re.fullmatch(r'([1-9][0-9]*):([A-Z][A-Z0-9-]+)', key or '')
+    if not match or not isinstance(result, dict) or result.get('status') != 'reused' or 'certificate' in result:
+        raise ValueError('Certificate must bind one exact original Case and reuse result')
+    source, candidate = result.get('source_candidate'), result.get('head')
+    history = evidence_history(source, candidate, git)
+    if certificate.get('history') != history:
+        raise ValueError('Certificate does not cover every history edge')
+    case_path = f'docs/verification/changes/issue-{match[1]}.json'
+    source_data, current_data = (regular_json(ref, case_path, git) for ref in (source, candidate))
+    def find_case(data):
+        matches = [case for case in data.get('cases', []) if case.get('id') == match[2]]
+        if len(matches) != 1:
+            raise ValueError('Certificate source/current Case missing or duplicated')
+        return matches[0]
+    case = find_case(source_data)
+    if case != find_case(current_data) or json_hash(case) != certificate.get('case_sha256'):
+        raise ValueError('Reuse cannot change an original Case contract')
+    # Reject changed-and-reverted Case contracts, including side-parent history.
+    for edge in history:
+        for ref in (edge['parent'], edge['commit']):
+            if find_case(regular_json(ref, case_path, git)) != case:
+                raise ValueError('Reuse cannot hide a changed/reverted Case')
+    original, confirmation = result.get('source_result'), result.get('confirmation')
+    if not isinstance(original, dict) or not isinstance(confirmation, dict):
+        raise ValueError('Preserve original result and current confirmation separately')
+    validate_observation(original, source)
+    validate_observation(confirmation, candidate, result.get('artifact_sha256'))
+    if (json_hash(original) != certificate.get('original_result_sha256') or
+            not HASH.fullmatch(certificate.get('original_file_sha256', '')) or
+            not nonempty(certificate.get('original_record_evidence'))):
+        raise ValueError('Immutable original evidence binding is incomplete')
+    for observed in (original, confirmation):
+        if case.get('required_execution') and observed.get('execution') != case['required_execution']:
+            raise ValueError('Reuse must retain the explicit execution contract')
+    from datetime import datetime
+    source_at, current_at = (datetime.fromisoformat(x['at'].replace('Z', '+00:00')) for x in (original, confirmation))
+    candidate_at = datetime.fromisoformat(git('show', '-s', '--format=%cI', candidate))
+    if current_at < max(source_at, candidate_at):
+        raise ValueError('Current evidence confirmation predates its inputs')
+    if certificate.get('unresolved_failures') != []:
+        raise ValueError('Unresolved failures cannot be relabeled by evidence reuse')
+    review = certificate.get('review', {})
+    contributors = review.get('contributors')
+    reviewer = review.get('session')
+    if (review.get('status') != 'approved' or not isinstance(reviewer, str) or not SESSION_HASH.fullmatch(reviewer) or
+            not isinstance(contributors, list) or not contributors or len(contributors) != len(set(contributors)) or
+            any(not isinstance(item, str) or not SESSION_HASH.fullmatch(item) for item in contributors) or
+            reviewer in contributors or not nonempty(review.get('evidence')) or
+            not nonempty(review.get('origin_evidence'))):
+        raise ValueError('Evidence certificate requires independent actual-origin assessment')
+    if not nonempty(review.get('at')) or datetime.fromisoformat(review['at'].replace('Z', '+00:00')) < current_at:
+        raise ValueError('Independent assessment predates current evidence')
+    guarantees = certificate.get('guarantees')
+    if not isinstance(guarantees, dict) or not guarantees:
+        raise ValueError('Complete guarantee coverage needs substantive independent assessment')
+    dimensions = {'source', 'callers', 'callees', 'dataflow', 'build', 'configuration',
+                  'dependencies', 'fixtures', 'runtime', 'display', 'failure_attribution'}
+    for guarantee in guarantees.values():
+        if (not isinstance(guarantee, dict) or guarantee.get('disposition') not in ('unaffected', 'equivalent', 'fresh') or
+                not isinstance(guarantee.get('impact'), dict) or set(guarantee['impact']) != dimensions or
+                not all(nonempty(v) for v in guarantee['impact'].values()) or not nonempty(guarantee.get('evidence'))):
+            raise ValueError('Guarantee impact, coverage or fresh evidence missing/unknown')
+        if guarantee['disposition'] == 'fresh':
+            validate_observation(guarantee.get('observation', {}), candidate, result['artifact_sha256'])
+        components = guarantee.get('components')
+        if not isinstance(components, dict) or not components:
+            raise ValueError('Relevant components must bind source/current regular blobs')
+        for path, blobs in components.items():
+            if (not isinstance(path, str) or path.startswith('/') or '..' in Path(path).parts or
+                    not isinstance(blobs, dict) or set(blobs) != {'source', 'candidate'}):
+                raise ValueError('Invalid evidence component')
+            for label, ref in (('source', source), ('candidate', candidate)):
+                entry = git('ls-tree', ref, '--', path).split()
+                if len(entry) != 4 or entry[0] != '100644' or entry[1] != 'blob' or entry[3] != path or entry[2] != blobs[label]:
+                    raise ValueError('Relevant component identity/mode differs')
+            changed = blobs['source'] != blobs['candidate'] or any(path in e['paths'] for e in history)
+            if changed and guarantee['disposition'] == 'unaffected':
+                raise ValueError('Changed/reverted component cannot be unaffected')
+            if guarantee['disposition'] == 'equivalent' and not nonempty(guarantee.get('equivalence_evidence')):
+                raise ValueError('Equivalent component needs substantive equivalence evidence')
+    return reviewer
+
+
+def certificate_registration(data, issue, mode, git):
+    certificates = data.get('evidence_certificates', {})
+    if not isinstance(certificates, dict):
+        raise ValueError('Evidence certificates must be an object')
+    if not certificates:
+        return {}
+    if mode != 'tooling' or data['gui_required'] or data['cases']:
+        raise ValueError('Evidence adoption requires an independent main tooling PR')
+    reviewers = sorted({evidence_certificate(c, git) for c in certificates.values()})
+    return {'certificate_revision': json_hash(certificates), 'certificate_reviewers': reviewers}
+
+
+def certificate_changes(base, head, files, own_path, mode, data, git):
+    for path in files:
+        if not re.fullmatch(r'docs/verification/changes/issue-[1-9][0-9]*\.json', path):
+            continue
+        old = regular_json(base, path, git).get('evidence_certificates', {}) if git('ls-tree', base, '--', path) else {}
+        current = data if path == own_path else (regular_json(head, path, git) if git('ls-tree', head, '--', path) else {})
+        new = current.get('evidence_certificates', {})
+        if not isinstance(old, dict) or not isinstance(new, dict) or any(new.get(k) != c for k, c in old.items()):
+            raise ValueError('Preserve previously adopted evidence certificates')
+        if new != old and (mode != 'tooling' or path != own_path):
+            raise ValueError('Certificates may be added only by their owning main tooling PR')
+
+
+def validate_candidate_result(result, key, case, candidate, artifact, base, git):
+    if result.get('status') != 'reused':
+        validate_observation(result, candidate, artifact)
+        return result
+    ref = result.get('certificate', {})
+    if (not isinstance(ref, dict) or set(ref) != {'commit', 'path', 'id', 'sha256'} or
+            not SHA.fullmatch(ref.get('commit', '')) or
+            not re.fullmatch(r'docs/verification/changes/issue-[1-9][0-9]*\.json', ref.get('path', '')) or
+            not nonempty(ref.get('id')) or not HASH.fullmatch(ref.get('sha256', '')) or not base):
+        raise ValueError('Reuse requires a fixed trusted-main Issue certificate')
+    git('merge-base', '--is-ancestor', ref['commit'], base)
+    if ref['commit'] not in git('rev-list', '--first-parent', base).splitlines():
+        raise ValueError('Certificate adoption must be trusted main first-parent history')
+    adoption = regular_json(ref['commit'], ref['path'], git)
+    certificate = adoption.get('evidence_certificates', {}).get(ref['id'])
+    if not isinstance(certificate, dict) or json_hash(certificate) != ref['sha256']:
+        raise ValueError('Trusted evidence certificate missing or altered')
+    evidence_certificate(certificate, git)
+    if (certificate['key'] != key or certificate['case_sha256'] != json_hash(case) or
+            certificate['result'] != {k: v for k, v in result.items() if k != 'certificate'} or
+            result.get('head') != candidate or result.get('artifact_sha256') != artifact):
+        raise ValueError('Reuse differs from the independently adopted exact result/Case/build')
+    return result['confirmation']
 
 
 def environment_cases(base, candidate, git=git_read):
@@ -372,6 +529,106 @@ def scoped_environment_cases(base, candidate, issue, git=git_read):
     return revised
 
 
+def verify_repair(pr, issue, data, api, git):
+    """Original NG correction is distinct from ordinary pending GUI acceptance."""
+    number, path, _ = metadata(pr)
+    declarations = re.findall(r'^Acceptance repair: (.+)$', issue.get('body') or '', re.M)
+    bug = any((x.get('name') if isinstance(x, dict) else x) == 'type:bug' for x in issue.get('labels', []))
+    if len(declarations) > 1 or (bug and not declarations):
+        raise ValueError('Bug work must classify Acceptance repair as none or the original Issue comment ID')
+    # Read preserved versions when a fix association was introduced/removed, not every unrelated blob.
+    history = git('log', '--format=', '--raw', '--no-abbrev', '--no-renames',
+                  '-G', rf'"fix_issue".*{number}', pr['base']['sha'], '--', 'docs/verification/changes')
+    blobs = {line.split()[3] for line in history.splitlines() if line.startswith(':') and
+             len(line.split()) >= 6 and line.split()[1] == '100644'}
+    tracked = set()
+    for blob in blobs:
+        archived = json.loads(git('show', blob))
+        for case in archived.get('cases', []):
+            if case.get('fix_issue') == number:
+                for actor in ('gpt', 'human'):
+                    if case.get(actor, {}).get('status') == 'fail':
+                        tracked.add((f'{archived["issue"]}:{case["id"]}', actor, json_hash(case)))
+    declaration = declarations[0] if declarations else 'none'
+    if declaration == 'none':
+        if tracked or data.get('repair') is not None:
+            raise ValueError('Preserved acceptance failure cannot be hidden by a none declaration')
+        return {}
+    if not re.fullmatch(r'[1-9][0-9]*', declaration):
+        raise ValueError('Acceptance repair requires its original Issue comment ID')
+    comment = api('issues/comments/' + declaration)
+    marker = '<!-- acceptance-repair:v1 -->\n'
+    if (not comment.get('body', '').startswith(marker) or
+            not comment.get('issue_url', '').endswith('/issues/' + str(number))):
+        raise ValueError('Original failure comment does not belong to the fix Issue')
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate original failure key')
+            result[key] = value
+        return result
+    record = json.loads(comment['body'][len(marker):], object_pairs_hook=unique)
+    failures = record.get('failures')
+    repair = data.get('repair')
+    if (record.get('schema') != 1 or record.get('fix_issue') != number or
+            not isinstance(failures, dict) or not failures or not isinstance(repair, dict) or
+            repair.get('failure_record_sha256') != json_hash(record) or
+            not isinstance(repair.get('results'), dict) or set(repair['results']) != set(failures)):
+        raise ValueError('Repair must bind every preserved original failure')
+    candidate = repair.get('candidate')
+    if not SHA.fullmatch(candidate or '') or candidate in (pr['base']['sha'], pr['head']['sha']):
+        raise ValueError('Freeze the corrected candidate before result metadata')
+    git('merge-base', '--is-ancestor', pr['base']['sha'], candidate)
+    git('merge-base', '--is-ancestor', candidate, pr['head']['sha'])
+    if not set(git('diff', '--no-renames', '--name-only', pr['base']['sha'], candidate).splitlines()) - {path, PROMOTION}:
+        raise ValueError('Repair candidate needs a real correction, not only evidence metadata')
+    scoped_history(candidate, pr['head']['sha'], {path: '100644'}, git)
+    from agent_policy import SESSION_HASH
+    contributors = repair.get('contributors')
+    if (not isinstance(contributors, list) or not contributors or
+            any(not isinstance(x, str) or not SESSION_HASH.fullmatch(x) for x in contributors) or
+            len(contributors) != len(set(contributors)) or not nonempty(repair.get('origin_evidence'))):
+        raise ValueError('Repair needs complete actual writer/executor/assessor origin evidence')
+    covered = set()
+    for identifier, failure in failures.items():
+        key = failure.get('case', '')
+        match = re.fullmatch(r'([1-9][0-9]*):([A-Z][A-Z0-9-]+)', key)
+        source = failure.get('source_candidate')
+        if not match or not SHA.fullmatch(source or ''):
+            raise ValueError('Original failure needs its exact source and Case')
+        git('merge-base', '--is-ancestor', source, pr['base']['sha'])
+        original_data = regular_json(source, f'docs/verification/changes/issue-{match[1]}.json', git)
+        cases = [case for case in original_data['cases'] if case['id'] == match[2]]
+        original = failure.get('original_result', {})
+        if (len(cases) != 1 or json_hash(cases[0]) != failure.get('source_case_sha256') or
+                original.get('status') != 'fail' or original.get('head') != source):
+            raise ValueError('Original failure identity/Case/hash differs')
+        # A failed result retains the same identity/evidence shape as a successful observation.
+        validate_observation(dict(original, status='pass'), source)
+        guarantees = failure.get('guarantees')
+        result = repair['results'][identifier]
+        if (not isinstance(guarantees, dict) or not guarantees or not all(nonempty(x) for x in guarantees.values()) or
+                not isinstance(result.get('coverage'), dict) or set(result['coverage']) != set(guarantees) or
+                not all(nonempty(x) for x in result['coverage'].values()) or not nonempty(result.get('method'))):
+            raise ValueError('Repair omits failed guarantees or faithful method/evidence')
+        observed = result.get('observation', {})
+        artifact = repair.get('artifacts', {}).get(cases[0].get('artifact', 'plugin'))
+        if not HASH.fullmatch(artifact or '') or artifact == original['artifact_sha256']:
+            raise ValueError('Repair needs the corrected artifact identity')
+        validate_observation(observed, candidate, artifact)
+        if cases[0].get('required_execution') and observed.get('execution') != cases[0]['required_execution']:
+            raise ValueError('Repair must preserve the explicit execution contract')
+        from datetime import datetime
+        at = lambda value: datetime.fromisoformat(value.replace('Z', '+00:00'))
+        if at(observed['at']) < max(at(original['at']), at(git('show', '-s', '--format=%cI', candidate))):
+            raise ValueError('Repair observation predates its failure/corrected candidate')
+        covered.add((key, original['actor'], failure['source_case_sha256']))
+    if not tracked <= covered:
+        raise ValueError('Repair omits a preserved tracked original failure')
+    return {'repair_revision': json_hash([record, repair]), 'repair_contributors': contributors}
+
+
 def verify_pr(pr, api, git=git_read):
     """api(path) uses the same repo; git sees fetched PR/candidate objects only as data."""
     issue, path, mode = metadata(pr)
@@ -380,6 +637,7 @@ def verify_pr(pr, api, git=git_read):
     gui = field(pr['body'], 'GUI') == 'required'
     validate_change(data, issue, gui)
     files = git('diff', '--name-only', base, head).splitlines()
+    certificate_changes(base, head, files, path, mode, data, git)
     if mode == 'develop':
         # Outcome is deliberately unrestricted, but every required Case has steps and tracking.
         for case in data['cases']:
@@ -387,11 +645,13 @@ def verify_pr(pr, api, git=git_read):
                 fix = api(f'issues/{case["fix_issue"]}')
                 if fix.get('state') != 'open' or 'pull_request' in fix:
                     raise ValueError('Product failure needs an open dedicated fix Issue')
-        return {'mode': mode, 'gui_complete': not gui, 'cases': len(data['cases'])}
+        repair = verify_repair(pr, api(f'issues/{issue}'), data, api, git)
+        return {'mode': mode, 'gui_complete': not gui, 'cases': len(data['cases']), **repair}
     if mode == 'tooling':
         if gui or not files or any(not tooling_path(f) for f in files):
             raise ValueError('Direct main tooling route is restricted to documented non-product paths')
-        return {'mode': mode, 'gui_complete': True, 'cases': 0}
+        return {'mode': mode, 'gui_complete': True, 'cases': 0,
+                **certificate_registration(data, issue, mode, git)}
     promotion = json.loads(git('show', f'{head}:{PROMOTION}'))
     candidate = promotion.get('candidate')
     if promotion.get('schema') != 1 or promotion.get('base') != base or not SHA.fullmatch(candidate or ''):
@@ -399,6 +659,7 @@ def verify_pr(pr, api, git=git_read):
     scope = promotion.get('scope', 'develop')
     if scope not in ('develop', 'main'):
         raise ValueError('Unknown promotion scope')
+    contracts = {}
     revisions = {} if scope == 'main' else environment_cases(base, candidate, git)
     if scope == 'main':
         if not gui or 'changes' in promotion:
@@ -408,6 +669,7 @@ def verify_pr(pr, api, git=git_read):
         if data != change:
             raise ValueError('Scoped acceptance must equal the trusted plan; observations belong in results')
         scoped_history(candidate, head, {PROMOTION: '100644', path: '100644'}, git)
+        contracts.update({f'{issue}:{case["id"]}': case for case in change['cases']})
         required = {f'{issue}:{case["id"]}': (case.get('required_execution'), case.get('artifact', 'plugin'))
                     for case in change['cases']}
     else:
@@ -459,6 +721,7 @@ def verify_pr(pr, api, git=git_read):
                 if key in required and required[key] != requirement:
                     raise ValueError('Case execution requirement changed across candidate commits')
                 required[key] = requirement
+                contracts[key] = case
     results = promotion.get('results', {})
     if not isinstance(results, dict):
         raise ValueError('Candidate results must be an object matching ALL required Cases')
@@ -474,9 +737,9 @@ def verify_pr(pr, api, git=git_read):
         artifact = artifacts.get(artifact_name)
         if not HASH.fullmatch(artifact or ''):
             raise ValueError('Fixed candidate artifact hash is required: ' + artifact_name)
-        validate_observation(result, candidate, artifact)
-        validate_environment(result, revisions.get(key))
-        if execution and result.get('execution') != execution:
+        observed = validate_candidate_result(result, key, contracts[key], candidate, artifact, base, git)
+        validate_environment(observed, revisions.get(key))
+        if execution and observed.get('execution') != execution:
             raise ValueError('Case requires its specified execution method: ' + key)
     return {'mode': mode, 'gui_complete': True, 'cases': len(required), 'candidate': candidate}
 
@@ -513,9 +776,10 @@ def render_queue(paths, promotion=None, git=git_read):
             artifact = artifacts.get(case.get('artifact', 'plugin'))
             if not HASH.fullmatch(artifact or ''):
                 raise ValueError('Candidate artifact not registered')
-            validate_observation(result, candidate, artifact)
-            validate_environment(result, revisions.get(key))
-            passed = not case.get('required_execution') or result.get('execution') == case['required_execution']
+            original_case = revisions.get(key, {}).get('original', case)
+            observed = validate_candidate_result(result, key, original_case, candidate, artifact, promotion.get('base'), git)
+            validate_environment(observed, revisions.get(key))
+            passed = not case.get('required_execution') or observed.get('execution') == case['required_execution']
         except ValueError:
             pass
         lines.append(f'| {case["id"]} / #{data["issue"]} / #{data.get("pr", "未作成")} | {case["change"]} | '
@@ -535,6 +799,11 @@ def render_queue(paths, promotion=None, git=git_read):
         lines += [f'{n}. {step}' for n, step in enumerate(case['steps'], 1)]
         lines += ['', '期待結果: ' + case['expected'], '']
         result = results.get(f'{data["issue"]}:{case["id"]}')
+        if result and result.get('status') == 'reused':
+            lines += ['元source（旧観察）: ' + result.get('source_candidate', '未登録'),
+                      '原結果（改変せず保持）: ' + json.dumps(result.get('source_result', {}), ensure_ascii=False),
+                      '現在の適合確認（新しいCase実行ではない）: ' + json.dumps(result.get('confirmation', {}), ensure_ascii=False),
+                      'trusted証明: ' + json.dumps(result.get('certificate', {}), ensure_ascii=False), '']
         if result:
             lines += ['今回の候補結果: ' + result.get('status', 'pending'),
                       f'確認者: {result.get("actor", "未登録")} / {result.get("observer", "未登録")}',

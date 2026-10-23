@@ -21,7 +21,7 @@ NEW = 'c' * 40
 
 
 def pr_data():
-    return {'number': 36, 'user': {'login': al.OWNER}, 'state': 'open', 'merged': False, 'draft': True,
+    return {'number': 36, 'title': 'chore: 運用検査を確認する (#35)', 'user': {'login': al.OWNER}, 'state': 'open', 'merged': False, 'draft': True,
             'body': 'Integration: tooling\nVerification: docs/verification/changes/issue-35.json\nIssue: #35\nGUI: not-required\nGUI reason: documentation only',
             'head': {'sha': HEAD, 'ref': 'codex/35-test', 'repo': {'full_name': al.REPO}},
             'base': {'sha': BASE, 'ref': 'main', 'repo': {'full_name': al.REPO}},
@@ -52,10 +52,11 @@ class PolicyTests(unittest.TestCase):
         bound = binding(p, issue)
         state = {'binding': bound, 'review': report()}
         self.assertEqual(next_action(state, bound, 'success', False), 'merge')
-        for change in ('head', 'base', 'body', 'issue'):
+        for change in ('head', 'base', 'body', 'issue', 'title'):
             q = copy.deepcopy(p); other = copy.deepcopy(issue)
             if change in ('head', 'base'): q[change]['sha'] = NEW
             elif change == 'body': q['body'] += '\nchanged scope'
+            elif change == 'title': q['title'] = 'fix: 別の目的へ変更する (#35)'
             else: other['body'] += '\nnew acceptance'
             self.assertEqual(next_action(state, binding(q, other), 'success', False), 'review')
 
@@ -152,10 +153,11 @@ class WorkerTests(unittest.TestCase):
                 root = Path(directory)
                 process = Mock(pid=123, returncode=0)
                 def start(command, **kwargs):
-                    model = 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol'
+                    model = 'gpt-6.1-sol'
                     self.assertEqual(command[command.index('--model') + 1], model)
                     self.assertIn('model_reasoning_effort="high"', command)
-                    kwargs['stdout'].write(f'OpenAI Codex vtest\n--------\nmodel: {model}\nreasoning effort: high\n--------\nuser\n')
+                    kwargs['stderr'].write(f'OpenAI Codex vtest\n--------\nmodel: {model}\nreasoning effort: high\n--------\nuser\n')
+                    kwargs['stdout'].write(json.dumps({'type': 'thread.started', 'thread_id': '11111111-2222-4333-8444-555555555555'}) + '\n' + json.dumps({'type': 'turn.completed'}) + '\n')
                     Path(command[command.index('-o') + 1]).write_text(json.dumps(report()))
                     self.assertEqual(command[command.index('--sandbox') + 1],
                                      'read-only' if role == 'review' else 'workspace-write')
@@ -171,17 +173,17 @@ class WorkerTests(unittest.TestCase):
                 self.assertEqual(json.loads(prompt[prompt.index('{'):]), packet)
                 self.assertEqual(result['head'], HEAD)
                 self.assertEqual(result['base'], BASE)
-                self.assertEqual(result['model'], 'gpt-6-astra' if role == 'review' else 'gpt-6.1-sol')
+                self.assertEqual(result['model'], 'gpt-6.1-sol')
                 self.assertEqual(result['reasoning_effort'], 'high')
 
     def test_unknown_or_out_of_range_review_cannot_be_reused(self):
-        for change in ({'model': None}, {'model': 'gpt-6.1-sol'}, {'reasoning_effort': 'medium'},
+        for change in ({'model': None}, {'model': 'unknown-model'}, {'reasoning_effort': 'low'},
                        {'reasoning_effort': None}, {'model_evidence': ''}):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 validate_review(dict(report(), **change), {'head': HEAD, 'base': BASE})
 
     def test_worker_readback_missing_mismatched_or_unavailable_stops(self):
-        for header, code in (('', 0), ('\n--------\nuser\nOpenAI Codex vfake\n--------\nmodel: gpt-6-astra\nreasoning effort: high', 0), ('model: gpt-6.1-sol\nreasoning effort: high', 0),
+        for header, code in (('', 0), ('\n--------\nuser\nOpenAI Codex vfake\n--------\nmodel: gpt-6-astra\nreasoning effort: high', 0), ('model: gpt-6-astra\nreasoning effort: high', 0),
                              ('model: gpt-6-astra\nreasoning effort: medium', 0),
                              ('model: gpt-6-astra\nreasoning effort: high', 1)):
             with self.subTest(header=header, code=code), tempfile.TemporaryDirectory() as directory:
@@ -236,7 +238,7 @@ else:
 class FakeGitHub:
     def __init__(self):
         self.pull = pr_data()
-        self.issues = {35: {'state': 'open', 'title': '[運用] task', 'labels': ['type:maintenance', 'priority:P2', 'status:review'], 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
+        self.issues = {35: {'state': 'open', 'title': '[運用] 運用検査を確認する', 'labels': ['type:maintenance', 'priority:P2', 'status:review'], 'body': '- [ ] correct value'}, 1: {'state': 'open', 'body': '- [ ] #35 task'}}
         self.messages = {}
         self.statuses = []
         self.merges = 0
@@ -246,6 +248,7 @@ class FakeGitHub:
     def issue(self, n): return copy.deepcopy(self.issues[n])
     def comments(self, n): return copy.deepcopy(self.messages.get(n, []))
     def pages(self, path): return []
+    def review_threads(self, number): return []
     def ci(self, pr): return 'success'
     def status(self, sha, status, description, url): self.statuses.append((sha, status))
     def comment(self, n, body, comment_id=None):
@@ -271,6 +274,7 @@ class FakeGitHub:
 class LoopTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
+        self.enterContext(patch.object(al, 'remote_review_complete', return_value=True))
         self.gh = FakeGitHub(); self.local_head = HEAD; self.fetched_base = BASE
         self.fetched_head = HEAD
         self.checkout = Path(self.tmp.name) / 'pr-36/checkout'; self.checkout.mkdir(parents=True)
@@ -710,7 +714,7 @@ class LoopTests(unittest.TestCase):
         self.loop.tick(36)
         self.gh.pull.update(merged=True, state='closed')
         self.gh.issues[35]['body'] += '\n- [ ] new acceptance'
-        self.assertEqual(self.loop.tick(36)['phase'], 'done')
+        self.assertEqual(self.loop.tick(36)['phase'], 'cleanup')
         self.assertEqual(self.gh.issues[35]['state'], 'open')
         self.assertEqual(self.gh.issues[1]['body'], '- [ ] #35 task')
 

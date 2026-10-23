@@ -22,3 +22,5 @@ For development-context reviews/audits, apply the supplied relevant excerpt of d
 これは提供資料だけを読む依頼例です。選んだクライアントでtoolを無効にできる場合は無効にし、利用可能な起動方法・権限を確認します。自動coordinator連携の対応範囲は[PR automation](../../development/pr-automation.md)に従い、providerごとのadapterを仮定しません。認証ファイルをコピー・抽出しません。
 
 レビュー役から実装役へ変更する場合は、別途Issueのclaim・専用worktree・対象ファイル・base・必要テスト・PRを指定して引き継ぎます。レビュー依頼を実装権限として扱わず、その変更には別sessionのレビューが必要です。
+
+For evidence and method choices, apply the supplied relevant [responsibility contract](../../verification/responsibility.md). Identify the guarantee, existing qualified evidence, missing fact and minimum sufficient method; preserve original failures and actual execution obligations.

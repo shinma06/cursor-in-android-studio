@@ -2,6 +2,7 @@
 """One bounded PR transition per tick. Run from trusted main, never from PR code."""
 import argparse
 from contextlib import contextmanager
+from datetime import datetime
 import fcntl
 import hashlib
 import json
@@ -63,6 +64,18 @@ class GitHub:
         out = command(['gh', 'api', '--paginate', '--slurp', path])
         return [item for page in json.loads(out) for item in page]
 
+    def review_threads(self, number):
+        # REST already supplies every reply; GraphQL adds resolution/outdated state.
+        query = '''query($endCursor:String){repository(owner:"shinma06",name:"cursor-in-android-studio"){
+          pullRequest(number:NUMBER){reviewThreads(first:100,after:$endCursor){
+            nodes{id isResolved isOutdated comments(first:1){nodes{databaseId}}}
+            pageInfo{hasNextPage endCursor}}}}}'''.replace('NUMBER', str(number))
+        pages = json.loads(command(['gh', 'api', 'graphql', '--paginate', '--slurp', '-f', 'query=' + query]))
+        if (not pages or any(page.get('errors') for page in pages) or
+                pages[-1]['data']['repository']['pullRequest']['reviewThreads']['pageInfo'].get('hasNextPage') is not False):
+            raise ValueError('Review thread acquisition failed; feedback is incomplete')
+        return [node for page in pages for node in page['data']['repository']['pullRequest']['reviewThreads']['nodes']]
+
     def pr(self, number):
         pr = self.api(f'repos/{REPO}/pulls/{number}')
         if pr['state'] == 'open' and eligible(pr, OWNER, REPO):
@@ -108,7 +121,8 @@ class GitHub:
         if pr['draft']:
             command(['gh', 'pr', 'ready', str(pr['number']), '--repo', REPO])
         result = self.api(f'repos/{REPO}/pulls/{pr["number"]}/merge', 'PUT',
-                          {'sha': pr['head']['sha'], 'merge_method': 'merge' if metadata(pr)[2] == 'promotion' else 'squash'})
+                          {'sha': pr['head']['sha'], 'commit_title': pr['title'],
+                           'commit_message': pr.get('body') or '', 'merge_method': 'merge' if metadata(pr)[2] == 'promotion' else 'squash'})
         if not result.get('merged'):
             raise RuntimeError('Merge was not confirmed: ' + str(result))
         return result
@@ -187,9 +201,20 @@ class Loop:
             stream.write(str(error))
         return f'Operation failed ({type(error).__name__}); coordinator private diagnostic {identifier}'
 
+    @staticmethod
+    def public_session(value):
+        from agent_policy import session_fingerprint, SESSION_HASH
+        if isinstance(value, str) and SESSION_HASH.fullmatch(value):
+            return value
+        try:
+            return session_fingerprint(value)
+        except ValueError:
+            return value  # Legacy reports are readable, never origin evidence.
+
     def public_state(self, value):
         if isinstance(value, dict):
-            return {k: self.public_state(v) for k, v in value.items() if k not in ('host', 'source')}
+            return {k: (self.public_session(v) if k == 'session' else self.public_state(v))
+                    for k, v in value.items() if k not in ('host', 'source')}
         if isinstance(value, list):
             return [self.public_state(v) for v in value]
         if isinstance(value, str):
@@ -208,13 +233,18 @@ class Loop:
 
     def bound(self, pr, issue, comments):
         value = binding(pr, issue)
-        # Fresh human feedback triggers a new review; machine dashboard edits do not.
-        human = [c['body'] for c in comments if c['user']['login'] == OWNER and
-                 not c['body'].startswith((HANDOFF, HANDOFF_V2, STATE))]
+        # Exclude only our changing dashboards, never bot/Issue/reviewer evidence.
+        conversation = [c for c in comments + self.gh.comments(issue_number(pr))
+                        if not (c['user']['login'] == OWNER and
+                                c['body'].startswith((HANDOFF, HANDOFF_V2, STATE, '<!-- agent-loop-progress:',
+                                                      '<!-- issue-qa-link:v1 ', '<!-- issue-qa-record:v1 ')))]
         inline = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100')
         reviews = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100')
-        value['feedback_hash'] = hashlib.sha256(json.dumps([human, inline, reviews], sort_keys=True).encode()).hexdigest()
-        return value, human + [x.get('body', '') for x in inline + reviews]
+        threads = self.gh.review_threads(pr['number'])
+        feedback = [*conversation, *inline, *reviews, *threads]
+        value['feedback_hash'] = hashlib.sha256(json.dumps(feedback, sort_keys=True).encode()).hexdigest()
+        value['remote_review_complete'] = remote_review_complete(pr['head']['sha'], comments)
+        return value, feedback
 
     def source_safe(self, h):
         source = Path(h['source'])
@@ -371,7 +401,7 @@ class Loop:
                 return {'pr': number, 'phase': 'base-synced'}
             if state.get('binding') == bound and state.get('review'):
                 try:
-                    validate_review(state['review'], bound)
+                    validate_review(state['review'], bound, self.acceptance(pr, path))
                 except ValueError:
                     self.invalidate_acceptance(state)
                     raise
@@ -394,7 +424,7 @@ class Loop:
                                       'feedback': feedback, 'gui': state.get('gui'), 'target': pr['base']['ref'], 'acceptance': acceptance}, path.parent / 'workers',
                                       on_start=lambda pid: running.write_text(json.dumps({'pid': pid})))
                 running.unlink(missing_ok=True)
-                validate_review(report, bound)
+                validate_review(report, bound, acceptance)
                 if git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha'] or git('status', '--porcelain', cwd=path):
                     raise ValueError('Reviewer changed checkout; approval rejected')
                 state.update(binding=bound, review=report, phase='reviewed', errors=0, next='Reconcile verdict on the next tick')
@@ -429,6 +459,7 @@ class Loop:
                     state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
                     self.save(latest, state, comment_id)
                     return {'pr': number, 'phase': 'changed-before-merge'}
+                validate_review(state['review'], now, self.acceptance(latest, path))
                 state['acceptance'] = dict(acceptance, head=bound['head'], base=bound['base'])
                 self.gh.status(bound['head'], 'success', 'Independent review and target branch acceptance gate passed', pr['html_url'])
                 state.update(phase='merging', next='Read back GitHub merge result')
@@ -439,6 +470,7 @@ class Loop:
                 state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: leaseを取得し、実画面を観察して証拠を記録',
                              'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
                              'ci-wait': 'Wait for latest required CI checks', 'ci-failed': 'Inspect CI failure; resume after repair',
+                             'remote-review-wait': 'Read current-HEAD provider completion and all feedback before independent review',
                              'blocked': 'Inspect review findings or retry budget; resume explicitly'}[action])
                 if action in ('blocked', 'ci-failed'):
                     state['paused'] = True
@@ -467,8 +499,14 @@ class Loop:
             raise ValueError('No fix or out-of-scope changes; preserve files for coordinator review')
         if git('ls-files', '-u', cwd=path):
             raise ValueError('Merge conflict requires explicit coordinator repair')
+        from pr_policy import validate_title
+        latest = self.gh.pr(pr['number'])
+        current_issue = self.gh.issue(h['issue'])
+        if binding(latest, current_issue) != binding(pr, current_issue):
+            raise ValueError('PR metadata changed before fix commit; preserve changes')
+        validate_title(latest, h['issue'])
         git('add', '--', *sorted(changed), cwd=path)
-        git('commit', '-m', f'Address automated review for #{h["issue"]}', cwd=path)
+        git('commit', '-m', latest['title'], cwd=path)
 
     def finish(self, pr, h, state, comment_id):
         if not pr.get('merged'):
@@ -476,6 +514,10 @@ class Loop:
         bound = state.get('binding', {})
         report = state.get('review', {})
         current_issue = self.gh.issue(h['issue'])
+        if 'feedback_hash' in bound:
+            current, _ = self.bound(pr, current_issue, self.gh.comments(pr['number']))
+            if current != bound or current.get('remote_review_complete') is not True:
+                raise ValueError('Current post-merge feedback changed or provider review is pending; preserve resources')
         accepted = state.get('acceptance', {})
         promotion_pass = (accepted.get('allowed') is True and accepted.get('mode') == 'promotion' and
                           accepted.get('gui_complete') is True and accepted.get('head') == bound.get('head') and
@@ -504,6 +546,10 @@ class Loop:
         issue = self.gh.issue(h['issue'])
         if complete and bound.get('issue_hash') != binding(pr, issue)['issue_hash']:
             raise ValueError('Issue acceptance changed during handoff; re-review before closure')
+        if complete and 'feedback_hash' in bound:
+            current, _ = self.bound(pr, issue, self.gh.comments(pr['number']))
+            if current != bound:
+                raise ValueError('Feedback changed during handoff; preserve resources before closure')
         if complete and issue['state'] == 'open':
             self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed', 'labels': done_labels(issue)})
             closed = self.gh.issue(h['issue'])
@@ -568,6 +614,35 @@ class Loop:
             git('worktree', 'remove', str(source))
         if old:
             git('update-ref', '-d', ref, old)
+
+
+def remote_review_complete(head, comments, not_before=None):
+    summaries = [c for c in comments if c['user']['login'] == 'chatgpt-codex-connector[bot]' and
+                 c['body'].startswith('<!-- codex-pull-request-review-summary -->')]
+    if len(summaries) != 1:
+        return False
+    # Fail closed if the provider changes its visible summary format/status.
+    rows = [line for line in summaries[0]['body'].splitlines() if '**Code Review**' in line]
+    if len(rows) != 1:
+        return False
+    match = re.fullmatch(r'\|[^|]*\*\*Code Review\*\*[^|]*\| ✅ \*\*Completed\*\* '
+                         r'<relative-time datetime="([^"]+)">[^<]+</relative-time> '
+                         r'\| `([0-9a-f]{7,40})` \|[^|]*\|', rows[0])
+    if not match or not head.startswith(match[2]):
+        return False
+    try:
+        completed = datetime.fromisoformat(match[1].replace('Z', '+00:00'))
+        requests = [datetime.fromisoformat(c.get('updated_at', c['created_at']).replace('Z', '+00:00'))
+                    for c in comments if c['user']['login'] != 'chatgpt-codex-connector[bot]' and
+                    re.search(r'^\s*@codex\s+review\b', c['body'], re.M)]
+        if not_before:
+            requests.append(datetime.fromisoformat(not_before.replace('Z', '+00:00')))
+        if completed.tzinfo is None or any(at.tzinfo is None for at in requests):
+            return False
+    except (KeyError, ValueError):
+        return False
+    # A newer explicit request may not have reached the provider summary yet.
+    return not any(at > completed for at in requests)
 
 
 def enroll(loop, args):
@@ -637,7 +712,7 @@ def rebind_target(loop, args):
 
 def audit_branches(gh, apply=False):
     """Clean completed local refs only; preserve checked-out or reused branches."""
-    git('fetch', '--prune', 'origin')
+    # Tracking-only history may be the last recoverable copy; audit must not prune it.
     prs = gh.pages(f'repos/{REPO}/pulls?state=closed&per_page=100')
     merged = {pr['head']['ref']: pr for pr in prs if pr.get('merged_at') and eligible(pr, OWNER, REPO)}
     checked = set(re.findall(r'^branch refs/heads/(.+)$', git('worktree', 'list', '--porcelain'), re.M))
@@ -669,6 +744,8 @@ def main():
     sub = parser.add_subparsers(dest='action', required=True)
     tick = sub.add_parser('tick'); tick.add_argument('--pr', type=int)
     sub.add_parser('scan')
+    feedback = sub.add_parser('feedback', help='Read-only fixed feedback snapshot; never starts a worker')
+    feedback.add_argument('--pr', type=int, required=True)
     audit = sub.add_parser('cleanup-branches'); audit.add_argument('--apply', action='store_true')
     en = sub.add_parser('enroll'); en.add_argument('--pr', type=int, required=True)
     en.add_argument('--source', type=Path, required=True); en.add_argument('--owner', required=True)
@@ -687,7 +764,11 @@ def main():
     try:
         with coordinator_lock():
             loop = Loop()
-            if args.action == 'cleanup-branches':
+            if args.action == 'feedback':
+                pr = loop.gh.pr(args.pr)
+                bound, records = loop.bound(pr, loop.gh.issue(issue_number(pr)), loop.gh.comments(args.pr))
+                result = {'pr': args.pr, 'binding': bound, 'feedback': records}
+            elif args.action == 'cleanup-branches':
                 result = audit_branches(loop.gh, args.apply)
             elif args.action == 'rebind-target':
                 result = rebind_target(loop, args)

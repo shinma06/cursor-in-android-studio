@@ -64,7 +64,7 @@ class AcceptanceTests(unittest.TestCase):
             return args[-1] + ' ' + (NEW if args[-1] == HEAD else BASE)
         if args[0] == 'rev-list':
             return HEAD if '--first-parent' in args or args == ('rev-list', HEAD, '--not', NEW, BASE) else ('' if '--not' in args else '\n'.join(self.range))
-        if args[0] == 'ls-tree':
+        if args[0] in ('ls-tree', 'log'):
             return ''
         if args[0] == 'fetch':
             return ''

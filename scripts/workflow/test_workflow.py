@@ -144,11 +144,18 @@ class LeaseTest(unittest.TestCase):
 
 class PolicyTest(unittest.TestCase):
     def setUp(self):
-        self.pr = {'head': {'ref': 'codex/31-test'}, 'base': {'ref': 'main'},
+        self.pr = {'title': 'chore: 運用検査を確認する (#31)', 'head': {'ref': 'codex/31-test'}, 'base': {'ref': 'main'},
                    'body': 'Integration: tooling\nVerification: docs/verification/changes/issue-31.json\nIssue: #31\nGUI: not-required\nGUI reason: 運用規約とhookのみの変更。アプリ操作は不要。'}
 
     def test_matching_metadata(self):
         self.assertEqual(validate(self.pr), 31)
+
+    def test_live_title_has_one_matching_issue_and_meaningful_language(self):
+        for title in ('chore: 運用を整える (#32)', 'Chore: 運用を整える (#31)',
+                      'chore: metadata (#31)', 'chore(scope): 運用を整える (#31)',
+                      'fix: #31 運用を整える (#31)'):
+            with self.subTest(title=title), self.assertRaises(ValueError):
+                validate(dict(self.pr, title=title))
 
     def test_missing_mismatch_and_duplicate_are_rejected(self):
         for body in ['', self.pr['body'].replace('#31', '#32'), self.pr['body'] + '\nIssue: #31',

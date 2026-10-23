@@ -1,6 +1,6 @@
 # 区切りごとの動作確認
 
-まず [今回の確認一覧](current.md) を開き、上から順に試してください。初期一覧は PR #72/#74/#75/#77/#81/#82 の7ケースと、親#73に残るCUA操作成立の2ケースです。#39の接続未実装は先に解消します。#80はprobe調査記録の整合を確認します。CUA全面操作は親#73の別Caseで、人間が直接ボタンを押せてもCUA受入passにはなりません。
+対象Issue/QAの現行割当と[製品責任](responsibility.md)から保証→既存証拠→不足事実→最小手段を選びます。以下の初期一覧は履歴で、新規試験の一律割当ではありません。[今回の確認一覧](current.md)は正本JSONの生成表示です。初期一覧は PR #72/#74/#75/#77/#81/#82 の7ケースと、親#73に残るCUA操作成立の2ケースです。#39の接続未実装は先に解消します。#80はprobe調査記録の整合を確認します。CUA全面操作は親#73の別Caseで、人間が直接ボタンを押せてもCUA受入passにはなりません。
 
 ## 正本と結果の入力
 
@@ -24,7 +24,7 @@ python3 scripts/workflow/verification.py \
 
 `pending` は未実施、`blocked` は環境等で操作不能、`fail` は製品の期待結果と不一致、`pass` はそのbuildで確認済みです。Agentがblocked/failでも、必要テスト・独立コードレビューを通り、全Caseと次の操作が記録されていればdevelopへ統合できます。製品failは専用修正Issueを作成し、修正branch/PRと再確認を紐付けます。テスト失敗や未解決コード指摘は、この例外に含みません。
 
-mainは固定候補内の**全変更・全必要Case**のpassが必要です。Agent/人間どちらの適切な観察も有効ですが、過去SHA/buildのpassをコピーしません。Case別passはmain全体の昇格許可ではなく、最後に自動gateがコミット範囲を照合します。develop統合後、元実装IssueはQAへの双方向link/readbackを確認してcloseします。Case/QA Issueは実際の確認完了まで残します。GUI不要のmain未反映分もQAに追跡し、固定候補JSONは書き換えません。closed元Issueの固定merge Caseをpromotionが参照し続けます。
+mainは固定候補内の**全変更・全必要Case**のpassが必要です。Agent/人間どちらの適切な観察も有効ですが、過去SHA/buildのpassをコピーしません。Case別passはmain全体の昇格許可ではなく、最後に自動gateがコミット範囲を照合します。develop統合後、元実装IssueはQAへの双方向link/readbackを確認してcloseします。Case/QA Issueは実際の確認完了まで残します。Caseなしの変更ではQAを作らず、main未反映のPM保管・次操作を元Issue/PRへ残し読み戻します。既存QA/固定候補JSONはこの規約追加だけで書き換えません。closed元Issueの固定merge Caseをpromotionが参照し続けます。
 
 ## 固定候補からmainへ
 
@@ -33,7 +33,7 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 3. 専用promotion Issueと `codex/N-promotion` branch/worktreeを候補SHAから作成し、現在のmainを通常mergeします。`candidate`からの製品差分がゼロである必要があります。初回同期のmain先行toolingや前回QA記録が差分に残れば、1に戻してdevelopへ同期し直します。候補を保った既存promotionへ後続mainを同期する場合は下記の限定検証を使います。
 4. `docs/verification/changes/issue-N.json` をGUI不要の「確認結果の記録」として作成し、`docs/verification/promotion.json` を下記の形式で用意します。PR本文は `Integration: promotion`、`GUI: not-required`（結果記録自体の区分）、`Verification: docs/verification/changes/issue-N.json`。必須GUIは元develop PRのCaseから自動収集され、ここで不要と宣言しても免除されません。
 5. `changes` に `git rev-list <main SHA>..<candidate SHA>` の**全コミット**を1回ずつ登録します。通常は各コミットを実際にmerge済みの同一repository develop PRのsquash結果へ対応付けます。既存の承認済みmain同期mergeは下記の厳密な履歴照合に限って内包commitも同じPRへ対応付けます。省略、未対応コミット、任意のmerge/rebase取り込み、別PRへの付け替えをgateが拒否します。選択的なmain統合は実装していません。通常は固定develop候補全体を確認します。
-6. `results` は全必要Caseを `Issue番号:Case ID` で列挙します。各Caseの操作後、実施者が実際の結果を入力します。失敗なら専用修正Issue/PRをdevelopへ入れ、新候補で全必要Caseを再確認します。
+6. `results` は全必要Caseを `Issue番号:Case ID` で列挙します。各Caseの操作後、実施者が実際の結果を入力します。失敗は専用修正Issue/PRで元の失敗保証を固定し、修正候補の必要事実を再確認します。全Caseを満たす責任は保持し、影響を受けない成功事実は下記の明示評価経路だけで使います。
 7. テスト・独立レビュー・PR policy・Acceptance gateを通し、PM/coordinatorが**merge commit**で統合します。squashでは候補の祖先関係が失われるため禁止です。mainのstrict base、直前のcandidate再照合、head指定mergeを維持します。
 8. promotion Issueは全受入完了時にclose可能です。元の機能/QA Issueは残条件を個別に照合して更新し、まとめてcloseしません。次の区切りでは1のmain同期を先に行います。main/developをcleanupしません。
 
@@ -122,3 +122,37 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 モダン化だけをmainへ取り込むユーザー承認済み経路は[限定取り込み手順](../development/main-scoped-release.md)に従う。trusted mainに先行保存した計画の全必要Caseを同一候補/ZIPで確認する。develop全体のpromotion、GUI不要tooling、4必須checksと独立レビューは維持する。
 
 #562の元C＋局所PCE計画は [scopes/issue-562.json](scopes/issue-562.json)、読込条件と原本/訂正の説明は [scopes/issue-562.md](scopes/issue-562.md)。段階Aの変更JSONはGUI不要、計画内の段階B受入は175 CaseすべてGUI未実施のpendingです。
+
+## 試験コストと完了
+
+既知の修正と必要な運用同期を先にまとめ、最終受入前に候補source/ZIP/実ロード/有効契約を凍結します。試験中に無関係な製品変更を足しません。呼出元/先・共有状態・保存形式・build/依存・fixture/runtime/displayから影響を評価し、失敗箇所と不足事実だけを先に診断します。全候補commit/Caseを満たす正式promotionとは区別します。
+
+同一候補・成果物・前提で各Caseの全有効条件を満たす実観察は共有できます。全データ/内容の確認はproduction回帰/FILEへ、実UI/OS/外部consumerとの接続は代表nativeへ分担し、単にCase数が多いから全操作を繰り返しません。Computer Useの指定、人間の保留・実端末固有条件、未解放所有・privacy/leaseは維持します。方法改訂は観察でもPASSでもありません。
+
+実装scope完了・残QA移管・main反映・完全GUI受入・cleanupは別の事実です。Caseなしなら人工的なQA/MAIN-REFLECTION Caseを作らず、元IssueとPRにPMのmain反映保管と次候補/promotion確認をreadbackします。既存QAがある場合は所有担当が元契約/失敗と残件を照合し、自動で閉じません。QAがmain反映だけを残す場合も既存の適切な追跡先への双方向移管が必要で、移管終了を試験PASSにしません。
+
+## 証拠の再利用と方法改訂
+
+原観察・旧FAIL/PENDING/BLOCKEDとその理由を不変で保管し、元と現在のsource/artifact/実条件を別に識別します。通常の`pass`は引き続き同一candidate/hashの実観察です。別ZIPでも影響を受けない成功事実を全失効させず、以下の**target側で独立採用した証明**に限って`reused`を使えます。一覧とgateは同じ`validate_candidate_result`を使い、旧観察と現在の適合確認を別表示します。元Caseの全保証/実施経路・必要集合・環境revisionは保持します。
+
+証明は新しい台帳を作らず、所有Issueの既存`changes/issue-N.json`に`evidence_certificates[id]`として置き、GUI不要tooling PRで独立レビューしmainへ採用してから参照します。結果の`certificate`は`commit / path / id / sha256`（証明のcanonical hash）です。候補側だけの自己登録、欠落/改変、旧結果の付替え、再利用の連鎖は認めません。
+
+証明は`schema: 1 / key（Issue:Case） / case_sha256 / result / history / original_file_sha256 / original_result_sha256 / original_record_evidence / unresolved_failures（空配列を実質確認） / review / guarantees`を持ちます。`result`は`status: reused / head / artifact_sha256 / source_candidate / source_result / confirmation`で、`source_result`は元の成功観察全文、`confirmation`は現在candidate/artifactへの実ロード・前提/環境適合の新しい観察です。元は正式promotion以前の成功記録でもよく、過去の全候補promotion済みとは主張しません。公開安全な要約とprivate原本を混同せず、原bytes/hashと全失敗帰属を独立reviewerが実際に照合します。
+
+`history`は`verification.evidence_history(source, candidate, git)`の全親edge（commit/parent/paths）です。元Caseはsource/current/途中の各版で同一、sourceはcandidateの祖先。関連するregular component pathごとに両blobを持ち、`guarantees`の各項目へ`disposition: unaffected | equivalent | fresh`、`components`、`evidence`を置きます。`impact`はsource/callers/callees/dataflow/build/configuration/dependencies/fixtures/runtime/display/failure_attributionの具体的証拠/非該当理由です。変更/revertしたcomponentはunaffectedにせず、equivalentには実質的な`equivalence_evidence`、freshには現在の実証が必要です。未知影響は未達です。
+
+`review`は`status: approved / at（現在証拠以後の評価日時） / session（実originのfingerprint） / contributors（全writer/実行/評価/構成担当のfingerprint） / evidence / origin_evidence`で、reviewerは全contributorと別です。新登録のAgent reviewは証明全体の`certificate_revision`と、指定した実独立reviewerの`certificate_assessment`を要求します。実origin、原本の存在/byte hash/内容、全有効保証と条件、元失敗の帰属を実質的に評価し、統合担当が実sessionの原報告へ結びます。文字列やhashの存在は実証/独立性の認証ではありません。機械検査と実質評価の責任を分け、ARBのprivate adapterがtargetにもあるとは主張しません。
+
+この最小target経路は**同一の元Case契約と元の成功観察**を対象とします。aggregate FAIL中の成功部分、別系統候補や正式なCase/method契約改訂はこの`reused`へ包装せず、原失敗/保証を保持した具体的な独立改訂を先に行います。現行gateはそれらの自動再評価adapterを持ちません。方法だけの変更で無関係な製品build/導入/全GUIを課さず、不足事実と実施経路を先に固定します。この変更自身は既存結果の再判定/再試験を行いません。
+
+## 元の受入NGを直すdevelop PR
+
+通常の新機能や無関係なpending/blockedと、元の受入NG修正を区別します。後者は元の全失敗保証を修正済み固定candidate/artifactで満たし、実質的な独立証拠評価後にdevelopへ統合します。関連unit PASSだけでnative NGを消さず、全main受入の前倒しや歴史上の正常mergeの再分類もしません。
+
+bug Issue本文へ`Acceptance repair: none`（理由を併記）又は元NGを保全した同Issueコメントの数値IDを置きます。新機能が元NG修正を含む場合も記録を指定します。コメントは`<!-- acceptance-repair:v1 -->`と改行の後へJSONを直接置き、`schema: 1 / fix_issue / failures`を持ちます。failuresの各IDは`case（N:ID） / source_candidate / source_case_sha256 / original_result（元status failの完全な観察） / guarantees（失敗保証ID→目的/不一致）`です。元sourceはdevelop baseの祖先でregularな固定Caseへ照合します。別系統の採用sourceはこの最小adapterでは受けず、具体的な出典を保つ追加対応が必要です。
+
+修正Issueの受入JSONへ`repair`を置き、`candidate / artifacts（元Caseのartifact名→修正hash） / failure_record_sha256 / contributors（全実writer/実行/評価/構成originのfingerprint） / origin_evidence / results`を記録します。resultsは元NG全IDと一致させ、各値に`observation（修正candidate/artifactのpass） / coverage（全失敗保証→実証） / method（忠実性と限界）`を持たせます。コードの実修正を先にcommitし、そのcandidateで実証してから当該Issueのmetadataだけをcommitします。candidate後の別ファイル変更/revert/merge、元artifact、古い観察、部分coverageは拒否します。候補/baseが変わったら再固定します。
+
+既存のfix_issue関連が追加/除去された固定履歴のCase failも照合し、noneやlabel変更で隠しません。機械判定は自然言語の全NGを発見しないため、独立reviewerは元Issue/QAの原記録・全失敗保証・有効環境/方法、実source/artifact/ロードと全実origin・原本を確認します。原コメントを編集して失敗を消さず、新記録を追加して宣言/hash/レビューを更新します。報告は`repair_revision（[元NG記録,repair]のcanonical hash） / repair_assessment / origin_evidence`を持ち、全contributorと別sessionで固定HEAD/baseへ結びます。coordinatorはそのrevision/独立性と最新受入をstatus/merge前に再確認します。手動統合でも同じ実質評価が必要です。
+
+このtarget adapterは構造/固定Git/集合/日時と既存review bindingを検査し、独立runtimeの出自・private原本内容は実統合担当が取得して確認します。ARB固有のregistered trust hash/private registry/receipt adapterを移植したとは表示しません。実origin/原本が確認できなければ未達で、自己申告や別名で代用しません。元失敗、他の未達、実tool境界を保持します。
