@@ -63,7 +63,7 @@ CIの `compatibility-input` は標準 `build/distributions/*.zip` と `manifest.
 
 ### 2. 固定候補Artifactを取得し、同じZIPを受け入れる
 
-保存先は `candidate-<ZIPのSHA256>` Actions Artifact、保持は90日です。Release/tagを候補保管に使いません。保持期限はあるため、受入担当は同じbundleを別途保全します。取得は成功した同一repository・main・手動candidate workflowのID/path/run/source、mainへの包含、期限・transport digestと全ファイルhashを照合します。
+保存先は `candidate-<ZIPのSHA256>` Actions Artifact、保持は90日です。Release/tagを候補保管に使いません。保持期限はあるため、受入担当は同じbundleを別途保全します。取得は成功した同一repository・main・手動candidate workflowのID/path/run/source、mainへの包含、期限・transport digestと全ファイルhashを照合します。ここでmainへ包含されるworkflow sourceと、manifestに固定した未mergeのdevelop/承認済みmain限定候補sourceは別です。取得処理は後者の40桁SHAをoriginから取得してから、trusted inspectorで同じsourceのpolicy/build-inputとbundleを検査します。source側の実行コードをimportせず、offline validator自体にはfetchを追加しません。保全bundleの正式公開では、先に取得する実promotion mergeの履歴を使い、既存のscope/受入・同一ZIP条件を再確認します。
 
 ```bash
 # CANDIDATE_RUN / HASH / RCは実在する固定run・承認対象hash・未使用の出力先。

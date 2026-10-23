@@ -132,6 +132,7 @@ def candidate_artifact(expected_hash, directory, run_id=None):
     git('merge-base', '--is-ancestor', run['head_sha'], 'origin/main')
     directory.mkdir(parents=True, exist_ok=False)
     download_artifact(item, directory)
+    rc.fetch_source(directory)
     manifest = rc.validate_bundle(directory, expected_hash)
     require(set(p.name for p in directory.iterdir()) == {*rc.read(directory / 'bundle.json'), 'bundle.json'},
             'Unexpected candidate artifact files')

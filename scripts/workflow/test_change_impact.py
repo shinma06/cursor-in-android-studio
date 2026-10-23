@@ -20,7 +20,7 @@ class ClassificationTest(unittest.TestCase):
             (['build.gradle.kts'], {ci.BUILD}, True, False, True),
             (['.github/workflows/pr-policy.yml'], {ci.TOOLING}, False, True, False),
             (['.github/workflows/delivery.yml'], {ci.TOOLING}, False, True, False),
-            (['.github/workflows/release-candidate.yml'], {ci.TOOLING}, False, True, False),
+            (['.github/workflows/release-candidate.yml'], {ci.BUILD, ci.TOOLING}, True, True, True),
             (['scripts/workflow/release_delivery.py'], {ci.TOOLING}, False, True, False),
             (['CLAUDE.md', 'src/main/Service.kt'], {ci.KNOWLEDGE, ci.RUNTIME}, True, False, True),
             (['new/input.unknown'], {ci.UNKNOWN}, True, True, True),
@@ -85,6 +85,19 @@ class GitImpactTest(unittest.TestCase):
         self.write('src/main/Service.kt', 'class Service\n'); self.commit()
         self.write('docs/design.md', 'later knowledge\n'); head = self.commit()
         self.assertTrue(ci.git_impact(None, head, cwd=self.root)['gradle_test'])
+
+    def test_candidate_workflow_add_delete_builds_but_delivery_consumer_does_not(self):
+        path = '.github/workflows/release-candidate.yml'
+        self.write(path, 'name: candidate\n'); candidate = self.commit()
+        added = ci.git_impact(self.base, candidate, cwd=self.root)
+        self.assertEqual(set(added['impacts']), {ci.BUILD, ci.TOOLING})
+        self.assertTrue(added['plugin_zip'])
+        self.assertIn(['./gradlew', 'test', '--console=plain'], ci.test_commands(added))
+        self.write('.github/workflows/delivery.yml', 'name: consumer\n'); consumer = self.commit()
+        delivery = ci.git_impact(candidate, consumer, cwd=self.root)
+        self.assertFalse(delivery['gradle_test']); self.assertFalse(delivery['plugin_zip'])
+        self.git('rm', path); removed = self.commit()
+        self.assertTrue(ci.git_impact(consumer, removed, cwd=self.root)['plugin_zip'])
 
     def test_rename_runtime_to_docs_and_deletion_keep_runtime_impact(self):
         self.git('mv', 'src/main/resources/help.md', 'docs/help.md'); head = self.commit()

@@ -95,6 +95,13 @@ def source_inputs(source):
     return {name: hashlib.sha256(git_read('show', f'{source}:{name}').encode()).hexdigest() for name in INPUTS}
 
 
+def fetch_source(directory):
+    """Acquire manifest source from origin before running the offline validators."""
+    source = read(directory / 'manifest.json')['identity']['source.commit']
+    pc.require(isinstance(source, str) and re.fullmatch('[0-9a-f]{40}', source), 'Invalid candidate source')
+    git_read('fetch', '--no-tags', 'origin', source)
+
+
 def java_version(output):
     match = re.search(r'^(?:openjdk|java) version "([0-9][0-9.+-]*)"', output, re.M)
     pc.require(match, 'Missing numeric Java version')
@@ -284,6 +291,7 @@ def fetch(tag, expected_hash, directory):
     for asset in assets:
         pc.require(Path(asset['name']).name == asset['name'] and asset['state'] == 'uploaded', 'Invalid asset')
         download_asset(asset, directory / asset['name'])
+    fetch_source(directory)
     manifest = validate_bundle(directory, expected_hash)
     pc.require(rc_tag(manifest) == tag, 'Candidate tag mismatch')
     return manifest
@@ -372,13 +380,13 @@ def store(directory, expected_hash):
 
 
 def publication(directory, expected_hash, number):
-    manifest = validate_bundle(directory, expected_hash)
     pr = github.api(f'pulls/{number}')
     repo = os.environ['GITHUB_REPOSITORY']
     pc.require(pr.get('merged') and pr['base']['ref'] == 'main' and pr['base']['repo']['full_name'] == repo
                and pr['head']['repo']['full_name'] == repo, 'A merged same-repository main promotion is required')
     merge = pr['merge_commit_sha']
     git_read('fetch', '--no-tags', 'origin', merge, 'main')
+    manifest = validate_bundle(directory, expected_hash)
     parents = git_read('rev-list', '--parents', '-n', '1', merge).split()[1:]
     pc.require(len(parents) == 2 and parents[1] == pr['head']['sha'], 'Expected promotion merge commit')
     pr['base']['sha'] = parents[0]  # Fixed merge base, not a later main HEAD.

@@ -5,6 +5,8 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -357,6 +359,121 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual(len([w for w in self.repo.mutations if w[0] == 'upload']), uploads)
 
 
+class CandidateAcquisitionTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name); self.origin = self.root / 'origin'; self.origin.mkdir()
+        self.env = os.environ.copy()
+        for key in subprocess.check_output(['git', 'rev-parse', '--local-env-vars'], text=True).splitlines():
+            self.env.pop(key, None)
+        self.env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
+        self.git(self.origin, 'init', '-b', 'main')
+        self.git(self.origin, 'config', 'user.name', 'Fixture')
+        self.git(self.origin, 'config', 'user.email', 'fixture@example.invalid')
+        self.policy = rc.read(pc.POLICY)
+        for name in rc.INPUTS:
+            path = self.origin / name; path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(self.policy) if name.endswith('.json') else 'fixture\n')
+        self.git(self.origin, 'add', '.'); self.git(self.origin, 'commit', '-m', 'main')
+        self.main = self.git(self.origin, 'rev-parse', 'HEAD')
+        self.git(self.origin, 'checkout', '-b', 'develop')
+        (self.origin / 'gradle.properties').write_text('candidate\n')
+        self.git(self.origin, 'commit', '-am', 'candidate')
+        self.source = self.git(self.origin, 'rev-parse', 'HEAD')
+        self.inspector = self.root / 'inspector'
+        self.git(self.root, 'clone', '--single-branch', '--branch', 'main', '--no-local', self.origin.as_uri(), str(self.inspector))
+        self.directory = self.root / 'candidate'; self.directory.mkdir()
+        product = self.directory / rc.version_name('1.2.3'); product.write_bytes(package(self.source))
+        self.manifest = pc.seal(product, self.source, self.policy); self.expected = self.manifest['sha256']
+        rc.write(self.directory / 'manifest.json', self.manifest)
+        with patch.object(rc, 'git_read', side_effect=lambda *a: self.git(self.origin, *a)):
+            rc.write(self.directory / 'inputs.json', {'source': self.source, 'version': '1.2.3',
+                     'files': rc.source_inputs(self.source), 'libraries': ['fixture.jar'],
+                     'command': rc.build_command('1.2.3'), 'java_version': '25.0.3'})
+            evidence = self.root / 'evidence'
+            target = self.policy['targets']['rabbit1']
+            reports = evidence / 'reports' / target['build'] / 'plugins' / pc.PLUGIN_ID / '1.2.3'
+            reports.mkdir(parents=True)
+            (reports / 'verification-verdict.txt').write_text('Compatible.')
+            (reports / 'telemetry.txt').write_text('Verified classes in plugin artifact: 1\n')
+            jcef = self.policy['jcef']['Linux-amd64']
+            (reports / 'dependencies.txt').write_text(pc.PLUGIN_ID + ':1.2.3\ncom.intellij.modules.jcef:' + jcef['version'] + '\n')
+            log = 'Starting the IntelliJ Plugin Verifier 1.410\nScheduled verifications (1):\nFinished 1 of 1 verifications\n'
+            (evidence / 'verifier.log').write_text(log)
+            rc.write(evidence / 'result.json', {'status': 'passed', 'artifact': self.manifest, 'jcef': jcef,
+                     'verifier_version': '1.410', 'target': {'platform': 'Linux-amd64', 'build': target['build'],
+                     'java_version': target['java_version'], 'distribution_version': target['version'],
+                     'java_runtime': 'openjdk version "25.0.3"\nOpenJDK Runtime Environment (build 25.0.3+1-b1)\nOpenJDK 64-Bit Server VM (build 25.0.3+1-b1, mixed mode)'},
+                     **pc.check_reports(evidence / 'reports', log, target, self.manifest, self.policy)})
+            rc.bundle(self.directory, self.expected, {'rabbit1': evidence})
+
+    def git(self, root, *args):
+        return subprocess.check_output(['git', *args], cwd=root, env=self.env, stderr=subprocess.PIPE, text=True).strip()
+
+    def api(self, path):
+        if path == 'actions/runs/13':
+            return {'id': 13, 'head_sha': self.main, 'event': 'workflow_dispatch', 'head_branch': 'main',
+                    'repository': {'full_name': delivery.REPO}, 'head_repository': {'full_name': delivery.REPO},
+                    'status': 'completed', 'conclusion': 'success', 'workflow_id': 42,
+                    'path': '.github/workflows/release-candidate.yml'}
+        if path == 'actions/workflows/release-candidate.yml':
+            return {'id': 42, 'path': '.github/workflows/release-candidate.yml'}
+        if path == 'actions/runs/13/artifacts?per_page=100':
+            return {'total_count': 1, 'artifacts': [{'id': 14, 'name': 'candidate-' + self.expected, 'expired': False}]}
+        self.fail(path)
+
+    def extract(self, item, directory):
+        for path in self.directory.iterdir(): shutil.copyfile(path, directory / path.name)
+
+    def test_fresh_main_only_artifact_materializes_source_before_real_bundle_validation(self):
+        git = lambda *a: self.git(self.inspector, *a)
+        with patch.object(delivery, 'git', side_effect=git), patch.object(rc, 'git_read', side_effect=git), \
+                patch.object(delivery, 'api', side_effect=self.api), patch.object(delivery, 'download_artifact', side_effect=self.extract):
+            with self.assertRaises(subprocess.CalledProcessError): rc.validate_bundle(self.directory, self.expected)
+            self.assertEqual(delivery.candidate_artifact(self.expected, self.root / 'download', 13), self.manifest)
+            self.assertEqual(git('rev-parse', 'HEAD'), self.main)  # Data fetched; inspector stays on main.
+
+    def test_invalid_or_foreign_manifest_source_stops_acquisition(self):
+        foreign = self.root / 'foreign'; foreign.mkdir()
+        self.git(foreign, 'init', '-b', 'main')
+        self.git(foreign, 'config', 'user.name', 'Fixture'); self.git(foreign, 'config', 'user.email', 'fixture@example.invalid')
+        (foreign / 'unrelated.txt').write_text('foreign')
+        self.git(foreign, 'add', '.'); self.git(foreign, 'commit', '-m', 'foreign')
+        source = self.git(foreign, 'rev-parse', 'HEAD')
+        self.git(self.inspector, 'fetch', foreign.as_uri(), source)  # Even an existing unrelated local object is not enough.
+        git = lambda *a: self.git(self.inspector, *a)
+        with patch.object(delivery, 'git', side_effect=git), patch.object(rc, 'git_read', side_effect=git), \
+                patch.object(delivery, 'api', side_effect=self.api), patch.object(delivery, 'download_artifact', side_effect=self.extract), \
+                patch.object(rc, 'preserve') as preserve:
+            for index, value in enumerate(('../main', source)):
+                manifest = copy.deepcopy(self.manifest); manifest['identity']['source.commit'] = value
+                rc.write(self.directory / 'manifest.json', manifest)
+                with self.subTest(source=value), self.assertRaises((ValueError, subprocess.CalledProcessError)):
+                    delivery.candidate_artifact(self.expected, self.root / str(index), 13)
+            preserve.assert_not_called()
+
+    def test_historical_tag_fetch_prepares_source_for_offline_validation(self):
+        files = list(self.directory.iterdir()); assets = [{'id': i, 'name': f.name, 'state': 'uploaded'} for i, f in enumerate(files)]
+        with patch.object(rc, 'git_read', side_effect=lambda *a: self.git(self.inspector, *a)), \
+                patch.object(rc, 'release_for', return_value={'id': 1, 'body': rc.MARKER, 'draft': False, 'prerelease': True}), \
+                patch.object(rc.github, 'pages', return_value=assets), \
+                patch.object(rc, 'download_asset', side_effect=lambda a, d: shutil.copyfile(self.directory / a['name'], d)):
+            self.assertEqual(rc.fetch(rc.rc_tag(self.manifest), self.expected, self.root / 'legacy'), self.manifest)
+
+    def test_retained_publication_fetches_merged_ancestry_before_real_bundle_validation(self):
+        self.git(self.origin, 'checkout', 'main'); self.git(self.origin, 'merge', '--no-ff', 'develop', '-m', 'promotion')
+        merge = self.git(self.origin, 'rev-parse', 'HEAD')
+        pr = {'merged': True, 'base': {'ref': 'main', 'repo': {'full_name': delivery.REPO}},
+              'head': {'sha': self.source, 'repo': {'full_name': delivery.REPO}}, 'merge_commit_sha': merge}
+        with patch.dict(os.environ, {'GITHUB_REPOSITORY': delivery.REPO}), \
+                patch.object(rc.github, 'api', return_value=pr), \
+                patch.object(rc, 'git_read', side_effect=lambda *a: self.git(self.inspector, *a)), \
+                patch.object(rc, 'verify_pr', side_effect=RuntimeError('stop at promotion gate')) as gate:
+            with self.assertRaisesRegex(RuntimeError, 'stop at promotion gate'):
+                rc.publication(self.directory, self.expected, 11)
+            gate.assert_called_once()  # Actual bundle/Git reads passed; acceptance is still required.
+
+
 class InputGateTest(unittest.TestCase):
     def test_late_product_event_uses_current_checked_history_and_never_falls_back_past_new_product(self):
         runs = {11: {'id': 11, 'head_sha': SOURCE, 'event': 'push', 'head_branch': 'develop'},
@@ -395,6 +512,7 @@ class InputGateTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder, patch.object(delivery, 'api', side_effect=api), \
                 patch.object(delivery, 'producer_run', return_value=run) as producer, \
                 patch.object(delivery, 'git'), patch.object(delivery, 'download_artifact', side_effect=extract), \
+                patch.object(rc, 'fetch_source'), \
                 patch.object(rc, 'validate_bundle', return_value={'synthetic': True}):
             self.assertEqual(delivery.candidate_artifact(expected, Path(folder) / 'candidate', 13), {'synthetic': True})
             self.assertEqual(producer.call_args.args, (13, MAIN, '.github/workflows/release-candidate.yml'))
