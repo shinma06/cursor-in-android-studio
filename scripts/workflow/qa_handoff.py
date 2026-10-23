@@ -19,7 +19,7 @@ def handoff(gh, repo, pr, origin, change):
     if len(candidates) > 1:
         raise ValueError('Multiple QA Issues match origin; reconcile before closing')
     record = f'<!-- issue-qa-record:v1 origin={number} pr={pr["number"]} merge={pr["merge_commit_sha"]} -->'
-    source = (record + f'\n元Issue: #{number}\nPR: #{pr["number"]}\nmerge SHA: {pr["merge_commit_sha"]}\n'
+    source = (record + f'\n元Issue: #{number}\n元Issue題名: {origin["title"]}\nPR: #{pr["number"]}\nmerge SHA: {pr["merge_commit_sha"]}\n'
               f'Verification: https://github.com/{repo}/blob/{pr["merge_commit_sha"]}/{path}\n')
     if not change['cases']:
         if candidates:
@@ -40,7 +40,8 @@ def handoff(gh, repo, pr, origin, change):
     milestone = origin.get('milestone')
     if not candidates:
         summary = re.sub(r'^\[[^]]+\]\s*|^[a-z]+: ', '', origin['title'])
-        data = {'title': f'test: #{number} {summary}', 'body': marker + '\n' + payload,
+        summary = ' '.join(re.sub(r'#(?=[0-9])', 'Issue ', summary).split())
+        data = {'title': f'test: #{number} 残る動作確認: {summary}', 'body': marker + '\n' + payload,
                 'labels': ['type:qa', 'priority:' + axes['priority'], 'status:ready']}
         validate_issue(dict(data, state='open'), allow_legacy=False)
         if milestone:

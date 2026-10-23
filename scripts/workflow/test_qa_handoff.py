@@ -61,6 +61,36 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(self.gh.created, 1)
         self.assertIn('QA-1', self.gh.issue(100)['body'])
         self.assertEqual(len(self.gh.comments(35)), 1)
+
+    def test_supported_origin_titles_produce_canonical_qa_and_preserve_original_title(self):
+        titles = ['fix: #123 の回帰を修正する', 'fix: 日本語表示を修正する',
+                  '[修正] #123 の回帰を修正する', '[修正] legacy only',
+                  '[修正] #35 legacy summary (#123)', '[修正] legacy\rsummary']
+        for title in titles:
+            with self.subTest(title=title):
+                self.gh = GH()
+                self.gh.issues[35].update(number=35, title=title, labels=['type:bug', 'priority:P2', 'status:in-progress'])
+                validate_issue(self.gh.issue(35))
+                self.assertEqual(self.transfer(), 100)
+                self.assertEqual(self.transfer(), 100)
+                qa = self.gh.issue(100)
+                validate_issue(qa, allow_legacy=False)
+                self.assertTrue(qa['title'].startswith('test: #35 '))
+                self.assertNotIn('#123', qa['title'])
+                self.assertIn('元Issue: #35', qa['body'])
+                self.assertIn('元Issue題名: ' + title, qa['body'])
+                self.assertIn('QA-1', qa['body'])
+                self.assertEqual(self.gh.created, 1)
+                self.assertEqual([i['number'] for i in self.gh.children], [100])
+                self.assertEqual(self.gh.issue(35)['state'], 'open')
+
+    def test_invalid_origin_title_still_blocks_before_creating_qa(self):
+        self.gh.issues[35].update(number=35, title='fix: #35 自分の番号を題名に含める',
+                                 labels=['type:bug', 'priority:P2', 'status:in-progress'])
+        with self.assertRaises(ValueError):
+            self.transfer()
+        self.assertEqual(self.gh.created, 0)
+        self.assertEqual(self.gh.issue(35)['state'], 'open')
     def test_milestone_and_parent_are_preserved_on_retry(self):
         self.gh.issues[35]['milestone'] = {'number': 7}
         self.transfer()
