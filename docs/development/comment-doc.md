@@ -1,6 +1,6 @@
 # コメント・Docの契約
 
-コード・コメント・Doc、例、設定/schema、作業入口を変更・レビューする担当者の共通正本です。今回の差分と影響先に適用し、関係のない全Docの読込みや全既存実装への一括適用・coverage調査は要求しません。[Mission](../project-mission.md)・[ACP First](../architecture/cursor-integration.md)、製品要件、所有・承認、検証の契約は維持します。
+コード・コメント・Doc、例、設定/schema、作業入口を変更・レビューする担当者の共通正本です。通常は今回の差分と影響先に適用し、関係のない全Docの読込みや全既存実装への一括適用・coverage調査は要求しません。全既存適用が明示された場合は末尾の条件付きcoverage規則に従います。[Mission](../project-mission.md)・[ACP First](../architecture/cursor-integration.md)、製品要件、所有・承認、検証の契約は維持します。
 
 ## 役割と置き場所
 
@@ -45,4 +45,4 @@ license/copyright、解析・生成・実行directive、機密情報、元FAIL�
 4. 実リンクと読込経路、該当条件・例/help/設定/testsを[既存classifier/hook](ci.md)で確認する。リンクが通るだけでは意味の整合や実挙動の証明にならない。コメント数のlintや無関係なGUI試験は追加しない。
 5. Doc変更でもsource/buildの同一性が変わり得るため、元と現在のsource SHA・ZIP・実loaded buildを分けて記録する。影響がない成功事実の再利用は[既存の検証契約](../verification/README.md)に従い、旧結果を新buildの実行済みPASSにしない。未知の影響は未確認として必要な確認へ戻す。
 
-適用範囲は今回の変更と影響先です。規約を置いたことや入口から到達できることを、全既存実装の適合完了とは扱いません。
+通常の適用範囲は今回の変更と影響先です。人間が全既存実装への適用を明示した場合は、固定revisionの全tracked対象を当該Issueの一つの対象一覧で管理し、実読の有無と変更済・既準拠・対象外・保護対象（固定履歴/生成/vendor）・pendingを根拠付きで区別します。未読や他owner側のpendingを既準拠とせず、並行変更の採用後の差分も再照合します。規約や入口の配置、リンクの到達、一代表例の修正だけで全適用完了とは扱いません。

@@ -133,7 +133,8 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
         'Use docs/development/team-worker-prompt.md for ready-role and stop/receipt boundaries. '
         'For source/comment/Doc, example, configuration/schema or instruction changes and reviews, '
         'apply docs/development/comment-doc.md to the actual diff and affected contracts/callers/tests/references; '
-        'preserve local why/non-obvious how and protected evidence without whole-existing-code application. '
+        'preserve local why/non-obvious how and protected evidence. '
+        'Use its conditional coverage rule for an explicitly assigned whole-existing-code application. '
         'Report the exact input head/base. Explain acceptance evidence and uncertainty in Japanese.\n'
     ) + json.dumps(packet, ensure_ascii=False)
     log = output_dir / (session + '.log')
