@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 576,
+  "gui_required": false,
+  "reason": "コメント・Doc規約の単一正本、必要な開発/レビュー入口、trusted worker promptの条件付き参照とその合成回帰だけを変更する。製品source/runtime、build/toolchain/依存、既存Case・固定証拠を変えず、全既存実装への一括適用、GUI/端末/導入、job/配布有効化を含まないためGUI不要。入口の静的到達と合成prompt検査は実client/model挙動や製品受入のPASSではない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests（clean committed HEAD。固定main差分の選択と実結果を記録）",
+    "選択されたPython workflow/loop suite。既存のreview/fix両roleの合成prompt/packet/report境界テストで単一正本への参照を確認。実worker起動はしない",
+    "既存validate_changeによるGUI不要schema・理由・CLI checks・空cases、git diff --check、両client start/finish Skillsの同一本文、実相対リンク/読込経路と影響するconsumerの静的整合",
+    "固定sourceと対象の実言語/toolchainを照合し、公式構文・採用/非適用・保護対象・source/artifact identityを記録。新branchの旧自動配布/hookへの実影響は公開前に別境界で投影し、明示main差分の判定と混同しない"
+  ],
+  "cases": []
+}

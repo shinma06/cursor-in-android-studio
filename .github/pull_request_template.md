@@ -13,6 +13,7 @@ GUI reason: <Case IDと必要挙動。不要なら具体的理由とCLI検証>
 - Tests: <コマンド/結果とCI URL>
 - Independent review: <担当session・固定HEAD/base・指摘と解決・結果URL>
 - Context review: <開発コンテキストを作成/更新/監査した場合、docs/architecture/knowledge.mdの共通規則で用途/言語/形式/正本/読込経路/証拠・例外、旧要件の配置、検証済みと未確認を照合。対象外ならその旨>
+- Comment/Doc: <該当する差分と影響先をdocs/development/comment-doc.mdで確認。境界契約・局所why/非自明how、関連Doc/例/tests/参照、生成元・保護対象・source/artifact identityと未確認を記録。入口の到達確認を全既存実装への適合完了にしない>
 - Matrix: <必要Case JSONと今回の確認一覧。GUI pending/blocked/fail/passを正確に保持>
 - CI impact: <CI/入力/fixture/検査量/成果物への影響と通常結果・再利用/測定省略の理由・未測定/復旧owner。docs/development/ci.md。全matrix比較は不要>
 - PR metadata: <実assignee、PR自身のtype/priority/status、Project #2/Milestone、review/request、Developmentの関連時期と早期close防止をreadback>
