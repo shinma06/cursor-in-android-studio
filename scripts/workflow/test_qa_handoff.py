@@ -1,4 +1,6 @@
 import copy
+import html
+import re
 import unittest
 from unittest.mock import patch
 import qa_handoff as q
@@ -55,6 +57,11 @@ class HandoffTests(unittest.TestCase):
         self.pr['body'] = self.pr['body'].replace('tooling', 'develop').replace('GUI: not-required', 'GUI: required')
     def transfer(self):
         return q.handoff(self.gh, al.REPO, self.pr, self.gh.issue(35), CHANGE)
+
+    def visible_original_title(self, qa):
+        line = next(line for line in qa['body'].splitlines() if line.startswith('元Issue題名: '))
+        escaped = line.removeprefix('元Issue題名: ')
+        return html.unescape(re.sub(r'\\([\\`*_{}\[\]()#+.!|>@$~-])', lambda match: match[1], escaped))
     def test_success_and_retry_reuse_full_snapshot(self):
         self.assertEqual(self.transfer(), 100)
         self.assertEqual(self.transfer(), 100)
@@ -78,11 +85,41 @@ class HandoffTests(unittest.TestCase):
                 self.assertTrue(qa['title'].startswith('test: #35 '))
                 self.assertNotIn('#123', qa['title'])
                 self.assertIn('元Issue: #35', qa['body'])
-                self.assertIn('元Issue題名: ' + title, qa['body'])
+                self.assertEqual(self.visible_original_title(qa), ' '.join(title.split()))
                 self.assertIn('QA-1', qa['body'])
                 self.assertEqual(self.gh.created, 1)
                 self.assertEqual([i['number'] for i in self.gh.children], [100])
                 self.assertEqual(self.gh.issue(35)['state'], 'open')
+
+    def test_non_issue_literals_and_markup_preserve_visible_title_and_case_body(self):
+        titles = ['fix: 色#123456 と https://example.test/#123 と 識別子#123abc を維持する',
+                  'fix: <!-- 日本語の表示を直す', 'fix: <details> 日本語の表示を直す',
+                  'fix: **表示** と [確認](https://example.test) と `記録` と ~~取消~~ を維持する',
+                  'fix: &lt;details&gt; の文字列を維持する']
+        for title in titles:
+            with self.subTest(title=title):
+                self.gh = GH()
+                self.gh.issues[35].update(number=35, title=title,
+                                         labels=['type:bug', 'priority:P2', 'status:in-progress'])
+                validate_issue(self.gh.issue(35))
+                self.assertEqual(self.transfer(), 100)
+                qa = self.gh.issue(100)
+                line = next(line for line in qa['body'].splitlines() if line.startswith('元Issue題名: '))
+                self.assertNotIn('色Issue 123456', qa['title'])
+                self.assertNotIn('https://example.test/Issue 123', qa['title'])
+                self.assertNotIn('識別子Issue 123abc', qa['title'])
+                self.assertNotIn('<', line)
+                if '**表示**' in title:
+                    self.assertIn(r'\*\*表示\*\*', line)
+                    self.assertIn(r'\~\~取消\~\~', line)
+                self.assertEqual(self.visible_original_title(qa), title)
+                self.assertEqual(qa['title'], 'test: #35 残る動作確認を引き継ぐ')
+                validate_issue(qa, allow_legacy=False)
+                self.assertIn('\nCase: QA-1', qa['body'])
+                self.assertIn('受入・次操作:', qa['body'])
+                self.assertIn('元Issue: #35', qa['body'])
+                self.assertEqual(self.transfer(), 100)
+                self.assertEqual(self.gh.created, 1)
 
     def test_invalid_origin_title_still_blocks_before_creating_qa(self):
         self.gh.issues[35].update(number=35, title='fix: #35 自分の番号を題名に含める',
