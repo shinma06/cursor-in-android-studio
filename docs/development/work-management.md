@@ -56,3 +56,34 @@ coordinatorの`--parent`は実在する親があるときだけ指定し、Stand
 - [Issue dependencies](https://docs.github.com/en/rest/issues/issue-dependencies)
 - [Sub-issues](https://docs.github.com/en/rest/issues/sub-issues)
 - [Projects API](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-api-to-manage-projects)
+
+## 命名
+
+採用後の新規Issueは以下を使い、旧角括弧形式は既存/固定履歴の読取互換として残します。
+
+| type label | 新規題名 |
+| --- | --- |
+| feature / bug | `feat: 日本語の要約` / `fix: 日本語の要約` |
+| research / tracking | `research: 日本語の要約` / `track: 日本語の要約` |
+| maintenance / qa | `chore: 日本語の要約` / `test: #元Issue番号 日本語の要約` |
+
+各軸ちょうど1ラベル、QAの単一元番号、意味のある日本語とし、自身の番号・priority・PR用suffixを重ねません。validator/inline CIは新旧を読み、新規自動QAは新形式を公開前検査します。文字検査は要約の意味の証明ではありません。既存/closed Issueや他担当の題名を一括変更せず、明示したmetadata scopeだけで行います。
+
+新規PRと作業commitは`type: 日本語の要約 (#N)`、typeは`feat/fix/docs/refactor/perf/test/build/ci/chore/revert`から実変更で選びます。scopeなし、実breakingだけ`!`と理由、単一所有Issueをbranch/本文へ一致させます。新branchの既定は`codex/<Issue>-<type>-<short-english-kebab-purpose>`、必要なclaude/cursor prefixも同じsuffixです。native `git check-ref-format --branch`と衝突・所有を確認します。旧refは改名せず、type/purposeは開始と固定レビューで照合します。PR題名の変更は同じHEADでもreview bindingを失効させ、実metadataを作成/ready/再開/統合直前に読み戻します。Git生成のbase同期merge、統合時にGitHubが付ける実PR suffixは履歴として保全します。commit/closed PRの一括lint・amend/rebase/forceはしません。
+
+## PR sidebarとDevelopment
+
+Draft作成・ready・修正再開・終了で実PR自身のassignee、type/priorityとPR自身のstatus、Project #2、適切なMilestone、実review/requestを読み戻します。Issueのstatusをコピーせず、内部sessionと実GitHub accountを区別し、架空の担当/自己承認を作りません。PR項目をIssueカードで代用せず、旧「PRカードを増やさない」はこの現行運用へ置き換えます。
+
+本文の`Issue: #N`/`Refs #N`はnative Developmentの成功を意味しません。nondefault developはDraft後に対応PRを手動関連し両端/Issue状態を読む。default mainのOPEN・残条件ありではclosing referenceを保留し、理由/owner/次操作を残します。main merge後の受入・feedback・引継ぎと手動closeが済んでから関連し、両端とCLOSED/close時刻/status/Projectを確認します。targetをmainへ変える前にも早期closeの手動リンク/本文・commit keywordを確認します。実APIの非対応/部分結果/権限不足はpendingとし、本文URLだけで完了にしません。新たな過去履歴の関連付け作業は開始しません。
+
+## Project項目の更新入口
+
+採用後のProject #2追加・Status/Relationship Status・限定削除は[project_item.py](../../scripts/workflow/project_item.py)を使います。実際のown-repository Issue/PRの完全URLから毎回、Project owner/番号/関連repo、content種別/番号/ID、既存itemとfield/optionを照合し、返却itemと実結果を読み戻します。未登録は明示add、既存は再利用。foreign/unknown/部分結果/archived書込みは拒否し、拒否後にraw ID・直接GraphQL・別connector/GUIへ逃がしません。実結果不明は状態を先に読み、無条件再試行しません。
+
+```bash
+python3 scripts/workflow/project_item.py add https://github.com/shinma06/cursor-in-android-studio/issues/N
+python3 scripts/workflow/project_item.py set https://github.com/shinma06/cursor-in-android-studio/issues/N --field Status --value 'In Progress'
+```
+
+`N`は確認済み実番号へ置換します。この入口はローカルの誤操作防止で、直接credential保持者を遮断するnative admissionではありません。Project #2の既存設定/View/共有範囲、未知foreign item、過去カードを一括修正/削除しません。採用前の既存routeによる操作を遡ってguard利用済みと表示しません。

@@ -7,7 +7,7 @@
 現在のメイン開発モデルが **GPT-6 Astraの場合にのみ**、本規約によるSubagent禁止を適用する。GPT-6 Astra以外のモデルには、この規約による禁止を適用しない。
 モデル名または実行環境から現在のモデルを判定できる場合は、その情報に基づいて判断する。判定できない場合は不明と扱い、別モデルだと推測して禁止の対象外にはしない。
 
-[役割別モデル・実設定確認と有限の編成](github-workflow.md#正本と役割)は#527のユーザー指定として別途適用する。この許可範囲は本規約の子Agent禁止を解除しない。
+[役割・難度別の実設定確認と必要時の編成](github-workflow.md#正本と役割)は#571で統一した現行運用を適用する。この許可範囲は本規約の子Agent禁止を解除しない。
 
 本規約は本プロジェクトを開発するCodexの実行方法を定める。製品としてのCursor CLIのSubagent対応・UI実装範囲を変更するものではない。
 
@@ -58,3 +58,5 @@ GPT-6 Astra自身による通常の非Agent Tool利用は許可する。ファ�
 
 [GitHub workflow](github-workflow.md)のIssue・claim・専用worktree・PR・独立レビュー・target別gateと、[PR自動進行](pr-automation.md)のwriter停止・引継ぎは維持する。一般的な「並列agent」「worker」等の記述を、Astra使用時の子Agent生成許可と解釈しない。独立レビューは、独立したtop-level Sessionで実施する。
 実行環境や上位指示による別の権限制約も守る。本規約の許可は、それらを解除するものではない。
+
+CLI workerの起動は、名前にかかわらず実際の子process委譲として判断する。独立top-level sessionの存在をCLI引数から推測しない。別chatの作成/送信は実toolの明示依頼条件に従い、既存の本人委任とscopeを引き継ぐ。許可がなければ固定review packetを完成させ、取得可能な最終成果として返す。

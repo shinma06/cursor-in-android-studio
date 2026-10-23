@@ -1,5 +1,7 @@
 # Change Impactと検証の選択
 
+配布の定義は[Plugin ZIPの配布](plugin-zip-delivery.md)へ統一します。#572の新delivery/candidate workflowとCLIは明示的に無効で、旧branch配布の接続は切替前のまま保全します。以下のbranch別比較・毎時/force_buildは現在残る旧接続の説明です。新経路は同じ `plugin_zip` 判定と既存CI Artifactを使い、docs/test-only通知では配布をno-opにします。試験義務・未知入力の安全側判定は変更しません。
+
 2026-09-11 / #198。変更がruntime・build・tests・packaging・生成物・依存解決・配布・開発環境の意味を変えるかで、必要な検証を選ぶ。「コード以外」はskipの根拠にしない。分類と実行選択の正本は [change_impact.py](../../scripts/workflow/change_impact.py) だけで、workflow/hookごとにpath条件をコピーしない。
 
 ## 分類と実行
@@ -14,7 +16,7 @@
 | IMPACT_METADATA_ONLY | Issue/PR template、CODEOWNERS | 差分検査、管理情報と独立レビュー |
 | IMPACT_UNKNOWN | 未知path/type、実行可能なMarkdown、未確認symlink、不完全/取得不能な履歴 | 全検証・ZIP生成へ倒す |
 
-複数Impactを集合で保持し、その和の検証を行う。知識＋Kotlinをknowledge-onlyにしない。`plugin.xml`はRuntimeとBuild、classifierはBuildとTooling。test-onlyはZIPを作らないがテストは省略しない。未知の新directoryを広い`docs/**` / `scripts/**`規則だけでskipへ入れない。AGENTS→CLAUDEは現在の非実行symlinkとして明示扱いする。
+複数Impactを集合で保持し、その和の検証を行う。知識＋Kotlinをknowledge-onlyにしない。`plugin.xml`はRuntimeとBuild、classifierはBuildとTooling。test-onlyはZIPを作らないがテストは省略しない。未知の新directoryを広い`docs/**` / `scripts/**`規則だけでskipへ入れない。AGENTS正本/CLAUDE参照入口は非実行の知識として扱い、旧AGENTS→CLAUDE symlinkは読取互換だけを維持する。
 
 pathは現在のbuild/呼出しを照合したallowlistであり、意味を推論する万能判定ではない。新しいsource/resource、生成入力、同梱資料、toolingを追加したら消費側と分類を同時に見直す。例えばdocsのMarkdownを配布物へ同梱する変更ではbuild変更を検証し、以後そのMarkdownをKnowledge扱いしないよう分類を更新する。未知のtooling自身に固有の確認が要る場合はCaseのCLI checksへ追加する。
 

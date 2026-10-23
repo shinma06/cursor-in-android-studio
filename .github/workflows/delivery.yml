@@ -1,0 +1,56 @@
+name: Plugin delivery definitions (inactive)
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main, develop]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      promotion_pr:
+        description: Merged main promotion PR to publish or recover
+        required: true
+        type: number
+permissions:
+  contents: read
+concurrency:
+  group: plugin-release-delivery
+  queue: max
+  cancel-in-progress: false
+jobs:
+  publish:
+    # Activation, permission provisioning and legacy disconnection require a separate scope.
+    if: ${{ false && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+      statuses: read
+      pull-requests: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Deliver identified CI bytes using reviewed main tooling
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN: ${{ github.event.workflow_run.id }}
+          SOURCE: ${{ github.event.workflow_run.head_sha }}
+          PROMOTION_PR: ${{ inputs.promotion_pr }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            python3 scripts/workflow/release_delivery.py stable --promotion-pr "$PROMOTION_PR"
+          elif [ "$BRANCH" = develop ]; then
+            python3 scripts/workflow/release_delivery.py early --run "$RUN" --source "$SOURCE"
+          elif [ "$BRANCH" = main ]; then
+            python3 scripts/workflow/release_delivery.py promoted --run "$RUN" --source "$SOURCE"
+          else
+            echo 'Unexpected delivery branch' >&2
+            exit 1
+          fi

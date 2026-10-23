@@ -16,10 +16,12 @@ If GUI tools are unavailable, hand off GUI work; if no capable operator is avail
 Check claims and existing changes; fix the target Cases, related MV IDs and expected outcomes first.
 Limit product test inputs to the new fixtures. The writer makes plugin changes in the claimed development worktree, regardless of their client.
 Budget: 45 minutes, 3 fixes and 8 sends to the product under test. Do not switch billing automatically.
-Record actual screens and file results. After a fix, repeat the operation on an identified new build.
+Record actual observations and file results. After a fix, assess affected guarantees on the frozen combined candidate; reuse only qualified independently certified unaffected facts, with fresh current-load and affected facts. Preserve original failures.
 Retrieval failures are blocked; never mark unobserved behavior pass. Follow target-specific gates, update Issue/QA and leave the next action.
 When creating/updating/reviewing/auditing development context, apply docs/architecture/knowledge.md's context policy.
 Report progress, evidence and handoffs in Japanese.
 ```
 
 再開時は `Resume from the latest handoff for Issue #<number>. Recheck ownership, HEAD and current GUI state.` を加えます。
+
+For evidence and method choices, apply the supplied relevant [responsibility contract](../../verification/responsibility.md). Identify the guarantee, existing qualified evidence, missing fact and minimum sufficient method; preserve original failures and actual execution obligations.

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 573,
+  "gui_required": false,
+  "reason": "採用済みmainの共通運用・コメント/Doc契約・非有効化の配布定義と必要なdevelop消費側だけを同期する。製品source/runtime、build/toolchain/依存、既存Case/plan/結果・原失敗を変更せず、GUI/端末/導入、全既存実装への適用や既存業務/成果物の移行を実行しないためGUI不要。develop固有のJava・QA文書連携・製品/保存/JCEF/SDK事実を保つ。静的/CLI確認をGUI・実model遵守・効果測定と扱わない。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests（clean committed HEAD。実選択を記録し、混在/build/未知入力に必要なGradle等を省略しない）",
+    "通常workflow/loop suite。採用済み定義の正常/故障系、未知/混在/履歴不足、入力/source/artifact同一性、独立origin/全feedback・修正/再利用境界、旧候補読取/拒否、URL限定Project、developのQA文書生成/readback/人間追記の保全とno-Cases非作成を確認。全fixtureは合成値",
+    "GUI不要schema/Cases0、両client Skills同文、AGENTS正本/CLAUDE・Cursor/作業review/生成promptの実経路と相対リンク/旧anchor、git diff --check、Python/Actions構文を確認",
+    "固定main471とdevelop baseのpath/blob対応、必要な消費側とbranch固有の保持を照合。runtime/product/build/toolchain/依存と旧Case/plan/結果が不変、NEW workflow全job literal falseとCLI無効化を確認",
+    "個人CI原本全1623行と指定SHA256を確認。CIの保証・選択・失敗伝播・復旧/再利用を既存の検査で確認し、新しい広域benchmark・結果cache・常駐基盤や未測定の性能向上は追加/主張しない",
+    "公開前の固定HEAD/tree・実refsとown/共有develop OLD Release/tag/全asset/source/active publisherを読取り、実published baselineから旧planner/shared classifierで効果を投影。未知の新ZIP identityを予告せず、保全を権限と扱わず、PMの具体内容/旧自動作用の確認前にpush/PRせず停止"
+  ],
+  "cases": []
+}

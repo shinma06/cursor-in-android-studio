@@ -1,0 +1,11 @@
+# Event-driven phase review
+
+Apply only when OMIL/PM work is actually assigned. PM continues ordinary delivery; OMIL advice does not hold authorized work. Review purpose, guarantees, methods, assumptions, roles and burden when material evidence changes, waiting/rework repeats without new information, an intermediate outcome is reached, or the assigned phase ends/freezes. Preserve the real human start/pause and quality boundaries.
+
+Reuse existing Issue/PR/plan, original observations and reports. Select a finite relevant sample including ordinary success, exceptions/incomplete work and assisted changes; expand only when a concrete unresolved fact can change the decision. Do not copy ARB phase numbers, sample/time limits, readiness results or measurements into this project's acceptance. Actual bounds and reason belong in the assignment. Code review and operational-substance assessment have distinct purposes.
+
+Record only missing material facts: fixed period/revision/purpose, guarantee and source, who noticed the issue and human assistance, alternative/reason/authority, actual result/side effects, unknowns and residual owner. Do not require private reasoning transcripts, new reports for every operation or a parallel ledger. Include cancelled/deferred/failed work; usage, elapsed time, human burden and product quality are different measurements. Missing values remain unmeasured.
+
+Verify an actual authorized route and receiver. Use the same event identity/reference for equivalent redelivery; inspect send outcomes before resending. Reuse completed results rather than ACK/review loops. Absent/stopped/archived recipients do not authorize restart, new roles, human forwarding as the normal route or polling/jobs. Keep unresolved custody in the existing record and end the event after returning its result.
+
+This procedure is an adaptation of the [fixed adopted source](https://github.com/shinma06/android-replay-buffer/blob/8e6a1d626e103d5e0c67850bc53445d18ab5791e/docs/omil-phase-review.md). Its source preparation and A/B/C results are historical evidence for that environment only. This project's communication startup, resumed operation, efficiency and future phase outcomes remain unmeasured until actually observed; this policy change starts no phase trial.

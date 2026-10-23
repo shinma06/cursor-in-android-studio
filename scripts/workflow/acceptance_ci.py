@@ -52,7 +52,7 @@ def check_pr(pr, api):
     if skipped:
         return skipped
     latest_base = api('git/ref/heads/' + current['base']['ref'])['object']['sha']
-    if (latest['head']['sha'] != current['head']['sha'] or latest['base']['ref'] != current['base']['ref'] or latest_base != trusted_head or latest.get('body') != current.get('body')):
+    if (latest['head']['sha'] != current['head']['sha'] or latest['base']['ref'] != current['base']['ref'] or latest_base != trusted_head or latest.get('body') != current.get('body') or latest.get('title') != current.get('title')):
         raise ValueError('PR/base changed during acceptance validation; rerun')
     return result
 
