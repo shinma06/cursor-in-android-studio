@@ -205,6 +205,7 @@ def verify(args, policy):
 
 def main():
     parser = argparse.ArgumentParser(__doc__)
+    parser.add_argument('--policy', type=Path, default=POLICY)
     sub = parser.add_subparsers(dest='command', required=True)
     seal_parser = sub.add_parser('seal')
     seal_parser.add_argument('--source', required=True)
@@ -218,7 +219,7 @@ def main():
     check.add_argument('--sdk', type=Path)
     check.add_argument('--sdk-cache', type=Path)
     args = parser.parse_args()
-    policy = json.loads(POLICY.read_text())
+    policy = json.loads(args.policy.read_text())
     if args.command == 'seal':
         archives = list(args.directory.glob('*.zip'))
         require(len(archives) == 1, 'Expected exactly one standard ZIP')

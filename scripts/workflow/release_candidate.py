@@ -137,7 +137,7 @@ def build(source, version, directory, scope_issue=None):
     pc.require(not git_read('status', '--porcelain') and git_read('rev-parse', 'HEAD') == source, 'Source changed during build')
     archives = list((ROOT / 'build/distributions').glob('*.zip'))
     pc.require(len(archives) == 1, 'One standard ZIP required')
-    policy = read(pc.POLICY)
+    policy = read(ROOT / 'scripts/workflow/plugin_compatibility.json')
     manifest = pc.seal(archives[0], source, policy)
     pc.require(manifest['identity']['plugin.version'] == version, 'Build version mismatch')
     with zipfile.ZipFile(archives[0]) as archive:
@@ -402,12 +402,12 @@ def publish(directory, expected_hash, number, update_notes=False, retained_bundl
     notes = release_notes(manifest['identity']['plugin.version'])
     with tempfile.TemporaryDirectory() as temporary:
         saved = Path(temporary) / 'saved'
-        if update_notes:
-            # Historical formal releases keep their original archived RC evidence.
-            actual = fetch(rc_tag(manifest), expected_hash, saved)
-        elif retained_bundle:
+        if retained_bundle:
             shutil.copytree(directory, saved)
             actual = validate_bundle(saved, expected_hash)
+        elif update_notes and release_for(rc_tag(manifest)):
+            # Historical formal releases can still use their archived RC evidence.
+            actual = fetch(rc_tag(manifest), expected_hash, saved)
         else:
             actual = delivery.candidate_artifact(expected_hash, saved)
         pc.require(actual == manifest, 'Saved RC differs')

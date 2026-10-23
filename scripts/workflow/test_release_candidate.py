@@ -2,6 +2,7 @@
 import copy
 import io
 import json
+import re
 import shutil
 from pathlib import Path
 import tempfile
@@ -172,7 +173,8 @@ class ReleaseTest(unittest.TestCase):
                 patch.object(rc, 'release_notes', side_effect=ValueError('missing notes')), patch.object(rc, 'preserve') as preserve:
             with self.assertRaisesRegex(ValueError, 'missing notes'): rc.publish(Path('.'), 'c' * 64, 411)
             preserve.assert_not_called()
-            with patch.object(rc, 'release_notes', return_value=notes), patch.object(rc, 'fetch', return_value=manifest), \
+            with patch.object(rc, 'release_notes', return_value=notes), patch.object(rc, 'release_for', return_value={'id': 1}), \
+                    patch.object(rc, 'fetch', return_value=manifest), \
                     patch.object(rc.github, 'api', return_value=[]):
                 with self.assertRaisesRegex(ValueError, 'final tag'):
                     rc.publish(Path('.'), 'c' * 64, 411, update_notes=True)
@@ -187,6 +189,53 @@ class ReleaseTest(unittest.TestCase):
                 self.assertEqual(visible, notes)
                 self.assertEqual(actual, {'candidate': manifest, 'main_merge': 'a' * 40, 'promotion_pr': 411})
 
+    def test_fixed_source_policy_reaches_build_validation_and_trusted_verifier(self):
+        from test_release_delivery import package
+        policy = copy.deepcopy(rc.read(pc.POLICY))
+        policy['targets']['rabbit1']['build'] = 'AI-262.99999.1.2621.99999999'
+        self.assertNotEqual(policy, rc.read(pc.POLICY))
+        source = 'a' * 40
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / 'source'; root.mkdir()
+            policy_file = root / 'scripts/workflow/plugin_compatibility.json'
+            policy_file.parent.mkdir(parents=True); rc.write(policy_file, policy)
+            (root / 'build.gradle.kts').write_text('kotlin { jvmToolchain(25) }\n')
+            with patch.object(pc, 'POLICY', policy_file):
+                product = package(version='1.2.3')
+            directory = Path(temp) / 'candidate'
+            def git(*args):
+                if args == ('rev-parse', 'HEAD'): return source
+                if args == ('show', source + ':scripts/workflow/plugin_compatibility.json'): return json.dumps(policy)
+                if args[0] in ('status', 'fetch', 'merge-base'): return ''
+                self.fail(args)
+            def gradle(args, **kwargs):
+                self.assertEqual(args, rc.build_command('1.2.3'))
+                self.assertEqual(kwargs['cwd'], root)
+                archive = root / 'build/distributions/product.zip'
+                archive.parent.mkdir(parents=True); archive.write_bytes(product)
+            with patch.object(rc, 'ROOT', root), patch.object(rc, 'git_read', side_effect=git), \
+                    patch.object(rc, 'source_inputs', return_value={}), patch.object(rc.subprocess, 'run', side_effect=gradle) as build, \
+                    patch.object(rc.subprocess, 'check_output', return_value='openjdk version "25.0.3"'), \
+                    patch.dict(rc.os.environ, {'JAVA_HOME': str(Path(temp) / 'synthetic-jdk')}):
+                rc.build(source, '1.2.3', directory)
+                build.assert_called_once()
+                manifest = rc.read(directory / 'manifest.json')
+                self.assertEqual(rc.candidate(directory, manifest['sha256']), (manifest, policy))
+            workflow = (rc.ROOT / '.github/workflows/release-candidate.yml').read_text()
+            selected = re.search(r'--policy (\S+) verify', workflow)[1]
+            self.assertEqual(root / selected, policy_file)
+            argv = ['plugin_compatibility.py', '--policy', str(root / selected), 'verify', '--target', 'rabbit1',
+                    '--archive', str(directory / rc.version_name('1.2.3')), '--manifest', str(directory / 'manifest.json'),
+                    '--sha256', manifest['sha256'], '--sdk-cache', str(Path(temp) / 'sdk'), '--output', str(Path(temp) / 'report')]
+            with patch.object(pc, 'download_sdk', side_effect=RuntimeError('stop before SDK download')) as sdk:
+                with patch('sys.argv', argv), self.assertRaisesRegex(RuntimeError, 'stop before SDK download'):
+                    pc.main()  # Real CLI selection, ZIP hash/identity and sealing; no SDK or Verifier execution.
+                self.assertEqual(sdk.call_args.args[0], policy['targets']['rabbit1'])
+                sdk.reset_mock()
+                with patch('sys.argv', [argv[0], *argv[3:]]), self.assertRaisesRegex(ValueError, 'supported compile SDK'):
+                    pc.main()
+                sdk.assert_not_called()
+
     def test_bundle_binds_source_zip_both_reports_and_excludes_private_log(self):
         self.check_bundle(self.quail_policy())
 
@@ -199,7 +248,7 @@ class ReleaseTest(unittest.TestCase):
             rc.main()
             bundle.assert_called_once_with(Path('candidate'), 'a' * 64, {'rabbit1': Path('report')})
 
-    def test_rabbit_bundle_requires_only_the_rabbit_report(self):
+    def test_rabbit_bundle_and_notes_update_without_legacy_rc(self):
         self.check_bundle(json.loads(pc.POLICY.read_text()))
 
     def test_archived_transitional_rabbit_policy_remains_readable(self):
@@ -265,23 +314,46 @@ class ReleaseTest(unittest.TestCase):
                 rc.bundle(directory,manifest['sha256'],evidence)
                 self.assertEqual(pc.digest(product),original)
                 self.assertEqual(rc.validate_bundle(directory,manifest['sha256']),manifest)
-                if legacy:
-                    before = {p.name: pc.digest(p) for p in directory.iterdir()}
-                    notes = self.notes()[1].replace('0.1.0', '1.2.3')
-                    tag = {'ref': 'refs/tags/v1.2.3', 'object': {'type': 'commit', 'sha': 'b' * 40}}
-                    def fetch_saved(name, sha, destination):
-                        shutil.copytree(directory, destination)
-                        return rc.validate_bundle(destination, sha)
-                    with patch.dict(rc.os.environ, {'GITHUB_REPOSITORY': 'shinma06/cursor-in-android-studio'}), \
-                            patch.object(rc, 'publication', return_value=(manifest, 'b' * 40)), \
-                            patch.object(rc, 'release_notes', return_value=notes), \
-                            patch.object(rc, 'fetch', side_effect=fetch_saved), \
-                            patch.object(rc.github, 'api', side_effect=lambda p: [tag] if p.startswith('git/matching-refs/') else tag), \
-                            patch.object(rc, 'preserve') as preserve:
-                        rc.publish(directory, manifest['sha256'], 411, update_notes=True)
-                        self.assertTrue(preserve.call_args.args[-1])
-                        self.assertEqual(rc.formal_record(preserve.call_args.args[5])[0]['candidate'], manifest)
-                    self.assertEqual({p.name: pc.digest(p) for p in directory.iterdir()}, before)
+                before = {p.name: pc.digest(p) for p in directory.iterdir()}
+                notes = self.notes()[1].replace('0.1.0', '1.2.3')
+                tag = {'ref': 'refs/tags/v1.2.3', 'object': {'type': 'commit', 'sha': 'b' * 40}}
+                def saved_bundle(sha, destination):
+                    shutil.copytree(directory, destination)
+                    return rc.validate_bundle(destination, sha)
+                with patch.dict(rc.os.environ, {'GITHUB_REPOSITORY': 'shinma06/cursor-in-android-studio'}), \
+                        patch.object(rc, 'publication', return_value=(manifest, 'b' * 40)), \
+                        patch.object(rc, 'release_notes', return_value=notes), \
+                        patch.object(rc, 'release_for', return_value={'id': 1} if legacy else None) as old_rc, \
+                        patch.object(rc, 'fetch', side_effect=lambda name, sha, dest: saved_bundle(sha, dest)) as fetch, \
+                        patch.object(release_delivery, 'candidate_artifact', side_effect=saved_bundle) as artifact, \
+                        patch.object(rc.github, 'api', side_effect=lambda p: [tag] if p.startswith('git/matching-refs/') else tag), \
+                        patch.object(rc, 'preserve') as preserve:
+                    for retained in (False, True):
+                        with self.subTest(legacy=legacy, retained=retained):
+                            rc.publish(directory, manifest['sha256'], 411, update_notes=True, retained_bundle=retained)
+                            self.assertTrue(preserve.call_args.args[-1])
+                            self.assertEqual(rc.formal_record(preserve.call_args.args[5])[0]['candidate'], manifest)
+                            if retained:
+                                old_rc.assert_not_called(); fetch.assert_not_called(); artifact.assert_not_called()
+                            elif legacy:
+                                fetch.assert_called_once_with(rc.rc_tag(manifest), manifest['sha256'], preserve.call_args.args[2])
+                                artifact.assert_not_called()
+                            else:
+                                fetch.assert_not_called()
+                                artifact.assert_called_once_with(manifest['sha256'], preserve.call_args.args[2])
+                            preserve.reset_mock()
+                            with self.assertRaisesRegex(ValueError, 'ZIP hash/size mismatch'):
+                                rc.publish(directory, '0' * 64, 411, update_notes=True, retained_bundle=retained)
+                            report = directory / f'compatibility-{target_keys[0]}.zip'
+                            original_report = report.read_bytes(); report.write_bytes(b'wrong bundle')
+                            try:
+                                with self.assertRaisesRegex(ValueError, 'Candidate asset changed'):
+                                    rc.publish(directory, manifest['sha256'], 411, update_notes=True, retained_bundle=retained)
+                            finally:
+                                report.write_bytes(original_report)
+                            preserve.assert_not_called()
+                            for mock in (old_rc, fetch, artifact): mock.reset_mock()
+                self.assertEqual({p.name: pc.digest(p) for p in directory.iterdir()}, before)
                 with zipfile.ZipFile(directory/f'compatibility-{target_keys[0]}.zip') as report:
                     self.assertNotIn('/Users/',report.read('verifier-summary.txt').decode())
                     self.assertNotIn('fake-test-value',report.read('result.json').decode())
