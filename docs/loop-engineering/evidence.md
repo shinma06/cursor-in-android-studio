@@ -6,6 +6,8 @@ Python 3.9以降・Git・既存のGradle環境で動く。APIアクセス、送�
 
 ## 新しいrunとfixture
 
+[製品責任](../verification/responsibility.md)と[正式な証拠再利用](../verification/README.md#証拠の再利用と方法改訂)から不足事実と実施方法を決め、新しい観察が必要な範囲にrunを用意する。`loop.py`のrun/checkはGUI実行記録の形式を検査する工具であり、証明書の採用やCase契約の改訂は行わない。再利用を新runの実行済みpassにせず、正本JSONの認定経路で記録する。
+
 リポジトリルートで実行する。run IDを使い回すとエラーになり、既存データは変更しない。
 
 ```bash
@@ -28,16 +30,16 @@ python3 scripts/loop/loop.py prepare 20260906-issue20-r1 --issue 20 --case plugi
 
 ## 対象ビルドを固定する
 
-[現行build手順](../../CLAUDE.md#commands)に従います。製品GUI QAでは先にソースをcommitし、作業ツリーをcleanにする。新規変更が無関係でcommitできない場合は別のclean checkoutでビルドする。未コミット変更がある試運転は可能だが製品QA完了には使わない。
+新buildが必要な場合は[現行build手順](../../CLAUDE.md#commands)に従う。先にソースをcommitし、作業ツリーをcleanにする。新規変更が無関係でcommitできない場合は別のclean checkoutでビルドする。未コミット変更がある試運転は可能だが製品QA完了には使わない。既存の識別済み成果物・観察の適用可否は上記の正本で判断し、変更された保証や未知の影響を未確認のまま再利用しない。
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 25)"
 python3 scripts/loop/loop.py build .loop-runs/20260906-issue20-r1
 ```
 
 `build`はcleanなHEADで`test buildPlugin`を実行し、ログ・SHA・ZIP SHA-256を記録する。ビルド中の変更も拒否する。失敗したrunのログは上書きしない。ZIPが複数残っていたら適切な別checkoutなどで解消して新runで実行する。
 
-そのZIPをGUIから対象IDEへインストールして再起動し、インストール操作とロード済み版を記録する。`runIde`を使う場合も起動ログ・sandboxのplugin実体・対象ソースを照合する。**ZIPを作っただけでは起動中のプラグインとの同一性は証明できない。** 同じ`0.1.0-SNAPSHOT`表示だけで同一ビルドとしない。照合できなければ`blocked`。診断表示機能自体の改善は#28で扱う。
+導入・再起動が必要なら[GUI調整](../development/gui-coordination.md#検証目的と継続)に従い、対象IDE/profileと固定ZIP・全JAR・実ロードを照合する。有効なCaseが指定する実施経路を保持し、Plugins画面の探索を一律の試験にしない。`runIde`を使う場合も起動ログ・sandboxのplugin実体・対象ソースを照合する。**ZIPを作っただけでは起動中のプラグインとの同一性は証明できない。** 同じ`0.1.0-SNAPSHOT`表示だけで同一ビルドとしない。照合できなければ`blocked`。診断表示機能自体の改善は#28で扱う。
 
 ## run.jsonの記入例
 

@@ -1,6 +1,6 @@
 # 実画面の証拠を使うGUIループ開発
 
-実画面で再現する → 小さく直す → 別sessionでレビューする → 同じ操作で改善を確認する、を繰り返します。進捗は対象Issueと[Project](https://github.com/users/shinma06/projects/2)、受入条件と候補結果は[Case JSON](../verification/README.md)を正本にします。旧MV/runは履歴であり、新候補へpassを転記しません。この基盤の導入は[#29](https://github.com/shinma06/cursor-in-android-studio/issues/29)、二段階統合は#83によります。
+対象の保証と固定した既存証拠から不足事実を選び、必要な実画面確認 → 小さな修正 → 別sessionのレビュー → 影響する保証の再確認を行います。必要性と正式な証拠再利用は[製品責任](../verification/responsibility.md)と[現行検証](../verification/README.md#証拠の再利用と方法改訂)に従います。進捗は対象Issueと[Project](https://github.com/users/shinma06/projects/2)、受入条件と候補結果は[Case JSON](../verification/README.md)が正本です。旧MV/runの原観察・失敗は保持し、旧passを新候補の実行済みpassへ転記しません。この基盤の導入は[#29](https://github.com/shinma06/cursor-in-android-studio/issues/29)、二段階統合は#83によります。
 
 ## 担当と適用条件
 
@@ -12,10 +12,10 @@ Cursor IDEはUXの比較対象、Android Studio内のプラグインは製品検
 
 ```mermaid
 flowchart LR
-  A[Issue・受入条件・予算を確定] --> B[GUI担当が再現・記録]
+  A[Issue・保証・既存証拠・不足事実・予算を確定] --> B[必要なGUIを再現・記録]
   B --> C[実装担当が修正]
   C --> D[必要テストと別sessionの独立レビュー]
-  D --> E[GUI担当が識別済み新buildで再確認]
+  D --> E[影響する保証を再確認・適格な証拠を評価]
   E -->|不合格| C
   E -->|証拠付き合格| F[進行役がtarget別gateで統合・QA更新]
   B -->|環境障害| G[blockedと次の操作を保存]
@@ -28,8 +28,8 @@ flowchart LR
 3. 1つのUX問題と対象Caseに絞り、[シナリオ](scenarios.md)のMV IDを必要なCaseへ対応付けます。初期状態・期待結果・許可された編集先を固定します。標準予算は**45分、修正3回、試験対象への送信8回**です。保存キー`max_cursor_sends`は維持します。これは運用上の上限で、スクリプトは自動強制しません。ユーザー指定を優先します。
 4. GUI依頼票を登録し、指定担当がleaseを取得してから実行します。操作前に対象アプリ・ウィンドウ・fixtureを確認し、操作後に実画面と利用可能なAX情報を読みます。古い要素番号や推測座標を使い回しません。クリック無反応時は最新AX→スクリーンショット→確認した座標の順で一度試し、取得失敗が続けば停止します。Computer Use必須Caseは手操作で代替しません。
 5. 実装担当が最小修正と必要テストを行い、[独立レビュー依頼](prompts/claude-review.md)を別sessionへ渡します。指摘の採否と理由を記録します。レビュー役は変更・GUI操作をせず、固定HEAD/baseを確認します。
-6. 製品GUIを再確認する場合は[現行build手順](../../CLAUDE.md#commands)に従って`test buildPlugin`を実行し、leaseを持つ担当だけがinstall・再起動します。[実行記録](evidence.md)にSHA・ZIP hash・ロード実体を照合した証拠を残し、同じ操作と影響する隣接Caseを再実行します。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
-7. 実際に観察した範囲だけCase結果へ記録し、[finish-work](../../.agents/skills/finish-work/SKILL.md)へ進みます。developは必要テスト・独立レビュー・全Case追跡があればGUI pending/blocked/failを保ったまま統合できます。main promotionは固定候補全体の全必要Caseが同じbuildでpassした後です。未実装受入・残QA・main反映・次の担当を残します。
+6. 変更・未知の影響と不足事実に必要なCase・隣接保証を再確認します。新buildが必要な場合は[現行build手順](../../CLAUDE.md#commands)に従い、install・再起動はleaseを持つ担当が行います。[実行記録](evidence.md)にsource・ZIP・実ロードの同一性を残します。原FAIL、全有効保証とComputer Use等の実施義務を保持し、別ZIPや文書変更だけを理由に全native操作を反復しません。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
+7. 実観察と正式に認定された再利用を区別してCase結果へ記録し、[finish-work](../../.agents/skills/finish-work/SKILL.md)へ進みます。developは必要テスト・独立レビュー・全Case追跡があればGUI pending/blocked/failを保ったまま統合できます。元受入NGの修正は[追加gate](../verification/README.md#元の受入ngを直すdevelop-pr)を満たします。main promotionは固定候補の全commit・全必要Caseを現行観察または正式に認定された証拠で充足してからです。Caseなしなら空QAを作らず、既存Issue/PRにPMのmain反映保管と次操作を残します。
 
 ## 停止と再開
 
