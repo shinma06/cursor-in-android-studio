@@ -99,7 +99,7 @@ def git_read(*args, cwd=None):
 
 
 def tooling_path(path):
-    return path.startswith(TOOLING) or path in ('CLAUDE.md', 'AGENTS.md', 'README.md')
+    return path.startswith(TOOLING) or path in ('CLAUDE.md', 'AGENTS.md', 'README.md', 'CONTRIBUTING.md')
 
 
 def promotion_history(candidate, head, base, allowed, git):

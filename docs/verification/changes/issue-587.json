@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 587,
+  "gui_required": false,
+  "reason": "共有Git差分classifierのintegration基点選択とmain tooling path gateの修正、および古いコメントの訂正のみ。製品source/runtime・保存・UI・SDK・依存は不変のためGUI不要。実Git履歴とCLI検査で保証を確認する。旧自動配布は専用owned branchの初回previewだけを今回許可された範囲で照合し、main merge/共有main asset更新・正式stable/NEW有効化は行わない。",
+  "cli_checks": [
+    "通常pre-pushが選択するworkflow/loop/JVM tests。clean committed HEADで実行し、同一suiteを直前に重複実行しない。元FAILを保持する。",
+    "実Git regression: main/develop直近祖先、明示published source保持、製品/build混在、比較不能/複数merge-base/無効ref/履歴不足のfull validation。",
+    "main tooling gate: root CONTRIBUTING.md許可、src/build/類似path/製品混在拒否。git diff --check、Actionsの非comment行不変、受入JSON schemaを確認。",
+    "標準buildPluginのZIPを検査し、source/tree・生成入力・非公開情報なし・sha256/sizeを固定。通常push後にowned OLD run/Release/asset/source/hashとhosted checksをreadbackする。",
+    "独立top-level sessionが固定HEAD/baseとIssue受入を評価する。writer自身でAgent reviewを合格にせず、PMのmain統合判断へ渡す。"
+  ],
+  "cases": []
+}
