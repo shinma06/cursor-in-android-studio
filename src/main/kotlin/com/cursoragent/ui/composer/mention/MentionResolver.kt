@@ -8,7 +8,7 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import java.io.File
 
 /**
- * Expands `@token`s left in a sent prompt (inserted by [MentionPopupController]) into
+ * Expands explicit [Mention] attachments and legacy typed `@token`s via [contextMentions] into
  * the context blocks the CLI actually sees — file/folder contents, `git diff` output,
  * or a plain hint for the MCP-backed Docs/Web entries (see requirements doc F-10/F-11/
  * F-12/F-14/F-16; F-13/Terminal via [TerminalOutputReader]). Split into
@@ -17,7 +17,7 @@ import java.io.File
  */
 class MentionResolver(private val project: Project) {
     /**
-     * Split from [buildShellBackedContext] so callers can run the fast, EDT-bound
+     * Split from [buildShellBackedContext] so callers can run the EDT-bound
      * half (file/folder VFS reads, and terminal output — the Terminal API also
      * requires the EDT) on the EDT and push the slow half (spawns `git`) to a
      * background thread — `sendPrompt` blocking the EDT on a git subprocess for
