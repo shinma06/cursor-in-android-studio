@@ -358,7 +358,9 @@ def certificate_changes(base, head, files, own_path, mode, data, git):
             raise ValueError('Certificates may be added only by their owning main tooling PR')
 
 
-def validate_candidate_result(result, key, case, candidate, artifact, base, git):
+def validate_candidate_result(result, key, case, candidate, artifact, base, git, applicability=None):
+    from case_applicability import validate_applicability
+    validate_applicability(result, applicability)
     if result.get('status') != 'reused':
         validate_observation(result, candidate, artifact)
         return result
@@ -663,6 +665,8 @@ def verify_pr(pr, api, git=git_read):
     scope = promotion.get('scope', 'develop')
     if scope not in ('develop', 'main'):
         raise ValueError('Unknown promotion scope')
+    from case_applicability import apply_revision, case_revisions
+    applicability = case_revisions(base, candidate, git, issue if scope == 'main' else None)
     contracts = {}
     revisions = {} if scope == 'main' else environment_cases(base, candidate, git)
     if scope == 'main':
@@ -674,6 +678,8 @@ def verify_pr(pr, api, git=git_read):
             raise ValueError('Scoped acceptance must equal the trusted plan; observations belong in results')
         scoped_history(candidate, head, {PROMOTION: '100644', path: '100644'}, git)
         contracts.update({f'{issue}:{case["id"]}': case for case in change['cases']})
+        for key, case in contracts.items():
+            apply_revision(case, applicability.get(key))
         required = {f'{issue}:{case["id"]}': (case.get('required_execution'), case.get('artifact', 'plugin'))
                     for case in change['cases']}
     else:
@@ -721,6 +727,11 @@ def verify_pr(pr, api, git=git_read):
                                  revision['source_merge'] != source['merge_commit_sha'] or
                                  revision['original_case_sha256'] != json_hash(case)):
                     raise ValueError('Environment revision does not match merged Case provenance: ' + key)
+                condition = applicability.get(key)
+                if condition and (condition['source_pr'] != number or
+                                  condition['source_merge'] != source['merge_commit_sha']):
+                    raise ValueError('Applicability does not match merged Case provenance: ' + key)
+                apply_revision(case, condition)
                 requirement = (case.get('required_execution'), case.get('artifact', 'plugin'))
                 if key in required and required[key] != requirement:
                     raise ValueError('Case execution requirement changed across candidate commits')
@@ -741,7 +752,7 @@ def verify_pr(pr, api, git=git_read):
         artifact = artifacts.get(artifact_name)
         if not HASH.fullmatch(artifact or ''):
             raise ValueError('Fixed candidate artifact hash is required: ' + artifact_name)
-        observed = validate_candidate_result(result, key, contracts[key], candidate, artifact, base, git)
+        observed = validate_candidate_result(result, key, contracts[key], candidate, artifact, base, git, applicability.get(key))
         validate_environment(observed, revisions.get(key))
         if execution and observed.get('execution') != execution:
             raise ValueError('Case requires its specified execution method: ' + key)
@@ -753,6 +764,9 @@ def render_queue(paths, promotion=None, git=git_read):
     promotion = promotion or {}
     candidate = promotion.get('candidate')
     results = promotion.get('results', {})
+    from case_applicability import apply_revision, case_revisions
+    applicability = (case_revisions(promotion.get('base'), candidate, git)
+                     if promotion.get('scope', 'develop') == 'develop' else {})
     revisions = (environment_cases(promotion['base'], candidate, git)
                  if candidate and promotion.get('scope', 'develop') == 'develop' else {})
     rows = []
@@ -761,8 +775,12 @@ def render_queue(paths, promotion=None, git=git_read):
         validate_change(data, data['issue'], data['gui_required'])
         if candidate and promotion.get('scope') == 'main':
             revisions.update(scoped_environment_cases(promotion['base'], candidate, data['issue'], git))
-        rows.extend((data, revisions.get(f'{data["issue"]}:{case["id"]}', {}).get('case', case))
-                    for case in data['cases'])
+            applicability.update(case_revisions(promotion['base'], candidate, git, data['issue']))
+        for case in data['cases']:
+            key = f'{data["issue"]}:{case["id"]}'
+            condition = applicability.get(key)
+            effective = apply_revision(case, condition, revisions.get(key))
+            rows.append((data, effective))
     lines = ['# 今回の動作確認一覧', '',
              '> 自動生成。結果は正本JSONへ入力して再生成してください。過去buildの結果は参考です。', '',
              '固定候補SHA: ' + (candidate or '未固定'),
@@ -780,8 +798,8 @@ def render_queue(paths, promotion=None, git=git_read):
             artifact = artifacts.get(case.get('artifact', 'plugin'))
             if not HASH.fullmatch(artifact or ''):
                 raise ValueError('Candidate artifact not registered')
-            original_case = revisions.get(key, {}).get('original', case)
-            observed = validate_candidate_result(result, key, original_case, candidate, artifact, promotion.get('base'), git)
+            original_case = applicability.get(key, revisions.get(key, {})).get('original', case)
+            observed = validate_candidate_result(result, key, original_case, candidate, artifact, promotion.get('base'), git, applicability.get(key))
             validate_environment(observed, revisions.get(key))
             passed = not case.get('required_execution') or observed.get('execution') == case['required_execution']
         except ValueError:
@@ -800,6 +818,15 @@ def render_queue(paths, promotion=None, git=git_read):
                       'Rabbit移行後の新しい受入条件です。旧Quailの合格・互換性を示すものではありません。',
                       '旧固定Caseの前提（履歴）: ' + revision['original']['preconditions'],
                       '旧固定Caseの期待結果（履歴）: ' + revision['original']['expected'], '']
+        condition = applicability.get(f'{data["issue"]}:{case["id"]}')
+        if condition:
+            lines += ['採用後の適用revision: ' + condition['revision'],
+                      f'採用根拠: PR #{condition["adopted_pr"]} / {condition["adopted_merge"]}',
+                      '適用条件: ' + condition['reason'],
+                      '変更後の契約には新しい観察が必要です。旧PASS/reusedは充足に使いません。',
+                      '旧固定Caseの手順（履歴）: ' + json.dumps(condition['original']['steps'], ensure_ascii=False),
+                      '旧固定Caseの期待結果（履歴）: ' + condition['original']['expected'],
+                      '今回の手順・期待結果:', '']
         lines += [f'{n}. {step}' for n, step in enumerate(case['steps'], 1)]
         lines += ['', '期待結果: ' + case['expected'], '']
         result = results.get(f'{data["issue"]}:{case["id"]}')

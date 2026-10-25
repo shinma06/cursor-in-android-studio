@@ -81,6 +81,12 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 
 候補付き一覧は固定merge由来の操作・履歴に、新しい前提と環境revisionを表示します。revision未登録・不一致の結果はCase合格になりません。#389の旧Q1/Q4の同一操作をRabbit上で共通実施した証拠は、各Caseの全手順を満たす場合に同じ証拠へリンクできますが、全Caseキーの結果登録は必要です。print/ACP・Markdown・旧fixture/新会話の再起動後の本文/順序/ID/設定、Terminal ON/OFF等を省略しません。旧文面中の過去QA番号・「両IDE」は履歴の文脈であり、今回の担当と対象環境は固定候補のQA引継ぎと本改訂で明示します。
 
+### 採用済み変更に応じたCaseの適用条件（#590）
+
+[有限な適用表と手順](applicability/README.md)は、Shift+Tab・実行中送信キー・履歴本文保存・ヘッダー幅の7 Caseだけを扱います。固定base（trusted main）の原Case/source/hashと後続採用mergeを照合し、その変更を含む候補へ現在の手順・期待を適用します。採用前の候補は元契約を維持します。#562は固定scope/hashと元Cの来歴により履歴・幅の2 Caseだけへ適用し、後続#212を追加しません。原Case・原FAIL・履歴・ID/hash・Case集合・Computer Use・artifact・fix/recheckは保持します。
+
+候補付き一覧は元の手順/期待と現在条件・Case別の適用revisionを分けて表示します。新観察の`applicability_revision`は表示された値へ一致させ、通常の候補/build/実施経路/証拠も満たします。旧PASSや`reused`を変更後の契約へ転用しません。Rabbit環境revisionとは別の条件で、両方が適用されるCaseは両bindingが必要です。機械検査は実観察の内容を証明しないため、QA担当と独立評価者は現在条件の充足を確認します。
+
 ### promotion.jsonの形式
 
 以下は説明用の値です。SHA/hashや観察は実際の値へ置換し、未実施をpassにしないでください。
@@ -143,7 +149,7 @@ mainは固定候補内の**全変更・全必要Case**のpassが必要です。A
 
 `review`は`status: approved / at（現在証拠以後の評価日時） / session（実originのfingerprint） / contributors（全writer/実行/評価/構成担当のfingerprint） / evidence / origin_evidence`で、reviewerは全contributorと別です。この単一report経路では、登録する全証明書に共通するreviewerが厳密に1名であり、証明書全体のどのcontributorにも含まれないことを要求します。新登録のAgent reviewは、その唯一の実reviewerによる証明全体の`certificate_revision`と`certificate_assessment`を要求します。実origin、原本の存在/byte hash/内容、全有効保証と条件、元失敗の帰属を実質的に評価し、統合担当が実sessionの原報告へ結びます。文字列やhashの存在は実証/独立性の認証ではありません。機械検査と実質評価の責任を分け、ARBのprivate adapterがtargetにもあるとは主張しません。
 
-この最小target経路は**同一の元Case契約と元の成功観察**を対象とします。aggregate FAIL中の成功部分、別系統候補や正式なCase/method契約改訂はこの`reused`へ包装せず、原失敗/保証を保持した具体的な独立改訂を先に行います。現行gateはそれらの自動再評価adapterを持ちません。方法だけの変更で無関係な製品build/導入/全GUIを課さず、不足事実と実施経路を先に固定します。この変更自身は既存結果の再判定/再試験を行いません。
+この最小target経路は**同一の元Case契約と元の成功観察**を対象とします。aggregate FAIL中の成功部分、別系統候補や正式なCase/method契約改訂はこの`reused`へ包装せず、原失敗/保証を保持した具体的な独立改訂を先に行います。#590の有限な適用条件は上記の別経路であり、任意の契約改訂を自動再評価するadapterはありません。方法だけの変更で無関係な製品build/導入/全GUIを課さず、不足事実と実施経路を先に固定します。この変更自身は既存結果の再判定/再試験を行いません。
 
 ## 元の受入NGを直すdevelop PR
 
