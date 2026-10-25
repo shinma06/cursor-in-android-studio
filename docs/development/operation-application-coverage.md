@@ -9,7 +9,7 @@
 | 対象群 | このcheckpointの行数・意味 |
 | --- | --- |
 | baseline tracked | 1,065行。main326＋develop739、756path。開始時のbranch/path/revision/blobを保全 |
-| 共有/GitHub/外部/ローカル | 8089行。受領した全ページsnapshotとactual deltaをstable resource_idでupsert。各revisionと読取範囲の時点を保持 |
+| 共有/GitHub/外部/ローカル | 8102行。受領した全ページsnapshotとactual deltaをstable resource_idでupsert。各revisionと読取範囲の時点を保持 |
 | 並行採用で追加されたtracked | 19行（main10＋develop9）。固定レビューsourceと採用blob一致・同branch文脈を確認 |
 | 本人の限定保留 | PR582↔Issue580のnative Development関連1義務。既存資源件数に重複加算しない |
 
@@ -33,9 +33,9 @@
 
 過去を含む元379＋603の380 Issueについて、363 title、204の限定type、581のexact冒頭、Project596 Done、13件のmetadata/照会/残件管理窓口受領を適用・個別readbackし、独立post-readbackも担当範囲PASSです。[実適用receipt](https://github.com/shinma06/cursor-in-android-studio/issues/603#issuecomment-6395597892)に結び、元state/終了理由/時刻・Case/原FAIL/本文・assignee/Milestone・既存native関係と理由付き空欄を保持します。管理窓口の受領は元claim/source/人間QCの移管・解放や、現worker認定ではありません。
 
-Development199組の実UIは未実施でARB予約を優先します。main OPEN残条件11組、既存8組、実owner不明の旧PR14/16/17/18の理由付き非適用4を分けます。PR582↔580だけは[本人の明示保留](https://github.com/shinma06/cursor-in-android-studio/pull/582#issuecomment-6393598798)で、本人の再開指示と認証済み経路・指定担当/leaseが揃うまで試行しません。他の585/594/602等の未関連をこの保留で免除しません。本文Refsをnative関連成功にしません。
+Developmentはbulk時点199組、終端deltaで202組となり、実UIは未実施でARB予約を優先します。main OPEN残条件はbulk11組から終端8組となり、既存8組、実owner不明の旧PR14/16/17/18の理由付き非適用4を分けます。PR582↔580だけは[本人の明示保留](https://github.com/shinma06/cursor-in-android-studio/pull/582#issuecomment-6393598798)で、本人の再開指示と認証済み経路・指定担当/leaseが揃うまで試行しません。他の585/594/602等の未関連をこの保留で免除しません。本文Refsをnative関連成功にしません。
 
-Issue581/584/587/590のcloseと599/600/603等のblocked更新は別actorの準備中で、今回の入力では未適用です。後送のactual state-operation deltaで更新し、title反映や子PR採用をIssue完了へ置き換えません。
+終端のactual24行delta（Issue8・comment8・Project8）をstable IDへ反映しました。581/584/587/590はCLOSED/completed/Done、588/599/600/603はOPEN/blocked/Todo。590 blockedBy600の1edgeだけを両端確認して除去し、他の保護項目は不変です。bulk380件のOPEN153/CLOSED227 snapshotは書換えず、同じcohortへ承認された4件の状態移行を反映した導出値OPEN149/CLOSED231と区別します。導出値を新たな全380live再取得とは扱いません。580/598はOPEN、監査baselineは不更新です。
 
 ## 明示pendingと次の責任
 
