@@ -8,9 +8,10 @@ import org.jdom.Element
 import org.junit.jupiter.api.Test
 
 /**
- * Guards the safety-critical default from requirements doc F-22/F-24: this must
- * never silently default to auto-approving file changes. If this test fails after
- * a change, that change needs a deliberate justification, not just a passing fix.
+ * Guards the default CLI settings from requirements doc F-22/F-24: neither
+ * `--auto-review` nor `--force` is added by default. This does not guarantee
+ * approval before file writes; print may edit immediately with no extra flag.
+ * Changes to these defaults need deliberate justification.
  */
 class AgentSettingsStateTest {
     @Test

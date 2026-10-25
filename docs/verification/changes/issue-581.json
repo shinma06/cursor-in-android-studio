@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 581,
+  "gui_required": false,
+  "reason": "固定developのソース・テストのKDoc/コメントと合成ACP serverのmodule docstringだけを修正する。print/ACPの適用範囲、選択offset/行番号の単位、明示添付と旧token、既定CLI引数の保証範囲、明示captureの保存先、restore時のuntracked削除が作成者を識別しない点を実装と照合する。実行処理・runtime文字列・保存形式・固定fixture値・製品UIは変更しない。main固有の7ファイルは未反映として#580のPMへ限定候補計画用の差分を引き継ぎ、このdevelop PRでmain反映済みとはしない。GUIの新規観察は不要。",
+  "cli_checks": [
+    "python3 scripts/workflow/change_impact.py --base origin/develop --run-tests（IMPACT_RUNTIME/IMPACT_TEST/IMPACT_TOOLINGの既存選択を維持）",
+    "固定baseと変更後のKotlinを字句走査し、コメントを除く全tokenの一致を確認。合成ACP serverはmodule docstringを除くPython ASTの一致を確認し、残りの保護fixture/resourcesの不変も確認",
+    "全文読了したmain 107件・develop 310件のbranch/path/blob別判断を#580の唯一のcoverage台帳へ返却。同blob34件は元行とconsumer文脈を個別に照合し、main未反映をpendingで保持",
+    "EditorContextReader/ClipboardContext/TerminalCopyContextListener、MentionPopupController/contextMentions/PromptContextBuilder、print/ACP listener、既定permission引数のconsumerと関連テストを照合",
+    "KDocのsymbol参照とcode span、実際の保証範囲、固定観察・license・directive・runtime文字列の保護、git diff --check、既存受入JSON検証を確認"
+  ],
+  "cases": []
+}

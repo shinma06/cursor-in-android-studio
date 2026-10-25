@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
 /**
- * Builds the per-turn [AgentProcessListener] that maps stream-json callbacks onto
+ * Builds the per-turn [AgentProcessListener] that maps print and ACP callbacks onto
  * timeline/composer UI updates. Extracted from [AgentUiController] so the
  * controller stays focused on prompt assembly and high-level orchestration (#11).
  */
