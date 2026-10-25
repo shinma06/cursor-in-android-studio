@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import textwrap
 from unittest.mock import patch
 import zipfile
 
@@ -133,10 +134,10 @@ class Repository:
         destination.write_bytes(self.files[int(path.split('/')[2])])
 
 
-class InactiveTest(unittest.TestCase):
-    def test_all_new_cli_and_publication_entries_stop_before_external_calls(self):
-        self.assertFalse(delivery.ENABLED)
-        with patch.object(delivery, 'command') as command, patch.object(delivery, 'git') as git, \
+class ReadinessBoundaryTest(unittest.TestCase):
+    def test_disabled_gate_still_stops_all_publication_entries_before_external_calls(self):
+        self.assertTrue(delivery.ENABLED)
+        with patch.object(delivery, 'ENABLED', False), patch.object(delivery, 'command') as command, patch.object(delivery, 'git') as git, \
                 patch.object(rc.github, 'api') as old_api, patch.object(rc, 'publication') as gate:
             for argv in (['early', '--run', '1', '--source', SOURCE],
                          ['promoted', '--run', '1', '--source', SOURCE],
@@ -149,19 +150,56 @@ class InactiveTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'retired'): rc.store(Path('unused'), 'd' * 64)
             for mock in (command, git, old_api, gate): mock.assert_not_called()
 
-    def test_new_workflow_jobs_have_literal_false_gates_and_no_schedule(self):
-        for name in ('delivery.yml', 'release-candidate.yml'):
-            content = (rc.ROOT / '.github/workflows' / name).read_text()
-            self.assertIn("if: ${{ false && github.ref == 'refs/heads/main' }}", content)
+    def test_guarded_workflow_paths_and_manual_readonly_candidate_are_ready(self):
+        source = (rc.ROOT / '.github/workflows/delivery.yml').read_text()
+        self.assertIn("if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') }}", source)
+        candidate = (rc.ROOT / '.github/workflows/release-candidate.yml').read_text()
+        self.assertIn("if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}", candidate)
+        for content in (source, candidate):
             self.assertNotIn('schedule:', content)
             self.assertNotIn('vars.', content)
             self.assertNotIn('secrets.', content)
-            self.assertEqual(content.count('    runs-on:'), content.count("    if: ${{ false && github.ref == 'refs/heads/main' }}"))
-        # Existing ordinary events retain only their legacy consumers.
+        self.assertNotIn('contents: write', candidate)
+        self.assertNotIn('release_candidate.py publish', candidate)
         legacy = (rc.ROOT / '.github/workflows/branch-zip.yml').read_text()
         self.assertNotIn('release_delivery', legacy)
         self.assertNotIn('release_candidate', legacy)
-        self.assertNotIn('release_delivery', (rc.ROOT / '.github/workflows/ci.yml').read_text())
+
+    def test_dispatcher_routes_three_paths_and_refuses_unknown_context_before_cli(self):
+        source = (rc.ROOT / '.github/workflows/delivery.yml').read_text()
+        script = textwrap.dedent(source.split('        run: |\n', 1)[1])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); calls = root / 'calls'
+            python = root / 'python3'
+            python.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$CALLS"\n')
+            python.chmod(0o755)
+            cases = [('workflow_run', 'develop', 'early --run 1 --source ' + SOURCE),
+                     ('workflow_run', 'main', 'promoted --run 1 --source ' + SOURCE),
+                     ('workflow_dispatch', '', 'stable --promotion-pr 570'),
+                     ('push', 'main', None), ('push', 'develop', None),
+                     ('workflow_run', 'other', None), ('', '', None)]
+            for event, branch, expected in cases:
+                calls.unlink(missing_ok=True)
+                env = {'PATH': str(root) + os.pathsep + os.defpath, 'CALLS': str(calls),
+                       'EVENT': event, 'BRANCH': branch, 'RUN': '1', 'SOURCE': SOURCE,
+                       'PROMOTION_PR': '570'}
+                result = subprocess.run(['bash', '-c', script], env=env, capture_output=True)
+                self.assertEqual(result.returncode == 0, expected is not None, (event, branch))
+                self.assertEqual(calls.exists(), expected is not None)
+                if expected is not None:
+                    self.assertEqual(calls.read_text().splitlines(),
+                                     ['scripts/workflow/release_delivery.py ' + expected])
+
+    def test_unmerged_promotion_stops_stable_before_candidate_or_publication(self):
+        with patch.object(delivery, 'api', return_value={'merged': False, 'draft': True}) as api, \
+                patch.object(delivery, 'git') as git, \
+                patch.object(delivery, 'candidate_artifact') as candidate, \
+                patch.object(rc, 'publish') as publish:
+            with self.assertRaisesRegex(ValueError, 'Merged same-repository main promotion required'):
+                delivery.stable_release(570, Path('unused'))
+            api.assert_called_once_with('pulls/570')
+            for mock in (git, candidate, publish):
+                mock.assert_not_called()
 
 
 class DeliveryTest(unittest.TestCase):

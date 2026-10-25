@@ -1,4 +1,4 @@
-name: Plugin delivery definitions (inactive)
+name: Plugin guarded delivery
 on:
   workflow_run:
     workflows: [CI]
@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    # Activation, permission provisioning and legacy disconnection require a separate scope.
-    if: ${{ false && github.ref == 'refs/heads/main' }}
+    # Guarded paths are ready; each actual publication still needs its recorded scope.
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -46,11 +46,11 @@ jobs:
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then
             python3 scripts/workflow/release_delivery.py stable --promotion-pr "$PROMOTION_PR"
-          elif [ "$BRANCH" = develop ]; then
+          elif [ "$EVENT" = workflow_run ] && [ "$BRANCH" = develop ]; then
             python3 scripts/workflow/release_delivery.py early --run "$RUN" --source "$SOURCE"
-          elif [ "$BRANCH" = main ]; then
+          elif [ "$EVENT" = workflow_run ] && [ "$BRANCH" = main ]; then
             python3 scripts/workflow/release_delivery.py promoted --run "$RUN" --source "$SOURCE"
           else
-            echo 'Unexpected delivery branch' >&2
+            echo 'Unexpected delivery event or branch' >&2
             exit 1
           fi

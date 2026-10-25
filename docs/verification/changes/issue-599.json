@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 599,
+  "gui_required": false,
+  "reason": "既存NEW配布workflow/CLIのguard付きreadinessと現在案内のみ。製品source/runtime/UI/保存形式は変更せずGUI不要。新しいGUI受入や正式version/候補/正式公開の成功を作らない。初回earlyの実操作はPMの最終base/排他/開始条件を満たした後に別途記録する。",
+  "cli_checks": [
+    "focused test_release_delivery/test_release_candidate/test_actionlint_check: 既存入力拒否・source/hash/bytes・Case/check・権限/履歴/未知writeと3経路dispatcher/未知event拒否・manual read-only candidate・旧RC/store拒否を検証。合成結果をlive公開成功にしない。",
+    "git diff --check、受入JSON schema/Cases0、変更した相対リンク/anchorと現在状態/切替条件/切替後予定文案を照合。固定actionlintのqueue限定projectionを維持。",
+    "最終base追従後、通常共有Change Impactの選ぶworkflow/loop/Gradle検査と標準ZIP/互換性、通常push/PRのprovider/独立review/4checksを実行。今はLOCAL focused検証だけでheavy build/pushは未実施。",
+    "実開始時にOLD停止と全run drain、NEW停止保持、全readiness最終採用、所有/claim/有限formal入力/権限を照合。firstearly1回の実CI/source/ZIP hash/size/tag/asset再downloadと公開metadataをreadbackし、元FAIL/旧資産/URL/PAUSEDを保全。正式version選択・実候補生成・正式公開/dispatchは今回行わない。"
+  ],
+  "cases": []
+}

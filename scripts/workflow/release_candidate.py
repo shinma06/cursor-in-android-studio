@@ -376,7 +376,7 @@ def preserve(tag, target, directory, names, prerelease, body, update_notes=False
 
 
 def store(directory, expected_hash):
-    raise ValueError('New RC Release storage is retired; use the inactive candidate Artifact definition. Existing RCs remain readable.')
+    raise ValueError('New RC Release storage is retired; use the candidate Artifact definition. Existing RCs remain readable.')
 
 
 def publication(directory, expected_hash, number):
