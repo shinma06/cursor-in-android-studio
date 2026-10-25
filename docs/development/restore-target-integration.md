@@ -2,7 +2,7 @@
 
 PR #74のdevelop統合後に、復元基盤をcontroller/service/listenerへ接続した。
 テスト・独立レビュー・必要Case追跡を揃えてdevelopへ統合する。GUIは固定候補でまとめて確認し、
-未確認をpassにしない。main昇格とIssue完了はその受入後に判断する。
+未確認をpassにしない。main昇格は固定候補の全必要Case受入後に判断する。developの実装Issueは実装受入と残CaseのQAへの実移管/readback後に完了を判断し、GUI/main未達はQAへ残す。詳細は[workflow](github-workflow.md)に従う。
 
 ## ターンの対象
 

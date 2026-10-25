@@ -9,8 +9,8 @@ Cursor **IDE内Agent panel** の開発体験をAndroid Studioへ統合するIDE 
 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
-> 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
-> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗の一次情報源。担当と独立レビューは各Issueのclaimで確認する。[Codex実行規約](docs/development/codex-execution-policy.md)とPonytail fullに従い、GUIは指定担当だけが操作する。作業前に必ずIssueの状態と直近コメントを確認し、着手する際は "Starting work" のコメントを残してから始めること(重複作業・競合pushを避けるため)
+> 1. **[`AGENTS.md`](AGENTS.md)** — 開発規約の正本と、必要な設計・ビルド・検証資料への入口。`CLAUDE.md`は同じ正本への参照入口です。
+> 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗の一次情報源。担当と独立レビューは各Issueのclaimで確認する。[Codex実行規約](docs/development/codex-execution-policy.md)とPonytail fullに従い、GUIは指定担当だけが操作する。作業前にIssueの状態・受入・未解放の所有を確認し、[開発手順](docs/development/github-workflow.md#開始)のclaimを記録して読み戻してから着手します。
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。
 >
@@ -41,7 +41,7 @@ macOSでJDK 25を登録していない場合は、Rabbit同梱JBRの`Contents/jb
 
 ## 配布版の選択
 
-開発中は[ブランチ別ZIP](docs/development/plugin-zip-delivery.md)を利用します。正式候補は[RCの作成・保管・検証・公開手順](docs/development/plugin-zip-delivery.md#正式候補rcと同一zipの公開)でversion/source/hashを固定し、同じZIPを対象Rabbitと全必要Caseで検証してから公開します。Rabbit移行のGUI/main受入と、過去の正式v0.1.0（Quail対応）の公開結果は別です。 [正式v0.1.0のダウンロードと検証結果](docs/releases/0.1.0.md)は固定した旧版の記録を参照してください。
+現在の開発版は既存のブランチ別ZIP配布を使い、取得時に実sourceを確認します。新しい単一early・固定正式候補Artifact・同じbytesの正式配布は[配布手順](docs/development/plugin-zip-delivery.md#現在の状態と非有効化の境界)に定義済みですが、まだ有効化していません。候補のversion/source/hash固定、全必要Caseの受入とmain promotionは同手順に従い、有効化の指示や公開成功と混同しません。Rabbit移行のGUI/main受入と、過去の正式v0.1.0（Quail対応）の公開結果は別です。 [正式v0.1.0のダウンロードと検証結果](docs/releases/0.1.0.md)は固定した旧版の記録を参照してください。
 
 ## Android Studio へのインストール
 

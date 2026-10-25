@@ -3,7 +3,11 @@ package com.cursoragent.ui.composer.context
 import com.cursoragent.ui.composer.mention.Mention
 import com.cursoragent.ui.composer.mention.MentionKind
 
-/** Immutable editor selection. Its document stamp is checked before a new send/queue registration. */
+/**
+ * Immutable editor selection. Its document stamp is checked before a new send/queue registration.
+ *
+ * Offsets are zero-based UTF-16 units in `[startOffset, endOffset)`; line numbers are one-based and inclusive.
+ */
 data class SelectionContext(
     val fileUrl: String,
     val path: String,
@@ -28,7 +32,11 @@ data class SelectionContext(
 
 data class EditorContext(val fileUrl: String, val path: String, val selection: SelectionContext?)
 
-/** Copy-time Terminal output, independent of the live tab, its later output and its lifetime. */
+/**
+ * Copy-time Terminal output, independent of the live tab, its later output and its lifetime.
+ *
+ * Line numbers are one-based absolute terminal lines, inclusive at both ends.
+ */
 data class TerminalContext(val id: String, val name: String, val startLine: Long, val endLine: Long, val text: String) {
     init { require(id.isNotBlank() && startLine > 0 && endLine >= startLine && text.isNotEmpty()) }
     val label: String get() = "Terminal: ${name.ifBlank { "Terminal" }}:$startLine–$endLine"

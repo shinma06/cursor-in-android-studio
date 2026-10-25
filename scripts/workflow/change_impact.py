@@ -41,7 +41,7 @@ def path_impacts(path, modes=('100644',)):
         return {TOOLING}  # Acceptance inputs are executable policy, not inert metadata.
     regular = all(mode in ('000000', '100644') for mode in modes)
     if path == 'AGENTS.md' and all(mode in ('000000', '100644', '120000') for mode in modes):
-        return {KNOWLEDGE}  # Repository's documented CLAUDE.md symlink; never executed.
+        return {KNOWLEDGE}  # Agent instructions are knowledge; retain legacy symlink compatibility.
     if regular and (path in ('README.md', 'CLAUDE.md', 'CONTRIBUTING.md')
                     or path.startswith('docs/') and p.suffix == '.md'
                     or path.startswith(('.agents/skills/', '.claude/skills/')) and p.name == 'SKILL.md'
@@ -75,24 +75,32 @@ def git(*args, cwd=None):
 
 
 def default_base(head='HEAD', cwd=None):
-    # A new Issue branch has no upstream. Use the nearest applicable integration
-    # line; absent/stale history fails towards full validation, not a guessed skip.
+    # Choose the common ancestor that contains every other integration baseline.
+    # An ambiguous history must require full checks, never depend on ref order.
+    bases = set()
     for ref in ('origin/develop', 'origin/main'):
         try:
             sha = git('rev-parse', '--verify', ref + '^{commit}', cwd=cwd).decode().strip()
-            ancestor = git('merge-base', sha, head, cwd=cwd).decode().strip()
-            return ancestor
         except subprocess.CalledProcessError:
             continue
-    raise ValueError('No verified integration base; fetch origin or specify --base')
+        ancestors = git('merge-base', '--all', sha, head, cwd=cwd).decode().splitlines()
+        if len(ancestors) != 1:
+            raise ValueError('Ambiguous integration history; full validation required')
+        bases.add(ancestors[0])
+    nearest = [base for base in bases if all(
+        git('merge-base', '--all', base, other, cwd=cwd).decode().splitlines() == [other]
+        for other in bases)]
+    if len(nearest) != 1:
+        raise ValueError('No unique verified integration base; fetch origin or specify --base')
+    return nearest[0]
 
 
 def git_impact(base=None, head='HEAD', *, cwd=None, merge_base=True, force_full=False):
     try:
-        base = base or default_base(head, cwd)
         # Verify refs separately; never pass an untrusted filename/ref as a Git option.
-        base = git('rev-parse', '--verify', '--end-of-options', base + '^{commit}', cwd=cwd).decode().strip()
         head = git('rev-parse', '--verify', '--end-of-options', head + '^{commit}', cwd=cwd).decode().strip()
+        base = base or default_base(head, cwd)
+        base = git('rev-parse', '--verify', '--end-of-options', base + '^{commit}', cwd=cwd).decode().strip()
         ancestor = git('merge-base', base, head, cwd=cwd).decode().strip()
         if merge_base:
             base = ancestor
