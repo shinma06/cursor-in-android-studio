@@ -1,4 +1,7 @@
-"""Synthetic local ACP server; no Cursor, account or network; writes only inside its temporary fixture."""
+"""Synthetic ACP server; no Cursor, account or network.
+
+Uses the temporary fixture workspace; --capture writes logs/control in the explicitly selected output directory outside it.
+"""
 import json
 import os
 import pathlib
