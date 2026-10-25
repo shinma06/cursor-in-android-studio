@@ -37,8 +37,8 @@ class GitSnapshotStore(private val workspaceDir: File) {
 
     /**
      * Overwrites every tracked path with [sha]'s tree, then deletes files that are
-     * still untracked now but weren't in [untrackedFilesAtSnapshot] — i.e. new files
-     * the agent created after the snapshot. `git checkout <sha> -- .` only ever
+     * still untracked now but weren't in [untrackedFilesAtSnapshot], regardless of
+     * who created them after the snapshot. `git checkout <sha> -- .` only ever
      * writes paths present in <sha>'s tree, it never deletes anything, which is why
      * new *untracked* files need this separate cleanup pass.
      *
