@@ -13,7 +13,7 @@ package com.cursoragent.parser
  * keep its regression tests and re-evaluate before reuse across transports.
  *
  * [dedupe] always returns the full text that should be displayed (or null if
- * [text] adds nothing new) rather than an incremental fragment — a "resend the
+ * `text` adds nothing new) rather than an incremental fragment — a "resend the
  * whole cumulative message" event can't be expressed as a suffix to append, so
  * callers must always re-set the displayed content from the return value
  * ([com.cursoragent.ui.timeline.ChatTimelinePanel.setAssistantText]) instead of
