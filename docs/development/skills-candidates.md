@@ -6,6 +6,9 @@ ACP会話のserver広告を入力前に取得し、選んだnameを1メッセー
 ## 固定根拠と依存
 
 - [#117固定調査](https://github.com/shinma06/cursor-in-android-studio/blob/6ed83d4a7a85ba4884bf1f22a0f1873558bf8a15/docs/research/issue-117-skills-contract.md)の契約を採用。実Agentで観測したACP1回・print4条件の成功と、製品/GUIの未確認を分ける。
+
+以下の固定base・依存・担当と停止条件は#258当時の作業履歴です。現在の割当・統合条件は対象Issue/PRのclaimと[workflow](github-workflow.md)で照合し、本書だけから停止解除を推定しません。
+
 - develop比較baseは`9979266b4e99e7d4dc46689dac1f61f33f09b88a`。#24実commit `b9f8275d08cb19c66d69c65ec157ba8a381ece65`を通常mergeし、#48 `dd655160e136a44250f990932a3fe77d686f951f`も祖先に保持。#258固有レビューbaseは#24固定版。
 - #24/#48統合後、origin/developを通常同期し、実target差分・Case・CI・独立レビューを更新する。それまではenroll/ready/mergeしない。#117の統合前提・#251監査・PR #261保留も維持。
 - #43のLoading/Failed/Loaded設計を照合したが、モデル取得の未統合差分は取り込まない。コマンド候補は短い型付き状態をsession単位で保持し、別のCLI一覧取得処理を増やさない。

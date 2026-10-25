@@ -65,7 +65,7 @@ flowchart LR
     ZIP -->|指定担当がinstall・build照合| IDE[Android Studio / 固定build QA]
 ```
 
-[workflow](../development/github-workflow.md)に従いIssue claim→専用worktree→Draft PR→固定HEAD/baseレビューとrequired checks→develop統合→[qa_handoff.py](../../scripts/workflow/qa_handoff.py)の双方向readback→元Issue close。GUI/main未達はQAに残す。配布はpushでも起動し、PRのmerge/QA合格を配布条件と同一視しない。knowledge-only等のZIP省略は[classifier](../../scripts/workflow/change_impact.py)が決める。失敗/旧ZIPのSHAを現HEAD成功に書き換えない。main promotionは候補全体の別gate。
+[workflow](../development/github-workflow.md)に従いIssue claim→専用worktree→Draft PR→固定HEAD/baseレビューとrequired checks→develop統合→残条件の実移管/readback→元Issue close。有効なCaseが残る場合は[qa_handoff.py](../../scripts/workflow/qa_handoff.py)でQAへ引き継ぎ、Cases 0ならQAを新設せず既存Issue/PRにPMのmain反映保管と次操作を残す。配布はpushでも起動し、PRのmerge/QA合格を配布条件と同一視しない。knowledge-only等のZIP省略は[classifier](../../scripts/workflow/change_impact.py)が決める。失敗/旧ZIPのSHAを現HEAD成功に書き換えない。main promotionは候補全体の別gate。
 
 coordinatorのレビュー実行は[Codex実行規約](../development/codex-execution-policy.md)にも従う。ツール経由でもAstraの子Agent生成は許可されず、PAUSED heartbeatの自動再開もしない。
 

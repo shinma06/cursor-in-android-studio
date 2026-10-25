@@ -4,6 +4,8 @@
 
 integration targetはdevelop。依存は[PR279 / #48](https://github.com/shinma06/cursor-in-android-studio/pull/279)の固定`dd655160e136a44250f990932a3fe77d686f951f`。Bの独立approved・全CI成功・clean/正式writer停止を確認し、実commitを通常mergeで祖先へ取り込んだ。#24固有レビューの比較baseも同SHAとする。developの`9979266b4e99e7d4dc46689dac1f61f33f09b88a`からの全候補検証とは区別する。
 
+以下の固定base・依存・担当と停止条件は#24当時の作業履歴です。現在の割当・統合条件は対象Issue/PRのclaimと[workflow](github-workflow.md)で照合し、本書だけから停止解除を推定しません。
+
 #48がdevelopへ統合されるまで#24をenroll/ready/mergeしない。統合後はorigin/developを通常mergeで同期し、実target baseに対する最終差分・Case・CI・独立レビューを取り直す。#43/#215の停止branchは編集しない。B98はtimeline/notification/AgentTurnListenerFactoryを担当し、#24のController/Composer/Root/Queueと同時編集しない。
 
 ## 公式仕様と保証範囲（2026-09-12確認）

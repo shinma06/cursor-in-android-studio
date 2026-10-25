@@ -20,4 +20,6 @@
 
 [Case JSON](../verification/changes/issue-289.json)のQ1–Q5は固定build GUI待ち。合成parser/候補/AgentRun/SessionTabs/menuテストと、ローカル合成CLIを実プロセスとして起動する終了接続テストは、実provider・OS clipboard・GUI成功を代用しない。#284の実provider2turn観測は研究に限定し、Q6 ACP診断の構造化取得は公式の供給契約確認後に再評価する。
 
+以下の固定base・依存・担当と停止条件は#289当時の作業履歴です。現在の割当・統合条件は対象Issue/PRのclaimと[workflow](github-workflow.md)で照合し、本書だけから停止解除を推定しません。
+
 今回の純依存baseは `905b2e50a144a65b9bd86b164161d8a8ff292f52`（公開STOP#287 `73b31f5e6a50890c22bfd333346eb9b77fd35a60` + #254 `80e19808290f1c20dc882423de0d0d7efcd6ca60` の通常merge）、実targetはdevelop `9979266b4e99e7d4dc46689dac1f61f33f09b88a`。既存print正規化/usage/queue/復元を維持する。共有所有解放後にController/FactoryのID接続だけを編集し、未公開#308/#268/#269/#305は取り込んでいない。後のPM統合で#308のbeforeRevert・usage/config callback・changes.beginTurnと今回の完了callbackを両立させ、固定candidateを再レビューする。#300のheader説明と#97の送信キー等も別の公開STOP版として保全する。GUI・merge・enroll・main反映は別工程で追跡する。

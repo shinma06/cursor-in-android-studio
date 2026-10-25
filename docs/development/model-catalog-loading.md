@@ -12,4 +12,6 @@ ModelCatalogLoaderはControllerごとのリクエスト世代とFutureを所有�
 
 自動テストは状態/再試行、保存ID/Auto/variant、ACP往復、tab選択とclose、破棄、例外、世代が変わる前にキューへ入った遅延結果を検証する。既存Composer/selector/ModelOptions/Sessionの回帰も実行する。GUI・実CLIでの失敗/遅延fixtureは未実施でCase43をpendingのまま引き継ぐ。Android Lifecycle/Context/DB/coroutineはSwing/IDE metadata処理のため対象外。非同期所有権とEDTは上記で検証する。
 
+以下の固定base・依存・担当と停止条件は#43当時の作業履歴です。現在の割当・統合条件は対象Issue/PRのclaimと[workflow](github-workflow.md)で照合し、本書だけから停止解除を推定しません。
+
 #215のfocus描画はこのbranchに複製しない。#47 timeline/変更集約、#28 settings/build、#254 normalizeは編集しない。developの統合凍結を維持し、固定HEAD/ZIP/installed全JAR/ロード実体を揃えた指定GUI担当へ引き継ぐ。#27の旧Case結果を新buildのpassとして扱わない。

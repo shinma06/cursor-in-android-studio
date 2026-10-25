@@ -2,6 +2,8 @@
 
 2026-09-11 / #206。すべてのopen `type:qa` Issueは、本文冒頭に **試験内容ドキュメント** のリンクを必須とする。人間は[QA — 人間向け試験](https://github.com/users/shinma06/projects/2/views/6) → QA Issue → 試験内容ドキュメントの順に開く。JSONや過去コメントの探索を試験開始の前提にしない。
 
+本書は既存QAと、有効なCaseが残る変更の案内です。新規Cases 0ではQAを作らず、[workflow](../development/github-workflow.md)に従い既存Issue/PRにPMのmain反映保管と次操作を残します。この整理だけで既存QA・原Case・結果を削除または完了にしません。
+
 ## 冒頭だけで進める実行案内
 
 2026-09-12 / #217。各試験ページは「今回の対象 → 短い前提 → 項目・手順・期待値の表 → 送信と証拠 → 結果の伝え方」の順にする。共通の長い管理チェックリストを試験の入口に置かない。
@@ -16,6 +18,8 @@
 表の後で、必要な送信文・試験用ファイル、画像やログを残す項目、口頭でよい項目を明記する。指定のない表示・クリック操作の結果は口頭で報告できるが、Computer Use指定はその操作証拠が必須。送信モデル・process停止・ファイル内容などは対応するログ/実体を照合する。入力例や準備条件が未確定なら、PMが具体化してからその項目を開始する。
 
 報告は「Case ID・実施した項目・OK/不一致/未実施」と実際の動作から始める。PMが候補/buildと証拠を正式記録へ対応付ける。部分的なOKをCase全体のpassにせず、既存の人間OK・未実施・blocked条件をそのまま引き継ぐ。
+
+観察方法は[製品責任](responsibility.md)に従い、保証・適格な既存証拠・不足事実から選びます。実行者のprovider名だけでGUIや一律の反復を割り当てず、有効なCaseの実施義務は保持します。
 
 GUI担当は[共通の役割条件](../development/github-workflow.md#正本と役割)に従い、実画面を操作・観察する能力と許可を確認して選びます。対応toolがなければ対応可能な担当へ引き継ぎ、未確保ならGUIをblockedにします。Computer Use指定は維持します。保存形式の`gpt`は[互換用のAgent観察枠](README.md#正本と結果の入力)で、特定providerへの担当指定ではありません。
 
@@ -37,7 +41,7 @@ build照合・担当/lease・仕様背景・例外・再試験・正式Case・�
 
 ## 作成・更新の責務
 
-QA作成者は公開前にCaseと本文を照合して手順を具体化する。自動引継ぎは `qa_document.py` で固定mergeのCaseをMarkdownへ展開し、コメントと本文リンクをreadbackする。文書/運用だけのQAも検証記録・受入・main反映の確認手順を付ける。リンク不成立なら引継ぎを完了にせず、元実装Issueをcloseしない。
+QA作成者は公開前にCaseと本文を照合して手順を具体化する。自動引継ぎは `qa_document.py` で固定mergeのCaseをMarkdownへ展開し、コメントと本文リンクをreadbackする。既存の文書/運用QAでは検証記録・受入・main反映の確認手順を保持する。リンク不成立なら引継ぎを完了にせず、元実装Issueをcloseしない。
 
 PMは新規・再利用QAをProject #2へ登録し、専用Viewに表示されること、Status/Priority・Milestone・Relationshipをreadbackしてから表示同期を完了とする。`type:qa` とopenの条件で専用Viewへ表示されるため、別Project・専用Status・重複カードは作らない。Now/Next/LaterにはQA除外条件を付け、closed QAはPastへ残す。
 

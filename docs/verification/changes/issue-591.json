@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 591,
+  "gui_required": false,
+  "reason": "developの現行運用説明・リンクと旧作業条件の時点境界、非実行loop依頼文、JSON正本からの生成閲覧Markdownだけを整合する。製品source/build・loop/schema・元Case/契約override/結果・原FAIL・固定scope/環境・146私的原本は変更しない。#587の基点修正採用後の説明とし、GUI/実運用効果・Case整合ownerの受入を代替しない。",
+  "cli_checks": [
+    "固定develop baseの全差分が承認した日本語文書・非実行Agent依頼文・生成current.mdと本JSONだけで、原Case/結果・scope・製品source/build等のblobが不変であることを確認。",
+    "既存verification.pyで初期batchからcurrent.mdを生成し、初期登録時のAgent見出し9件以外が元文書と完全一致することを確認。",
+    "変更リンク/anchorの到達、旧固定base/停止条件の履歴境界、現行予約キーと旧48/97説明、Cases0のPM保管/既存QA保護を文脈で確認。",
+    "通常pre-pushがChange Impactで選ぶworkflow/loop検査とgit diff --check。重い製品検査や同一suiteの直前重複は変更/不足事実がない限り追加しない。",
+    "先行main採用後に実base/差分分類・旧配布namespace・保護blobを再確認。独立top-level sessionの固定HEAD/baseレビューと4 checks、develop統合後のPM保管/親584への実移管を別にreadback。"
+  ],
+  "cases": []
+}

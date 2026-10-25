@@ -75,7 +75,7 @@
 | --- | --- | --- |
 | ACP First / accepted | 構造化された状態・要求返答を公式契約で扱う。CLIのみ継続を設計の固定前提にせず、IDE APIと補助CLIの合理的利用は維持。各能力の実装/実測は個別に判断 | [方針の正本](cursor-integration.md)。旧「方式B中心、ACP採否未定」はsuperseded。旧経路の互換保守を廃止する判断ではない |
 | 復元来歴と実終了が不確定なら拒否 / accepted | 後続編集・別root・実行中の書込みを上書きしない。ISOLATEDのpath推測、cancel応答だけでの復元解放は不採用。復元できない場合もDiff閲覧は可能 | [現行の復元/停止](current-implementation.md#復元の安全性)、RestorePolicy/WorkspaceOperationGate/AcpSessionTest。旧「worktree未対応で無保護」はsuperseded、完全な分離先復元は未提供 |
-| 本文再表示・provider再開・Revertを別判定 / accepted（保存実装は後続） | 旧metadataだけから本文やACP ID互換を発明しない。全ID共通化/過去tool再実行を避ける。新しい保存契約は#44が所有 | [現行保存](current-implementation.md#イベント補助cli保存) / [#44](https://github.com/shinma06/cursor-in-android-studio/issues/44)。旧TTY picker失敗を全transportの永久的な本文取得不可に広げる説明はsuperseded |
+| 本文再表示・provider再開・Revertを別判定 / accepted（developの保存実装と固定build受入を区別） | 旧metadataだけから本文やACP ID互換を発明しない。全ID共通化/過去tool再実行を避ける。新しい保存契約は#44が所有 | [現行保存](current-implementation.md#イベント補助cli保存) / [#44](https://github.com/shinma06/cursor-in-android-studio/issues/44)。旧TTY picker失敗を全transportの永久的な本文取得不可に広げる説明はsuperseded |
 
 旧状態の証拠と訂正経緯は[固定CLAUDE](https://github.com/shinma06/cursor-in-android-studio/blob/4d1514d8fa6c020d41ad9c0205b9ea24268bef57/CLAUDE.md)および[当時のContext監査](../development/project-context-audit.md)に残る。現行判断へ引用するときは上表の適用条件とソースを先に読む。
 
