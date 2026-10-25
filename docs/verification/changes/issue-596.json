@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 596,
+  "gui_required": false,
+  "reason": "README/CONTRIBUTINGを採用済み運用の正本・Project/Issue起点・影響別検証・4checksへ接続する文書修正のみ。製品source/runtime/build/SDK/保存/UIと既存Case/原証拠に変更がなくGUI不要。Aで採用済みのCONTRIBUTING exact-path gateを使う。",
+  "cli_checks": [
+    "通常pre-pushの共有Change Impactが選ぶworkflow/loop等をclean committed HEADで実行。Gradle/ZIP不要の分類・skip理由を記録し、重い検査を追加しない。",
+    "受入JSON schema/Cases0、git diff --check、変更した相対リンク/現行anchor、AGENTS正本とCLAUDE参照入口・Project/4checksの現行正本を照合。新規テストは不要な文書変更。",
+    "公開前の固定HEAD/base/tree/3path、差分/commit metadataにprivate情報なし、新own branch namespace不存在、OLD plannerがZIP不要を判断することを確認。通常push後の実OLD plan成功・build/publish skipとRelease不存在をreadback。",
+    "通常PR/ready・provider currentHEAD完了と全conversation/review/inline/返信/resolved/outdatedを固定し、独立reviewer用packetへ引渡す。自己Agent reviewやmain統合は行わない。"
+  ],
+  "cases": []
+}
