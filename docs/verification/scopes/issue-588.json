@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "issue": 588,
+  "files": {
+    "src/main/kotlin/com/cursoragent/notification/AgentNotificationService.kt": "100644",
+    "src/main/kotlin/com/cursoragent/service/AgentProcessService.kt": "100644",
+    "src/main/kotlin/com/cursoragent/parser/AssistantChunkDeduper.kt": "100644",
+    "src/main/kotlin/com/cursoragent/ui/timeline/AssistantMessageBubble.kt": "100644",
+    "src/main/kotlin/com/cursoragent/service/GitSnapshotStore.kt": "100644",
+    "src/test/kotlin/com/cursoragent/settings/AgentSettingsStateTest.kt": "100644",
+    "src/test/resources/stream-json-fixtures/README.md": "100644"
+  },
+  "acceptance": {
+    "schema": 1,
+    "issue": 588,
+    "gui_required": true,
+    "reason": "mainのKotlinコメント6件とfixture guide1件だけを是正する。実処理・literal・保存・raw fixtureとbuild入力の不変は全差分/production回帰で確認する。新source/ZIPの実ロードとmain print/設定/履歴metadataの代表接続だけをnative 1 Caseへ割り当てる。",
+    "cli_checks": [
+      "全履歴edgeをtrusted scopeで検査し、7 pathがregular 100644のまま、目的に沿う説明だけの差分であることを固定HEAD/baseの別sessionが評価する。developの機能、scope/gate/build/保存契約は変更しない。",
+      "Kotlin6件の非コメントtokenと完全literalを固定mainへ比較し、raw fixture・src/main/resources・build/依存/設定を含む他pathは不変と確認する。token不変をZIP/JAR byte一致やGUI PASSと解釈しない。",
+      "AgentNotificationServiceの版付きprint観察参照、AgentProcessServiceのMcpServersDialog/McpListParser parse・raw fallback、AssistantChunkDeduperのfull-text置換とtext値参照、AssistantMessageBubbleのMessageTextPane/escaped HTML、GitSnapshotStoreの全untracked集合差とstaged残存、AgentSettingsStateTestの既定追加flag不在と即時編集の区別をcaller/実装/既存testへ照合する。",
+      "fixture READMEの日本語案内が当時のCLI版・4ファイルの採取範囲/元resource_exhaustedを保持し、全JSONLのbytesとparser consumerは変更していないことを照合する。",
+      "候補の全既存main JVM testとshared classifierが選ぶ必要workflow/loop/CIを通常hook/CIで検査する。developの616件PASSをmain候補へ転記しない。元FAIL/環境条件は分離して保持する。",
+      "buildPlugin/verifyPluginStructureで標準SNAPSHOT ZIPを生成・sealし、manifestのsource/clean、ZIP/JAR hash、Rabbit SDK、JBR/JVM25 major69、262 metadata、依存/stdlib、現行main compatibility policyのVerifier結果を照合する。標準resolverを使い、policyを変更しない。",
+      "本scopeの全Caseを同じcandidate/ZIPで確認し、promotion後の変更をpromotion.jsonと本Issueの結果JSONだけに限定する。正式Release/tag/assetを作成/変更しない。通常4 checksと別sessionの固定HEAD/base評価後、scope main promotionをmerge commitで統合する。"
+    ],
+    "cases": [
+      {
+        "id": "MAIN-COMMENTS-LOAD-STATE",
+        "change": "コメントだけのmain候補ZIPをRabbitへ実ロードし、print表示と既存設定・履歴metadataの保存接続を確認する。",
+        "preconditions": "独立レビュー済みの本scopeの固定main候補と標準ZIPを使用。Rabbit 1 AI-262.9437.185.2621.16467767 / JBR25.0.3。source SHA・ZIP SHA-256・ロードJAR・実profile/プロセスを照合する。指定operatorとhost-wide GUI lease、専用profile/使い捨てGit fixture、既存の認証済みPro/Teams CLIを使う。Terminal設定は開始時の状態を記録して維持する。通常利用中のIDE/認証/他ownerのfixtureは変更しない。",
+        "steps": [
+          "候補のsource/ZIP/manifest/JARを照合し、専用profileへ既存の適格なZIP導入手順で同じbytesを配置してIDEを起動する。実ロードJARとRabbit/JBRを確認する。ToolWindowと設定を実画面で開き、pluginロード失敗/LinkageErrorがないことを確認する。",
+          "fixtureに書込みを指示しない短いprint質問を1回送り、ユーザー入力と応答がpanelに表示され、実process終了後に入力可能へ戻ることを実画面で確認する。使い捨てfixtureの差分も照合する。モデルの応答だけやCLI終了codeだけを表示成功にしない。",
+          "同じ会話の履歴metadata（chat ID、firstPromptPreview、lastUpdatedMs）をprivateに控え、過去チャット一覧から識別できることを実画面で確認する。設定は非権限項目notifyOnTurnCompleteを一度切り替えて保存する。permissionMode・CLI引数・認証は変更しない。",
+          "同じZIPのままIDEを通常終了・再起動し、ロードJARが同じであること、設定の保存値と過去チャット一覧のmetadataが保持されることを実画面と該当する保存内容で照合する。会話本文の再表示/provider resume/Revertの成功を期待結果へ含めない。",
+          "Case全手順の実結果、source/ZIP/ロード識別、CLI版、Terminal状態、観察者・時刻・実施経路と安全な証拠参照を記録する。privateのchat ID/生ログ/profile pathを公開しない。所有する試験processを終了し、設定・fixture/profileの保全/復元を確認してleaseを解放する。"
+        ],
+        "expected": "同じ固定候補ZIPがRabbit/JBR25へ正しくロードされ、mainのprint応答を表示し、通常再起動後も既存設定と同一の履歴metadataを保持する。確認するのは代表native接続であり、コメントで説明する全境界はCLI/production回帰で別に照合する。旧GUI PASSや新機能の受入を主張しない。",
+        "provenance": [
+          "https://github.com/shinma06/cursor-in-android-studio/issues/588",
+          "https://github.com/shinma06/cursor-in-android-studio/issues/581",
+          "https://github.com/shinma06/cursor-in-android-studio/blob/471b6383ba4fcd290c12c25edef63a5e6d10be66/docs/verification/responsibility.md"
+        ],
+        "next_action": "段階Aのmain採用、線形候補の固定、CLI/標準ZIP/Verifierと独立評価の完了後、PMが指定したGUI担当がleaseを取得して実施する。",
+        "gpt": {
+          "status": "pending",
+          "reason": "計画のみ。新候補/ZIPのnative観察は未実施。"
+        },
+        "human": {
+          "status": "pending",
+          "reason": "計画のみ。人間による新候補/ZIPのnative観察は未実施。"
+        },
+        "fix_issue": null,
+        "fix_pr": null,
+        "recheck": "失敗は元記録/保証を保持し、専用修正Issueと修正済み候補/ZIPの全失敗保証を再確認する。候補/条件変更時は全保証への影響と不足事実を独立評価する。旧結果を新実行のPASSにしない。"
+      }
+    ]
+  }
+}
