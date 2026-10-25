@@ -8,7 +8,7 @@ Android Studio 向け Cursor Agent 統合プラグイン。`cursor-agent` CLI �
 
 > **新しくこのプロジェクトに参加するエージェント/開発者へ**: このREADMEは概要のみです。
 > 開発を始める前に必ず次の2つを読んでください。
-> 1. **[`CLAUDE.md`](CLAUDE.md)**(`AGENTS.md`はこのファイルへのシンボリックリンク) — アーキテクチャ、ビルド手順、既知の制約・落とし穴
+> 1. **[`AGENTS.md`](AGENTS.md)** — 開発規約の正本と、必要な設計・ビルド・検証資料への入口。`CLAUDE.md`は同じ正本への参照入口です。
 > 2. **[GitHub Issues](https://github.com/shinma06/cursor-in-android-studio/issues)** — 進捗と担当の一次情報源。個別Issueの受入・所有記録・直近コメントを確認し、[開発手順](docs/development/github-workflow.md)に従って着手する。レビューは実装と独立した担当が行い、GUIは予約を持つ指定担当または人間が操作する。
 >
 > 詳細な機能要件は [要件定義書](docs/cursor-agent-plugin-requirements.md) を参照。

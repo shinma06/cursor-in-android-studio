@@ -23,13 +23,15 @@ pathは現在のbuild/呼出しを照合したallowlistであり、意味を推�
 ## 呼出しと差分
 
 ```bash
-# origin/develop（なければorigin/main）とのmerge-baseからIssue全体を分類・検証
+# main/developの履歴から一意に定まる基点でIssue全体を分類・検証
 python3 scripts/workflow/change_impact.py --run-tests
 # main向け等で比較先が明確な場合
 python3 scripts/workflow/change_impact.py --base origin/main --run-tests
 # 判定にかかわらず全テストを実行する
 python3 scripts/workflow/change_impact.py --base origin/develop --force-full --run-tests
 ```
+
+既定比較は、利用可能な`origin/main`・`origin/develop`それぞれとHEADの共通祖先を調べ、他の候補をすべて祖先に持つ一意の基点を使います。ref順でdevelopを優先しません。比較不能・複数merge-base・履歴不足では全検証へ倒します。明示`--base`や配布の既存source SHA指定はその比較境界を維持し、既定基点への置換で製品差分を隠しません。
 
 commit済みのHEADを対象にする。push直前のdirty/別branch/非fast-forward拒否は従来のgit guardが先に実施する。ローカルの分類は直前commitだけでなくIssue差分全体を使い、コード変更後に文書commitを追加してもコード検証を消さない。
 
