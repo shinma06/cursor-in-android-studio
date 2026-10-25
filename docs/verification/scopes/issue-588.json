@@ -22,7 +22,7 @@
       "fixture READMEの日本語案内が当時のCLI版・4ファイルの採取範囲/元resource_exhaustedを保持し、全JSONLのbytesとparser consumerは変更していないことを照合する。",
       "候補の全既存main JVM testとshared classifierが選ぶ必要workflow/loop/CIを通常hook/CIで検査する。developの616件PASSをmain候補へ転記しない。元FAIL/環境条件は分離して保持する。",
       "buildPlugin/verifyPluginStructureで標準SNAPSHOT ZIPを生成・sealし、manifestのsource/clean、ZIP/JAR hash、Rabbit SDK、JBR/JVM25 major69、262 metadata、依存/stdlib、現行main compatibility policyのVerifier結果を照合する。標準resolverを使い、policyを変更しない。",
-      "本scopeの全Caseを同じcandidate/ZIPで確認し、promotion後の変更をpromotion.jsonと本Issueの結果JSONだけに限定する。正式Release/tag/assetを作成/変更しない。通常4 checksと別sessionの固定HEAD/base評価後、scope main promotionをmerge commitで統合する。"
+      "本scopeの全Caseを同じcandidate/ZIPで確認し、候補固定後の直接変更をpromotion.jsonと本Issueの結果JSONだけに限定する。正式Release/tag/assetを作成/変更しない。通常4 checksと別sessionの固定HEAD/base評価後、scope main promotionをmerge commitで統合する。"
     ],
     "cases": [
       {
