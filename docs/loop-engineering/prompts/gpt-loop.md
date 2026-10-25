@@ -6,7 +6,7 @@
 
 ```text
 Advance one loop for Issue #<number> under docs/loop-engineering/README.md.
-Choose roles by available capabilities, tools, authorization and claims under docs/development/github-workflow.md, regardless of model/provider.
+Choose roles by available capabilities, tools, authorization, claims and the human-specified model/effort conditions under docs/development/github-workflow.md. A client/provider name alone does not qualify a role.
 Writer: <session>; independent reviewer: <different session or pending>; GUI operator: <capable authorized session or pending>.
 The reviewer may use the same provider but must be a different session from the writer. Do not require three providers.
 Follow docs/development/codex-execution-policy.md. When GPT-6 Astra is the lead, do not spawn/delegate child agents; preserve existing owners and authorized scope in independent top-level coordination.

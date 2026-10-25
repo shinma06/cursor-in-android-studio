@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 584,
+  "gui_required": false,
+  "reason": "段階Aは非実行・非同梱のloop手順3件、Agent依頼文、要件書の条件付き調査/履歴案内と、既存JSONから再生成した閲覧Markdownだけを整合する。製品source/build・loop実装/schema・固定Case/候補/原結果は変更しない。全474行の分類と必要develop同期・独立評価/統合は別に追跡し、GUI/実運用効果を主張しない。",
+  "cli_checks": [
+    "固定main baseとの差分と保護対象のblob不変、JDK25・共通役割model条件・保証/証拠/不足事実の参照と意味を確認する。",
+    "verification.pyで初期batch/既存Case JSONからcurrent.mdを再生成し、9件のAgent枠見出し以外の原文・状態・履歴が不変であることを確認する。",
+    "python3 scripts/workflow/change_impact.py --base origin/main --run-tests（同じclean固定HEADの通常pre-push hookで実行し、直前に重複実行しない）",
+    "変更Markdownの相対リンク・見出しへの到達、Case JSONのschema、git diff --checkを確認する。",
+    "本IssueのCaseなしで空QAを作らず、必要develop同期とmain反映保管を元Issue/PRへ残す。"
+  ],
+  "cases": []
+}
