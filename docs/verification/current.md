@@ -31,7 +31,7 @@ PR: [#72](https://github.com/shinma06/cursor-in-android-studio/pull/72)
 
 期待結果: タイトルは少し大きい太字、補足は小さく、数値はラベルより識別しやすい。ラベル・右揃え数値・×が重ならず、桁区切りと0を保つ。入力/出力とキャッシュが両方ある場合のみ区切りを表示。欠損行・不要な空行は出さず、全欠損は短い案内。開閉・再表示で数値を保持する。
 
-初期登録時のGPT: pending — headless合成画像のみ観察済み。実IDEのGUIは未実施。
+初期登録時のAgent（互換キーgpt）: pending — headless合成画像のみ観察済み。実IDEのGUIは未実施。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -69,7 +69,7 @@ PR: [#74](https://github.com/shinma06/cursor-in-android-studio/pull/74)
 
 期待結果: 「停止しました」と表示して部分本文を保持する。エラー行・通知・ダイアログが出ず、入力と送信が復帰する。次応答が正常完了し、前の停止による本文消去や停止表示への逆戻りがない。
 
-初期登録時のGPT: pending — 当該2項目は以前に人間へ引継ぎ、旧固定buildのpassがある。新候補は未実施。
+初期登録時のAgent（互換キーgpt）: pending — 当該2項目は以前に人間へ引継ぎ、旧固定buildのpassがある。新候補は未実施。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -111,7 +111,7 @@ PR: [#74](https://github.com/shinma06/cursor-in-android-studio/pull/74)
 
 期待結果: 「停止しました」へ誤分類せず、実際の異常として表示する。検証後に元のCLI設定へ復元できる。
 
-初期登録時のGPT: blocked — Computer UseがSettingsダイアログを取得できず、設定変更も検証送信も未実施。製品failではない。
+初期登録時のAgent（互換キーgpt）: blocked — Computer UseがSettingsダイアログを取得できず、設定変更も検証送信も未実施。製品failではない。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -150,7 +150,7 @@ PR: [#75](https://github.com/shinma06/cursor-in-android-studio/pull/75)
 
 期待結果: 本文や選択を変えず入力外の次・前の操作へfocusが移る。改行・IME確定・mentionで誤送信しない。候補popupにfocusがある間は入力欄のTab処理を強制しない。再生成後も同じ挙動を保ち、通常エディタの字下げは維持する。
 
-初期登録時のGPT: pending — Swing単体キー処理の確認のみ。実IDEのdispatch・IME・mentionは未観察。
+初期登録時のAgent（互換キーgpt）: pending — Swing単体キー処理の確認のみ。実IDEのdispatch・IME・mentionは未観察。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -175,7 +175,7 @@ PR: [#77](https://github.com/shinma06/cursor-in-android-studio/pull/77)
 
 期待結果: 表示だけで自動検出を手動固定しない。手動/自動切替はApply/OKで保存し、Cancelでは破棄する。表示・検出だけでCLIが起動しない。固定候補なしは単体テストで検証し、実機CLIを削除・移動しない。
 
-初期登録時のGPT: blocked — 最新r3は接続と固定JARロード照合に成功したが、Settingsの画像/AXは背面Welcome。別経路の入力確定も失敗。設定入力・Apply・CLI送信ゼロ。製品failではない。
+初期登録時のAgent（互換キーgpt）: blocked — 最新r3は接続と固定JARロード照合に成功したが、Settingsの画像/AXは背面Welcome。別経路の入力確定も失敗。設定入力・Apply・CLI送信ゼロ。製品failではない。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -220,7 +220,7 @@ PR: [#81](https://github.com/shinma06/cursor-in-android-studio/pull/81)
 
 期待結果: 通常DEFAULTのDiff・Revert・checkpoint復元が動作する。古いRevertは日本語理由で拒否し後の保存済み/未保存内容を保持。checkpointはtrackedを戻し新規untrackedだけ削除して事前untrackedを保持。ISOLATED・対象不明・異なるroot/modeは日本語理由で拒否し両rootを不変に保つ。ISOLATEDのDiffは閲覧可能。DEFAULTへ戻しても古いisolatedカードは拒否。旧履歴は安全拒否し新規DEFAULT履歴は復元可能。 実行中・停止処理中・準備中のCLIと復元が競合せず、復元中の新規送信も拒否する。元root不明の再開会話は復元拒否、新規DEFAULT会話では復元可能。
 
-初期登録時のGPT: pending — 共有接続と排他を実装。実VFS/CLI/GUIは新しい固定候補で未観察。
+初期登録時のAgent（互換キーgpt）: pending — 共有接続と排他を実装。実VFS/CLI/GUIは新しい固定候補で未観察。
 初期登録時の人間: pending — 新しい固定候補で未実施。過去の観察結果を転記しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -244,7 +244,7 @@ PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
 期待結果: 固定候補から再現可能にprobeをビルドし、実際のロードJAR・run・bootと操作結果/イベントを照合できる。手順と限界が正確で、CUA操作の成功/失敗/未試行、旧実測と新候補、人間操作とCUA操作を区別する。調査結果が再現可能で正確なら本Caseは合格可能だが、それを親73のCUA全面操作成立、modal修正、製品Settings/CLI/IME/D&Dのpassへ言い換えない。
 
-初期登録時のGPT: pending — 固定候補のprobe資材と調査記録の整合確認は未実施。旧調査の完了は根拠であり新候補passへ転記しない。
+初期登録時のAgent（互換キーgpt）: pending — 固定候補のprobe資材と調査記録の整合確認は未実施。旧調査の完了は根拠であり新候補passへ転記しない。
 初期登録時の人間: pending — 固定候補で未実施。人間によるprobe実操作と記録照合で確認可能。合格は調査成果の受入に限り、CUA操作成立を意味しない。
 
 修正Issue/PR: 未登録 / 未登録
@@ -269,7 +269,7 @@ PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
 期待結果: Computer Useの結果表示と補助イベントが一致する。再起動後に同じbuild/JARと新bootを区別できる。失敗経路と成功経路を分ける。日本語直接設定をIME変換passにしない。
 
-初期登録時のGPT: pending — 旧fixture sourceで.app基本操作と再識別が成功。plain識別と初回座標/scrollはblocked、再起動後は成功。新固定候補で未実施。
+初期登録時のAgent（互換キーgpt）: pending — 旧fixture sourceで.app基本操作と再識別が成功。plain識別と初回座標/scrollはblocked、再起動後は成功。新固定候補で未実施。
 初期登録時の人間: pending — 未実施。人間が直接GUI操作してもComputer Use経路の合格にはならない。固定候補でGPT/CUA操作と結果証拠を照合する。
 
 修正Issue/PR: 未登録 / 未登録
@@ -325,7 +325,7 @@ PR: [#82](https://github.com/shinma06/cursor-in-android-studio/pull/82)
 
 期待結果: popup展開表示と選択結果を別々に判定する。modalを開いた後は背面親窓ではなく子DialogをCUAで取得する。取得できなければ環境blockedを残し、製品failやpassへ転換しない。
 
-初期登録時のGPT: blocked — 旧実測ではpopupキー選択結果のみ成功、展開画像は未達。ModalはDIALOG_OPEN後も背面親窓を返し再取得でも回復しない。
+初期登録時のAgent（互換キーgpt）: blocked — 旧実測ではpopupキー選択結果のみ成功、展開画像は未達。ModalはDIALOG_OPEN後も背面親窓を返し再取得でも回復しない。
 初期登録時の人間: pending — 未実施。人間が直接GUI操作してもComputer Use経路の合格にはならない。固定候補でGPT/CUA操作と結果証拠を照合する。
 
 修正Issue/PR: 未登録 / 未登録

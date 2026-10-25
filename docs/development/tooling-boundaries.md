@@ -4,6 +4,8 @@
 
 [arc42の実行・配置・横断観点](https://arc42.org/overview/)を既存入口へ対応させる。新CLI基盤・shared util・別repositoryは作らず、実行入口/判断/外部操作を呼出しで区別する。
 
+以下の経路・Verifier・RC説明は、記載した固定版の構成・検証記録です。現在の判断は対象branch/SHAと[Change Impact](change-impact.md)・[PR自動進行](pr-automation.md)・[ZIP配布定義](plugin-zip-delivery.md)を照合します。旧構成の記録を配布切替やNEW gateの有効化根拠にしません。
+
 ## 4つの入口と代表経路
 
 | 経路 / 入口・入力 | 判断・出力 / 副作用の開始点 | 失敗時と実行主体 |

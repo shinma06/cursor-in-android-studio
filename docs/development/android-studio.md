@@ -5,7 +5,7 @@
 | 判断すること | 最初のローカル入口 | 外部知見を使う条件 |
 | --- | --- | --- |
 | SDK/JBR/JVM・build・配布 | [build入力](../../scripts/workflow/check_build_inputs.py)、[互換性policy](../../scripts/workflow/plugin_compatibility.json)、[ZIP配布](plugin-zip-delivery.md) | 実対象版のAPI・bytecode・依存・標準buildで足りない事実がある |
-| EDT・background・dispose・取消し・process | [実装指示](../../AGENTS.md#main-print-implementation-constraints)、対象source/callers/tests | API境界、寿命、generation、所有子の実停止を判断する必要がある。外部のPASSを本製品へ転記しない |
+| EDT・background・dispose・取消し・process | [実装指示](../../AGENTS.md#変更時に保持する制約)、対象source/callers/tests | API境界、寿命、generation、所有子の実停止を判断する必要がある。外部のPASSを本製品へ転記しない |
 | profile・fixture・実ロード・GUI | [GUI調整](gui-coordination.md)、[loop証拠](../loop-engineering/evidence.md) | 実IDE/profile/PID/source/ZIP/JARと所有fixtureの結合に不足がある。worktreeは共有IDEを隔離しない |
 | 保存・復元・失敗保全・安全性 | [要件](../cursor-agent-plugin-requirements.md)、[製品制約](../../AGENTS.md)、対象保存コード/tests | state/storage互換、atomic更新、対象root・失敗/取消し保全の不足を確認する。録画製品固有の形式やpinを本製品要件にしない |
 | 受入・harness・証拠再利用 | [verification](../verification/README.md)、[責任](../verification/responsibility.md)、対象Case | 保証→既存証拠→不足事実を先に示し、必要な検査/実接続だけ選ぶ |

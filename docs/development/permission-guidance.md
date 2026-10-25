@@ -22,4 +22,6 @@ ToolWindowChatActionsの候補/説明を更新する。RootPanelから既存Agen
 
 既存18設定組合せの理由・snapshot・起動前拒否を再利用し、各候補の表示とservice理由の一致、開く/更新/取消での共有値保持、tab/transport切替、破棄後callback拒否、permissionのplain text/opaque ID/二重回答を回帰確認する。[新3Case](../verification/changes/issue-300.json)はP1/P2/P3に対応しGPT/人間pending。既存QA40/102/104/107と過去Caseの結果は変更しない。新live permission実測は146のowner/公開範囲に従う。
 
-専用branchはD9979266から停止済み#97 `bb94abdef442c762439ab05dc389197f791ef980` を通常merge。固有reviewbaseは97、全targetはdevelop、258/24/48祖先を保持。297研究は参照だけ。297と既存依存の統合順を守り、統合後はorigin/develop通常mergeと実target差分・テスト・Case・CI・独立レビューを更新。PMが専用QAへ双方向link/readbackしmainを追跡する。それまでenroll/ready/mergeせず、146未公開原本と261freeze/251監査を維持する。
+以下の固定base・依存・担当と停止条件は#300当時の作業履歴です。現在の割当・統合条件は対象Issue/PRのclaimと[workflow](github-workflow.md)で照合し、本書だけから停止解除を推定しません。
+
+専用branchはD9979266から停止済み#97 `bb94abdef442c762439ab05dc389197f791ef980` を通常merge。固有reviewbaseは97、全targetはdevelop、258/24/48祖先を保持。297研究は参照だけ。297と既存依存の統合順を守り、統合後はorigin/develop通常mergeと実target差分・テスト・Case・CI・独立レビューを更新。PMが専用QAへ双方向link/readbackしmainを追跡する。当時はそれまでenroll/ready/mergeせず、261freeze/251監査を維持した。#146未公開原本の保護とowner/公開範囲の確認は現在も継続する。

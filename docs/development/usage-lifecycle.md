@@ -26,4 +26,6 @@ print4counterは`TokenUsage`の非負整数Long・field別validationを維持す
 
 [Cursor IDE Agent](https://cursor.com/docs/agent/overview)と[JetBrains AI Assistantのcontext管理](https://www.jetbrains.com/help/ai-assistant/chat-mode.html)は既存の会話・context機能を持つ。今回の改善は本Pluginが確認できる情報の提供状態と応答所有を示すもので、usage計測やMCPのIDE操作を独自機能と呼ばない。Cursor ACP + IntelliJ MCP構成でも、IDE側情報からproviderの未提供usageを生成できるとは扱わない。providerの数値契約を追加せず既存のIDEパネル/イベントを利用する。
 
+以下の固定base・依存・担当と停止条件は#287当時の作業履歴です。現在の割当・統合条件は対象Issue/PRのclaimと[workflow](github-workflow.md)で照合し、本書だけから停止解除を推定しません。
+
 GUI受入は[Case287](../verification/changes/issue-287.json)のU01/U03/U05相当。自動テストと実clipboard/フォーカス等の他Issue受入を混同せず、固定buildでの表示・開閉・狭幅・テーマ・Stop/遅着を指定GUI担当が確認する。#261統合保留中はenroll/mergeせず、develop統合後のQA双方向link/readbackとmain全候補確認をPMへ引き継ぐ。#287の完了で親#149全体を閉じない。
