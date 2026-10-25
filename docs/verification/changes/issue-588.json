@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 588,
+  "gui_required": false,
+  "reason": "段階Aはmain限定候補の許可7 path/mode・目的・保証ごとの検証とpendingのnative受入計画だけを先行保存する。製品source/fixture/build/既存Case/結果は変更しない。段階BのGUIを免除せず、候補/ZIP/実観察のPASSを登録しない。",
+  "cli_checks": [
+    "scopeのschema/Issue/7 path/regular modeと全Caseを既存validatorで検査する。",
+    "本Issueの計画受入JSONとtooling PR metadataを既存validatorへ照合し、全Caseがpendingであることを確認する。",
+    "固定mainへの既存patch適用可能性・Kotlin6件のtoken/literal不変・README以外のfixture不変をprivateで再検査する。",
+    "shared classifierが選ぶ必要workflow/loop検査、固定HEAD/baseの別session評価、4 checksと通常main統合を確認する。#587統合前のpush/build/GUIは行わない。"
+  ],
+  "cases": []
+}
