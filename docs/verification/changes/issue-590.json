@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 590,
+  "gui_required": false,
+  "reason": "固定Caseと採用済み変更の適用条件を整合する運用データ・生成処理・受入gateの変更。製品コード・GUI挙動は変更せず、新しい製品観察やPASSも生成しない。",
+  "cli_checks": [
+    "適用条件の正常/拒否回帰: 元Case・原観察・Computer Use/artifact/fix追跡の保持、採用前後の候補境界、trusted main限定、原文/hash/適用revision不一致と旧PASS/reusedの拒否",
+    "固定developの7 Caseと固定scope562の2 Caseを実原文/hashへ照合し、scope175 Case/CUA4/environment10/artifact2と原本bytesが不変であることを確認",
+    "生成一覧と受入gateが同じ適用表を使用し、原手順/期待/結果と適用後の未実施受入を区別することを検証",
+    "python3 -m unittest discover -s scripts/workflow -p test_*.py",
+    "python3 -m unittest discover -s scripts/loop -p test_*.py",
+    "git diff --check"
+  ],
+  "cases": []
+}
