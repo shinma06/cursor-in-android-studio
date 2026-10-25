@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 600,
+  "gui_required": false,
+  "reason": "採用済みmainの共通開発運用と有限Case適用条件を、develop既存consumerを保持して同期する。製品source/GUI挙動や原観察を変更せず、手順生成を実行/PASSにしない。classifier/CI入力のため必要なJVM検査と標準ZIPは維持する。",
+  "cli_checks": [
+    "Git履歴の基点選択3回帰、明示base/OLD source保持、CONTRIBUTING厳密pathと類似/製品混在拒否",
+    "有限Case条件の正常/拒否回帰と同じ生成一覧/gate/人間向けQA文書/実CLI callerの整合。原FAIL/CUA/artifact/fix追跡を保持し、不正base/旧PASS/reused/原文hash不一致を拒否",
+    "採用済みmainとdevelopの実固定データ生成を照合: develop7条件/main5622条件、175Case/CUA4/environment10/2artifact、原Case/run/raw/hash/resultと枝固有機能を保全",
+    "通常pre-push hookのChange Impactでworkflow/loop/JVM tests。既知OpenSSL3を当該processへ限定し、検査/共有configを変更しない",
+    "標準buildPlugin/verifyPluginStructure、同一ZIP内部source・Rabbit/JVM25 identity・hash/sizeを照合",
+    "hosted CI、current provider全feedback、別session固定独立reviewと4必須checks、git diff --check"
+  ],
+  "cases": []
+}
