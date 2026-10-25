@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 580,
+  "gui_required": false,
+  "reason": "全既存運用適用の固定path/blob対象台帳・初期分割と管理記録のみ。製品source/runtime、build、既存Case/原結果/原失敗、workflow/公開資源の動作は変更しない。実読/適合・移行・GUI受入の成功を主張しない。",
+  "cli_checks": [
+    "固定main471/develop69fの全tracked対象と台帳のbranch/path/revision/blobを照合。1065行・一意resource_id・固有756path・未読pendingをassertで確認",
+    "python3 scripts/workflow/change_impact.py --base 69f230280ee223569ccff2ac9ef92f2ddeb56c3b --run-tests（clean committed HEADで選択された検査）",
+    "GUI不要schema/Cases0・Markdown表のround-trip・公開禁止path等の未収録・git diff --checkを確認",
+    "Project登録/Status/Priority/Milestone/native関係・claimをreadback。共有資源棚卸し・領域実読・独立レビュー・PR/統合・終端revision再照合は後続担当の実成果を待つ"
+  ],
+  "cases": []
+}
