@@ -16,10 +16,7 @@ concurrency:
 
 jobs:
   checks:
-    # ubuntu, not macos: macOS runner minutes cost 10x on GitHub Actions' free/
-    # paid tiers, and nothing here needs macOS -- the JUnit tests are plain JVM
-    # code, and Android Studio ships a Linux distribution for exactly this kind
-    # of headless/CI use.
+    # Run headless tests and SDK compatibility checks against the Linux distribution.
     runs-on: ubuntu-latest
     outputs:
       plugin_zip: ${{ steps.impact.outputs.plugin_zip }}

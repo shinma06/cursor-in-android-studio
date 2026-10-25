@@ -86,6 +86,56 @@ class GitImpactTest(unittest.TestCase):
         self.write('docs/design.md', 'later knowledge\n'); head = self.commit()
         self.assertTrue(ci.git_impact(None, head, cwd=self.root)['gradle_test'])
 
+    def test_main_issue_branch_uses_main_ancestor_without_hiding_product_changes(self):
+        self.write('src/main/MainProduct.kt', 'class MainProduct\n')
+        main = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/main', main)
+        self.write('docs/design.md', 'main tooling\n')
+        docs = self.commit()
+        result = ci.git_impact(None, docs, cwd=self.root)
+        self.assertEqual(result['base'], main)
+        self.assertFalse(result['plugin_zip'])
+        self.assertFalse(result['gradle_test'])
+        # An explicit old published source is still the full comparison boundary.
+        self.assertTrue(ci.git_impact(self.base, docs, cwd=self.root, merge_base=False)['plugin_zip'])
+        for path in ('src/main/MainProduct.kt', 'build.gradle.kts'):
+            self.write(path, 'changed product/build input\n')
+            result = ci.git_impact(None, self.commit(), cwd=self.root)
+            self.assertTrue(result['plugin_zip'])
+            self.assertTrue(result['gradle_test'])
+
+    def test_develop_ancestor_stays_selected_and_incomparable_baselines_fail_full(self):
+        self.git('checkout', '-b', 'develop-issue', self.base)
+        self.write('src/main/DevelopProduct.kt', 'class DevelopProduct\n')
+        develop = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/develop', develop)
+        self.git('checkout', '-b', 'main-issue', self.base)
+        self.write('build.gradle.kts', 'main build inputs\n')
+        main = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/main', main)
+        self.git('checkout', 'develop-issue')
+        self.write('docs/design.md', 'develop tooling\n')
+        docs = self.commit()
+        result = ci.git_impact(None, docs, cwd=self.root)
+        self.assertEqual(result['base'], develop)
+        self.assertFalse(result['plugin_zip'])
+        self.git('merge', '--no-edit', 'main-issue')
+        result = ci.git_impact(None, self.git('rev-parse', 'HEAD'), cwd=self.root)
+        self.assertIn(ci.UNKNOWN, result['impacts'])
+        self.assertTrue(all(result[key] for key in ('gradle_test', 'tooling_test', 'plugin_zip')))
+
+    def test_multiple_merge_bases_require_full_validation(self):
+        tree = self.git('rev-parse', 'HEAD^{tree}')
+        left = self.git('commit-tree', tree, '-p', self.base, '-m', 'left')
+        right = self.git('commit-tree', tree, '-p', self.base, '-m', 'right')
+        integrated = self.git('commit-tree', tree, '-p', left, '-p', right, '-m', 'integration')
+        head = self.git('commit-tree', tree, '-p', right, '-p', left, '-m', 'issue')
+        self.git('update-ref', 'refs/remotes/origin/develop', integrated)
+        self.assertEqual(set(self.git('merge-base', '--all', integrated, head).splitlines()), {left, right})
+        result = ci.git_impact(None, head, cwd=self.root)
+        self.assertIn(ci.UNKNOWN, result['impacts'])
+        self.assertTrue(all(result[key] for key in ('gradle_test', 'tooling_test', 'plugin_zip')))
+
     def test_candidate_workflow_add_delete_builds_but_delivery_consumer_does_not(self):
         path = '.github/workflows/release-candidate.yml'
         self.write(path, 'name: candidate\n'); candidate = self.commit()
@@ -117,6 +167,9 @@ class GitImpactTest(unittest.TestCase):
 
     def test_missing_history_nonancestor_and_git_failure_are_full(self):
         self.assertTrue(ci.git_impact('0' * 40, self.base, cwd=self.root)['gradle_test'])
+        unknown = ci.git_impact(None, '--not-a-revision', cwd=self.root)
+        self.assertIn(ci.UNKNOWN, unknown['impacts'])
+        self.assertTrue(unknown['plugin_zip'])
         self.write('docs/design.md', 'one\n'); first = self.commit()
         self.git('checkout', '-b', 'other', self.base)
         self.write('docs/design.md', 'two\n'); second = self.commit()
