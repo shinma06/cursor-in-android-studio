@@ -262,13 +262,14 @@ class AcceptanceTests(unittest.TestCase):
         data = change(); data['cases'][0]['steps'] = []
         with self.assertRaises(ValueError): validate_change(data, 35, True)
 
-    def test_direct_main_readme_only_and_mixed_product_paths(self):
+    def test_direct_main_knowledge_entrypoints_and_mixed_product_paths(self):
         self.pr['body'] = self.pr['body'].replace('promotion', 'tooling')
-        for extra in ('', 'src/main/Product.kt', 'build.gradle.kts', 'README.md/Product.kt', 'README.kt'):
+        for extra in ('', 'CONTRIBUTING.md', 'src/main/Product.kt', 'build.gradle.kts',
+                      'README.md/Product.kt', 'README.kt', 'CONTRIBUTING.md/Product.kt'):
             with self.subTest(extra=extra):
                 files = '\n'.join(filter(None, ['README.md', 'docs/verification/changes/issue-35.json', extra]))
                 git = lambda *args: files if args[0] == 'diff' else self.git(*args)
-                if extra:
+                if extra not in ('', 'CONTRIBUTING.md'):
                     with self.assertRaisesRegex(ValueError, 'restricted'):
                         verify_pr(self.pr, self.api, git)
                 else:
