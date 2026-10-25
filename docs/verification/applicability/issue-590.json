@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "issue": 590,
+  "decision": "https://github.com/shinma06/cursor-in-android-studio/issues/590",
+  "cases": {
+    "42:PROMPT-TAB-1": {
+      "source_pr": 75,
+      "source_merge": "efb158e8299797cdd224e3529d729e0097e10a62",
+      "source_path": "docs/verification/changes/issue-42.json",
+      "original_case_sha256": "7abc81d344e56f7633b90f9064b3f694b7a5e3d67824df506ea5d18b30fe7f47",
+      "adopted_pr": 513,
+      "adopted_merge": "362852ec27ec8c5035da99da526288172eedc506",
+      "adopted_cases": {
+        "212:KEYMAP-MODE-CYCLE": "f34abfe41fee8e4f0727c08c0175d849c132a7acf012c79dc1dbf21b16fd8747"
+      },
+      "changes": {
+        "steps": [
+          "IDE KeymapのMode Actionを既定Shift+Tab割当・解除・別キー割当・Shift+Tabから始まる複数strokeに分けて記録し、以下のShift+Tabを各条件で試す。既定ではmode循環、解除時は逆focus移動を期待し、本文/選択/IME/popupの保護は両条件で確認する。",
+          "日本語を含む複数行の未送信入力でTabとShift+Tabを押す。",
+          "空欄と文字選択中でも同じ操作を試す。",
+          "Shift+Enter改行、日本語IME変換確定、@候補の選択と取消を試す。",
+          "短い通常応答を完了させ、入力欄の再有効化後にTabとShift+Tabを再確認する。",
+          "通常のコードエディタでTab字下げを確認する。"
+        ],
+        "expected": "本文や選択を変えず、通常Tabは入力外の次の操作へfocusを移す。Mode ActionのShift+Tab割当を解除した条件ではShift+Tabが前の操作へfocusを移す。既定割当ではShift+Tabが選択中会話のmodeだけをAgent→Plan→Ask→Agentと循環する。割当変更・複数strokeは現在Keymapに従う。改行・IME確定・mentionで誤送信しない。候補popupにfocusがある間は入力欄のTab処理を強制しない。再生成後も同じ挙動を保ち、通常エディタの字下げは維持する。"
+      },
+      "reason": "#212を含む候補だけでKeymap条件を区別する。旧Tab/Shift+Tab原文と#205原FAIL、本文/選択・IME・mention・再生成・通常editorの保証を保持する。",
+      "qa": [
+        103,
+        531
+      ]
+    },
+    "205:PROMPT-TAB-FIX": {
+      "source_pr": 403,
+      "source_merge": "14e65392f67b9532b94bf491e56e44548e4d4963",
+      "source_path": "docs/verification/changes/issue-205.json",
+      "original_case_sha256": "ecba4e4e4fb0576eaa0220c96d9d5574935080350f30e7e0786445a4f7edf348",
+      "adopted_pr": 513,
+      "adopted_merge": "362852ec27ec8c5035da99da526288172eedc506",
+      "adopted_cases": {
+        "212:KEYMAP-MODE-CYCLE": "f34abfe41fee8e4f0727c08c0175d849c132a7acf012c79dc1dbf21b16fd8747"
+      },
+      "changes": {
+        "steps": [
+          "IDE KeymapのMode Actionを既定Shift+Tab割当・解除・別キー割当・Shift+Tabから始まる複数strokeに分けて記録し、以下のShift+Tabを各条件で試す。既定ではmode循環、解除時は逆focus移動を期待し、本文/選択/IME/popupの保護は両条件で確認する。",
+          "各IDEで選択なし、単行選択、日本語を含む複数行選択、空欄を用意し、TabとShift+Tabをそれぞれ入力欄から実行する。本文と選択、移動先を操作前後で照合する。",
+          "Shift+Enterで改行し、日本語IMEで変換してEnter確定する。確定による誤送信がないことを確認する。",
+          "@候補を開き、候補内でTabを押しても入力欄のfocus移動処理が奪わないこと、候補選択と取消ができることを確認する。",
+          "短いAsk応答を1回完了し、再有効化した入力欄でも選択あり/なしのTabとShift+Tabを再確認する。新規チャットでも同じ操作を試す。",
+          "通常のコードエディターでTab字下げとShift+Tabを確認し、入力欄の修正によってIDE全体の操作が変わっていないことを確認する。"
+        ],
+        "expected": "本文や選択を変えず、通常Tabは入力外の次の操作へfocusを移す。Mode ActionのShift+Tab割当を解除した条件ではShift+Tabが前の操作へfocusを移す。既定割当ではShift+Tabが選択中会話のmodeだけをAgent→Plan→Ask→Agentと循環する。割当変更・複数strokeは現在Keymapに従う。改行・IME確定・mentionで誤送信しない。候補popupにfocusがある間は入力欄のTab処理を強制しない。再生成後も同じ挙動を保ち、通常エディタの字下げは維持する。"
+      },
+      "reason": "#212を含む候補だけでKeymap条件を区別する。旧Tab/Shift+Tab原文と#205原FAIL、本文/選択・IME・mention・再生成・通常editorの保証を保持する。",
+      "qa": [
+        418,
+        531
+      ]
+    },
+    "97:KEYS-97-DRAFT": {
+      "source_pr": 302,
+      "source_merge": "fca27d99a5f1d2f1b953afc15966e06a1b69e64d",
+      "source_path": "docs/verification/changes/issue-97.json",
+      "original_case_sha256": "dabe88716a116dbad0019e30062f2e5063b861f55d239d0d845cdf87a8b870ef",
+      "adopted_pr": 513,
+      "adopted_merge": "362852ec27ec8c5035da99da526288172eedc506",
+      "adopted_cases": {
+        "212:KEYMAP-MODE-CYCLE": "f34abfe41fee8e4f0727c08c0175d849c132a7acf012c79dc1dbf21b16fd8747"
+      },
+      "changes": {
+        "steps": [
+          "A/B会話に異なる複数行本文・caret・明示context・slash選択を置き、タブを切り替える。設定Applyと再表示を挟んでもそれぞれ保持する。",
+          "複数行の日本語を貼り付け、元の改行/文字列/caretを確認。貼付だけで送信されず、Shift+Enterと通常Tabのfocus移動を維持する。Shift+Tabは既定Mode Action割当で選択会話のmodeだけを循環し、割当解除では逆focus移動する。どちらもdraft/選択・IME/popupを保持する。",
+          "変換中のタブ切替・閉じる操作、ツールウィンドウ非表示/再表示、project closeを試す。残存購読や古いIME解除で新しい入力を妨げない。Light/Dark×通常/Compactと狭幅で操作する。"
+        ]
+      },
+      "reason": "#97のdraft/caret/focus保証を維持し、#212採用後のShift+Tabだけを現在Keymapの条件へ分ける。",
+      "qa": [
+        359,
+        531
+      ]
+    },
+    "48:QUEUE-ORDER": {
+      "source_pr": 279,
+      "source_merge": "ed915db35db46c6e7783d4af3988b75a77188d7a",
+      "source_path": "docs/verification/changes/issue-48.json",
+      "original_case_sha256": "0bde38d844c6a1dd3257a24e553f16221ba68c3508c9ff997971a0949c11bf3d",
+      "adopted_pr": 513,
+      "adopted_merge": "362852ec27ec8c5035da99da526288172eedc506",
+      "adopted_cases": {
+        "212:KEYMAP-QUEUE-SUBMIT": "13963f3aced43b716250d4f075644e643a24de538e3132a3a37082590c7eb55d"
+      },
+      "changes": {
+        "steps": [
+          "指定GUI leaseで同じ固定build/ZIP hash/loaded JAR・CLI版を記録し、使い捨てprojectのprintとACPで数秒以上続くturnを実行する。",
+          "実行中に未登録下書きを入力し、両送信キー設定で現在の送信キーを1回押す。#212の次turn予約へ1項目だけ追加されることを確認し、非送信Enter/Shift+Enterは設定どおり改行する。次に「予約に追加」でも登録し、一覧で本文保存/キャンセル・削除・上下移動、元のmode/model表示を確認する。登録前のdraftを勝手に送らず、拒否時はdraftを保持する。",
+          "一覧を一時停止のまま閉じ、完了後も送信されないことを確認してから明示的に予約送信を再開する。送信順と同じprovider/Conversation、新しいturn IDを確認する。",
+          "登録後にmode/model、選択ファイル・選択範囲・permission/sandbox/worktree設定を変え、mode/modelは登録時、context/実行設定は次turn開始時のsnapshotであることを確認する。ACP非対応設定は失敗/pauseを表示する。",
+          "未登録下書き・caretを残して連続予約を送り、本文が消えず勝手に送られないことを確認する。狭いpanel、IME、日本語入力、キーボードで一覧/編集/再開へ到達できることを確認する。"
+        ],
+        "expected": "設定済み送信キーまたは「予約に追加」による明示登録だけが同会話へ1件ずつ送られる。未登録draftを保持し、編集キャンセルは元entryのまま。登録設定と送信contextの時点が表示どおりである。IME/popup/入力無効/owner変更で登録せず、長押しの重複と失敗の自動再送を防ぐ。"
+      },
+      "reason": "#212を含む候補では送信キーも明示登録に含む。予約の順序・設定/context時点・未登録draft・pause/再開・所有/失敗境界は緩和しない。",
+      "qa": [
+        340,
+        531
+      ]
+    },
+    "97:KEYS-97-RUNNING": {
+      "source_pr": 302,
+      "source_merge": "fca27d99a5f1d2f1b953afc15966e06a1b69e64d",
+      "source_path": "docs/verification/changes/issue-97.json",
+      "original_case_sha256": "c04b91819573eba7f90d5a3aeec6e33934a7ed3d5a1830eded1d8d21419edf91",
+      "adopted_pr": 513,
+      "adopted_merge": "362852ec27ec8c5035da99da526288172eedc506",
+      "adopted_cases": {
+        "212:KEYMAP-QUEUE-SUBMIT": "13963f3aced43b716250d4f075644e643a24de538e3132a3a37082590c7eb55d"
+      },
+      "changes": {
+        "steps": [
+          "制御ACP fixtureで実行/Stop待ちを維持し、両方式の送信キーを新下書きに対して1回押す。実行中は同会話の次turn予約へ1項目だけ追加し、Stop待ち/入力無効/IME未確定・確定直後/popupでは追加・送信・Stopしないことをrequest数と予約一覧で確認する。",
+          "設定済み送信キーと明示予約ボタンが同じ登録境界を使い、1押下1項目だけ追加することを確認する。送信キーはStopに使わない。停止は明示Stop操作（Stopボタン/現在KeymapのStop Action）で行う。停止中もdraftを維持し、遅い終端は元runだけを終了する。",
+          "送信キーと完了/失敗/Stop終端を近接させる。登録時のowner/runを再確認し、拒否したdraftを保持する。実行中の登録キーを終了後のidle送信へ二重配送せず、終了後の新しい明示送信は1回だけになる。長押し/予約編集後の復元draftを重複登録せず、未送信失敗のdraft/停止queue回復も既存#258を保持する。"
+        ],
+        "expected": "実行中は設定済み送信キーと予約ボタンを明示登録として扱い、同じowner/runの次turn予約へ1回だけ接続する。IME/popup/入力不可/Stop待ちと所有が変わった入力は登録せずdraftを保持する。Stop・終了競合でidle送信を二重実行せず、失敗の自動再送を防ぐ。"
+      },
+      "reason": "#212採用前の送信キー無効契約と区別し、重複/誤登録防止・draft・停止/終端のrun所有を継続する。",
+      "qa": [
+        359,
+        531
+      ]
+    },
+    "153:TOOLWINDOW-SELECTED-RUN": {
+      "source_pr": 155,
+      "source_merge": "a55ea6ddd8dffecb27352cf5b3166ca53e72c1a1",
+      "source_path": "docs/verification/changes/issue-153.json",
+      "original_case_sha256": "0f22f2f51dea2393a9e1b66cb2ba63792ea53c9273400faff38c8c9ac719a678",
+      "adopted_pr": 255,
+      "adopted_merge": "9979266b4e99e7d4dc46689dac1f61f33f09b88a",
+      "adopted_cases": {
+        "44:HISTORY-RESTART": "c620d14774d1716a41b34acce0d07972161ae7b7600c45aecfecacd3cc05029b"
+      },
+      "changes": {
+        "expected": "実行状態/接続方法/要約は選択タブを操作時に再取得し、別タブを変更しない。旧metadata-only履歴は本文なしと説明し、本文を生成しない。#44以降に保存した会話は保存済み本文/順序/IDを表示する。本文閲覧・provider再開・Revertの可否を区別し、旧metadataや来歴不一致を再開可能と説明しない。タブ切替で既存runを停止せず、応答とエラーは所有タブへ届く。"
+      },
+      "reason": "#44採用後の保存会話と旧metadata-only履歴を区別する。選択tab/要約/遅い操作/run所有・旧データ保全は継続する。",
+      "qa": [
+        160,
+        259
+      ]
+    },
+    "180:COMPACT-HEADER-LAYOUT": {
+      "source_pr": 181,
+      "source_merge": "0562f9bc0dbaaeda9af3780ee30daedfb0c50e9d",
+      "source_path": "docs/verification/changes/issue-180.json",
+      "original_case_sha256": "03171a0eeb4a05a08b56e176ffb475c38552dd2ca72b99068be6946e72a01721",
+      "adopted_pr": 184,
+      "adopted_merge": "e64e8427f26c40d17ee5737abb711d923ca465c7",
+      "adopted_cases": {
+        "183:HEADER-ACTION-WIDTH": "c233d8ae1daa792063100b8ee23437e19459094182d1b37e7909963def120935"
+      },
+      "changes": {
+        "steps": [
+          "固定buildでCursor AgentのToolWindowを開き、旧製品名のタイトル行が重複せず、左にタブ、右に新規/履歴/横…/サイドパネル型非表示アイコンが同じ行にあることを確認する。",
+          "右固定部が108 logical px（SDK余白込み4×26pxと右余白4px、拡大倍率ではSDKの整数丸めを許容）で、幅240/320/800 logical px相当・通常/Compact・別UI倍率でも固定され、タブ領域が残ることを確認する。",
+          "多数のタブを追加し、ホイール/横スクロール、hover時のみタブ内側の細いscrollbar、選択・×・D&D・キーボードによる切替/並べ替え/閉じるを確認する。"
+        ]
+      },
+      "reason": "QA #182 comment 5626167417とQA #185が採用した108pxを適用する。1行配置・狭幅・倍率・tab操作・4 Action・既存未実施を保持する。",
+      "qa": [
+        182,
+        185
+      ]
+    }
+  },
+  "scopes": {
+    "562": {
+      "plan_sha256": "f1d2a69d8fe6a3ccb81869b80147f1641939920cc961e313ee9ac6c0f3ab30d6",
+      "original_candidate": "ebac56fe441c08a6c869b8be3b1aa906a887c14e"
+    }
+  }
+}

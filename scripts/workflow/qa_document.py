@@ -1,5 +1,9 @@
 """Human-readable QA instructions, published as a linked Markdown Issue comment."""
+import json
 import re
+
+from case_applicability import apply_revision, case_revisions
+from verification import HASH, SHA, environment_cases, git_read, scoped_environment_cases
 
 
 def render_summary(change, source_url):
@@ -38,7 +42,51 @@ def render_summary(change, source_url):
     return '\n'.join(lines)
 
 
-def render_document(change, source_url):
+def render_document(change, source_url, promotion=None, git=git_read):
+    if promotion is not None:
+        base, candidate = promotion.get('base'), promotion.get('candidate')
+        if not isinstance(base, str) or not SHA.fullmatch(base) or not isinstance(candidate, str) or not SHA.fullmatch(candidate):
+            raise ValueError('Current QA document requires a fixed trusted main base and candidate')
+        if base not in git('rev-list', '--first-parent', 'origin/main').splitlines():
+            raise ValueError('Current QA document base must be trusted main first-parent history')
+        scoped = promotion.get('scope', 'develop') == 'main'
+        if promotion.get('scope', 'develop') not in ('main', 'develop'):
+            raise ValueError('Unknown QA candidate scope')
+        revisions = case_revisions(base, candidate, git, change['issue'] if scoped else None)
+        environments = (scoped_environment_cases(base, candidate, change['issue'], git) if scoped
+                        else environment_cases(base, candidate, git))
+        current = dict(change, cases=[apply_revision(case, revisions.get(f'{change["issue"]}:{case["id"]}'),
+                                                    environments.get(f'{change["issue"]}:{case["id"]}'))
+                                      for case in change['cases']])
+        artifacts = dict(promotion.get('artifacts', {}))
+        if promotion.get('artifact_sha256'):
+            artifacts['plugin'] = promotion['artifact_sha256']
+        used_artifacts = {case.get('artifact', 'plugin') for case in change['cases']}
+        if any(name in artifacts and (not isinstance(artifacts[name], str) or not HASH.fullmatch(artifacts[name]))
+               for name in used_artifacts):
+            raise ValueError('Current QA document requires valid artifact hashes or an explicitly unregistered artifact')
+        lines = ['## 固定候補の現在条件', '', 'trusted main base: ' + base, '候補SHA: ' + candidate,
+                 '対象成果物 SHA-256: ' + json.dumps({name: artifacts.get(name, '未登録') for name in sorted(used_artifacts)}, ensure_ascii=False),
+                 '本書は試験手順です。旧PASSや原FAILを変更せず、結果は固定候補の正本へ別に記録します。', '']
+        history = []
+        for case in change['cases']:
+            key = f'{change["issue"]}:{case["id"]}'
+            if case.get('artifact', 'plugin') != 'plugin':
+                lines += [case['id'] + ' の対象成果物: ' + case['artifact'], '']
+            revision = revisions.get(key)
+            if revision:
+                lines += [case['id'] + ' のapplicability_revision: ' + revision['revision'],
+                          '適用条件: ' + revision['reason'],
+                          '変更契約には新観察が必要です。旧PASS/reusedは充足に使いません。', '']
+                history += [case['id'], '元手順（履歴）: ' + json.dumps(case['steps'], ensure_ascii=False),
+                            '元期待結果（履歴）: ' + case['expected'],
+                            '元観察（履歴）: ' + json.dumps({actor: case[actor] for actor in ('gpt', 'human')}, ensure_ascii=False), '']
+            if key in environments:
+                lines += [case['id'] + ' のenvironment_revision: ' + environments[key]['revision'],
+                          '実際にロードしたenvironmentも照合し、環境改訂と適用条件を両方満たしてください。', '']
+        return (render_document(current, source_url)
+                + '\n<details><summary>固定候補・適用条件・原契約（管理と履歴）</summary>\n\n'
+                + '\n'.join(lines + history) + '\n</details>\n')
     lines = ['## 人間向け試験内容', '', f'試験内容の根拠: [対象Case・元の受入]({source_url})', '',
              '### 開始前の準備', '',
              '1. このQAの本文と最新コメントで、担当・未解決の条件・過去の結果を確認する。未解放の担当を引き継ぐ場合はPMが引継ぎを確認する。',

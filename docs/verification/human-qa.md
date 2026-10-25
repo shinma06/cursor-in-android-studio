@@ -49,4 +49,17 @@ Caseや依存が変わればドキュメントと本文リンクも更新する�
 
 Case JSONと固定候補の結果は[既存の正本](README.md)を維持する。手順書は閲覧用で、試験結果の別台帳ではない。実施者はQAに結果を記録し、PMが該当候補のpromotion.jsonへ反映する。過去buildのpass、未解決owner、公開承認待ちをこの整備で変更しない。
 
+## 固定候補の現在条件を生成する（#600）
+
+元mergeの自動引継ぎ文書は原受入の記録として保持する。固定候補の案内は、PMが確認した1つのCase JSONとpromotion manifestから生成する。`base`は取得済み`origin/main`の第一親履歴に含まれる固定SHA、`candidate`は対象source、ZIPは実際の試験開始メモへ対応付ける。
+
+```bash
+python3 scripts/workflow/verification.py docs/verification/changes/issue-N.json \
+  --promotion /path/to/fixed-promotion.json --qa-document --output /path/to/qa-current.md
+```
+
+この入口は生成一覧/gateと同じ[有限な適用条件](applicability/README.md)とRabbit環境投影を使う。先頭の試験表は現在条件、固定SHA・必要revisionと元手順/期待/原観察は下段の管理・履歴に表示する。main限定候補ではtrusted scope由来の受入JSONを入力し、元Cに含まれる条件だけを投影する。候補作成/受入の許可範囲と正式gateはtrusted mainに従う。
+
+生成は実行/受入ではない。旧PASS/reusedを新契約へ転用せず、applicability_revisionとenvironment_revisionが必要なCaseは両方を満たす。QAの元本文・文書・人間補足・原FAILを保護し、担当が生成内容を照合してから現在文書へのリンクだけを更新・readbackする。既存リンクが異なる文書を指す場合、`ensure_document`の停止を迂回せず、PMが旧文書/補足を履歴として保全して明示的に整合する。新規QAや将来GUI全件合格・9 QA個別ACKはこの入口の追加条件ではない。
+
 2026-09-11時点のopen QA 35件は、既存Case/Issueの残受入に基づく個別Markdown手順書をQAコメントへ添付し、本文から直接リンクする。旧QAの手順具体化も既存の試験範囲を維持し、重複Caseは専用QAの結果を参照する。
