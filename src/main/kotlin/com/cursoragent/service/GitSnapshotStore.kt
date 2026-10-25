@@ -35,15 +35,14 @@ class GitSnapshotStore(private val workspaceDir: File) {
 
     /**
      * Overwrites every tracked path with [sha]'s tree, then deletes files that are
-     * still untracked now but weren't in [untrackedFilesAtSnapshot] — i.e. new files
-     * the agent created after the snapshot. `git checkout <sha> -- .` only ever
+     * still untracked now but weren't in [untrackedFilesAtSnapshot], regardless of
+     * who created them after the snapshot. `git checkout <sha> -- .` only ever
      * writes paths present in <sha>'s tree, it never deletes anything, which is why
      * new *untracked* files need this separate cleanup pass.
      *
-     * Known gap: a new file the agent both wrote and `git add`ed during the turn
-     * would no longer be untracked, so it's invisible to this cleanup and survives
-     * a rollback. This only matters if the CLI stages files itself, which ordinary
-     * edit/write tool calls don't do.
+     * Known gap: a new file staged by the agent or user during the turn is no
+     * longer untracked, so this cleanup cannot see it and it survives rollback.
+     * This snapshot does not guarantee complete removal of newly created files.
      */
     fun restore(sha: String, untrackedFilesAtSnapshot: List<String>): Boolean {
         val checkoutResult = runGit("checkout", sha, "--", ".")

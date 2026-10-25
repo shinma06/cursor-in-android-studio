@@ -183,9 +183,10 @@ class AgentProcessService(private val project: Project) : Disposable {
         return ModelListParser.parse(output)
     }
 
-    /** Raw `agent mcp list` output; format unverified against a populated config
-     *  (no MCP servers were configured on the machine this was written on), so the
-     *  UI shows this verbatim rather than attempting a specific parse. */
+    /**
+     * Raw `agent mcp list` output. The dialog parses observed `id: status` rows with
+     * [McpListParser] and falls back to raw output when no rows can be parsed.
+     */
     fun listMcpServersRaw(): String = runAgentCommandSync("mcp", "list") ?: "(agent mcp list failed)"
 
     fun setMcpServerEnabled(identifier: String, enabled: Boolean): Boolean {
