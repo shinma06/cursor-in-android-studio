@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 580,
+  "gui_required": false,
+  "reason": "全既存運用適用の現在分類と明示pendingを固定したcheckpoint台帳・管理/受入記録のみ。製品source/runtime、build、既存Case/原観察/原FAIL、workflow/public resourceの動作は変更しない。580/598全体完了、監査baseline更新、CasePASS、NEW実稼働を主張しないためGUI不要。",
+  "cli_checks": [
+    "原main471/develop69fの全1065branch/path/revision/blob、925read/140reused、分類792/53/189/16/pending15と単一12列JSON・一意resource_idを照合",
+    "採用maina905/develop329のactual file deltaと新規19trackedを固定レビューsourceの同blob/文脈へ照合。metadata380と369actual/prep5のIDupsert、コピー非水増し、限定本人保留・未実施nativeを確認",
+    "python3 scripts/workflow/change_impact.py --base 32919f96da05c9b991036f109976ecd6d40e3f87 --run-tests（clean committed HEAD。既存classifierが選ぶworkflow/loop等だけ）",
+    "GUI不要Cases0/metadataの既存validator、JSON round-trip、相対リンク/公開安全性、git diff --check。#580/#598OPEN/監査baseline不更新/Refs580/582native本人保留と後送state deltaの時点を照合"
+  ],
+  "cases": []
+}
