@@ -49,30 +49,55 @@ class BranchZipTest(unittest.TestCase):
                 return copy.deepcopy([r for r in self.tags if r['ref'].startswith(prefix)])
             _, query = path.split('?')
             page = int(query.split('page=')[-1])
-            rows = self.branches if endpoint == 'branches' else self.releases if endpoint == 'releases' else self.releases[0]['assets']
+            if endpoint == 'branches':
+                rows = self.branches
+            elif endpoint == 'releases':
+                rows = self.releases
+            else:
+                # Handle releases/{id}/assets endpoint
+                release_id = int(endpoint.split('/')[1])
+                target_release = next((r for r in self.releases if r['id'] == release_id), None)
+                rows = target_release['assets'] if target_release else []
             return copy.deepcopy(rows[(page - 1) * 100:page * 100])
         if method == 'POST':
             self.assertEqual(path, 'releases')
             self.release_writes.append((method, copy.deepcopy(data)))
+            # Use ID 7 for new releases created by the test
             self.releases.append({**data, 'id': 7, 'assets': []})
             return copy.deepcopy(self.releases[-1])
         if method == 'PATCH':
-            self.assertEqual(path, 'releases/7')
+            # Extract release ID from path (format: releases/{id})
+            if not path.startswith('releases/'):
+                raise AssertionError(f'Unexpected PATCH path: {path}')
+            release_id = int(path.split('/')[-1])
             self.release_writes.append((method, copy.deepcopy(data)))
             if self.fail_patch:
                 raise RuntimeError('metadata update failed')
-            self.releases[0].update(data)
-            return copy.deepcopy(self.releases[0])
+            # Find and update the matching release
+            target_release = next((r for r in self.releases if r['id'] == release_id), None)
+            if target_release:
+                target_release.update(data)
+                return copy.deepcopy(target_release)
+            raise AssertionError(f'Release {release_id} not found for PATCH')
         if method == 'DELETE':
             if self.fail_delete == path:
                 raise RuntimeError('delete failed')
             if path.startswith('git/refs/'):
                 self.tags = [r for r in self.tags if r['ref'] != path.removeprefix('git/')]
                 return None
-            if path == 'releases/7':
-                self.releases = []
-                return None
-            self.releases[0]['assets'] = [a for a in self.releases[0]['assets'] if a['id'] != int(path.split('/')[-1])]
+            if path.startswith('releases/'):
+                # Handle both full release deletion and asset deletion
+                parts = path.split('/')
+                if parts[1] == 'assets':
+                    # releases/assets/{asset_id} - delete asset from any release
+                    asset_id = int(parts[2])
+                    for release in self.releases:
+                        release['assets'] = [a for a in release['assets'] if a['id'] != asset_id]
+                    return None
+                elif len(parts) == 2:  # releases/{id}
+                    release_id = int(parts[1])
+                    self.releases = [r for r in self.releases if r['id'] != release_id]
+                    return None
             return None
         raise AssertionError((path, method))
 
@@ -80,10 +105,15 @@ class BranchZipTest(unittest.TestCase):
         self.operations.append(('UPLOAD', ''))
         if self.fail_upload:
             raise RuntimeError('upload failed')
-        self.assertIn('https://uploads.github.com/repos/owner/repo/releases/7/assets?name=' + bz.asset_for(A), args)
+        # Extract release ID from the upload URL
+        url = [arg for arg in args if 'uploads.github.com' in str(arg)][0]
+        release_id = int(url.split('/releases/')[1].split('/assets')[0])
+        self.assertIn(f'https://uploads.github.com/repos/owner/repo/releases/{release_id}/assets?name=' + bz.asset_for(A), args)
         asset = {'id': 12, 'name': bz.asset_for(A), 'state': 'uploaded', 'size': 25,
                  'digest': 'sha256:' + hashlib.sha256((self.directory / bz.asset_for(A)).read_bytes()).hexdigest()}
-        self.releases[0]['assets'].append(asset)
+        # Find the release with the matching ID
+        target_release = next((r for r in self.releases if r['id'] == release_id), self.releases[0])
+        target_release['assets'].append(asset)
         if self.move_after_upload:
             self.branches[0]['commit']['sha'] = B
         return json.dumps(asset)
@@ -329,3 +359,60 @@ class BranchZipTest(unittest.TestCase):
         self.assertEqual(len(result['kept']), 101)
         self.assertEqual([p for m, p in self.operations if p.startswith('git/matching-refs/')],
                          ['git/matching-refs/tags/branch-zip-'])
+
+    def test_duplicate_draft_and_published_uses_published_and_removes_draft(self):
+        # Simulate the actual scenario: one draft and one published release with same tag
+        tag = bz.tag_for(self.branch)
+        self.releases = [
+            {'id': 420887085, 'tag_name': tag, 'draft': True, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': bz.marker(self.branch, B), 'assets': []},
+            {'id': 385484110, 'tag_name': tag, 'draft': False, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': bz.marker(self.branch, B),
+             'assets': [{'id': 11, 'name': bz.asset_for(B), 'state': 'uploaded', 'size': 25}]}
+        ]
+        self.tags = [{'ref': 'refs/tags/' + tag, 'object': {'type': 'commit', 'sha': B}}]
+
+        bz.publish(self.branch, A, self.directory)
+
+        # Should use the published release (id 385484110) and delete the draft (id 420887085)
+        self.assertEqual(len(self.releases), 1)
+        self.assertEqual(self.releases[0]['id'], 385484110)
+        self.assertFalse(self.releases[0]['draft'])
+        self.assertIn(('DELETE', 'releases/420887085'), self.operations)
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(A)])
+
+    def test_multiple_drafts_uses_newest_and_removes_older(self):
+        # Multiple draft releases with same tag
+        tag = bz.tag_for(self.branch)
+        self.releases = [
+            {'id': 100, 'tag_name': tag, 'draft': True, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': '', 'assets': []},
+            {'id': 200, 'tag_name': tag, 'draft': True, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': '', 'assets': []},
+            {'id': 150, 'tag_name': tag, 'draft': True, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': '', 'assets': []}
+        ]
+        self.tags = [{'ref': 'refs/tags/' + tag, 'object': {'type': 'commit', 'sha': B}}]
+
+        bz.publish(self.branch, A, self.directory)
+
+        # Should use the newest draft (id 200) and delete the others
+        self.assertEqual(len(self.releases), 1)
+        self.assertEqual(self.releases[0]['id'], 200)
+        self.assertIn(('DELETE', 'releases/100'), self.operations)
+        self.assertIn(('DELETE', 'releases/150'), self.operations)
+
+    def test_multiple_published_releases_raises_error(self):
+        # Multiple published (non-draft) releases with same tag is still an error
+        tag = bz.tag_for(self.branch)
+        self.releases = [
+            {'id': 100, 'tag_name': tag, 'draft': False, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': bz.marker(self.branch, B), 'assets': []},
+            {'id': 200, 'tag_name': tag, 'draft': False, 'prerelease': True,
+             'name': f'Plugin ZIP — {self.branch}', 'body': bz.marker(self.branch, B), 'assets': []}
+        ]
+        self.tags = [{'ref': 'refs/tags/' + tag, 'object': {'type': 'commit', 'sha': B}}]
+
+        with self.assertRaises(ValueError) as cm:
+            bz.publish(self.branch, A, self.directory)
+        self.assertIn('Multiple published releases', str(cm.exception))
