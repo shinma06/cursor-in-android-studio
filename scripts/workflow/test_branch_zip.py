@@ -371,9 +371,9 @@ class BranchZipTest(unittest.TestCase):
              'assets': [{'id': 11, 'name': bz.asset_for(B), 'state': 'uploaded', 'size': 25}]}
         ]
         self.tags = [{'ref': 'refs/tags/' + tag, 'object': {'type': 'commit', 'sha': B}}]
-        
+
         bz.publish(self.branch, A, self.directory)
-        
+
         # Should use the published release (id 385484110) and delete the draft (id 420887085)
         self.assertEqual(len(self.releases), 1)
         self.assertEqual(self.releases[0]['id'], 385484110)
@@ -393,9 +393,9 @@ class BranchZipTest(unittest.TestCase):
              'name': f'Plugin ZIP — {self.branch}', 'body': '', 'assets': []}
         ]
         self.tags = [{'ref': 'refs/tags/' + tag, 'object': {'type': 'commit', 'sha': B}}]
-        
+
         bz.publish(self.branch, A, self.directory)
-        
+
         # Should use the newest draft (id 200) and delete the others
         self.assertEqual(len(self.releases), 1)
         self.assertEqual(self.releases[0]['id'], 200)
@@ -412,7 +412,7 @@ class BranchZipTest(unittest.TestCase):
              'name': f'Plugin ZIP — {self.branch}', 'body': bz.marker(self.branch, B), 'assets': []}
         ]
         self.tags = [{'ref': 'refs/tags/' + tag, 'object': {'type': 'commit', 'sha': B}}]
-        
+
         with self.assertRaises(ValueError) as cm:
             bz.publish(self.branch, A, self.directory)
         self.assertIn('Multiple published releases', str(cm.exception))
