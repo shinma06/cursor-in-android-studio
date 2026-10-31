@@ -112,16 +112,34 @@ def publish(branch, sha, directory):
         return
     tag = tag_for(branch)
     matches = [r for r in pages('releases') if r['tag_name'] == tag]
+    # Handle duplicate releases: prefer published over draft, newest if multiple drafts.
     if len(matches) > 1:
-        raise ValueError('Multiple releases for branch tag')
+        published = [r for r in matches if not r.get('draft', True)]
+        drafts = [r for r in matches if r.get('draft', True)]
+        if len(published) > 1:
+            raise ValueError('Multiple published releases for branch tag')
+        elif len(published) == 1:
+            # Use the published release and clean up any stale drafts.
+            release = published[0]
+            for draft in drafts:
+                api(f'releases/{draft["id"]}', 'DELETE')
+        else:
+            # All are drafts: use the most recent (by ID) and clean up older ones.
+            release = max(drafts, key=lambda r: r['id'])
+            for draft in drafts:
+                if draft['id'] != release['id']:
+                    api(f'releases/{draft["id"]}', 'DELETE')
     # Anchor new tags on the default branch; source-only workflow changes can
     # require permissions unavailable to GITHUB_TOKEN when tagging their SHA.
     # Release updates leave existing tag refs untouched.
     default_branch = api('')['default_branch']
-    release = matches[0] if matches else api('releases', 'POST', {
-        'tag_name': tag, 'target_commitish': default_branch, 'name': f'Plugin ZIP — {branch}',
-        'draft': True, 'prerelease': True, 'make_latest': 'false',
-    })
+    if not matches:
+        release = api('releases', 'POST', {
+            'tag_name': tag, 'target_commitish': default_branch, 'name': f'Plugin ZIP — {branch}',
+            'draft': True, 'prerelease': True, 'make_latest': 'false',
+        })
+    elif len(matches) == 1:
+        release = matches[0]
     if release.get('immutable'):
         raise ValueError('Branch ZIP releases must remain mutable')
     release_id = release['id']
