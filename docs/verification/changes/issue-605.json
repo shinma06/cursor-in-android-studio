@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "issue": 605,
+  "gui_required": false,
+  "reason": "GUI不要: Branch ZIP配布ワークフローのPython tooling修正。scripts/workflow/branch_zip.pyとtest_branch_zip.pyのみ変更。既存Python単体テストと統合テストでカバー。製品ビルド・GUI・エディタ操作には影響しない。",
+  "cli_checks": [
+    "python3 -m unittest discover -s scripts/workflow -p 'test_*.py'",
+    "git diff --check"
+  ],
+  "cases": []
+}
