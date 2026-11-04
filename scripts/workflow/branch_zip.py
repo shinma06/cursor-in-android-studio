@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep one standard Gradle plugin ZIP per live branch in GitHub Releases."""
+"""Publish identified branch ZIPs while preserving existing downloads and drafts."""
 import argparse
 import hashlib
 import json
@@ -64,23 +64,52 @@ def published_sha(branch, release):
         data = json.loads(markers[0])
         sha = data['sha']
         assets = release.get('assets', [])
-        if (data['branch'] == branch and len(assets) == 1 and assets[0]['name'] == asset_for(sha)
-                and assets[0].get('state') == 'uploaded' and assets[0].get('size', 0) > 0):
+        current = [a for a in assets if a['name'] == asset_for(sha)]
+        if (data['branch'] == branch and len(current) == 1
+                and current[0].get('state') == 'uploaded' and current[0].get('size', 0) > 0):
             return sha
     except (KeyError, TypeError, ValueError):
         pass
     return None
 
 
+def selected_release(branch, releases):
+    """Use the same deterministic, owned destination for planning and publishing."""
+    matches = [r for r in releases if r['tag_name'] == tag_for(branch)]
+    if not matches:
+        return None
+    if any(type(r.get('draft')) is not bool for r in matches):
+        raise ValueError('Unknown release visibility; preserve all releases')
+    published = [r for r in matches if not r['draft']]
+    if len(published) > 1:
+        raise ValueError('Multiple published releases for branch tag')
+    if any(type(r.get('id')) is not int or r['id'] <= 0 for r in matches):
+        raise ValueError('Invalid release identity')
+    if len({r['id'] for r in matches}) != len(matches):
+        raise ValueError('Duplicate release identity; preserve all releases')
+    release = published[0] if published else max(matches, key=lambda r: r['id'])
+    markers = re.findall(r'<!-- branch-zip:(\{[^\n]*\}) -->', release.get('body') or '')
+    try:
+        owned = json.loads(markers[0]) if len(markers) == 1 else {}
+        valid = isinstance(owned, dict) and owned.get('branch') == branch and bool(re.fullmatch('[0-9a-f]{40}', owned.get('sha', '')))
+    except (TypeError, ValueError):
+        valid = False
+    if (not valid or release.get('name') != f'Plugin ZIP — {branch}'
+            or release.get('prerelease') is not True or release.get('immutable')):
+        raise ValueError('Unowned or immutable branch release; preserve it for its owner')
+    # Nonselected drafts are custody, not deletion permission. Retirement is separate.
+    return release
+
+
 def plan(branch=None, force_build=False):
-    releases = {r['tag_name']: r for r in pages('releases')}
+    releases = pages('releases')
     pending = []
     for b in pages('branches'):
         name, sha = b['name'], b['commit']['sha']
         if branch is not None and name != branch:
             continue
         tag = tag_for(name)
-        release = releases.get(tag, {})
+        release = selected_release(name, releases) or {}
         previous = published_sha(name, release)
         if previous == sha and not force_build:
             continue
@@ -111,45 +140,27 @@ def publish(branch, sha, directory):
         print('Branch moved or was deleted; skip obsolete build')
         return
     tag = tag_for(branch)
-    matches = [r for r in pages('releases') if r['tag_name'] == tag]
-    # Handle duplicate releases: prefer published over draft, newest if multiple drafts.
-    if len(matches) > 1:
-        published = [r for r in matches if not r.get('draft', True)]
-        drafts = [r for r in matches if r.get('draft', True)]
-        if len(published) > 1:
-            raise ValueError('Multiple published releases for branch tag')
-        elif len(published) == 1:
-            # Use the published release and clean up any stale drafts.
-            release = published[0]
-            for draft in drafts:
-                api(f'releases/{draft["id"]}', 'DELETE')
-        else:
-            # All are drafts: use the most recent (by ID) and clean up older ones.
-            release = max(drafts, key=lambda r: r['id'])
-            for draft in drafts:
-                if draft['id'] != release['id']:
-                    api(f'releases/{draft["id"]}', 'DELETE')
-    # Anchor new tags on the default branch; source-only workflow changes can
-    # require permissions unavailable to GITHUB_TOKEN when tagging their SHA.
-    # Release updates leave existing tag refs untouched.
+    release = selected_release(branch, pages('releases'))
+    # Existing tags stay fixed; reviewed default tooling anchors new destinations.
     default_branch = api('')['default_branch']
-    if not matches:
+    if release is None:
         release = api('releases', 'POST', {
             'tag_name': tag, 'target_commitish': default_branch, 'name': f'Plugin ZIP — {branch}',
-            'draft': True, 'prerelease': True, 'make_latest': 'false',
+            'body': marker(branch, sha), 'draft': True, 'prerelease': True, 'make_latest': 'false',
         })
-    elif len(matches) == 1:
-        release = matches[0]
     if release.get('immutable'):
         raise ValueError('Branch ZIP releases must remain mutable')
     release_id = release['id']
     # Numeric ID also works for drafts; gh release upload may resolve the public tag instead.
     assets = pages(f'releases/{release_id}/assets')
-    existing = next((a for a in assets if a['name'] == name), None)
+    matching = [a for a in assets if a['name'] == name]
+    if len(matching) > 1:
+        raise ValueError('Duplicate ZIP identity; preserve assets')
+    existing = matching[0] if matching else None
     digest = 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest()
-    if existing and (existing.get('state') != 'uploaded' or existing.get('size', 0) == 0):
-        api(f'releases/assets/{existing["id"]}', 'DELETE')
-        existing = None
+    if existing and (existing.get('state') != 'uploaded' or existing.get('size', 0) <= 0
+                     or not re.fullmatch('sha256:[0-9a-f]{64}', existing.get('digest', ''))):
+        raise ValueError('Incomplete ZIP identity; owner must reconcile without automatic deletion')
     if not existing:
         repo = os.environ['GITHUB_REPOSITORY']
         # Upload new bytes before removing the last working download. Never execute the ZIP.
@@ -170,9 +181,7 @@ def publish(branch, sha, directory):
             + marker(branch, sha))
     api(f'releases/{release_id}', 'PATCH', {'name': f'Plugin ZIP — {branch}', 'body': body,
         'target_commitish': default_branch, 'draft': False, 'prerelease': True, 'make_latest': 'false'})
-    for asset in pages(f'releases/{release_id}/assets'):
-        if asset['name'] != name:
-            api(f'releases/assets/{asset["id"]}', 'DELETE')
+    # Preserve historical URLs, unknown assets and partial uploads; retirement needs its own scope.
     print(f'https://github.com/{repo}/releases/tag/{tag}')
 
 
@@ -188,7 +197,7 @@ def cleanup_identity(release):
         if (not isinstance(branch, str) or not branch or release['tag_name'] != tag_for(branch)
                 or release.get('name') != f'Plugin ZIP — {branch}'
                 or release.get('prerelease') is not True or release.get('immutable')
-                or not sha or sha != data['sha']):
+                or len(release.get('assets', [])) != 1 or not sha or sha != data['sha']):
             return None
         return {'branch': branch, 'sha': data['sha'], 'tag': release['tag_name'],
                 'release_id': release['id']}

@@ -125,6 +125,11 @@ publishはレビュー済みmain、buildはwrite tokenのない別runnerです�
 
 ## 旧配布・既存証拠の保全
 
+旧publisherの重複選択はplan/publishで共通です。同tagに公開済み1件があればそれを選び、同tagのdraftは変更しません。公開済みが複数なら停止します。全件draftの場合は最新IDの候補についてmarker・branch/source・名前・prerelease・mutableを検証して再利用し、所有不明・immutable・不完全な同名uploadは自動削除せず停止します。古いdraftの退役はこの修正では実施せず、所有・元の許可・失敗時保全を確認した別の操作範囲へ残します。
+
+公開ZIPの更新は新assetをuploadして検証後に本文のsourceを切り替えます。既存asset/URLは保持し、planは本文markerが指す一意のuploaded ZIPを比較元に使います。過去assetが残ることだけで再buildしません。履歴assetを持つReleaseは既存の単一asset用orphan cleanup対象にもせず、退役は別途判断します。保管コピーの存在は元URL削除の許可ではありません。これは旧配布工具の修正であり、#599のNEW有効化や既存#579の失敗解消を実観察した記録ではありません。
+
+
 <a id="削除済み作業ブランチの掃除219"></a>
 
 branch別prerelease・毎時巡回/cleanupは切替前の旧接続として残っています。既存branch ZIPの実sourceは従来どおり本文/asset名で識別します。旧RC・正式版・過去QAリンクをearlyへ書き換えず、古いtag/assetの削除・移行は実施しません。旧RCの `fetch --tag` は固定source当時のQuail/Rabbit policy・全資料を読めるまま維持します。
