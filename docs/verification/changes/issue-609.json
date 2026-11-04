@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 609,
+  "gui_required": false,
+  "reason": "固定した運用原典の読み方、事前相談、GUI調整と担当入口を変更する。製品コード・build/配布・GUI tool/lease実装、既存Case・環境・結果の変更はなく、CLIで差分と経路を検証できる。文書の採用とhostでのGUI実行・受入は別に扱う。",
+  "cli_checks": [
+    "固定pstack commit/subtreeと共有sourceの全path・mode・blob、固定ARB両版の共通運用とCAS両branchの差・保護範囲を照合する。",
+    "AGENTS/CLAUDE・2組のstart/finish・Cursor rules・担当/loop promptから正本への実リンクとanchorを確認し、両clientのSkillが同文であることを比較する。",
+    "新判断・合意済み操作・即時停止・相談先不在、対象限定の独立背景操作・範囲不明予約・人間優先・安全返却後の準備済ARB優先、fallback/明示Caseの判断を実文面で照合する。",
+    "このJSONのGUI不要schema・Cases 0、git diff --check、禁止path/固定原証拠に変更なしを確認する。専用branchのclean HEADで通常hookのChange Impact選択と検査結果、PRの固定HEAD/baseを読み戻す。"
+  ],
+  "cases": []
+}
