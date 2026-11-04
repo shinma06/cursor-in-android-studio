@@ -5,6 +5,27 @@
 
 開発Agentの追加・委譲前に[Codex実行規約](codex-execution-policy.md)を確認します。メインモデルがGPT-6 AstraならSubagentの生成・委譲は禁止し、合理的理由のある独立top-level Session / Thread間連携と通常のToolを使います。Astra以外には本規約による禁止を適用しません。
 
+<a id="operations-profile"></a>
+
+## 固定pstackとOMILへの事前相談
+
+運営には[公式pstackの固定版](https://github.com/cursor/plugins/tree/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack)の該当原典を読み、CASのIssue・担当・検証へ対応付ける。
+
+| 判断 | CASでの使い方 |
+| --- | --- |
+| 複数工程の分担 | [Orchestrate](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/poteto-mode/playbooks/orchestrate.md)に沿い、目的・対象外・成果物・単独writer・受取先と確認方法を先に決める。 |
+| 作業順 | [Outcome-Oriented Execution](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/principle-outcome-oriented-execution/SKILL.md)と[Sequence Work into Verifiable Units](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/principle-sequence-verifiable-units/SKILL.md)を使い、結果を確かめられる単位に分け、先行結果が必要な工程だけを待つ。 |
+| 完了の判定 | [Prove It Works](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/principle-prove-it-works/SKILL.md)に沿い、実差分、成果物と必要な観察を読み戻す。CIや入力配送の成功だけで製品・GUIの結果を認定しない。 |
+| 不具合修正 | [Bug fix](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/poteto-mode/playbooks/bug-fix.md)・[Fix Root Causes](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/principle-fix-root-causes/SKILL.md)の順に、再現条件と原因を絞り、最小修正後に元の条件で再確認する。 |
+
+保管担当と固定版の照合結果を既存の引継ぎで確認する。各worktreeは `git rev-parse --path-format=absolute --git-common-dir` が返す共通ディレクトリの `pstack/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack` を参照する。[入口](https://github.com/cursor/plugins/blob/bb68f2365eceafa0cb2d253112f675acf5f144cc/pstack/skills/poteto-mode/SKILL.md)と必要なplaybook・原則だけを読む。別clone、未配置、内容不一致なら上の公式固定リンクから読み、保管担当が固定commitのsubtree `4719e1c4b4c43bac85d4206a8b41dd2899769c1c` とpath・mode・blobを照合して単一snapshotを用意する。既存の不一致を上書きしない。global導入・各agentへの複製やupstream hookの実行は不要。
+
+実装・修正・監査・code reviewはPonytail fullを使う。呼出元、保存互換、安全条件と受入を確認し、既存実装→標準機能→導入済み依存→最小の追加の順で選ぶ。原典のモデル・cloud/subagent起動・watcher・force/rebase・Draft省略やscope拡張は移さず、CASの実行権限、独立レビュー、4必須チェックとbranch別契約を守る。
+
+PMは新しい運用方針・検証方法・割当や依存順・停止／再開・共有資源・復旧／統合の進め方を**決める前にOMILへ相談**する。担当は矛盾・不足と代案をPMへ返す。PMは助言の採否、理由、影響範囲、次の担当を既存Issueか計画へ残して実行し、助言、採用、実結果を区別する。実連絡は[許可された経路](team-communication.md)を使う。OMIL未設定・未応答なら新判断だけを保留し、合意済みの独立作業は続ける。
+
+通常の編集・検査・空きlease取得や合意範囲内のGUI経路切替は、操作ごとの再相談を要しない。人間の停止、危険、実拒否では直ちに該当範囲を停止・保全し、新しい復旧／再開判断はその後に相談する。[フェーズ点検](omil-phase-review.md)も引き続き行う。
+
 ## 統合条件
 
 | 対象 | 必須条件 | GUI未実施/環境blocked/製品fail | merge方式 |
@@ -63,7 +84,7 @@ PMは以下の順で自律的に編成を再評価する。ユーザーから委
 
 1. **照合**: 開始/再開、成果固定、レビュー終了、統合、失敗、承認/質問/GUI待ち、資源解放で、Issue/PR/Projectと既存owner/source/registry、session/job handle、成果物HEAD/baseを読む。担当不在、停止、結果未回収を区別する。timeout/無応答は停止やclaim解放の証明にならない。
 2. **回収と再利用**: 未回収結果と固定PRのレビュー/修正/統合を先に回収する。同じscopeへ二重割当しない。既存の適格な空き担当を優先して再利用し、model/effort・独立性・所有を再確認する。旧writerの停止/解放または明示再割当なしに交代しない。
-3. **有限の枠**: ready件数、難度/責務、依存、共有UI/ファイル、レビュー滞留とCPU/メモリ/重いbuild/GUIの実負荷から、今回の上限と理由を既存の作業記録へ残す。初期上限はPM/統合管理1、実装/修正1、read-only独立レビュー最大2、共有UI writer1、重いbuild1、host GUI operator1。全枠の常時起動は不要。PMは独立scopeと負荷の余裕を確認した場合だけ有限の上限を改め、未知負荷では増やさない。GUI leaseの排他は増枠不可。
+3. **有限の枠**: ready件数、難度/責務、依存、共有UI/ファイル、レビュー滞留とCPU/メモリ/重いbuild/GUIの実負荷から、今回の上限と理由を既存の作業記録へ残す。初期上限はPM/統合管理1、実装/修正1、read-only独立レビュー最大2、共有UI writer1、重いbuild1、競合するhost GUI操作1。全枠の常時起動は不要。PMは独立scopeと負荷の余裕を確認した場合だけ有限の上限を改め、未知負荷では増やさない。共通GUI leaseの排他は増枠不可。確認済みの独立背景操作は[GUI調整](gui-coordination.md)で操作単位に判断する。
 4. **次の割当**: ブロックされない依存先の解消と固定版のレビュー/修正/統合を優先し、同優先度なら既存待ち順を使う。必要な役割・model/effort・scope・成果・次担当を渡して実handleを確認する。空いた担当へ独立した次作業を渡し、readyがなければ待機/終了へ戻す。追加sessionには合理的理由が必要。実装だけを増やさず、同じ共有コードのwriterと重いbuildを直列にする。
 5. **状態の報告**: GUI失敗/環境blocked、承認待ち、質問待ちは発生時にユーザーへ通知し、既存Issue/PRのblocker・担当・必要な解除条件・次操作を更新する。次回報告にも既報blockerの現在状態（継続/解消/移譲）を含める。独立作業へ切替え、何もなければ解除条件を明示して待機する。理由のない再試行や無限の増員をしない。
 
@@ -144,7 +165,7 @@ GitHubへpush・投稿・編集・添付・配布する担当は、送信する�
 
 条件が揃った通常の編集・検査、専用branchのpush、Issueコメント、PR作成・更新、通常の統合、所有資源の整理は、依頼範囲内で担当判断により進めます。Git公開では下記#565の今回内容に対するPM確認も維持し、確認済みscope内で各pushのGOを取り直しません。GUI操作・導入・通常再起動・限定診断も、対象・保全・復元・実行上限を整えれば都度の本人承認を求めません。独立レビュー・CI・受入・保護条件は継続の品質条件であり、本人承認に置き換えません。
 
-PMは担当・共有資源・依存・実行計画を調整します。既存の割当と計画内の操作ごとにPMのGOを取り直さず、競合や影響が変わる部分だけ担当間で調整します。内部の運用上限を変える必要があれば、次の試行前に理由・影響・復元を記録して計画を更新します。本人の指定上限、正式な受入条件、ツール制約は変更せず、期限を事後に延ばして過去の失敗を成功にしません。「別途承認」だけの記述は、誰が何を判断する条件かを確認し、直ちに本人承認待ちとは解釈しません。
+PMは[OMILへの事前相談](#operations-profile)を経て、担当・共有資源・依存・実行計画の新しい選択や変更を決めます。既存の割当と計画内の操作ごとにPMのGOを取り直さず、競合や影響が変わる部分だけ担当間で調整します。内部の運用上限を変える必要があれば、次の試行前に理由・影響・復元を記録して計画を更新します。本人の指定上限、正式な受入条件、ツール制約は変更せず、期限を事後に延ばして過去の失敗を成功にしません。「別途承認」だけの記述は、誰が何を判断する条件かを確認し、直ちに本人承認待ちとは解釈しません。
 
 本人へ戻すのは、必要な準備を済ませても、次の境界が残る場合です。
 
