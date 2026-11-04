@@ -128,11 +128,14 @@ def plan(branch=None, force_build=False):
         tag = tag_for(name)
         release = selected_release(name, releases) or {}
         previous = published_sha(name, release)
-        if previous == sha and not force_build:
+        pending_retirement = (bool(previous)
+                              and sum(r['tag_name'] == tag for r in releases) == 1
+                              and bool(retirement_assets(name, release, asset_for(previous))))
+        if previous == sha and not force_build and not pending_retirement:
             continue
         # Preserve/recover incomplete releases. A brand-new knowledge-only branch
         # may have no ZIP; never rename the last build to an unbuilt source SHA.
-        if not force_build and (previous or not release):
+        if not force_build and not pending_retirement and (previous or not release):
             impact = git_impact(previous, sha, merge_base=False)
             message = f'Branch {json.dumps(name)} / {sha}:\n' + impact_report(impact)
             print(message, file=sys.stderr)
@@ -148,10 +151,48 @@ def plan(branch=None, force_build=False):
     return pending
 
 
-def retirement_label(asset):
-    # Persist the admitted predecessor's identity with the new upload, across PATCH failures.
+def retirement_fingerprint(asset):
     identity = {k: asset.get(k) for k in ('id', 'name', 'state', 'size', 'digest')}
-    return 'branch-zip-predecessor-v1:' + hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+
+
+def retirement_label(assets):
+    # Individual identity receipts survive partial DELETEs and advancing product SHAs.
+    return 'branch-zip-predecessors-v2:' + ','.join(sorted(retirement_fingerprint(a) for a in assets))
+
+
+def retirement_tokens(label):
+    label = label or ''
+    for prefix in ('branch-zip-predecessor-v1:', 'branch-zip-predecessors-v2:'):
+        if label.startswith(prefix):
+            tokens = label[len(prefix):].split(',')
+            if not tokens or any(not re.fullmatch('[0-9a-f]{64}', t) for t in tokens):
+                raise ValueError('Invalid retirement identity; preserve assets')
+            return set(tokens)
+    return set()
+
+
+def retirement_assets(branch, release, name):
+    if not release or not published_sha(branch, release):
+        return []
+    assets = release['assets']
+    if len(assets) == 1:
+        return [a for a in assets if a['name'] != name]
+    # A staged or current normal upload must account for every other remaining asset.
+    # No receipt (including protected mixed history) means no inferred retirement.
+    claimed = False
+    for proof in assets:
+        tokens = retirement_tokens(proof.get('label'))
+        claimed = claimed or bool(tokens)
+        others = [a for a in assets if a['id'] != proof['id']]
+        if (tokens and re.fullmatch(r'cursor-in-android-studio-[0-9a-f]{40}\.zip', proof.get('name', ''))
+                and proof.get('state') == 'uploaded' and proof.get('size', 0) > 0
+                and re.fullmatch('sha256:[0-9a-f]{64}', proof.get('digest') or '')
+                and all(retirement_fingerprint(a) in tokens for a in others)):
+            return [a for a in assets if a['name'] != name]
+    if claimed:
+        raise ValueError('Pending predecessor identity changed; preserve assets')
+    return []
 
 
 def publish(branch, sha, directory):
@@ -169,9 +210,7 @@ def publish(branch, sha, directory):
         release['assets'] = pages(f'releases/{release["id"]}/assets')
     mixed = any(r['draft'] for r in matches) and any(not r['draft'] for r in matches)
     obsolete = []
-    previous_asset = None
-    if len(matches) == 1 and published_sha(branch, release) and len(release.get('assets', [])) == 1:
-        previous_asset = release['assets'][0]
+    predecessors = []
     if len(matches) > 1 and all(r['draft'] for r in matches):
         # Only this invocation's all-owned, empty obsolete drafts can be retired.
         for candidate in matches:
@@ -200,15 +239,9 @@ def publish(branch, sha, directory):
     if len(matching) > 1:
         raise ValueError('Duplicate ZIP identity; preserve assets')
     existing = matching[0] if matching else None
-    if (previous_asset is None and len(matches) == 1 and not release['draft'] and existing
-            and (existing.get('label') or '').startswith('branch-zip-predecessor-v1:')):
-        candidates = [a for a in assets if a['name'] != name
-                      and re.fullmatch(r'cursor-in-android-studio-[0-9a-f]{40}\.zip', a['name'])
-                      and a.get('state') == 'uploaded' and a.get('size', 0) > 0
-                      and retirement_label(a) == existing['label']]
-        if len(candidates) != 1:
-            raise ValueError('Pending predecessor identity changed; preserve assets')
-        previous_asset = candidates[0]
+    release['assets'] = assets
+    if len(matches) == 1:
+        predecessors = retirement_assets(branch, release, name)
     digest = 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest()
     if existing and (existing.get('state') != 'uploaded' or existing.get('size', 0) <= 0
                      or not re.fullmatch('sha256:[0-9a-f]{64}', existing.get('digest', ''))):
@@ -222,7 +255,7 @@ def publish(branch, sha, directory):
     if not existing:
         repo = os.environ['GITHUB_REPOSITORY']
         # Only normal single-predecessor uploads carry a durable retirement claim.
-        label = retirement_label(previous_asset) if previous_asset and previous_asset['name'] != name else ''
+        label = retirement_label(predecessors) if predecessors else ''
         query = f'name={quote(name)}' + (f'&label={quote(label)}' if label else '')
         # Upload new bytes before removing the last working download. Never execute the ZIP.
         uploaded = json.loads(gh('api', '--method', 'POST',
@@ -231,13 +264,20 @@ def publish(branch, sha, directory):
         if (uploaded.get('digest') != digest or uploaded.get('size') != archive.stat().st_size
                 or (label and uploaded.get('label') != label)):
             raise ValueError('Uploaded ZIP digest/size mismatch')
-    if mixed and existing and (existing.get('label') or '').startswith('branch-zip-predecessor-v1:'):
-        # A successful mixed publication must not carry an earlier normal retirement claim forward.
-        changed = api(f'releases/assets/{existing["id"]}', 'PATCH', {'label': ''})
-        if ((changed.get('label') or '') != '' or any(changed.get(k) != existing.get(k)
+    # Mixed success revokes every historical normal claim, not just this SHA's label.
+    updates = assets if mixed else ([existing] if existing and predecessors else [])
+    for owned in updates:
+        target_label = '' if mixed else retirement_label(predecessors)
+        if not retirement_tokens(owned.get('label')) and mixed:
+            continue
+        if owned.get('label') == target_label:
+            continue
+        changed = api(f'releases/assets/{owned["id"]}', 'PATCH', {'label': target_label})
+        if ((changed.get('label') or '') != target_label or any(changed.get(k) != owned.get(k)
                 for k in ('id', 'name', 'state', 'size', 'digest'))):
-            raise ValueError('Retirement claim revocation unconfirmed; preserve assets')
-        existing = changed
+            raise ValueError('Retirement identity update unconfirmed; preserve assets')
+        if existing and owned['id'] == existing['id']:
+            existing = changed
     # A completed same-SHA upload is reusable (build timestamps can differ on retry).
     if current_head(branch) != sha:
         print('Branch moved during upload; leave last published metadata for next run to reconcile')
@@ -266,13 +306,15 @@ def publish(branch, sha, directory):
     api(f'releases/{release_id}', 'PATCH', {'name': f'Plugin ZIP — {branch}', 'body': body,
         'target_commitish': default_branch, 'draft': False, 'prerelease': True, 'make_latest': 'false'})
     # Only the original single known predecessor is eligible; never infer retirement from not-mixed.
-    if previous_asset and previous_asset['name'] != name:
+    for previous_asset in predecessors:
         if current_head(branch) != sha:
             raise ValueError('Branch changed before predecessor retirement')
         live_matches = [r for r in pages('releases') if r['tag_name'] == tag]
         if len(live_matches) != 1:
             raise ValueError('Release set changed; preserve predecessor')
         current = selected_release(branch, live_matches)
+        if current is not None:
+            current['assets'] = pages(f'releases/{current["id"]}/assets')
         verified = [a for a in (current or {}).get('assets', []) if a['name'] == name]
         expected_digest = existing['digest'] if existing else digest
         expected_size = existing['size'] if existing else archive.stat().st_size
@@ -285,6 +327,8 @@ def publish(branch, sha, directory):
             if any(old.get(k) != previous_asset.get(k) for k in ('id', 'name', 'state', 'size', 'digest')):
                 raise ValueError('Predecessor changed; preserve it')
             api(f'releases/assets/{old["id"]}', 'DELETE')
+            if any(a['id'] == old['id'] for a in pages(f'releases/{release_id}/assets')):
+                raise ValueError('Predecessor retirement unconfirmed; preserve receipt')
     # Mixed custody is never resumed as an all-draft retirement on a later invocation.
     retired = set()
     for candidate in obsolete:
@@ -294,6 +338,8 @@ def publish(branch, sha, directory):
         if {r['id'] for r in current} != {r['id'] for r in matches} - retired:
             raise ValueError('Release set changed; preserve obsolete drafts')
         chosen = selected_release(branch, current)
+        if chosen is not None:
+            chosen['assets'] = pages(f'releases/{chosen["id"]}/assets')
         verified = [a for a in (chosen or {}).get('assets', []) if a['name'] == name]
         expected_digest = existing['digest'] if existing else digest
         expected_size = existing['size'] if existing else archive.stat().st_size

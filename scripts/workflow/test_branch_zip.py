@@ -203,8 +203,8 @@ class BranchZipTest(unittest.TestCase):
         self.move_after_upload = True
         bz.publish(self.branch, A, self.directory)
         self.assertEqual(self.releases[0]['body'], bz.marker(self.branch, B))
-        # The branch returned to its already published source; retained old bytes remain valid.
-        self.assertEqual(bz.plan(), [])
+        # The old source remains published; the owned staged upload still needs reconciliation.
+        self.assertEqual(len(bz.plan()), 1)
         self.assertFalse(any(method in ('DELETE', 'PATCH') for method, _ in self.operations))
 
     def test_partial_draft_upload_recovery(self):
@@ -655,6 +655,7 @@ class BranchZipTest(unittest.TestCase):
         self.old_release()
         self.fail_delete = 'releases/assets/11'
         with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.assertEqual(len(bz.plan()), 1)
         self.fail_delete = None
         self.operations.clear()
         bz.publish(self.branch, A, self.directory)
@@ -711,3 +712,59 @@ class BranchZipTest(unittest.TestCase):
         bz.publish(self.branch, A, self.directory)
         self.assertEqual(len(self.releases[0]['assets']), 2)
         self.assertFalse(any(m in ('DELETE', 'UPLOAD') for m, _ in self.operations))
+
+    def test_new_product_can_finish_pending_normal_patch_retirement(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.fail_patch = False
+        third = 'c' * 40
+        self.branches[0]['commit']['sha'] = third
+        (self.directory / bz.asset_for(third)).write_bytes(b'next product after failed PATCH')
+        original = self.upload
+        def upload(*args):
+            with patch(__name__ + '.A', third): return original(*args)
+        with patch.object(bz, 'gh', side_effect=upload): bz.publish(self.branch, third, self.directory)
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(third)])
+        self.assertEqual(bz.plan(), [])
+
+    def test_mixed_new_product_revokes_old_claim_before_past_sha_reuse(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.releases.append(dict(self.releases[0], id=6, draft=True, assets=[]))
+        self.fail_patch = False
+        third = 'c' * 40
+        self.branches[0]['commit']['sha'] = third
+        (self.directory / bz.asset_for(third)).write_bytes(b'new mixed product')
+        original = self.upload
+        def upload(*args):
+            with patch(__name__ + '.A', third): return original(*args)
+        with patch.object(bz, 'gh', side_effect=upload): bz.publish(self.branch, third, self.directory)
+        self.assertFalse(any(bz.retirement_tokens(a.get('label')) for a in self.releases[0]['assets']))
+        self.releases = [r for r in self.releases if r['id'] == 7]
+        self.branches[0]['commit']['sha'] = A
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(len(self.releases[0]['assets']), 3)
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_partial_predecessor_cleanup_keeps_remaining_receipts_reachable(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.fail_patch = False
+        third = 'c' * 40
+        self.branches[0]['commit']['sha'] = third
+        (self.directory / bz.asset_for(third)).write_bytes(b'new product before reconciliation')
+        self.fail_delete = 'releases/assets/12'
+        original = self.upload
+        def upload(*args):
+            with patch(__name__ + '.A', third): return original(*args)
+        with patch.object(bz, 'gh', side_effect=upload), self.assertRaises(RuntimeError):
+            bz.publish(self.branch, third, self.directory)
+        self.assertEqual(len(bz.plan()), 1)
+        self.fail_delete = None
+        bz.publish(self.branch, third, self.directory)
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(third)])
+        self.assertEqual(bz.plan(), [])
