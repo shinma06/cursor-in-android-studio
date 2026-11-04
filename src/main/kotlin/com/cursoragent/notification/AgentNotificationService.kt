@@ -24,9 +24,9 @@ object AgentNotificationService {
     fun notifyToolCall(project: Project, toolName: String) {
         if (!AgentSettingsState.getInstance().notifyOnApprovalPending) return
 
-        // The headless CLI applies file edits immediately even without --force (see
-        // CLAUDE.md's "Verified CLI behavior") — there is no approval step to wait for,
-        // so this is purely an activity notice, not an approval prompt.
+        // The observed print CLI applies file edits even without --force (see
+        // docs/cursor-agent-plugin-requirements.md §13, CLI 2026.09.02-c22c1a3).
+        // This is an activity notice, not a before-write approval prompt.
         notify(
             project,
             "Agent tool call",
