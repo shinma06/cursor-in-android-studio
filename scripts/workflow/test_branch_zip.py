@@ -702,3 +702,12 @@ class BranchZipTest(unittest.TestCase):
             bz.publish(self.branch, third, self.directory)
         self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(third)])
         self.assertEqual(bz.plan(), [])
+
+    def test_unlabeled_completed_mixed_upload_can_be_reused_without_retirement(self):
+        self.old_release()
+        self.releases[0]['assets'].append(dict(id=12, name=bz.asset_for(A), state='uploaded',
+            size=25, digest='sha256:' + 'd' * 64, label=None))
+        self.releases.append(dict(self.releases[0], id=6, draft=True, assets=[]))
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(len(self.releases[0]['assets']), 2)
+        self.assertFalse(any(m in ('DELETE', 'UPLOAD') for m, _ in self.operations))

@@ -201,7 +201,7 @@ def publish(branch, sha, directory):
         raise ValueError('Duplicate ZIP identity; preserve assets')
     existing = matching[0] if matching else None
     if (previous_asset is None and len(matches) == 1 and not release['draft'] and existing
-            and existing.get('label', '').startswith('branch-zip-predecessor-v1:')):
+            and (existing.get('label') or '').startswith('branch-zip-predecessor-v1:')):
         candidates = [a for a in assets if a['name'] != name
                       and re.fullmatch(r'cursor-in-android-studio-[0-9a-f]{40}\.zip', a['name'])
                       and a.get('state') == 'uploaded' and a.get('size', 0) > 0
@@ -231,10 +231,10 @@ def publish(branch, sha, directory):
         if (uploaded.get('digest') != digest or uploaded.get('size') != archive.stat().st_size
                 or (label and uploaded.get('label') != label)):
             raise ValueError('Uploaded ZIP digest/size mismatch')
-    if mixed and existing and existing.get('label', '').startswith('branch-zip-predecessor-v1:'):
+    if mixed and existing and (existing.get('label') or '').startswith('branch-zip-predecessor-v1:'):
         # A successful mixed publication must not carry an earlier normal retirement claim forward.
         changed = api(f'releases/assets/{existing["id"]}', 'PATCH', {'label': ''})
-        if (changed.get('label') != '' or any(changed.get(k) != existing.get(k)
+        if ((changed.get('label') or '') != '' or any(changed.get(k) != existing.get(k)
                 for k in ('id', 'name', 'state', 'size', 'digest'))):
             raise ValueError('Retirement claim revocation unconfirmed; preserve assets')
         existing = changed
