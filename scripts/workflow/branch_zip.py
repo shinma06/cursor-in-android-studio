@@ -101,6 +101,23 @@ def selected_release(branch, releases):
     return release
 
 
+def validate_draft_assets(branch, sha, release):
+    """Publishing a draft must not expose any unrelated private asset."""
+    assets = release.get('assets')
+    if assets == []:
+        return
+    if not isinstance(assets, list) or len(assets) != 1 or assets[0].get('name') != asset_for(sha):
+        raise ValueError('Unverified draft assets; preserve private custody')
+    asset = assets[0]
+    # Completed same-SHA uploads survive retries whose rebuilt bytes differ.
+    complete = (asset.get('state') == 'uploaded' and asset.get('size', 0) > 0
+                and bool(re.fullmatch('sha256:[0-9a-f]{64}', asset.get('digest', ''))))
+    partial = (release.get('body') == marker(branch, sha)
+               and asset.get('state') == 'starter' and asset.get('size') == 0)
+    if not (complete or partial):
+        raise ValueError('Incomplete ZIP identity; preserve private custody')
+
+
 def plan(branch=None, force_build=False):
     releases = pages('releases')
     pending = []
@@ -131,6 +148,12 @@ def plan(branch=None, force_build=False):
     return pending
 
 
+def retirement_label(asset):
+    # Persist the admitted predecessor's identity with the new upload, across PATCH failures.
+    identity = {k: asset.get(k) for k in ('id', 'name', 'state', 'size', 'digest')}
+    return 'branch-zip-predecessor-v1:' + hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+
+
 def publish(branch, sha, directory):
     name = asset_for(sha)
     archive = Path(directory) / name
@@ -142,6 +165,8 @@ def publish(branch, sha, directory):
     tag = tag_for(branch)
     matches = [r for r in pages('releases') if r['tag_name'] == tag]
     release = selected_release(branch, matches)
+    if release is not None:
+        release['assets'] = pages(f'releases/{release["id"]}/assets')
     mixed = any(r['draft'] for r in matches) and any(not r['draft'] for r in matches)
     obsolete = []
     previous_asset = None
@@ -151,21 +176,14 @@ def publish(branch, sha, directory):
         # Only this invocation's all-owned, empty obsolete drafts can be retired.
         for candidate in matches:
             selected_release(branch, [candidate])
-            if candidate['id'] == release['id'] and candidate.get('assets'):
-                assets = candidate['assets']
-                complete = (len(assets) == 1 and assets[0]['name'] == name
-                            and assets[0].get('state') == 'uploaded'
-                            and assets[0].get('size') == archive.stat().st_size
-                            and assets[0].get('digest') == 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest())
-                partial = (len(assets) == 1 and assets[0]['name'] == name
-                           and candidate.get('body') == marker(branch, sha)
-                           and assets[0].get('state') == 'starter' and assets[0].get('size') == 0)
-                if not (complete or partial):
-                    raise ValueError('Nonempty selected draft requires owner reconciliation')
+            candidate['assets'] = pages(f'releases/{candidate["id"]}/assets')
             if candidate['id'] != release['id']:
                 if candidate.get('assets') != []:
                     raise ValueError('Nonempty obsolete draft requires owner reconciliation')
                 obsolete.append(candidate)
+    if release is not None and release['draft']:
+        release['assets'] = pages(f'releases/{release["id"]}/assets')
+        validate_draft_assets(branch, sha, release)
     # Existing tags stay fixed; reviewed default tooling anchors new destinations.
     default_branch = api('')['default_branch']
     if release is None:
@@ -182,6 +200,15 @@ def publish(branch, sha, directory):
     if len(matching) > 1:
         raise ValueError('Duplicate ZIP identity; preserve assets')
     existing = matching[0] if matching else None
+    if (previous_asset is None and len(matches) == 1 and not release['draft'] and existing
+            and existing.get('label', '').startswith('branch-zip-predecessor-v1:')):
+        candidates = [a for a in assets if a['name'] != name
+                      and re.fullmatch(r'cursor-in-android-studio-[0-9a-f]{40}\.zip', a['name'])
+                      and a.get('state') == 'uploaded' and a.get('size', 0) > 0
+                      and retirement_label(a) == existing['label']]
+        if len(candidates) != 1:
+            raise ValueError('Pending predecessor identity changed; preserve assets')
+        previous_asset = candidates[0]
     digest = 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest()
     if existing and (existing.get('state') != 'uploaded' or existing.get('size', 0) <= 0
                      or not re.fullmatch('sha256:[0-9a-f]{64}', existing.get('digest', ''))):
@@ -194,16 +221,42 @@ def publish(branch, sha, directory):
         existing = None
     if not existing:
         repo = os.environ['GITHUB_REPOSITORY']
+        # Only normal single-predecessor uploads carry a durable retirement claim.
+        label = retirement_label(previous_asset) if previous_asset and previous_asset['name'] != name else ''
+        query = f'name={quote(name)}' + (f'&label={quote(label)}' if label else '')
         # Upload new bytes before removing the last working download. Never execute the ZIP.
         uploaded = json.loads(gh('api', '--method', 'POST',
-                                 f'https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={quote(name)}',
+                                 f'https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?{query}',
                                  '-H', 'Content-Type: application/zip', '--input', str(archive)))
-        if uploaded.get('digest') != digest or uploaded.get('size') != archive.stat().st_size:
+        if (uploaded.get('digest') != digest or uploaded.get('size') != archive.stat().st_size
+                or (label and uploaded.get('label') != label)):
             raise ValueError('Uploaded ZIP digest/size mismatch')
+    if mixed and existing and existing.get('label', '').startswith('branch-zip-predecessor-v1:'):
+        # A successful mixed publication must not carry an earlier normal retirement claim forward.
+        changed = api(f'releases/assets/{existing["id"]}', 'PATCH', {'label': ''})
+        if (changed.get('label') != '' or any(changed.get(k) != existing.get(k)
+                for k in ('id', 'name', 'state', 'size', 'digest'))):
+            raise ValueError('Retirement claim revocation unconfirmed; preserve assets')
+        existing = changed
     # A completed same-SHA upload is reusable (build timestamps can differ on retry).
     if current_head(branch) != sha:
         print('Branch moved during upload; leave last published metadata for next run to reconcile')
         return
+    if release['draft']:
+        # Re-read all assets and the selected identity at the private-to-public boundary.
+        live = selected_release(branch, pages('releases'))
+        if (live is None or live['id'] != release_id or not live['draft']
+                or live.get('body') != release.get('body')):
+            raise ValueError('Draft identity changed before publication')
+        live['assets'] = pages(f'releases/{release_id}/assets')
+        validate_draft_assets(branch, sha, live)
+        expected = existing if existing else uploaded
+        if (len(live['assets']) != 1
+                or any(live['assets'][0].get(k) != expected.get(k)
+                       for k in ('id', 'name', 'state', 'size', 'digest'))):
+            raise ValueError('Draft upload changed before publication')
+        if current_head(branch) != sha:
+            raise ValueError('Branch changed before draft publication')
     repo = os.environ['GITHUB_REPOSITORY']
     body = (f'ブランチ: `{branch}`\n\nソース HEAD: [{sha}](https://github.com/{repo}/commit/{sha})\n\n'
             f'Assets の `{name}` を Install Plugin from Disk... で選択してください。\n'
@@ -250,6 +303,8 @@ def publish(branch, sha, directory):
                 or verified[0].get('size') != expected_size):
             raise ValueError('Published ZIP readback changed; preserve obsolete drafts')
         live = next((r for r in current if r['id'] == candidate['id']), None)
+        if live is not None:
+            live['assets'] = pages(f'releases/{live["id"]}/assets')
         if live != candidate or live.get('assets') != []:
             raise ValueError('Obsolete draft changed; preserve it')
         selected_release(branch, [live])

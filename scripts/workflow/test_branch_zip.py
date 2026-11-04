@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import branch_zip as bz
 from change_impact import classify
@@ -66,6 +67,11 @@ class BranchZipTest(unittest.TestCase):
             self.releases.append({**data, 'id': 7, 'assets': []})
             return copy.deepcopy(self.releases[-1])
         if method == 'PATCH':
+            if path.startswith('releases/assets/'):
+                asset_id = int(path.split('/')[-1])
+                asset = next(a for r in self.releases for a in r['assets'] if a['id'] == asset_id)
+                asset.update(data)
+                return copy.deepcopy(asset)
             # Extract release ID from path (format: releases/{id})
             if not path.startswith('releases/'):
                 raise AssertionError(f'Unexpected PATCH path: {path}')
@@ -108,9 +114,14 @@ class BranchZipTest(unittest.TestCase):
         # Extract release ID from the upload URL
         url = [arg for arg in args if 'uploads.github.com' in str(arg)][0]
         release_id = int(url.split('/releases/')[1].split('/assets')[0])
-        self.assertIn(f'https://uploads.github.com/repos/owner/repo/releases/{release_id}/assets?name=' + bz.asset_for(A), args)
-        asset = {'id': 12, 'name': bz.asset_for(A), 'state': 'uploaded', 'size': 25,
-                 'digest': 'sha256:' + hashlib.sha256((self.directory / bz.asset_for(A)).read_bytes()).hexdigest()}
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query)
+        self.assertEqual(query['name'], [bz.asset_for(A)])
+        self.assertEqual(parsed.path, f'/repos/owner/repo/releases/{release_id}/assets')
+        next_id = max([a['id'] for r in self.releases for a in r['assets']] + [11]) + 1
+        asset = {'id': next_id, 'name': bz.asset_for(A), 'state': 'uploaded', 'size': 25,
+                 'digest': 'sha256:' + hashlib.sha256((self.directory / bz.asset_for(A)).read_bytes()).hexdigest(),
+                 'label': query.get('label', [''])[0]}
         # Find the release with the matching ID
         target_release = next((r for r in self.releases if r['id'] == release_id), self.releases[0])
         target_release['assets'].append(asset)
@@ -554,3 +565,139 @@ class BranchZipTest(unittest.TestCase):
             bz.publish(self.branch, A, self.directory)
         self.assertIn(bz.asset_for(B), [a['name'] for a in self.releases[0]['assets']])
         self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_all_draft_patch_failure_reuses_same_sha_upload_after_rebuild_bytes_change(self):
+        self.old_release()
+        self.releases[0].update(draft=True, assets=[])
+        self.releases.append(dict(self.releases[0], id=6, assets=[]))
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        original_asset = copy.deepcopy(self.releases[0]['assets'][0])
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+        (self.directory / bz.asset_for(A)).write_bytes(b'same source rebuilt with different timestamps')
+        self.fail_patch = False
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(self.releases[0]['assets'], [original_asset])
+        self.assertEqual(bz.plan(), [])
+        self.assertEqual([r['id'] for r in self.releases], [7])
+        self.assertFalse(any(m == 'UPLOAD' for m, _ in self.operations))
+        self.assertIn(('DELETE', 'releases/6'), self.operations)
+
+    def test_all_draft_retry_preserves_incomplete_or_unidentified_uploads(self):
+        for changed in ({'digest': ''}, {'digest': 'sha256:invalid'}, {'size': 0},
+                        {'state': 'starter'}, {'name': bz.asset_for(B)}):
+            self.old_release()
+            self.releases[0].update(draft=True, assets=[dict(
+                id=12, name=bz.asset_for(A), state='uploaded', size=25,
+                digest='sha256:' + 'd' * 64)])
+            self.releases[0]['assets'][0].update(changed)
+            self.releases.append(dict(self.releases[0], id=6, assets=[]))
+            original = copy.deepcopy(self.releases)
+            self.operations.clear()
+            with self.assertRaises(ValueError): bz.publish(self.branch, A, self.directory)
+            self.assertEqual(self.releases, original)
+            self.assertFalse(any(m != 'GET' for m, _ in self.operations))
+
+    def test_single_draft_unknown_asset_is_never_published(self):
+        self.old_release()
+        self.releases[0].update(draft=True, assets=[
+            {'id': 44, 'name': 'private-custody.zip', 'state': 'uploaded', 'size': 9}])
+        original = copy.deepcopy(self.releases)
+        with self.assertRaises(ValueError): bz.publish(self.branch, A, self.directory)
+        self.assertEqual(self.releases, original)
+        self.assertFalse(any(m != 'GET' for m, _ in self.operations))
+
+    def test_draft_assets_are_rechecked_before_publication(self):
+        for count in (1, 2):
+            self.old_release()
+            self.releases[0].update(draft=True, assets=[])
+            if count == 2: self.releases.append(dict(self.releases[0], id=6, assets=[]))
+            original = self.upload
+            def raced(*args):
+                result = original(*args)
+                self.releases[0]['assets'].append({'id': 44, 'name': 'private-custody.zip', 'state': 'uploaded', 'size': 9})
+                return result
+            self.operations.clear()
+            with patch.object(bz, 'gh', side_effect=raced), self.assertRaises(ValueError):
+                bz.publish(self.branch, A, self.directory)
+            self.assertTrue(self.releases[0]['draft'])
+            self.assertFalse(any(m in ('PATCH', 'DELETE') for m, _ in self.operations))
+
+    def test_normal_patch_failure_retries_then_retires_original_predecessor(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        original_upload = copy.deepcopy(self.releases[0]['assets'][1])
+        self.fail_patch = False
+        (self.directory / bz.asset_for(A)).write_bytes(b'rebuilt different bytes')
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(self.releases[0]['assets'], [original_upload])
+        self.assertIn(('DELETE', 'releases/assets/11'), self.operations)
+        self.assertFalse(any(m == 'UPLOAD' for m, _ in self.operations))
+
+    def test_mixed_patch_failure_then_draft_disappears_never_retires_protected_history(self):
+        self.old_release()
+        self.releases.append(dict(self.releases[0], id=6, draft=True, assets=[]))
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.releases = [r for r in self.releases if r['id'] == 7]
+        self.assertFalse(self.releases[0]['assets'][1]['label'])
+        self.fail_patch = False
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(len(self.releases[0]['assets']), 2)
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_normal_cleanup_failure_uses_durable_predecessor_on_later_retry(self):
+        self.old_release()
+        self.fail_delete = 'releases/assets/11'
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.fail_delete = None
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(A)])
+        self.assertIn(('DELETE', 'releases/assets/11'), self.operations)
+
+    def test_changed_pending_predecessor_is_not_retired_by_durable_claim(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.fail_patch = False
+        self.releases[0]['assets'][0]['size'] += 1
+        self.operations.clear()
+        with self.assertRaises(ValueError): bz.publish(self.branch, A, self.directory)
+        self.assertFalse(any(m != 'GET' for m, _ in self.operations))
+
+    def test_mixed_success_revokes_previous_normal_claim_before_draft_disappears(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.assertTrue(self.releases[0]['assets'][1]['label'])
+        self.releases.append(dict(self.releases[0], id=6, draft=True, assets=[]))
+        self.fail_patch = False
+        bz.publish(self.branch, A, self.directory)
+        self.assertFalse(self.releases[0]['assets'][1]['label'])
+        self.releases = [r for r in self.releases if r['id'] == 7]
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(len(self.releases[0]['assets']), 2)
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_normal_retention_remains_single_zip_after_retry_and_next_product(self):
+        self.old_release()
+        self.fail_patch = True
+        with self.assertRaises(RuntimeError): bz.publish(self.branch, A, self.directory)
+        self.fail_patch = False
+        bz.publish(self.branch, A, self.directory)
+        third = 'c' * 40
+        self.branches[0]['commit']['sha'] = third
+        (self.directory / bz.asset_for(third)).write_bytes(b'next product ZIP')
+        original = self.upload
+        def upload(*args):
+            with patch(__name__ + '.A', third): return original(*args)
+        with patch.object(bz, 'gh', side_effect=upload):
+            bz.publish(self.branch, third, self.directory)
+        self.assertEqual([a['name'] for a in self.releases[0]['assets']], [bz.asset_for(third)])
+        self.assertEqual(bz.plan(), [])
