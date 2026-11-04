@@ -119,7 +119,8 @@ class BranchZipTest(unittest.TestCase):
         self.assertEqual(query['name'], [bz.asset_for(A)])
         self.assertEqual(parsed.path, f'/repos/owner/repo/releases/{release_id}/assets')
         next_id = max([a['id'] for r in self.releases for a in r['assets']] + [11]) + 1
-        asset = {'id': next_id, 'name': bz.asset_for(A), 'state': 'uploaded', 'size': 25,
+        asset = {'id': next_id, 'name': bz.asset_for(A), 'state': 'uploaded',
+                 'size': (self.directory / bz.asset_for(A)).stat().st_size,
                  'digest': 'sha256:' + hashlib.sha256((self.directory / bz.asset_for(A)).read_bytes()).hexdigest(),
                  'label': query.get('label', [''])[0]}
         # Find the release with the matching ID
