@@ -49,7 +49,7 @@ class AssistantMessageBubble(initialText: String = "") : JPanel(BorderLayout()) 
  * by default (that's spec-correct CommonMark behavior for trusted input, but
  * agent responses routinely contain angle-bracket text that looks like a tag —
  * e.g. `List<String>` — which would otherwise vanish or render as a stray
- * unknown element in the JLabel's HTML view). HtmlInline/HtmlBlock nodes are
+ * unknown element in the HTML view). HtmlInline/HtmlBlock nodes are
  * rendered as escaped text instead of raw passthrough to keep such text visible.
  */
 object MarkdownRenderer {
