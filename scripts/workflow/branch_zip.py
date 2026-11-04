@@ -140,7 +140,29 @@ def publish(branch, sha, directory):
         print('Branch moved or was deleted; skip obsolete build')
         return
     tag = tag_for(branch)
-    release = selected_release(branch, pages('releases'))
+    matches = [r for r in pages('releases') if r['tag_name'] == tag]
+    release = selected_release(branch, matches)
+    mixed = any(r['draft'] for r in matches) and any(not r['draft'] for r in matches)
+    obsolete = []
+    if len(matches) > 1 and all(r['draft'] for r in matches):
+        # Only this invocation's all-owned, empty obsolete drafts can be retired.
+        for candidate in matches:
+            selected_release(branch, [candidate])
+            if candidate['id'] == release['id'] and candidate.get('assets'):
+                assets = candidate['assets']
+                complete = (len(assets) == 1 and assets[0]['name'] == name
+                            and assets[0].get('state') == 'uploaded'
+                            and assets[0].get('size') == archive.stat().st_size
+                            and assets[0].get('digest') == 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest())
+                partial = (len(assets) == 1 and assets[0]['name'] == name
+                           and candidate.get('body') == marker(branch, sha)
+                           and assets[0].get('state') == 'starter' and assets[0].get('size') == 0)
+                if not (complete or partial):
+                    raise ValueError('Nonempty selected draft requires owner reconciliation')
+            if candidate['id'] != release['id']:
+                if candidate.get('assets') != []:
+                    raise ValueError('Nonempty obsolete draft requires owner reconciliation')
+                obsolete.append(candidate)
     # Existing tags stay fixed; reviewed default tooling anchors new destinations.
     default_branch = api('')['default_branch']
     if release is None:
@@ -160,7 +182,13 @@ def publish(branch, sha, directory):
     digest = 'sha256:' + hashlib.sha256(archive.read_bytes()).hexdigest()
     if existing and (existing.get('state') != 'uploaded' or existing.get('size', 0) <= 0
                      or not re.fullmatch('sha256:[0-9a-f]{64}', existing.get('digest', ''))):
-        raise ValueError('Incomplete ZIP identity; owner must reconcile without automatic deletion')
+        partial_owned = (not mixed and release.get('draft') is True
+                         and release.get('body') == marker(branch, sha)
+                         and existing.get('state') == 'starter' and existing.get('size') == 0)
+        if not partial_owned:
+            raise ValueError('Incomplete ZIP identity; owner must reconcile without automatic deletion')
+        api(f'releases/assets/{existing["id"]}', 'DELETE')
+        existing = None
     if not existing:
         repo = os.environ['GITHUB_REPOSITORY']
         # Upload new bytes before removing the last working download. Never execute the ZIP.
@@ -181,7 +209,34 @@ def publish(branch, sha, directory):
             + marker(branch, sha))
     api(f'releases/{release_id}', 'PATCH', {'name': f'Plugin ZIP — {branch}', 'body': body,
         'target_commitish': default_branch, 'draft': False, 'prerelease': True, 'make_latest': 'false'})
-    # Preserve historical URLs, unknown assets and partial uploads; retirement needs its own scope.
+    if not mixed:
+        for asset in pages(f'releases/{release_id}/assets'):
+            if asset['name'] != name:
+                api(f'releases/assets/{asset["id"]}', 'DELETE')
+    # Mixed custody is never resumed as an all-draft retirement on a later invocation.
+    retired = set()
+    for candidate in obsolete:
+        if current_head(branch) != sha:
+            raise ValueError('Branch changed before draft retirement')
+        current = [r for r in pages('releases') if r['tag_name'] == tag]
+        if {r['id'] for r in current} != {r['id'] for r in matches} - retired:
+            raise ValueError('Release set changed; preserve obsolete drafts')
+        chosen = selected_release(branch, current)
+        verified = [a for a in (chosen or {}).get('assets', []) if a['name'] == name]
+        expected_digest = existing['digest'] if existing else digest
+        expected_size = existing['size'] if existing else archive.stat().st_size
+        if (chosen is None or chosen['id'] != release_id or published_sha(branch, chosen) != sha
+                or len(verified) != 1 or verified[0].get('digest') != expected_digest
+                or verified[0].get('size') != expected_size):
+            raise ValueError('Published ZIP readback changed; preserve obsolete drafts')
+        live = next((r for r in current if r['id'] == candidate['id']), None)
+        if live != candidate or live.get('assets') != []:
+            raise ValueError('Obsolete draft changed; preserve it')
+        selected_release(branch, [live])
+        api(f'releases/{candidate["id"]}', 'DELETE')
+        if any(r['id'] == candidate['id'] for r in pages('releases')):
+            raise ValueError('Draft retirement unconfirmed; inspect before retry')
+        retired.add(candidate['id'])
     print(f'https://github.com/{repo}/releases/tag/{tag}')
 
 

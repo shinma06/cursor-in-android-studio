@@ -2,9 +2,9 @@
   "schema": 1,
   "issue": 605,
   "gui_required": false,
-  "reason": "旧Branch ZIPのplan/publishの重複選択と既存資産保全を直すPython toolingと案内のみ。製品source/runtime/UIの変更はなくGUI不要。実Release/tag/asset削除・dispatch・NEW有効化は行わず、原FAIL/既存Caseを保持する。",
+  "reason": "旧Branch ZIPのplan/publishの重複選択と既存資産保全を直すPython toolingと案内のみ。製品source/runtime/UIの変更はなくGUI不要。実GitHub資源を使った削除試験・dispatch・NEW有効化は行わず、原FAIL/既存Caseを保持する。",
   "cli_checks": [
-    "test_branch_zip: mixed順序不変/公開優先/保護draft保持、multiple published拒否、owned最新draft再利用、upload/PATCH失敗・再試行・不明所有/immutable/partial拒否、旧asset/URL保持と再planのno-opをmockで検証。",
+    "test_branch_zip: mixed順序不変/公開優先/保護draft保持、multiple published拒否、owned最新draft再利用、upload/PATCH失敗・再試行・不明所有/immutable/partial拒否、mixedの旧asset/URL保持と再plan no-op、all-owned空draftの公開/再読後退役・部分失敗後mixed保全、通常単一Release退役/owned starter再試行をmockで検証。",
     "共有Change Impactが選ぶ通常workflow/loop/Gradleを検証。dirty段階のfocused結果を通常CIの代用にしない。",
     "git diff --check、Cases0/schema、元607のcredit/履歴・採用base・後継固定hashと公開副作用を照合。実公開を伴う試験は行わない。"
   ],
