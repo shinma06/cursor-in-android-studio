@@ -1,6 +1,6 @@
 # Event-driven phase review
 
-Apply only when OMIL/PM work is actually assigned. PM continues ordinary delivery; OMIL advice does not hold authorized work. Review purpose, guarantees, methods, assumptions, roles and burden when material evidence changes, waiting/rework repeats without new information, an intermediate outcome is reached, or the assigned phase ends/freezes. Preserve the real human start/pause and quality boundaries.
+Apply only when OMIL/PM work is actually assigned. These event-driven checks supplement the [prior consultation](github-workflow.md#operations-profile). Agreed delivery and immediate preservation continue while a new decision awaits OMIL. Review purpose, guarantees, methods, assumptions, roles and burden when material evidence changes, waiting/rework repeats without new information, an intermediate outcome is reached, or the assigned phase ends/freezes. Preserve the real human start/pause and quality boundaries.
 
 Reuse existing Issue/PR/plan, original observations and reports. Select a finite relevant sample including ordinary success, exceptions/incomplete work and assisted changes; expand only when a concrete unresolved fact can change the decision. Do not copy ARB phase numbers, sample/time limits, readiness results or measurements into this project's acceptance. Actual bounds and reason belong in the assignment. Code review and operational-substance assessment have distinct purposes.
 

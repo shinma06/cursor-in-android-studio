@@ -23,7 +23,7 @@ Follow docs/development/codex-execution-policy.md; this request does not authori
 Choose the acceptance Cases and related MV IDs. Reproduce, fix, review and recheck within 45 minutes, 3 fixes and 8 sends to the product under test.
 Choose the guarantee, qualified existing evidence, missing fact and minimum sufficient method under docs/verification/responsibility.md and docs/verification/README.md. Preserve original failures, all effective guarantees and explicit execution obligations; reuse only through verification's independently certified route.
 Limit product test inputs to newly generated fixtures; implement plugin fixes in the claimed Issue worktree.
-Use a GUI lease and identified build. If GUI tools are unavailable, hand off GUI work and continue independent implementation or CLI checks; retain blocked/unverified results.
+Identify the loaded build and follow docs/development/gui-coordination.md for the observation/input route and required lease intervals. If GUI tools are unavailable, hand off GUI work and continue independent implementation or CLI checks; retain blocked/unverified results.
 Preserve Computer Use-required Cases. Record evidence and the next action, and report in Japanese.
 ```
 
