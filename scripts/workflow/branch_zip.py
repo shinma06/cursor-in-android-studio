@@ -144,6 +144,9 @@ def publish(branch, sha, directory):
     release = selected_release(branch, matches)
     mixed = any(r['draft'] for r in matches) and any(not r['draft'] for r in matches)
     obsolete = []
+    previous_asset = None
+    if len(matches) == 1 and published_sha(branch, release) and len(release.get('assets', [])) == 1:
+        previous_asset = release['assets'][0]
     if len(matches) > 1 and all(r['draft'] for r in matches):
         # Only this invocation's all-owned, empty obsolete drafts can be retired.
         for candidate in matches:
@@ -209,10 +212,26 @@ def publish(branch, sha, directory):
             + marker(branch, sha))
     api(f'releases/{release_id}', 'PATCH', {'name': f'Plugin ZIP — {branch}', 'body': body,
         'target_commitish': default_branch, 'draft': False, 'prerelease': True, 'make_latest': 'false'})
-    if not mixed:
-        for asset in pages(f'releases/{release_id}/assets'):
-            if asset['name'] != name:
-                api(f'releases/assets/{asset["id"]}', 'DELETE')
+    # Only the original single known predecessor is eligible; never infer retirement from not-mixed.
+    if previous_asset and previous_asset['name'] != name:
+        if current_head(branch) != sha:
+            raise ValueError('Branch changed before predecessor retirement')
+        live_matches = [r for r in pages('releases') if r['tag_name'] == tag]
+        if len(live_matches) != 1:
+            raise ValueError('Release set changed; preserve predecessor')
+        current = selected_release(branch, live_matches)
+        verified = [a for a in (current or {}).get('assets', []) if a['name'] == name]
+        expected_digest = existing['digest'] if existing else digest
+        expected_size = existing['size'] if existing else archive.stat().st_size
+        if (current is None or current['id'] != release_id or published_sha(branch, current) != sha
+                or len(verified) != 1 or verified[0].get('digest') != expected_digest
+                or verified[0].get('size') != expected_size):
+            raise ValueError('Published ZIP readback changed; preserve predecessor')
+        old = next((a for a in current['assets'] if a['id'] == previous_asset['id']), None)
+        if old is not None:
+            if any(old.get(k) != previous_asset.get(k) for k in ('id', 'name', 'state', 'size', 'digest')):
+                raise ValueError('Predecessor changed; preserve it')
+            api(f'releases/assets/{old["id"]}', 'DELETE')
     # Mixed custody is never resumed as an all-draft retirement on a later invocation.
     retired = set()
     for candidate in obsolete:
@@ -226,7 +245,8 @@ def publish(branch, sha, directory):
         expected_digest = existing['digest'] if existing else digest
         expected_size = existing['size'] if existing else archive.stat().st_size
         if (chosen is None or chosen['id'] != release_id or published_sha(branch, chosen) != sha
-                or len(verified) != 1 or verified[0].get('digest') != expected_digest
+                or len(verified) != 1 or len(chosen['assets']) != 1
+                or verified[0].get('digest') != expected_digest
                 or verified[0].get('size') != expected_size):
             raise ValueError('Published ZIP readback changed; preserve obsolete drafts')
         live = next((r for r in current if r['id'] == candidate['id']), None)

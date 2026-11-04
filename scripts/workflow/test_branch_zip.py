@@ -502,3 +502,55 @@ class BranchZipTest(unittest.TestCase):
             with patch.object(bz, 'api', side_effect=external), self.assertRaises(ValueError):
                 bz.publish(self.branch, A, self.directory)
             self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_mixed_history_stays_protected_after_draft_disappears_on_next_run(self):
+        self.old_release()
+        self.releases.append(dict(self.releases[0], id=6, draft=True, assets=[]))
+        bz.publish(self.branch, A, self.directory)
+        self.releases = [r for r in self.releases if r['id'] == 7]
+        history = copy.deepcopy(self.releases[0]['assets'])
+        self.operations.clear()
+        bz.publish(self.branch, A, self.directory)
+        self.assertEqual(bz.plan(), [])
+        self.assertEqual(self.releases[0]['assets'], history)
+        third = 'c' * 40
+        self.branches[0]['commit']['sha'] = third
+        (self.directory / bz.asset_for(third)).write_bytes(b'standard Gradle ZIP bytes')
+        # Reuse the mock upload implementation with the new source name.
+        original = self.upload
+        def upload(*args):
+            with patch(__name__ + '.A', third): return original(*args)
+        with patch.object(bz, 'gh', side_effect=upload):
+            bz.publish(self.branch, third, self.directory)
+        self.assertEqual(self.releases[0]['assets'][:2], history)
+        self.assertEqual(bz.plan(), [])
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_unknown_asset_arriving_after_all_draft_publish_is_not_deleted(self):
+        self.old_release()
+        self.releases[0].update(draft=True, assets=[])
+        self.releases.append(dict(self.releases[0], id=6, assets=[]))
+        original = self.api
+        unknown = {'id': 44, 'name': 'owner-custody.zip', 'state': 'uploaded', 'size': 10}
+        def external(path, method='GET', data=None):
+            result = original(path, method, data)
+            if method == 'PATCH': self.releases[0]['assets'].append(copy.deepcopy(unknown))
+            return result
+        with patch.object(bz, 'api', side_effect=external), self.assertRaises(ValueError):
+            bz.publish(self.branch, A, self.directory)
+        self.assertIn(unknown, self.releases[0]['assets'])
+        self.assertEqual(len(self.releases), 2)
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
+
+    def test_normal_retirement_holds_if_a_draft_appears_after_publication(self):
+        self.old_release()
+        original = self.api
+        def external(path, method='GET', data=None):
+            result = original(path, method, data)
+            if method == 'PATCH':
+                self.releases.append(dict(self.releases[0], id=6, draft=True, assets=[]))
+            return result
+        with patch.object(bz, 'api', side_effect=external), self.assertRaises(ValueError):
+            bz.publish(self.branch, A, self.directory)
+        self.assertIn(bz.asset_for(B), [a['name'] for a in self.releases[0]['assets']])
+        self.assertFalse(any(m == 'DELETE' for m, _ in self.operations))
