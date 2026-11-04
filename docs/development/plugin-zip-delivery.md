@@ -6,6 +6,8 @@
 
 [#572](https://github.com/shinma06/cursor-in-android-studio/issues/572)で採用した配布定義を、[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)で **developの単一early → 固定正式候補Artifact → 受入・main promotion → 同じbytesの正式Release** のguard付きreadinessへ接続します。現在は切替準備段階で、初回earlyの実公開・実workflow切替は未了です。以下は採用するsourceの動作と実切替の条件です。設定・run・公開source/hashの実結果は#599で確認し、source採用だけを稼働成功と扱いません。製品source/build設定・既存Case・原失敗・main/developの機能差は変更しません。
 
+OLDの重複選択・退役の工具修復は[#605](https://github.com/shinma06/cursor-in-android-studio/issues/605)でdevelop/mainへ採用し、[通常の毎時runで到達を確認済み](https://github.com/shinma06/cursor-in-android-studio/issues/605#issuecomment-6637287597)です。これはNEW切替や、[#579に残る旧Releaseの所有・許可・元FAILの解決](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6637403898)とは別です。旧資産/URLと元失敗を保持します。
+
 | 入口 | 採用するsourceのreadinessと境界 |
 | --- | --- |
 | `delivery.yml` | main参照のCI完了通知をdevelop early / main promotedへ、手動通知をstableへ渡す。未知event/branchはCLI呼出し前に拒否。既存のsource/Case/check/bytes/権限検査を維持 |
@@ -15,7 +17,7 @@
 | 既存`branch-zip.yml` / `branch_zip.py` | 旧sourceと全既存資産/URLを保全し、NEW CLIへ差し替えない。実切替時にworkflowを停止し、既存runをdrainする。disableは実行中runのcancelではない |
 | 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。構文検査だけ限定queue互換処理を通す。公開やNEW経路のdispatchは追加しない |
 
-実切替はPMが最終main/developと他のproduct push停止を固定してから、担当1名で次の順序を満たします。現在はこの操作を開始していません。
+実切替はPMが最終main/developと他のproduct push停止を固定してから、担当1名で次の順序を満たします。現在はこの操作を開始していません。sourceの固定falseを外すmain統合前にはNEWを停止保持し、遅着CI通知やmanual入力から公開へ到達しない状態を確認します。Draft PRでの検証だけでは、この実停止確認を代替しません。
 
 1. 全関連namespace・所有claim・OLD/NEWの実workflow状態と実行中/待機run・遅着し得るmain CI/manual stable・候補入力を有限に照合する。未割当の正式公開へ到達し得る入力、所有不明や結果不明があれば、その操作を止めて解消する。通常main通知のno-opや未merge PRの拒否例だけで全入力を安全としない。
 2. NEWを停止保持し、OLD workflowを全branchに対して停止、実行済み/待機中runを所有を保ってdrainする。全guarded readinessをmainと必要なdevelop同期へ通常レビューで採用してから、初回earlyの固定tagを作る。earlyだけを先に採用して後からworkflowを変えない。
@@ -142,7 +144,7 @@ publishはレビュー済みmain、buildはwrite tokenのない別runnerです�
 
 全件draftの場合は最新IDの候補を再利用します。集合全体のmarker・branch/source・名前・prerelease・mutableを検証し、古いdraftが空で、新ZIPが公開されてdigest/size/sourceを再読確認でき、同じHEADが維持される場合だけ、その呼出しで照合した古いdraftを削除します。所有不明・immutable・保護資産を持つdraftは書込み前に停止します。upload/PATCH失敗・HEAD移動・再読不一致では先行削除しません。後処理が途中失敗した後は既存の公開済み＋draftとして保全し、元失敗と残る退役を担当者へ引き継ぎます。再試行だけを理由にmixedのdraftを削除しません。 全件draftのPATCH失敗後も、同一source名の完了済みassetは有効なdigest/sizeを取得して再利用します。再buildのタイムスタンプ等でローカルZIPのbytesが変わっても既存uploadを置き換えず、公開後は既存assetのdigest/sizeで読み戻します。不完全・未知identityのassetは保全して停止します。 選択したdraftが1件でも、公開対象は空／正当な同SHA完了ZIP／所有済み空starterに限ります。全assetを専用一覧で取得し、公開直前に対象Releaseの所有・公開状態とasset全件・upload identity・HEADを再照合するため、公開直前の読み戻しで未知assetの並行追加を検出したdraftは公開せず停止します。GitHubの外部手動編集まで原子的にlockする保証ではありません。
 
-通常退役は開始時に公開済みsingle Releaseの正規前版が1 assetだけの場合に限定し、新ZIPの公開・再読後、その固定前版だけを照合して整理します。開始時から履歴/未知assetが複数ある場合は、draftが後から見えなくなってもそれらを保持します。all-draftでは他名assetを整理しません。既存orphan cleanupの単一asset契約は維持します。 通常の前版退役に限って、新uploadの既存`label`へ退役可能な各前版identityのhashを記録します。PATCH失敗や後処理失敗の再試行は、この持続的な根拠が現在の前版と一致する場合だけ退役でき、個数だけで保護履歴を通常前版と推定しません。本文切替後の前版退役が失敗した場合も、その根拠が一致して残っていればplanが未完了の通常retryを隠しません。PATCH失敗後に次の製品SHAへ進んでも、正常経路から証明できる未完了前版だけの根拠を引き継ぎ、検証・公開後の各DELETEと再読で部分失敗から再開します。保護履歴・未知assetには根拠を発行しません。mixedで既存の通常退役根拠が残っていた場合は同じReleaseの過去ZIPも含むlabelから根拠を解除して公開し、後からdraftが消えても保護履歴を退役しません。labelはGitHub上の表示にも使われる既存metadataであり、根拠がない/変わった場合は保全・照合へ戻します。同source markerを持つdraftの空starterだけは既存の部分upload再試行を許可し、未知の部分資産は停止します。mixedに残した履歴assetは単一asset用のorphan cleanup対象にしません。保管コピーの存在は元URL削除の許可ではありません。この工具修正のdevelop採用は、default mainを使う毎時経路への到達や、#599のNEW有効化・#579の元FAIL解消の実観察を意味しません。通常main-tooling適用と実到達のreadbackは別途必要です。
+通常退役は開始時に公開済みsingle Releaseの正規前版が1 assetだけの場合に限定し、新ZIPの公開・再読後、その固定前版だけを照合して整理します。開始時から履歴/未知assetが複数ある場合は、draftが後から見えなくなってもそれらを保持します。all-draftでは他名assetを整理しません。既存orphan cleanupの単一asset契約は維持します。 通常の前版退役に限って、新uploadの既存`label`へ退役可能な各前版identityのhashを記録します。PATCH失敗や後処理失敗の再試行は、この持続的な根拠が現在の前版と一致する場合だけ退役でき、個数だけで保護履歴を通常前版と推定しません。本文切替後の前版退役が失敗した場合も、その根拠が一致して残っていればplanが未完了の通常retryを隠しません。PATCH失敗後に次の製品SHAへ進んでも、正常経路から証明できる未完了前版だけの根拠を引き継ぎ、検証・公開後の各DELETEと再読で部分失敗から再開します。保護履歴・未知assetには根拠を発行しません。mixedで既存の通常退役根拠が残っていた場合は同じReleaseの過去ZIPも含むlabelから根拠を解除して公開し、後からdraftが消えても保護履歴を退役しません。labelはGitHub上の表示にも使われる既存metadataであり、根拠がない/変わった場合は保全・照合へ戻します。同source markerを持つdraftの空starterだけは既存の部分upload再試行を許可し、未知の部分資産は停止します。mixedに残した履歴assetは単一asset用のorphan cleanup対象にしません。保管コピーの存在は元URL削除の許可ではありません。この工具修正は#605でmain採用と毎時経路への実到達を確認済みですが、#599のNEW有効化・#579の所有/許可残件や元FAILの解消を意味しません。
 
 <a id="削除済み作業ブランチの掃除219"></a>
 
