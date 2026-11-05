@@ -1083,7 +1083,7 @@ def main():
                                      (handoff_matches(pr, h) and not state.get('paused') and
                                       retry_timestamp(state) <= time.time()))):
                                 targets.append(pr['number'])
-                        except (ValueError, KeyError, IndexError) as error:
+                        except (ValueError, KeyError, IndexError, RuntimeError) as error:
                             skipped.append({'pr': pr['number'], 'error': str(error)})
                             continue
                 if args.action == 'scan':

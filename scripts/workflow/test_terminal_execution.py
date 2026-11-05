@@ -155,6 +155,67 @@ class TerminalExecutionTests(unittest.TestCase):
         with patch.object(al.time, 'time', return_value=100):
             self.assertEqual(f.loop.tick(36), {'pr': 36, 'phase': 'backoff'})
         self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
+    def test_candidate_comments_failure_isolated_through_real_load(self):
+        f = self.f
+        prs = [copy.deepcopy(f.gh.pull) for _ in range(2)]
+        prs[1].update(number=37, body=prs[1]['body'].replace('Issue: #35', 'Issue: #36'))
+        prs[1]['head']['ref'] = 'codex/36-fixture'
+        public = {k: v for k, v in self.handoff_for(prs[1]).items()
+                  if k not in ('source', 'host', 'registry_id', 'version')}
+        neighbor = f.loop.storage/'pr-37/checkout'; neighbor.mkdir(parents=True)
+        public = al.register(f.loop.storage, public, neighbor, al.HOST)
+        f.gh.comment(37, al.pack(al.HANDOFF_V2, public))
+        (f.loop.storage/'attempts.json').write_text(json.dumps({'36': 1, '37': 2}))
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        for error_type in (RuntimeError, ValueError):
+            for args in (('tick',), ('tick', '--pr', '37')):
+                def pages(path):
+                    if path == f'repos/{al.REPO}/pulls?state=all&per_page=100':
+                        return copy.deepcopy(prs)
+                    if path == f'repos/{al.REPO}/issues/36/comments?per_page=100':
+                        raise error_type('PR36 comments unavailable')
+                    if path == f'repos/{al.REPO}/issues/37/comments?per_page=100':
+                        return copy.deepcopy(messages[37])
+                    raise AssertionError(path)
+                with self.subTest(error_type=error_type.__name__, args=args), \
+                        patch.object(f.gh, 'pages', side_effect=pages), \
+                        patch.object(f.gh, 'comments', side_effect=lambda n: al.GitHub.comments(f.gh, n)), \
+                        patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
+                        patch.object(f.loop, 'load', wraps=f.loop.load) as load, \
+                        patch.object(f.loop, 'tick', return_value={'pr': 37, 'phase': 'reviewed'}) as tick:
+                    code, output, stderr = self.command(*args)
+                    self.assertEqual((code, stderr), (0, ''))
+                    self.assertEqual(json.loads(output), [
+                        {'pr': 37, 'phase': 'reviewed'}, {'pr': 36, 'error': 'PR36 comments unavailable'}])
+                    self.assertEqual([c.args[0] for c in load.call_args_list], [36, 37])
+                    tick.assert_called_once_with(37, prs[1])
+                self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called(); f.loop.cleanup.assert_not_called()
+
+    def test_candidate_error_isolation_keeps_global_failure_and_process_interrupt(self):
+        f = self.f
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        with patch.object(f.gh, 'pages', side_effect=RuntimeError('PR list unavailable')), \
+                patch.object(f.loop, 'load', wraps=f.loop.load) as load, \
+                patch.object(f.loop, 'tick') as tick:
+            code, output, stderr = self.command('tick')
+            self.assertEqual((code, output, stderr), (1, '', 'PR list unavailable\n'))
+            load.assert_not_called(); tick.assert_not_called()
+        def pages(path):
+            if path == f'repos/{al.REPO}/pulls?state=all&per_page=100':
+                return [copy.deepcopy(f.gh.pull)]
+            raise KeyboardInterrupt()
+        with patch.object(f.gh, 'pages', side_effect=pages), \
+                patch.object(f.gh, 'comments', side_effect=lambda n: al.GitHub.comments(f.gh, n)), \
+                patch.object(f.loop, 'load', wraps=f.loop.load) as load, \
+                patch.object(f.loop, 'tick') as tick:
+            with self.assertRaises(KeyboardInterrupt):
+                self.command('tick')
+            self.assertEqual([c.args[0] for c in load.call_args_list], [36]); tick.assert_not_called()
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called(); f.loop.cleanup.assert_not_called()
 
     def test_selected_pr_refresh_failure_does_not_stop_adjacent_pr(self):
         f = self.f
@@ -209,7 +270,6 @@ class TerminalExecutionTests(unittest.TestCase):
                 {'pr': 37, 'phase': 'reviewed'}])
             self.assertEqual([c.args[0] for c in load.call_args_list], [36, 37])
         self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
-        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
         f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
 
     def test_invalid_retry_timestamp_isolated_without_stopping_adjacent_pr(self):
