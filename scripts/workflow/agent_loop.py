@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -141,6 +142,14 @@ def unpack(comments, marker):
 
 def pack(marker, state):
     return marker + '\n' + f'Agent loop: **{state.get("phase", "handoff")}**\n\n```json\n' + json.dumps(state, ensure_ascii=False, indent=2) + '\n```'
+
+
+def retry_timestamp(state):
+    value = state.get('retry_at', 0)
+    # Keep large JSON integers exact; only floats can carry NaN or infinity.
+    if type(value) not in (int, float) or (type(value) is float and not math.isfinite(value)):
+        raise ValueError('Invalid retry_at: expected a finite number')
+    return value
 
 
 @contextmanager
@@ -440,7 +449,7 @@ class Loop:
             state['expected_head'] = h['head']
         if pr['state'] != 'open' or state.get('paused'):
             return {'pr': number, 'phase': state['phase']}
-        if state.get('retry_at', 0) > time.time():
+        if retry_timestamp(state) > time.time():
             return {'pr': number, 'phase': 'backoff'}
         merge_requested = False
         try:
@@ -1062,14 +1071,14 @@ def main():
                     if eligible(pr, OWNER, REPO):
                         try:
                             h, state, _, _ = loop.load(pr['number'], pr)
+                            # Keep waiting records discoverable without consuming automatic execution slots.
+                            if (h and h.get('host') == HOST and state.get('phase') != 'done' and
+                                    (args.action == 'scan' or args.pr is not None or
+                                     (not state.get('paused') and retry_timestamp(state) <= time.time()))):
+                                targets.append(pr['number'])
                         except (ValueError, KeyError, IndexError) as error:
                             skipped.append({'pr': pr['number'], 'error': str(error)})
                             continue
-                        # Keep waiting records discoverable without consuming automatic execution slots.
-                        if (h and h.get('host') == HOST and state.get('phase') != 'done' and
-                                (args.action == 'scan' or (not state.get('paused') and
-                                                         state.get('retry_at', 0) <= time.time()))):
-                            targets.append(pr['number'])
                 if args.action == 'scan':
                     result = {'managed_prs': targets, 'terminal_prs': terminal, 'invalid_records': skipped}
                 else:

@@ -12,6 +12,8 @@ import agent_loop as al
 import test_agent_loop as fixtures
 
 LEGACY = '<!-- agent-loop-handoff:v1 -->'
+INVALID_RETRY_JSON = ('null', '"200"', 'true', 'false', 'NaN', 'Infinity', '-Infinity',
+                      '1e309', '-1e309', '[]', '{}')
 
 
 class TerminalExecutionTests(unittest.TestCase):
@@ -150,6 +152,81 @@ class TerminalExecutionTests(unittest.TestCase):
             self.assertEqual(f.loop.tick(36), {'pr': 36, 'phase': 'backoff'})
         self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
         f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
+    def test_invalid_retry_timestamp_isolated_without_stopping_adjacent_pr(self):
+        f = self.f
+        prs = [copy.deepcopy(f.gh.pull) for _ in range(2)]
+        prs[1].update(number=37, body=prs[1]['body'].replace('Issue: #35', 'Issue: #36'))
+        prs[1]['head']['ref'] = 'codex/36-fixture'
+        (f.loop.storage/'attempts.json').write_text(json.dumps({'36': 1, '37': 2}))
+        for raw in INVALID_RETRY_JSON:
+            with self.subTest(raw=raw):
+                body = al.STATE + '\n```json\n{"phase":"queued","retry_at":' + raw + '}\n```'
+                f.gh.comment(36, body)
+                state, _ = al.unpack(f.gh.comments(36), al.STATE)
+                before = self.files(); messages = copy.deepcopy(f.gh.messages)
+                with patch.object(al.time, 'time', return_value=100), \
+                        patch.object(f.gh, 'pages', return_value=prs), \
+                        patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
+                        patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                            {'host': al.HOST}, state if n == 36 else {'phase': 'queued'}, None, [])), \
+                        patch.object(f.loop, 'tick', return_value={'pr': 37, 'phase': 'reviewed'}) as tick:
+                    code, output, error = self.command('tick')
+                    self.assertEqual((code, error), (0, ''))
+                    self.assertEqual([c.args[0] for c in tick.call_args_list], [37])
+                    self.assertEqual(json.loads(output), [{'pr': 37, 'phase': 'reviewed'},
+                                                         {'pr': 36, 'error': 'Invalid retry_at: expected a finite number'}])
+                    code, output, _ = self.command('scan')
+                    self.assertEqual((code, json.loads(output)['managed_prs']), (0, [36, 37]))
+                    code, output, error = self.command('tick', '--pr', '37')
+                    self.assertEqual((code, error), (0, ''))
+                    self.assertEqual(json.loads(output), [{'pr': 37, 'phase': 'reviewed'}])
+                self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
+    def test_explicit_tick_rejects_invalid_retry_timestamp_before_state_or_attempt_write(self):
+        f = self.f
+        (f.loop.storage/'attempts.json').write_text(json.dumps({'36': 1}))
+        for raw in INVALID_RETRY_JSON:
+            with self.subTest(raw=raw):
+                f.gh.comment(36, al.STATE + '\n```json\n{"phase":"queued","retry_at":' + raw + '}\n```')
+                before = self.files(); messages = copy.deepcopy(f.gh.messages)
+                with patch.object(al.time, 'time', return_value=100), \
+                        patch.object(f.gh, 'pages', return_value=[f.gh.pr(36)]):
+                    with self.assertRaisesRegex(ValueError, 'Invalid retry_at'):
+                        f.loop.tick(36)
+                    code, output, error = self.command('tick', '--pr', '36')
+                    self.assertEqual((code, error), (0, ''))
+                    self.assertEqual(json.loads(output), [{'pr': 36, 'phase': 'error',
+                                                         'error': 'Invalid retry_at: expected a finite number'}])
+                self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
+    def test_retry_timestamp_numeric_boundaries_keep_original_ordering(self):
+        f = self.f
+        prs = [copy.deepcopy(f.gh.pull) for _ in range(2)]
+        prs[1].update(number=37, body=prs[1]['body'].replace('Issue: #35', 'Issue: #36'))
+        prs[1]['head']['ref'] = 'codex/36-fixture'
+        (f.loop.storage/'attempts.json').write_text(json.dumps({'36': 1, '37': 2}))
+        for raw, ready in [('0', True), ('-0.0', True), ('-1', True), ('100', True),
+                           ('100.0', True), ('100.00000000000001', False), ('1e-9999', True),
+                           ('1.7976931348623157e308', False), ('-1.7976931348623157e308', True),
+                           (str(10**400), False), (str(-(10**400)), True)]:
+            with self.subTest(raw=raw):
+                f.gh.comment(36, al.STATE + '\n```json\n{"phase":"queued","retry_at":' + raw + '}\n```')
+                state, _ = al.unpack(f.gh.comments(36), al.STATE)
+                before = self.files(); messages = copy.deepcopy(f.gh.messages)
+                with patch.object(al.time, 'time', return_value=100), \
+                        patch.object(f.gh, 'pages', return_value=prs), \
+                        patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
+                        patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                            {'host': al.HOST}, state if n == 36 else {'phase': 'queued'}, None, [])), \
+                        patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
+                    code, _, error = self.command('tick')
+                    self.assertEqual((code, error), (0, ''))
+                    self.assertEqual([c.args[0] for c in tick.call_args_list], [36, 37] if ready else [37])
+                self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called()
 
     def test_v1_is_never_selected_and_reopened_missing_v2_cannot_fall_back(self):
         f = self.f; original = copy.deepcopy(f.gh.messages[36][0])
