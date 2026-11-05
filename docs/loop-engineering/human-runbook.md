@@ -1,6 +1,6 @@
 # 人間向け：ループ開発の始め方
 
-修正内容を開発担当へ伝えると、Issue・専用worktree・PRを使って進めます。GPT/Codex・Claude・Cursorのいずれも担当でき、[共通の役割条件](../development/github-workflow.md#正本と役割)に従います。独立レビューは別session、GUIは[予約手順](../development/gui-coordination.md)に従う対応可能な担当へ割り当てます。
+修正内容を開発担当へ伝えると、Issue・専用worktree・PRを使って進めます。GPT/Codex・Claude・Cursorのいずれも担当でき、[共通の役割条件](../development/github-workflow.md#正本と役割)に従います。独立レビューは別session、GUIは[GUI調整](../development/gui-coordination.md)に従う対応可能な担当へ割り当てます。
 
 ## 最初の準備
 
@@ -23,7 +23,7 @@ Follow docs/development/codex-execution-policy.md; this request does not authori
 Choose the acceptance Cases and related MV IDs. Reproduce, fix, review and recheck within 45 minutes, 3 fixes and 8 sends to the product under test.
 Choose the guarantee, qualified existing evidence, missing fact and minimum sufficient method under docs/verification/responsibility.md and docs/verification/README.md. Preserve original failures, all effective guarantees and explicit execution obligations; reuse only through verification's independently certified route.
 Limit product test inputs to newly generated fixtures; implement plugin fixes in the claimed Issue worktree.
-Identify the loaded build and follow docs/development/gui-coordination.md for the observation/input route and required lease intervals. If GUI tools are unavailable, hand off GUI work and continue independent implementation or CLI checks; retain blocked/unverified results.
+Identify the loaded build and follow docs/development/gui-coordination.md for the observation/input route, actual targets/result-side effects and direct coordination of concrete conflicts. GUI reservations are abolished; do not add host-wide locks or mandatory acknowledgements. If GUI tools are unavailable, hand off GUI work and continue independent implementation or CLI checks; retain blocked/unverified results.
 Preserve Computer Use-required Cases. Record evidence and the next action, and report in Japanese.
 ```
 
@@ -41,4 +41,4 @@ Preserve Computer Use-required Cases. Record evidence and the next action, and r
 
 「ここで止めて、Issueに引継ぎを書いて」で担当が実行中処理・変更・最後の状態・次の操作を整理します。「Issue #番号の引継ぎから再開して」で、所有者・HEAD・未完了担当・GUI状態を再確認します。
 
-自分でIDEを起動する場合も、[evidence.md](evidence.md)でbuildとfixtureを用意し、GUI担当と調整してleaseを取得してから`./gradlew runIde`を実行します。通常IDEへのZIP install・再起動も同じ予約とbuild識別が必要です。
+自分でIDEを起動する場合も、[evidence.md](evidence.md)でbuildとfixtureを用意し、実対象・結果先・副作用について具体的な競合をGUI担当と調整してから`./gradlew runIde`を実行します。通常IDEへのZIP install・再起動も同じ実対象の調整とbuild識別が必要です。

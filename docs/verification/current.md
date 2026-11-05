@@ -2,6 +2,8 @@
 
 > 自動生成。結果は正本JSONへ入力して再生成してください。過去buildの結果は参考です。
 
+現行の[GUI調整](../development/gui-coordination.md)を適用します。固定Case・原FAILの予約/lease条件は現運用では失効し、原文を保持します。Computer Use・担当/出所・build識別・観察等の保証は変更しません。
+
 固定候補SHA: 未固定
 対象ZIP SHA-256: 未登録
 

@@ -7,6 +7,40 @@ import re
 import uuid
 
 
+def retain_review_evidence(storage, value):
+    """Immutable private evidence within the existing coordinator storage, never an enrollment."""
+    directory = Path(storage) / 'review-evidence'
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if directory.is_symlink() or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o077:
+        raise ValueError('Review evidence directory must be private and owned')
+    identifier = uuid.uuid4().hex
+    raw = json.dumps(value, sort_keys=True).encode()
+    reference = identifier + ':' + hashlib.sha256(raw).hexdigest()
+    fd = os.open(directory / (identifier + '.json'), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as stream:
+        stream.write(raw)
+    return reference
+
+
+def read_review_evidence(storage, reference):
+    if not isinstance(reference, str) or not re.fullmatch(r'[0-9a-f]{32}:[0-9a-f]{64}', reference):
+        raise ValueError('Invalid review evidence reference')
+    identifier, expected = reference.split(':')
+    directory = Path(storage) / 'review-evidence'
+    if directory.is_symlink() or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o077:
+        raise ValueError('Review evidence directory must be private and owned')
+    path = directory / (identifier + '.json')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, 'rb') as stream:
+        stat = os.fstat(stream.fileno())
+        if stat.st_uid != os.getuid() or stat.st_mode & 0o077:
+            raise ValueError('Review evidence must be private and owned')
+        raw = stream.read()
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise ValueError('Review evidence changed')
+    return json.loads(raw)
+
+
 def digest(public):
     return hashlib.sha256(json.dumps(public, sort_keys=True).encode()).hexdigest()
 

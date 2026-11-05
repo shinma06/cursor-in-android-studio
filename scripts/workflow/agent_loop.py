@@ -2,10 +2,11 @@
 """One bounded PR transition per tick. Run from trusted main, never from PR code."""
 import argparse
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -17,9 +18,9 @@ import time
 import uuid
 from urllib.parse import quote
 
-from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_number, next_action, update_parent, validate_review
-from agent_worker import WorkerSettingsError, run_worker, worker_environment
-from handoff_registry import register, resolve
+from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_number, next_action, remote_review_ready, review_time, update_parent, validate_review
+from agent_worker import WorkerSettingsError, run_worker, verify_independent_review, worker_environment
+from handoff_registry import read_review_evidence, register, resolve, retain_review_evidence
 from verification import verify_pr, metadata
 from issue_schema import validate_issue, done_labels, labels
 from qa_handoff import handoff
@@ -28,7 +29,6 @@ from change_impact import git_impact, test_commands, report as impact_report
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
 ROOT = Path(__file__).resolve().parents[2]
-HANDOFF = '<!-- agent-loop-handoff:v1 -->'
 HANDOFF_V2 = '<!-- agent-loop-handoff:v2 -->'
 STATE = '<!-- agent-loop-state:v1 -->'
 HOST = socket.gethostname()
@@ -144,6 +144,21 @@ def pack(marker, state):
     return marker + '\n' + f'Agent loop: **{state.get("phase", "handoff")}**\n\n```json\n' + json.dumps(state, ensure_ascii=False, indent=2) + '\n```'
 
 
+def retry_timestamp(state):
+    value = state.get('retry_at', 0)
+    # Keep large JSON integers exact; only floats can carry NaN or infinity.
+    if type(value) not in (int, float) or (type(value) is float and not math.isfinite(value)):
+        raise ValueError('Invalid retry_at: expected a finite number')
+    return value
+
+
+def handoff_matches(pr, handoff):
+    # Selection shares tick's metadata check so unmanaged records cannot starve ready work.
+    return bool(handoff and handoff.get('host') == HOST and handoff.get('pr') == pr['number'] and
+                handoff.get('issue') == issue_number(pr) and handoff.get('branch') == pr['head']['ref'] and
+                handoff.get('target', 'main') == pr['base']['ref'] and handoff.get('writer_stopped') is True)
+
+
 @contextmanager
 def coordinator_lock():
     # One active coordinator per OS user, including separate clones of this repo.
@@ -155,23 +170,103 @@ def coordinator_lock():
 
 
 class Loop:
-    def __init__(self, gh=None, storage=None, worker=run_worker):
+    def __init__(self, gh=None, storage=None, worker=run_worker, review_retry_comment=None, review_retry_original=None):
         self.gh = gh or GitHub()
         # Stable across linked worktrees, persists through app restarts. Not checked in.
         common = Path(git('rev-parse', '--git-common-dir'))
         if not common.is_absolute():
             common = ROOT / common
         self.storage = Path(storage) if storage else common.resolve() / 'agent-loop'
-        self.storage.mkdir(parents=True, exist_ok=True)
         self.worker = worker
+        self.review_retry_comment = review_retry_comment
+        self.review_retry_original = review_retry_original
 
-    def load(self, number):
+    def load(self, number, pr=None):
+        pr = pr or self.gh.pr(number)
+        if pr.get('number') != number or not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or pr.get('merged'):
+            raise ValueError('Normal execution requires an owned open PR; terminal records are read-only')
         comments = self.gh.comments(number)
-        legacy, legacy_id = unpack(comments, HANDOFF)
-        public, public_id = unpack(comments, HANDOFF_V2)
-        handoff = resolve(self.storage, public, HOST) if public and (not legacy_id or public_id > legacy_id) else legacy
+        public, _ = unpack(comments, HANDOFF_V2)
+        if not public:
+            return None, {}, None, comments
+        handoff = resolve(self.storage, public, HOST)
         state, comment_id = unpack(comments, STATE)
+        if state and state.get('phase') == 'done':
+            raise ValueError('Completed operation requires explicit owner recovery; do not reuse old approval')
         return handoff, state or {'phase': 'queued', 'fixes': 0, 'reviews': 0, 'errors': 0}, comment_id, comments
+
+    def feedback(self, pr):
+        comments = self.gh.comments(pr['number'])
+        if not eligible(pr, OWNER, REPO):
+            records = [*comments,
+                       *self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100'),
+                       *self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100'),
+                       *self.gh.review_threads(pr['number'])]
+            return {'pr': pr['number'], 'binding': None, 'feedback': records,
+                    'review_wait_satisfied': False, 'execution': 'read-only non-current metadata'}
+        # History never needs the retired execution registry or malformed terminal STATE.
+        prior, _ = unpack(comments, STATE) if pr['state'] == 'open' and not pr.get('merged') else (None, None)
+        bound, records = self.bound(pr, self.gh.issue(issue_number(pr)), comments, prior)
+        return {'pr': pr['number'], 'binding': bound, 'feedback': records,
+                'review_wait_satisfied': remote_review_ready(bound)}
+
+    @staticmethod
+    def pending_finish(pr, public, state):
+        bound, report, accepted = (state.get(key, {}) for key in ('binding', 'review', 'acceptance'))
+        intent = state.get('merge_intent')
+        if not all(isinstance(record, dict) for record in (bound, report, accepted)):
+            return False
+        return bool(pr.get('merged') and pr['state'] == 'closed' and eligible(pr, OWNER, REPO) and
+                    public and public.get('version') == 2 and public.get('owner') and
+                    public.get('writer_stopped') is True and public.get('pr') == pr['number'] and
+                    public.get('issue') == issue_number(pr) and public.get('branch') == pr['head']['ref'] and
+                    public.get('target') == pr['base']['ref'] and not state.get('paused') and
+                    state.get('phase') in ('merging', 'cleanup') and
+                    state.get('expected_head') == pr['head']['sha'] and
+                    isinstance(intent, dict) and intent == {'registry_id': public.get('registry_id'),
+                        'head': pr['head']['sha'], 'base': bound.get('base')} and
+                    bound.get('head') == pr['head']['sha'] and bound.get('base') == pr['base']['sha'] and
+                    bound.get('target') == pr['base']['ref'] and
+                    all(re.fullmatch(r'[0-9a-f]{64}', str(bound.get(key, '')))
+                        for key in ('title_hash', 'body_hash', 'issue_hash', 'feedback_hash')) and
+                    report.get('verdict') == 'approved' and report.get('scope_complete') is True and
+                    report.get('head') == bound.get('head') and report.get('base') == bound.get('base') and
+                    accepted.get('allowed') is True and accepted.get('head') == bound.get('head') and
+                    accepted.get('base') == bound.get('base'))
+
+    def continue_finish(self, number):
+        """Continue only a live operation's recorded merge intent, never ordinary closed execution."""
+        pr = self.gh.pr(number)
+        if not pr.get('merged') or pr['state'] != 'closed' or not eligible(pr, OWNER, REPO):
+            raise ValueError('Postmerge continuation requires a confirmed owned merge')
+        comments = self.gh.comments(number)
+        try:
+            public, _ = unpack(comments, HANDOFF_V2)
+            state, comment_id = unpack(comments, STATE)
+            current_operation = bool(state and self.pending_finish(pr, public, state))
+        except (ValueError, KeyError, IndexError, TypeError):
+            current_operation = False
+        if not current_operation:
+            raise ValueError('No current unpaused pending merge operation; preserve historical custody')
+        h = resolve(self.storage, public, HOST)
+        self.source_safe(h)
+        if (self.storage / f'pr-{number}' / 'worker.json').exists():
+            raise ValueError('Worker state remains; preserve postmerge resources')
+        current, _ = self.bound(pr, self.gh.issue(h['issue']), comments, state)
+        if current != state['binding']:
+            raise ValueError('Postmerge binding changed; keep resources for the original owner')
+        self.validate_review(state['review'], current, state['acceptance'])
+        return self._finish_transition(pr, h, state, comment_id)
+
+    def _finish_transition(self, pr, h, state, comment_id):
+        if h.get('host') != HOST or not self.pending_finish(pr, h, state):
+            raise ValueError('No current bound postmerge operation; preserve resources')
+        try:
+            return self.finish(pr, h, state, comment_id)
+        except Exception as error:
+            state.update(phase='cleanup', next=self.private_error(error))
+            self.save(pr, state, comment_id)
+            return {'pr': pr['number'], 'phase': 'cleanup', 'error': state['next']}
 
     def save(self, pr, state, comment_id):
         state['updated_at'] = int(time.time())
@@ -231,12 +326,12 @@ class Loop:
         except (ValueError, KeyError, OSError, RuntimeError) as error:
             return {'allowed': False, 'reason': self.private_error(error)}
 
-    def bound(self, pr, issue, comments):
+    def bound(self, pr, issue, comments, prior=None):
         value = binding(pr, issue)
         # Exclude only our changing dashboards, never bot/Issue/reviewer evidence.
         conversation = [c for c in comments + self.gh.comments(issue_number(pr))
                         if not (c['user']['login'] == OWNER and
-                                c['body'].startswith((HANDOFF, HANDOFF_V2, STATE, '<!-- agent-loop-progress:',
+                                c['body'].startswith(('<!-- agent-loop-handoff:v1 -->', HANDOFF_V2, STATE, '<!-- agent-loop-progress:',
                                                       '<!-- issue-qa-link:v1 ', '<!-- issue-qa-record:v1 ')))]
         inline = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100')
         reviews = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100')
@@ -244,7 +339,56 @@ class Loop:
         feedback = [*conversation, *inline, *reviews, *threads]
         value['feedback_hash'] = hashlib.sha256(json.dumps(feedback, sort_keys=True).encode()).hexdigest()
         value['remote_review_complete'] = remote_review_complete(pr['head']['sha'], comments)
+        retry_id = getattr(self, 'review_retry_comment', None) or (prior or {}).get('review_retry_comment')
+        reference = getattr(self, 'review_retry_original', None) or (prior or {}).get('review_retry_original')
+        if not value['remote_review_complete'] and retry_id is not None and reference:
+            original = read_review_evidence(self.storage, reference)
+            if original.get('binding') != review_original_binding(pr, issue):
+                raise ValueError('Original provider observation belongs to different PR metadata/source')
+            retry = stalled_review_retry(pr, comments, inline, reviews, retry_id, original)
+            if retry:
+                value['review_retry'] = dict(retry, head=value['head'], base=value['base'], original_ref=reference)
         return value, feedback
+
+    def prepare_review_retry(self, pr):
+        """Capture actual API evidence before a single explicit retry, without posting one."""
+        if not eligible(pr, OWNER, REPO) or pr['state'] != 'open':
+            raise ValueError('Original observation requires an owned open PR')
+        issue = self.gh.issue(issue_number(pr))
+        original = {'binding': review_original_binding(pr, issue), 'comments': self.gh.comments(pr['number']),
+                    'inline': self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100'),
+                    'reviews': self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100')}
+        if review_original_binding(self.gh.pr(pr['number']), self.gh.issue(issue_number(pr))) != original['binding']:
+            raise ValueError('PR/Issue changed during original observation')
+        original['observed_at'] = datetime.now(timezone.utc).isoformat()
+        return {'review_retry_original': retain_review_evidence(self.storage, original),
+                'head': pr['head']['sha'], 'observed_at': original['observed_at']}
+
+    def validate_review(self, report, bound, acceptance=None):
+        verified = verify_independent_review(self.storage, report, bound) if bound.get('remote_review_complete') is False else False
+        validate_review(report, bound, acceptance, origin_verified=verified)
+
+    def accept_review(self, number, evidence):
+        """Accept a reviewer-issued origin-bound report without enrolling, rebinding or resuming."""
+        pr = self.gh.pr(number)
+        h, state, comment_id, comments = self.load(number, pr)
+        if (not h or h.get('version') != 2 or h.get('host') != HOST or not h.get('owner') or state.get('paused') or
+                not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or
+                h.get('pr') != number or h.get('issue') != issue_number(pr) or
+                h.get('branch') != pr['head']['ref'] or h.get('target') != pr['base']['ref'] or
+                state.get('expected_head', h.get('head')) != pr['head']['sha'] or h.get('writer_stopped') is not True or
+                (self.storage / f'pr-{number}' / 'worker.json').exists()):
+            raise ValueError('Explicit report requires an existing stopped, unpaused v2 handoff')
+        self.source_safe(h)
+        bound, _ = self.bound(pr, self.gh.issue(h['issue']), comments, state)
+        if bound.get('remote_review_complete') is not False or 'review_retry' not in bound:
+            raise ValueError('Explicit stalled-review import requires a qualified pending-provider retry')
+        self.validate_review(evidence, bound)
+        state['review_retry_comment'] = bound['review_retry']['comment_id']
+        state['review_retry_original'] = bound['review_retry']['original_ref']
+        state.update(binding=bound, review=evidence, phase='reviewed')
+        self.save(pr, state, comment_id)
+        return {'pr': number, 'phase': 'reviewed', 'remote_review_complete': bound['remote_review_complete']}
 
     def source_safe(self, h):
         source = Path(h['source'])
@@ -298,35 +442,33 @@ class Loop:
         state['phase'] = 'queued'
         state['next'] = 'Review the newly published HEAD'
 
-    def tick(self, number):
-        pr = self.gh.pr(number)
+    def tick(self, number, pr=None):
+        pr = pr or self.gh.pr(number)
+        if pr['state'] != 'open' or pr.get('merged'):
+            return {'pr': number, 'phase': 'terminal-nonexecution', 'next': 'Read-only history; current pending operation uses continue-finish'}
         if not eligible(pr, OWNER, REPO):
             return {'pr': number, 'phase': 'unmanaged'}
-        h, state, comment_id, comments = self.load(number)
-        if (not h or h.get('host') != HOST or h.get('pr') != number or h.get('issue') != issue_number(pr)
-                or h.get('branch') != pr['head']['ref'] or h.get('target', 'main') != pr['base']['ref'] or h.get('writer_stopped') is not True):
+        h, state, comment_id, comments = self.load(number, pr)
+        if not handoff_matches(pr, h):
             return {'pr': number, 'phase': 'unmanaged'}
         if not state.get('expected_head'):
             state['expected_head'] = h['head']
-        if pr.get('merged'):
-            if state.get('phase') == 'done':
-                return {'pr': number, 'phase': 'done'}
-            try:
-                return self.finish(pr, h, state, comment_id)
-            except Exception as error:
-                state.update(phase='cleanup', next=self.private_error(error))
-                self.save(pr, state, comment_id)
-                return {'pr': number, 'phase': 'cleanup', 'error': state['next']}
         if pr['state'] != 'open' or state.get('paused'):
             return {'pr': number, 'phase': state['phase']}
-        if state.get('retry_at', 0) > time.time():
+        if retry_timestamp(state) > time.time():
             return {'pr': number, 'phase': 'backoff'}
+        merge_requested = False
         try:
             issue = self.gh.issue(h['issue'])
             if issue['state'] != 'open' or 'pull_request' in issue:
                 raise ValueError('Issue must remain open until scoped acceptance is evaluated')
             validate_issue(issue)
             self.source_safe(h)
+            attempt_file = self.storage / 'attempts.json'
+            attempts = json.loads(attempt_file.read_text()) if attempt_file.exists() else {}
+            attempts[str(number)] = time.time()
+            temporary = attempt_file.with_suffix('.tmp')
+            temporary.write_text(json.dumps(attempts)); os.replace(temporary, attempt_file)
             path = self.checkout(pr, h)
             running = self.storage / f'pr-{number}' / 'worker.json'
             if running.exists():
@@ -347,7 +489,11 @@ class Loop:
                     self.invalidate_acceptance(state)
                 else:
                     raise ValueError('External push after handoff; explicit re-enrollment required')
-            bound, feedback = self.bound(pr, issue, comments)
+            bound, feedback = self.bound(pr, issue, comments, state)
+            for name in ('review_retry_comment', 'review_retry_original'):
+                selected = getattr(self, name, None)
+                if selected is not None:
+                    state[name] = selected
             if any(record and any(record.get(k) != bound[k] for k in ('head', 'base'))
                    for record in (state.get('binding'), state.get('gui'))):
                 self.invalidate_acceptance(state)
@@ -401,7 +547,7 @@ class Loop:
                 return {'pr': number, 'phase': 'base-synced'}
             if state.get('binding') == bound and state.get('review'):
                 try:
-                    validate_review(state['review'], bound, self.acceptance(pr, path))
+                    self.validate_review(state['review'], bound, self.acceptance(pr, path))
                 except ValueError:
                     self.invalidate_acceptance(state)
                     raise
@@ -410,6 +556,10 @@ class Loop:
             if gui_needed and acceptance.get('mode') in ('develop', 'tooling') and not acceptance.get('cases'):
                 acceptance = {'allowed': False, 'reason': 'Reviewer requires GUI Cases; declare them in the matrix'}
             action = next_action(state, bound, self.gh.ci(pr), gui_needed, acceptance)
+            if action == 'review' and bound.get('remote_review_complete') is False:
+                state.update(phase='independent-review-wait', next='Authorized independent top-level reviewer: inspect fresh full feedback and issue a private origin-bound report; accept-review never starts a replacement worker')
+                self.save(pr, state, comment_id)
+                return {'pr': number, 'phase': state['phase']}
             if action == 'review':
                 if state.get('reviews', 0) >= 8:
                     raise ValueError('Review limit reached; explicit resume required')
@@ -424,7 +574,7 @@ class Loop:
                                       'feedback': feedback, 'gui': state.get('gui'), 'target': pr['base']['ref'], 'acceptance': acceptance}, path.parent / 'workers',
                                       on_start=lambda pid: running.write_text(json.dumps({'pid': pid})))
                 running.unlink(missing_ok=True)
-                validate_review(report, bound, acceptance)
+                self.validate_review(report, bound, acceptance)
                 if git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha'] or git('status', '--porcelain', cwd=path):
                     raise ValueError('Reviewer changed checkout; approval rejected')
                 state.update(binding=bound, review=report, phase='reviewed', errors=0, next='Reconcile verdict on the next tick')
@@ -453,21 +603,23 @@ class Loop:
                 if latest_issue.get('state') != 'open' or 'pull_request' in latest_issue:
                     raise ValueError('Issue must remain open until scoped acceptance is evaluated')
                 validate_issue(latest_issue)
-                now, _ = self.bound(latest, latest_issue, self.gh.comments(number))
+                now, _ = self.bound(latest, latest_issue, self.gh.comments(number), state)
                 if now != bound or self.gh.ci(latest) != 'success' or not self.acceptance(latest, path)['allowed']:
                     self.invalidate_acceptance(state)
                     state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
                     self.save(latest, state, comment_id)
                     return {'pr': number, 'phase': 'changed-before-merge'}
-                validate_review(state['review'], now, self.acceptance(latest, path))
+                self.validate_review(state['review'], now, self.acceptance(latest, path))
                 state['acceptance'] = dict(acceptance, head=bound['head'], base=bound['base'])
                 self.gh.status(bound['head'], 'success', 'Independent review and target branch acceptance gate passed', pr['html_url'])
-                state.update(phase='merging', next='Read back GitHub merge result')
+                state.update(phase='merging', next='Read back GitHub merge result',
+                             merge_intent={'registry_id': h['registry_id'], 'head': bound['head'], 'base': bound['base']})
                 comment_id = self.save(pr, state, comment_id)
+                merge_requested = True
                 self.gh.merge(latest)
-                return self.finish(self.gh.pr(number), h, state, comment_id)
+                return self.continue_finish(number)
             else:
-                state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: leaseを取得し、実画面を観察して証拠を記録',
+                state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: 実対象・結果先・副作用の競合を調整し、実画面を観察して証拠を記録',
                              'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
                              'ci-wait': 'Wait for latest required CI checks', 'ci-failed': 'Inspect CI failure; resume after repair',
                              'remote-review-wait': 'Read current-HEAD provider completion and all feedback before independent review',
@@ -479,6 +631,10 @@ class Loop:
             self.save(pr, state, comment_id)
             return {'pr': number, 'phase': state['phase'], 'next': state.get('next')}
         except Exception as error:
+            if merge_requested:
+                # A lost response or changed custody cannot authorize saving the premerge STATE.
+                return {'pr': number, 'phase': 'postmerge-hold',
+                        'next': 'Read back merge and current custody; use continue-finish only while still qualified'}
             state['errors'] = state.get('errors', 0) + 1
             state['next'] = self.private_error(error)
             # Preserve recoverable phases, but never publish a fix whose model execution is unverified.
@@ -509,15 +665,19 @@ class Loop:
         git('commit', '-m', latest['title'], cwd=path)
 
     def finish(self, pr, h, state, comment_id):
-        if not pr.get('merged'):
-            raise ValueError('Cleanup requires confirmed GitHub merge')
+        if h.get('host') != HOST or not self.pending_finish(pr, h, state):
+            raise ValueError('Cleanup requires the current unpaused bound merge operation')
+        self.source_safe(h)
+        if (self.storage / f'pr-{pr["number"]}' / 'worker.json').exists():
+            raise ValueError('Worker state remains; preserve postmerge resources')
         bound = state.get('binding', {})
         report = state.get('review', {})
         current_issue = self.gh.issue(h['issue'])
         if 'feedback_hash' in bound:
-            current, _ = self.bound(pr, current_issue, self.gh.comments(pr['number']))
-            if current != bound or current.get('remote_review_complete') is not True:
+            current, _ = self.bound(pr, current_issue, self.gh.comments(pr['number']), state)
+            if current != bound or not remote_review_ready(current):
                 raise ValueError('Current post-merge feedback changed or provider review is pending; preserve resources')
+            self.validate_review(report, current, state.get('acceptance'))
         accepted = state.get('acceptance', {})
         promotion_pass = (accepted.get('allowed') is True and accepted.get('mode') == 'promotion' and
                           accepted.get('gui_complete') is True and accepted.get('head') == bound.get('head') and
@@ -547,9 +707,11 @@ class Loop:
         if complete and bound.get('issue_hash') != binding(pr, issue)['issue_hash']:
             raise ValueError('Issue acceptance changed during handoff; re-review before closure')
         if complete and 'feedback_hash' in bound:
-            current, _ = self.bound(pr, issue, self.gh.comments(pr['number']))
-            if current != bound:
+            current, _ = self.bound(pr, issue, self.gh.comments(pr['number']), state)
+            if current != bound or not remote_review_ready(current):
                 raise ValueError('Feedback changed during handoff; preserve resources before closure')
+            if current.get('remote_review_complete') is False:
+                self.validate_review(report, current, state.get('acceptance'))
         if complete and issue['state'] == 'open':
             self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed', 'labels': done_labels(issue)})
             closed = self.gh.issue(h['issue'])
@@ -569,14 +731,6 @@ class Loop:
         return {'pr': pr['number'], 'phase': 'done', 'issue_closed': bool(complete)}
 
     def cleanup(self, pr, h):
-        from gui_lease import locked, transition
-        lease_dir = Path('/tmp') / f'cursor-in-android-studio-gui-{os.getuid()}'
-        with locked(lease_dir) as lease:
-            if transition(lease, 'status').get('state') != 'free':
-                raise ValueError('GUI is occupied; defer resource cleanup until operator release')
-            return self._cleanup_resources(pr, h)
-
-    def _cleanup_resources(self, pr, h):
         branch = h['branch']
         if branch in ('main', 'master', 'develop'):
             raise ValueError('Persistent branches must never be cleaned up')
@@ -614,6 +768,100 @@ class Loop:
             git('worktree', 'remove', str(source))
         if old:
             git('update-ref', '-d', ref, old)
+
+
+def review_original_binding(pr, issue):
+    return {'kind': 'provider-original-v1', 'repository': REPO, 'pr': pr['number'], **binding(pr, issue)}
+
+
+def stalled_review_retry(pr, comments, inline, reviews, comment_id, original):
+    """Recognize one real Codex retry against an immutable pre-retry API observation."""
+    provider = 'chatgpt-codex-connector[bot]'
+    requested = lambda c: re.search(r'^\s*@codex\s+review\b', c.get('body', ''), re.M)
+    retried = lambda c: re.search(r're-request|再(?:レビュー)?依頼', c.get('body', ''), re.I)
+    head = pr['head']['sha']
+    try:
+        now = datetime.now(timezone.utc)
+        def posted(c):
+            timestamp = c.get('created_at') or c['submitted_at']
+            at = review_time(timestamp)
+            if at > now or review_time(c.get('updated_at', timestamp)) < at:
+                raise ValueError('Invalid server chronology')
+            return at
+        requests = [c for c in comments if requested(c)]
+        latest = max(requests, key=posted)
+        started = posted(latest)
+        same_head = lambda c: head in re.findall(r'\b[0-9a-f]{40}\b', c.get('body', ''))
+        if (type(comment_id) is not int or comment_id <= 0 or latest['id'] != comment_id or
+                latest['user']['login'] != OWNER or not same_head(latest) or not retried(latest) or
+                not re.search(r'(?:Reason|再(?:レビュー)?依頼|re-request)\s*[:：]\s*\S', latest['body'], re.I) or
+                latest.get('updated_at') != latest['created_at'] or
+                sum(bool(retried(c) and same_head(c)) for c in requests) != 1 or
+                any(review_time(c.get('updated_at', c['created_at'])) > started for c in requests)):
+            return None
+        observed = review_time(original['observed_at'])
+        if observed >= started or any(not isinstance(original[k], list) for k in ('comments', 'inline', 'reviews')):
+            return None
+        originals, completions = [], []
+        # Only the immutable pre-retry observation can establish the original obligation.
+        groups = [(comments, inline + reviews, now, False),
+                  (original['comments'], original['inline'] + original['reviews'], observed, True)]
+        for conversation, responses, cutoff, preserved in groups:
+            summaries = [c for c in conversation if c.get('user', {}).get('login') == provider and
+                         c.get('body', '').startswith('<!-- codex-pull-request-review-summary -->')]
+            if len(summaries) > 1:
+                return None
+            for c in conversation:
+                if preserved and requested(c) and same_head(c) and c['user']['login'] == OWNER and not retried(c):
+                    at = posted(c)
+                    if c.get('updated_at') == c['created_at'] and at < min(cutoff, started):
+                        originals.append(at)
+            for record in conversation + responses:
+                if record.get('user', {}).get('login') != provider:
+                    continue
+                created = posted(record)
+                updated = review_time(record.get('updated_at') or record.get('created_at') or record['submitted_at'])
+                if created > cutoff or updated > cutoff:
+                    return None
+                body = record.get('body', '')
+                if record in summaries:
+                    if 'created_at' not in record or 'updated_at' not in record:
+                        return None
+                    machine = re.search(r'<!-- codex-review-state:v1 (.+?) -->', body)
+                    if not machine:
+                        return None
+                    state = json.loads(machine[1])
+                    code = state['code_review']
+                    if (not {'status', 'commit_sha', 'has_any_findings', 'has_unresolved_findings'} <= set(code) or
+                            code['status'] not in ('queued', 'running', 'completed') or
+                            not re.fullmatch(r'[0-9a-f]{40}', str(code['commit_sha'])) or
+                            any(code[k] is not None and code[k] is not False for k in ('has_any_findings', 'has_unresolved_findings')) or
+                            any(v.get('status') is not None or v.get('has_any_findings') is True or
+                                v.get('has_unresolved_findings') is True for k, v in state.items() if k != 'code_review')):
+                        return None
+                    rows = [line for line in body.splitlines() if '**Code Review**' in line]
+                    match = re.fullmatch(r'\|[^|]*\*\*Code Review\*\*[^|]*\| [^|]*\*\*(Running|Queued|Completed)\*\* '
+                                         r'(?:since )?<relative-time datetime="([^"]+)">[^<]+</relative-time> '
+                                         r'\| `([0-9a-f]{7,40})` \|[^|]*\|', rows[0]) if len(rows) == 1 else None
+                    if not match or match[1].lower() != code['status'] or not code['commit_sha'].startswith(match[3]):
+                        return None
+                    at = review_time(match[2])
+                    if at > updated or at > cutoff:
+                        return None
+                    if code.get('commit_sha') == head and head.startswith(match[3]):
+                        if code['status'] == 'completed':
+                            completions.append(at)
+                        elif preserved and created < started and at < min(started, cutoff):
+                            originals.append(at)
+                    continue
+                current = record.get('commit_id', record.get('original_commit_id')) == head
+                if current or created >= started:
+                    return None  # A concrete response/finding is not a provider timeout.
+        if originals and not any(at >= max(originals) for at in completions):
+            return {'comment_id': comment_id, 'created_at': latest['created_at']}
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError):
+        pass
+    return None
 
 
 def remote_review_complete(head, comments, not_before=None):
@@ -657,7 +905,7 @@ def enroll(loop, args):
     issue = loop.gh.issue(issue_number(pr))
     if issue['state'] != 'open' or 'pull_request' in issue:
         raise ValueError('Associated Issue is not open')
-    existing, state, state_id, _ = loop.load(args.pr)
+    existing, state, state_id, _ = loop.load(args.pr, pr)
     if existing:
         raise ValueError('Already enrolled; use resume for the existing handoff')
     h = {'pr': args.pr, 'issue': issue_number(pr), 'parent': args.parent, 'target': pr['base']['ref'],
@@ -677,7 +925,9 @@ def enroll(loop, args):
 
 def rebind_target(loop, args):
     pr = loop.gh.pr(args.pr)
-    h, state, sid, _ = loop.load(args.pr)
+    if not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or pr.get('merged'):
+        raise ValueError('Only an owned open PR can rebind')
+    h, state, sid, _ = loop.load(args.pr, pr)
     if not h or h.get('host') != HOST or not eligible(pr, OWNER, REPO) or pr['state'] != 'open':
         raise ValueError('No local open managed PR to rebind')
     if h['branch'] != pr['head']['ref'] or h['issue'] != issue_number(pr):
@@ -741,9 +991,18 @@ def main():
     global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo-root', type=Path, default=ROOT, help='Trusted main checkout (bootstrap/test override)')
+    parser.add_argument('--review-retry-comment', type=int, help='Actual same-HEAD explicit retry ID; no retry is posted')
+    parser.add_argument('--review-retry-original', help='Private pre-retry API observation reference')
     sub = parser.add_subparsers(dest='action', required=True)
     tick = sub.add_parser('tick'); tick.add_argument('--pr', type=int)
     sub.add_parser('scan')
+    continuation = sub.add_parser('continue-finish', help='Continue an existing bound unpaused pending merge; never resume retired history')
+    continuation.add_argument('--pr', type=int, required=True)
+    original = sub.add_parser('prepare-review-retry', help='Preserve one real pre-retry API observation; no provider request or worker')
+    original.add_argument('--pr', type=int, required=True)
+    accept = sub.add_parser('accept-review', help='Read an existing reviewer-issued private origin-bound report')
+    accept.add_argument('--pr', type=int, required=True)
+    accept.add_argument('--evidence', type=Path, required=True)
     feedback = sub.add_parser('feedback', help='Read-only fixed feedback snapshot; never starts a worker')
     feedback.add_argument('--pr', type=int, required=True)
     audit = sub.add_parser('cleanup-branches'); audit.add_argument('--apply', action='store_true')
@@ -758,16 +1017,23 @@ def main():
     rebound.add_argument('--migration-record', type=Path, help='Private verified directory migration JSON')
     resume = sub.add_parser('resume'); resume.add_argument('--pr', type=int, required=True)
     resume.add_argument('--reason', required=True)
-    gui = sub.add_parser('gui'); gui.add_argument('--pr', type=int, required=True); gui.add_argument('--evidence', type=Path, required=True); gui.add_argument('--lease-token', required=True)
+    gui = sub.add_parser('gui'); gui.add_argument('--pr', type=int, required=True); gui.add_argument('--evidence', type=Path, required=True); gui.add_argument('--operator', required=True, help='Designated operator from the actual Issue/PR assignment; must match evidence observer')
     args = parser.parse_args()
     ROOT = args.repo_root.resolve()
     try:
         with coordinator_lock():
-            loop = Loop()
-            if args.action == 'feedback':
+            loop = Loop(review_retry_comment=args.review_retry_comment, review_retry_original=args.review_retry_original)
+            if args.action == 'prepare-review-retry':
+                result = loop.prepare_review_retry(loop.gh.pr(args.pr))
+            elif args.action == 'accept-review':
                 pr = loop.gh.pr(args.pr)
-                bound, records = loop.bound(pr, loop.gh.issue(issue_number(pr)), loop.gh.comments(args.pr))
-                result = {'pr': args.pr, 'binding': bound, 'feedback': records}
+                if pr['state'] != 'open' or pr.get('merged'):
+                    raise ValueError('Normal execution requires an open PR; terminal records are read-only')
+                result = loop.accept_review(args.pr, json.loads(args.evidence.read_text()))
+            elif args.action == 'feedback':
+                result = loop.feedback(loop.gh.pr(args.pr))
+            elif args.action == 'continue-finish':
+                result = loop.continue_finish(args.pr)
             elif args.action == 'cleanup-branches':
                 result = audit_branches(loop.gh, args.apply)
             elif args.action == 'rebind-target':
@@ -775,19 +1041,14 @@ def main():
             elif args.action == 'enroll':
                 result = enroll(loop, args)
             elif args.action in ('resume', 'gui'):
-                pr = loop.gh.pr(args.pr); h, state, sid, comments = loop.load(args.pr)
+                pr = loop.gh.pr(args.pr); h, state, sid, comments = loop.load(args.pr, pr)
                 if not h or h['host'] != HOST:
                     raise ValueError('No local managed handoff')
                 if args.action == 'gui':
                     evidence = json.loads(args.evidence.read_text())
-                    from gui_lease import locked, transition
-                    with locked(Path('/tmp') / f'cursor-in-android-studio-gui-{os.getuid()}') as lease:
-                        current = transition(lease, 'status')
-                        if (current.get('token') != args.lease_token or current.get('expired') or
-                                current.get('issue') != h['issue'] or current.get('head') != pr['head']['sha'] or
-                                current.get('owner') != evidence.get('observer')):
-                            raise ValueError('GUI evidence requires the current designated operator lease')
-                    bound, _ = loop.bound(pr, loop.gh.issue(h['issue']), comments)
+                    if not args.operator.strip() or evidence.get('observer') != args.operator:
+                        raise ValueError('GUI evidence observer must match the designated operator from the current assignment')
+                    bound, _ = loop.bound(pr, loop.gh.issue(h['issue']), comments, state)
                     if not gui_pass(evidence, bound):
                         raise ValueError('GUI evidence is incomplete or belongs to another HEAD/base')
                     state['gui'] = evidence
@@ -807,28 +1068,35 @@ def main():
                 prs = loop.gh.pages(f'repos/{REPO}/pulls?state=all&per_page=100')
                 targets = []
                 attempt_file = loop.storage / 'attempts.json'
-                attempts = json.loads(attempt_file.read_text()) if attempt_file.exists() else {}
-                skipped = []
+                attempts = {}
+                skipped, terminal = [], []
                 for pr in prs:
+                    if pr['state'] != 'open' or pr.get('merged'):
+                        terminal.append(pr['number'])
+                        continue
                     if eligible(pr, OWNER, REPO):
                         try:
-                            h, state, _, _ = loop.load(pr['number'])
-                        except (ValueError, KeyError, IndexError) as error:
+                            h, state, _, _ = loop.load(pr['number'], pr)
+                            # Keep waiting records discoverable without consuming automatic execution slots.
+                            if (h and h.get('host') == HOST and state.get('phase') != 'done' and
+                                    (args.action == 'scan' or args.pr is not None or
+                                     (handoff_matches(pr, h) and not state.get('paused') and
+                                      retry_timestamp(state) <= time.time()))):
+                                targets.append(pr['number'])
+                        except (ValueError, KeyError, IndexError, RuntimeError) as error:
                             skipped.append({'pr': pr['number'], 'error': str(error)})
                             continue
-                        if h and h.get('host') == HOST and state.get('phase') != 'done':
-                            targets.append(pr['number'])
                 if args.action == 'scan':
-                    result = {'managed_prs': targets, 'invalid_records': skipped}
+                    result = {'managed_prs': targets, 'terminal_prs': terminal, 'invalid_records': skipped}
                 else:
+                    if targets and args.pr is None and attempt_file.exists():
+                        attempts = json.loads(attempt_file.read_text())
                     selected = [args.pr] if args.pr else sorted(targets, key=lambda n: attempts.get(str(n), 0))[:3]
                     result = []
                     for n in selected:
-                        attempts[str(n)] = time.time()
-                        temporary = attempt_file.with_suffix('.tmp')
-                        temporary.write_text(json.dumps(attempts)); os.replace(temporary, attempt_file)
                         try:
-                            result.append(loop.tick(n))
+                            current_pr = loop.gh.pr(n)
+                            result.append(loop.tick(n, current_pr))
                         except Exception as error:
                             result.append({'pr': n, 'phase': 'error', 'error': str(error)})
                     result.extend(skipped)

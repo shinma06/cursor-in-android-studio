@@ -161,9 +161,8 @@ class ReadinessBoundaryTest(unittest.TestCase):
             self.assertNotIn('secrets.', content)
         self.assertNotIn('contents: write', candidate)
         self.assertNotIn('release_candidate.py publish', candidate)
-        legacy = (rc.ROOT / '.github/workflows/branch-zip.yml').read_text()
-        self.assertNotIn('release_delivery', legacy)
-        self.assertNotIn('release_candidate', legacy)
+        self.assertFalse((rc.ROOT / '.github/workflows/branch-zip.yml').exists())
+        self.assertFalse((rc.ROOT / 'scripts/workflow/branch_zip.py').exists())
 
     def test_dispatcher_routes_three_paths_and_refuses_unknown_context_before_cli(self):
         source = (rc.ROOT / '.github/workflows/delivery.yml').read_text()

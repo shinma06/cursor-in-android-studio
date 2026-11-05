@@ -24,7 +24,7 @@
 
 PMは新しい運用方針・検証方法・割当や依存順・停止／再開・共有資源・復旧／統合の進め方を**決める前にOMILへ相談**する。担当は矛盾・不足と代案をPMへ返す。PMは助言の採否、理由、影響範囲、次の担当を既存Issueか計画へ残して実行し、助言、採用、実結果を区別する。実連絡は[許可された経路](team-communication.md)を使う。OMIL未設定・未応答なら新判断だけを保留し、合意済みの独立作業は続ける。
 
-通常の編集・検査・空きlease取得や合意範囲内のGUI経路切替は、操作ごとの再相談を要しない。人間の停止、危険、実拒否では直ちに該当範囲を停止・保全し、新しい復旧／再開判断はその後に相談する。[フェーズ点検](omil-phase-review.md)も引き続き行う。
+通常の編集・検査や合意範囲内のGUI経路切替は、操作ごとの再相談を要しない。人間の停止、危険、実拒否では直ちに該当範囲を停止・保全し、新しい復旧／再開判断はその後に相談する。[フェーズ点検](omil-phase-review.md)も引き続き行う。
 
 ## 統合条件
 
@@ -53,7 +53,7 @@ QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのp
 | 実装・指摘修正担当 | claim、scope、base、受入/指摘 → 1 Issue・1 branch・1 worktree・1 writerで変更、必要テスト、Case、固定HEAD/base、clean/停止と引継ぎ。修正後は新HEADの再レビューへ戻す | 調査・CLI検証、権限内のbase同期/統合操作を兼任可。PMおよび自分の差分の独立レビュアーと分離 |
 | 独立レビュアー | 固定HEAD/baseの全差分、Issue/Case、指摘 → reviewed SHA/base、受入判定、findings/disposition、未確認と証拠。変更があれば旧承認を流用しない | 実装者/PMと別の独立top-level session。レビュー中はread-only、ソース変更・GUI操作をしない。同じproviderでも可、同じsessionの自己レビューは不可 |
 | 統合担当 | writer停止、固定版レビュー、依存順、現行baseと必須checks → 通常mergeによる同期を実装担当へ戻すか権限内で実施、必要テスト/非force push/再レビュー、順序付きmerge、QA・Project・cleanupの回収 | PMは統合条件とGitHub操作を管理可。競合解消・ソース修正は実装担当へ戻す。同期/修正したsessionはその差分を独立レビューしない |
-| GUI QA担当 | 未達Case、識別build、能力/許可とhost lease → 実観察、pass/fail/環境blocked/未実施、証拠とlease解放・次担当。製品failは修正Issueへ | 指定sessionまたは明示引継ぎ済み人間。host/OS sessionごとに単一operator。実装兼任でも独立コードレビューの代替にならない |
+| GUI QA担当 | 未達Case、識別build、能力/許可と実対象・副作用の調整 → 実観察、pass/fail/環境blocked/未実施、証拠・安全停止/引継ぎ・次担当。製品failは修正Issueへ | 指定sessionまたは明示引継ぎ済み人間。具体的に競合する対象・副作用を同時操作しない。実装兼任でも独立コードレビューの代替にならない |
 
 <a id="役割別モデルと実設定の確認527"></a>
 
@@ -75,7 +75,7 @@ QA JSONはCaseと候補結果、生成Markdownは閲覧用です。過去runのp
 
 GUI toolがない担当は実装・CLI検証を進め、GUIだけを対応可能な担当へ引き継ぎます。対応する実行経路が確保できなければGUIはblockedです。`required_execution: computer_use` は人間の直接操作で代替できません。Cursor IDEとプラグインを比較するfixture課題は製品の試験であり、開発担当としてのCursorをfixture専任にする規則ではありません。
 
-上の兼任範囲でも単一writer/GUI leaseを守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
+上の兼任範囲でも単一writerと[実対象ごとのGUI調整](gui-coordination.md)を守ります。担当資格と自動連携の実装済み範囲は別です。[PR自動進行](pr-automation.md)の実際の起動経路を確認し、全クライアントにGUI操作やcoordinator接続があるとは仮定しません。#135のAstra実行制限も維持します。
 モデル名ではなく公開可能なsession IDで識別します。公開Issue/PRへhost名、ローカル絶対パス、token、private rawログを出しません。
 
 ### 担当と継続
@@ -84,7 +84,7 @@ PMは以下の順で自律的に編成を再評価する。ユーザーから委
 
 1. **照合**: 開始/再開、成果固定、レビュー終了、統合、失敗、承認/質問/GUI待ち、資源解放で、Issue/PR/Projectと既存owner/source/registry、session/job handle、成果物HEAD/baseを読む。担当不在、停止、結果未回収を区別する。timeout/無応答は停止やclaim解放の証明にならない。
 2. **回収と再利用**: 未回収結果と固定PRのレビュー/修正/統合を先に回収する。同じscopeへ二重割当しない。既存の適格な空き担当を優先して再利用し、model/effort・独立性・所有を再確認する。旧writerの停止/解放または明示再割当なしに交代しない。
-3. **有限の枠**: ready件数、難度/責務、依存、共有UI/ファイル、レビュー滞留とCPU/メモリ/重いbuild/GUIの実負荷から、今回の上限と理由を既存の作業記録へ残す。初期上限はPM/統合管理1、実装/修正1、read-only独立レビュー最大2、共有UI writer1、重いbuild1、競合するhost GUI操作1。全枠の常時起動は不要。PMは独立scopeと負荷の余裕を確認した場合だけ有限の上限を改め、未知負荷では増やさない。共通GUI leaseの排他は増枠不可。確認済みの独立背景操作は[GUI調整](gui-coordination.md)で操作単位に判断する。
+3. **有限の枠**: ready件数、難度/責務、依存、共有UI/ファイル、レビュー滞留とCPU/メモリ/重いbuild/GUIの実負荷から、今回の上限と理由を既存の作業記録へ残す。初期上限はPM/統合管理1、実装/修正1、read-only独立レビュー最大2、共有UI writer1、重いbuild1、同じ対象/副作用で競合するGUI操作1。全枠の常時起動は不要。PMは独立scopeと負荷の余裕を確認した場合だけ有限の上限を改め、未知負荷では増やさない。GUI予約によるhost全体の枠は設けず、具体的に競合する対象/副作用は同時操作しない。確認済みの独立背景操作は[GUI調整](gui-coordination.md)で操作単位に判断する。
 4. **次の割当**: ブロックされない依存先の解消と固定版のレビュー/修正/統合を優先し、同優先度なら既存待ち順を使う。必要な役割・model/effort・scope・成果・次担当を渡して実handleを確認する。空いた担当へ独立した次作業を渡し、readyがなければ待機/終了へ戻す。追加sessionには合理的理由が必要。実装だけを増やさず、同じ共有コードのwriterと重いbuildを直列にする。
 5. **状態の報告**: GUI失敗/環境blocked、承認待ち、質問待ちは発生時にユーザーへ通知し、既存Issue/PRのblocker・担当・必要な解除条件・次操作を更新する。次回報告にも既報blockerの現在状態（継続/解消/移譲）を含める。独立作業へ切替え、何もなければ解除条件を明示して待機する。理由のない再試行や無限の増員をしない。
 
@@ -214,7 +214,7 @@ GitHubへ接続できずclaimを確認できないときは新規実装を開始
 ## 実装・レビュー・引継ぎ
 
 - 共通ファイルは担当者だけが編集。依存PRは通常develop統合後に取り込む。stacked PRは依存baseと順序を明記し、base変更後に再レビューする。
-- テスト/buildPluginは専用worktreeで実施可能。共有cache削除/他タスクdaemon停止は禁止。runIde、install、再起動は[GUI lease](gui-coordination.md)必須。
+- テスト/buildPluginは専用worktreeで実施可能。共有cache削除/他タスクdaemon停止は禁止。runIde、install、再起動は[GUI調整](gui-coordination.md)に従い実対象・結果先・副作用を確認し、具体的な競合を担当間で調整する。
 - 開始、PR作成、scope変更、review待ち、GUI待ち、blocked、引継ぎ、mergeごとにIssueへ最新HEAD/次の一手を記録する。
 - [Change Impact](change-impact.md)の共通コマンドで必要テストを実行する。Knowledge/Metadataだけは重いコード検証をskipし、混在/unknownは必要な検証を維持。パッケージ/GUI buildの明示要求はbuildPluginも実施する。
 - 別sessionが固定HEAD/baseの差分と受入を確認し、`reviewer session / reviewed SHA / base / findings / disposition`を記録する。同一GitHubアカウントのApproveだけでは代替しない。

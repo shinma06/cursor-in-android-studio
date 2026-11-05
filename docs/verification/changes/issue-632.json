@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 632,
+  "gui_required": false,
+  "reason": "GUI予約制廃止の既に有効な本人指示を、現用Doc/Skill/生成promptとcoordinator GUI登録/cleanupへ反映する運用tooling変更。製品コード・固定Case・原FAIL・実GUI/共有lease/他owner資源は操作しない。",
+  "cli_checks": [
+    "旧leaseファイル無し/古い/壊れた/無関係の各条件でGUI evidence登録と所有cleanupが通り、旧ファイルを読取り条件にせず変更しないことを隔離fixtureで確認する。",
+    "既存JSON observerと現在の実割当を指定するoperatorの一致、HEAD/base/artifact/loaded identity/Case観察/processes_stoppedを確認し、不一致でSTATEを書かない。登録でPAUSEDを解除しない。実originと観察内容の真実性は既存原証拠の実質評価へ残す。",
+    "cleanupのprotected refs・source_safe/HEAD/dirty/owner/worker/worktree/remote比較削除の既存guardを保持し、旧gui_lease CLI/moduleの全現callerを撤去する。Git force-with-leaseとrelease/publicationは維持する。",
+    "GUI調整正本とAGENTS/両client Skills/Cursor入口/loop手順/生成worker指示/現verification表示を照合する。固定Case・原FAILは変更せず、旧予約条件だけ失効する現運用の注記を生成元から出す。",
+    "通常Change Impact/hook/必要CI、diff/schema/relative links/公開privacy/実originとclean STOPPEDを確認し、同入力fullsuiteや全Case GUIを重ねない。Draftの固定HEAD/base/全feedbackをPMから別独立reviewerへ渡す。",
+    "今回Ready/provider/merge/close、限定develop同期、実旧registry/ref/client/Release/tag退役は行わない。630の停止source/claim/原本とprimary developを保持する。"
+  ],
+  "cases": []
+}

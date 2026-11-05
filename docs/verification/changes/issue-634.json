@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "issue": 634,
+  "gui_required": false,
+  "reason": "採用済み#624/#630/#632の限定develop運用同期に、providerのbackoff・handoff不一致・PR再取得P2と独立F1/F2の入力・取得境界修正を加える。製品/build・既存Case/原FAIL・promotion/scope/coverage/applicability/runs・実GUI・旧資源は保持する。",
+  "cli_checks": [
+    "独立r4 F2の候補コメント取得失敗をPR単位で隔離する。実Loop.load→GitHub.comments→pagesのRuntimeErrorは該当PRのerrorとして記録・拒否し、正常隣PRの自動tick/明示tickを継続する。実v2 registryで読込を確認し、原STATE/registry/attempts/コメントとsource/worker/cleanup非到達を検査する。既存ValueError経路、一覧全体取得失敗・KeyboardInterruptの停止、旧18回帰を保持する。新HEADは同じ独立reviewerへ戻し、r4 changes_requestedの旧承認扱いやprovider再依頼・thread解決・Agent status発行は行わない。",
+    "5c provider P2（4482960585）のPR再取得による全tick中断を修正する。選択後の最新PR/base-ref取得とtickを同じ既存PR単位のtryへ入れ、API一時失敗・base-ref照合失敗は該当PRのerrorとして後続を継続する。最新状態のterminal非実行と、原STATE/attempts/登録・source/worker非変更を隔離fixtureで確認する。独立r3は5cの旧内容評価であり、この新修正の承認には流用しない。新HEADを同じ独立reviewerへ戻す。",
+    "f3 provider P2（4482507508）のhandoff不一致によるstarvationを修正する。tick自身のhost/PR/Issue/branch/target/writer停止の既存照合を共通利用し、自動選択から同じunmanaged条件を外す。古い不一致3件と正常4件目の連続選択、scan表示、原STATE/attempts/登録・owner保全を隔離fixtureで確認する。rebindや時刻変更は行わない。",
+    "独立再評価F1のretry_at入力境界を修正する。null/文字列/bool/NaN/無限大はPR単位の既存error経路で拒否し、正常隣PRを進める。scanは表示を保持し、明示tickも実行前に拒否する。原STATE/attemptsを正規化・書換えず、有限の過去値・期限一致・巨大整数/float・parserのoverflow/underflow境界を確認する。",
+    "provider P2のbackoff starvationを修正する。古い3件がretry_at待機中でも4件目を連続自動tickで選択し、期限到達で再選択する。scan表示、明示tickのbackoff、attempts/STATE/PAUSEDの不変を隔離fixtureで確認する。新HEADは同じ独立reviewerへ戻し、mainの同じ不具合は未反映として残す。",
+    "採用mainの12b77c77ba5d49d672c05e60a967a144c43b4388、a73e324fe5db4c9fa17e59ec656cc8858ae1efd5、6de442fc71785f5f9efe0bff7f00c1b5286f9471の3差分だけをdevelopへ対応付ける。main全体のmergeや任意の#627案は含めない。",
+    "develop固有のhuman-QA・lifecycle・restore説明、現Rabbit/JBR入力guardと製品/buildを保持する。develop専用のimport副作用検査は退役moduleからgithub_apiへ対象を更新する。既存changes全173原本・raw241 Caseと、それ以外の同期範囲外blobを照合し、current表示は初期batchから予約失効注記だけを追加して生成する。",
+    "D1/D2、v2限定、terminal非実行/fresh finish、PAUSED非変更、OLD source退役/NEW輸送helper、資格付きref比較削除とGUI予約廃止の現用consumerを採用元へ照合する。型や項目の一致だけで実保証の同等性を認定しない。",
+    "GUI調整正本、両clientのstart/finish Skills、Cursor入口、生成worker/runtimeと検証表示の到達を確認する。実対象/副作用の調整、実担当・origin・build/観察の原証拠評価、既存cleanup guardを保持し、旧共有leaseをgateにしない。",
+    "develop上の競合解決箇所と関連回帰を確認し、通常hook/Change Impact/必要CIを通す。固定HEAD/base/全feedback・実origin・bundle復元とclean STOPPEDをPMへ渡し、同じ独立reviewerの評価へ戻す。",
+    "初回Ready/native関連と、r2承認後の旧thread解決・初回f3 provider依頼の実原本を保持する。新P2により統合を停止し、今回のhandoff照合修正版は同じ独立reviewer向け新HEAD・clean STOPPEDまで。追加Ready/provider依頼/新thread解決/Agent review成功/merge/primary FF/main新Issueや旧資源退役は行わない。段階A実採用の正式receipt前に段階Bを開始しない。"
+  ],
+  "cases": []
+}
