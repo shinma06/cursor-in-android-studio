@@ -67,7 +67,7 @@ class ActionlintCheckTest(unittest.TestCase):
         source = (lint.ROOT / lint.DELIVERY).read_text()
         self.assertIn(lint.CONCURRENCY, source)
         lint.delivery_projection(source)
-        self.assertIn("if: ${{ false && github.ref == 'refs/heads/main' }}", source)
+        self.assertIn("if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') }}", source)
         ci = (lint.ROOT / '.github/workflows/ci.yml').read_text()
         self.assertIn('python3 scripts/workflow/actionlint_check.py --actionlint /tmp/actionlint', ci)
         self.assertIn('/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz', ci)
