@@ -52,6 +52,8 @@ Otherwise evaluate these steps in order before finalizing the stop. Unknown answ
 | 4. Remaining route | Check cause-directed analysis from existing evidence, a purpose-equivalent permitted method, and independently ready work. Identify a useful concrete next action or why relevant routes cannot supply the missing fact. No exhaustive search, pointless task switching or new approval for ordinary agent-owned design. |
 | 5. Decision | A prospective replan needs a causal reason/new information or changed condition, finite bounds, preservation, result checks and actual authority. Never erase failures or reset study limits merely because results were poor. Continue a useful permitted action if one remains; otherwise stop only the affected scope with the report below. |
 
+When a chosen prerequisite blocks its intended observation or PM proposes widening a stop, connect the actual allocation/method decision to the [finite phase review](omil-phase-review.md#stop-and-method-decisions). Keep immediate preservation and the five-step analysis; this is not a global GO gate.
+
 Let the evidence determine the decision. A platform's blocked-turn count is an additional API condition, never proof of exhaustion. Record task execution and actual control state separately; do not invent a resume API or claim an unconfirmed state change.
 
 For a warranted stop, report to the human and receiving owner:

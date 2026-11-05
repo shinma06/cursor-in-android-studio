@@ -137,4 +137,26 @@ GUI failのdevelop許可/main拒否、privacy registry、旧v1、QA引継ぎ後�
 
 証拠certificateを登録する場合、Acceptanceは原記録・履歴・正確なresult/Case/保証/参照の構造を検査する。Agent reviewはそのrevisionと指定された実独立reviewer、実質assessmentを要求する。ARBのprivate origin/repair adapterは本repoに移植していないので、それがあると主張しない。自動経路で必要な実origin/原本評価を取得できなければ当該経路を止め、許可された独立top-level評価と統合担当へ戻す。CLI workerが独立top-levelかは従来どおり別途確認が必要。
 
-ready化に伴うprovider reviewと独立レビューは別に扱う。統合担当はcurrent HEADのprovider完了・全review本文/inline/返信/Issue/PR conversation・resolved/outdatedも取得し、指摘IDと元commit、固定版での修正/検査又は根拠付き非該当を確認する。空結果・旧版・reaction・経過時間・CIだけで完了にしない。coordinatorは既存Codex botのcurrent-HEAD Completed summaryを検査し、全PR/Issue conversation・inline/review・解決threadをbindingへ含める。欠落/Running/旧版/未知形式は待機する。他providerへの自動切替adapterはなく、未完了の依頼を消して別経路へ逃がさない。merge直前・merge後・close前にも取得し、後着指摘は原Issue又は専用修正へ残責任を戻す。新しい常駐監視は作らない。
+ready化に伴うprovider reviewと独立レビューは別に扱う。通常は完了を待ち、応答停滞だけは[限定進行](#provider-stall)で待機条件を判定する。統合担当はcurrent HEADのprovider完了・全review本文/inline/返信/Issue/PR conversation・resolved/outdatedも取得し、指摘IDと元commit、固定版での修正/検査又は根拠付き非該当を確認する。空結果・旧版・reaction・経過時間・CIだけで完了にしない。coordinatorは既存Codex botのcurrent-HEAD Completed summaryを検査し、全PR/Issue conversation・inline/review・解決threadをbindingへ含める。欠落/Running/旧版/未知形式は待機する。他providerへの自動切替adapterはなく、未完了の依頼を消して別経路へ逃がさない。merge直前・merge後・close前にも取得し、後着指摘は原Issue又は専用修正へ残責任を戻す。新しい常駐監視は作らない。
+
+
+<a id="provider-stall"></a>
+
+## provider応答停滞時の限定進行
+
+[ARB採用元PR385](https://github.com/shinma06/android-replay-buffer/commit/8beed9c87b2432c34a074b792719f187d66799d1)をCASの現Codex summary consumerへ適合する。通常のCompleted経路を維持し、他provider/native方式・ARBのprivate repair adapterや製品Caseは移植しない。これはGitHub保護設定・4checks・strict base・Case/Acceptance・所有/権限を緩める経路ではない。
+
+実current HEADの必要レビューが停滞した場合、理由を既存Issue/PRに記録し、**再依頼前**にtrusted mainの `agent_loop.py prepare-review-retry --pr N` で生API観測を1件保管する。既存private storage内のimmutable `review-evidence` は元コメント・inline/review・観測時刻と同repo/PR/HEAD/base/target/題名/本文/Issueをopaque ID＋内容hashで結ぶ。enroll/owner変更・再依頼・承認・worker起動を行わない。元APIを保存しただけでは元義務の適格性や30分例外を認定しない。
+
+次に担当が同じ40桁HEADを明記し、通常PRコメント `@codex review <full HEAD>` と `再依頼: <実際の理由>` で**一度だけ**明示再依頼する。実comment IDとserver `created_at`を読み戻す。本文内時刻・edited時刻・古い依頼からの待ち時間は起点にしない。自動投稿・繰返し・別serviceへの切替はしない。観測参照を紛失/改変した場合、再依頼後のsnapshotを再依頼前の原本へ見せかけない。
+
+`agent_loop.py --review-retry-comment <実ID> --review-retry-original <保管参照> feedback --pr N` は全conversation/inline/review/解決・outdated threadを再取得する。現summaryの機械状態と表示HEAD/開始時刻、再依頼前の保存原本にある実Running/Queued又は未編集のmaintainer同HEAD依頼、既知Completedとの開始/充足関係を同じ時系列で検査する。元義務の開始は保存原本だけから認定し、再依頼後に更新された現dashboardの古い表示開始時刻で原本の欠落を補わない。既知Completedは両snapshotから照合し続ける。同dashboardの上書きは保存原本から照合し、弱い旧snapshot・異HEAD/別依頼・編集/未来/不正時刻・複数再依頼・既に完了した元義務・未知形式/実failure/具体応答や指摘は限定進行を通さない。別方式/securityの稼働義務も無視しない。新HEAD/base/metadataには旧観測を流用しない。
+
+その**新しい実再依頼のserver created_atから30分**後も必要応答がなければ、`review_wait_satisfied`だけがtrueになり得る。`remote_review_complete`はfalseのまま。時間は待機資格に過ぎず、Agent review成功やmerge許可ではない。CASにはARBのorigin adapterがないため、既存の別top-level手動評価を次の明示経路で結び、停滞を理由にCLI子worker/代替actorを自動起動しない。
+
+1. 30分後のfresh feedback/bindingと元API観測を、PMが許可した既存独立reviewerへ渡す。実writer/設計・証拠寄与者の完全なsession一覧・原本と実モデル/effort/役割の独立性、全指摘の修正/非該当・未解決なしを従来どおり実質評価する。fingerprintや時刻だけで独立性/一覧の完全性を推定しない。
+2. reviewerは30分後の当該turnで、通常報告にrawの自分のsession、`feedback_hash`、全 `review_binding`（feedback出力のbindingを完全一致）、実model/effortと根拠・評価を記録する。元報告は保管し、公開可能な根拠参照を使う。実 `CODEX_THREAD_ID` と元Codex `session_meta`/当該 `turn_context` を照合できる現在のCodex top-level runtimeだけがこのadapterの対象。未対応/不明originを同等と偽らない。
+3. reviewer自身が `agent_worker.py --report <private-report> --binding <private-binding> --storage <既存storage> --turn <実turn ID> --contributor <実writer session> [--contributor <他寄与者>] --output <新private-output>` を実行する。モデルは起動しない。実runtime/非fork・設定・別session・30分後turn・全binding・feedbackを検査し、元報告/原runtimeをprivate receiptへ結ぶ。公開版のsessionはfingerprint、receiptはopaque ID＋hash。完全な寄与者/役割の判定自体は統合担当の原本照合責務で、敵対的hostの認証機能ではない。
+4. 統合担当は同じ再依頼option付きの `agent_loop.py ... accept-review --pr N --evidence <新private-output>` で既存v2 handoffへ読み込む。停止/owner/source/target・実origin/内容hash・全bindingを再検査する。元writerのsourceは登録時HEADのまま `source_safe()` で確認し、取込対象はcoordinatorが追跡する `expected_head`（未更新なら登録HEAD）と照合する。元handoff/registryを更新してこの区別を回避しない。既存PAUSED・worker残存・v2欠落をresume/enrollやv1 fallbackで回避しない。通常tickでも同じ参照と独立原本を検査し、CI/strict base/Acceptanceが揃った場合だけ通常統合する。
+
+再取得・merge直前・merge後/close前も同じ判定と独立receiptを使う。source/base/target/題名/本文/Issue/feedback/再依頼の変化は旧評価を失効させ、後着応答/指摘は通常の完了又は原Issue/修正担当へ戻す。原証拠・未知・元FAILを残し、snapshotの追加で未観測をPASSにしない。今回の実装検査は隔離fixtureであり、実案件の30分例外発動を示さない。main先行後のdevelop同期と既存registry/旧形式の実移行は#624/#623に残し、既存実データをこのsource変更で切り替えない。

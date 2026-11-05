@@ -2,7 +2,7 @@
 """One bounded PR transition per tick. Run from trusted main, never from PR code."""
 import argparse
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
@@ -17,9 +17,9 @@ import time
 import uuid
 from urllib.parse import quote
 
-from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_number, next_action, update_parent, validate_review
-from agent_worker import WorkerSettingsError, run_worker, worker_environment
-from handoff_registry import register, resolve
+from agent_policy import CONTEXT, binding, eligible, gui_pass, in_scope, issue_number, next_action, remote_review_ready, review_time, update_parent, validate_review
+from agent_worker import WorkerSettingsError, run_worker, verify_independent_review, worker_environment
+from handoff_registry import read_review_evidence, register, resolve, retain_review_evidence
 from verification import verify_pr, metadata
 from issue_schema import validate_issue, done_labels, labels
 from qa_handoff import handoff
@@ -155,7 +155,7 @@ def coordinator_lock():
 
 
 class Loop:
-    def __init__(self, gh=None, storage=None, worker=run_worker):
+    def __init__(self, gh=None, storage=None, worker=run_worker, review_retry_comment=None, review_retry_original=None):
         self.gh = gh or GitHub()
         # Stable across linked worktrees, persists through app restarts. Not checked in.
         common = Path(git('rev-parse', '--git-common-dir'))
@@ -164,6 +164,8 @@ class Loop:
         self.storage = Path(storage) if storage else common.resolve() / 'agent-loop'
         self.storage.mkdir(parents=True, exist_ok=True)
         self.worker = worker
+        self.review_retry_comment = review_retry_comment
+        self.review_retry_original = review_retry_original
 
     def load(self, number):
         comments = self.gh.comments(number)
@@ -231,7 +233,7 @@ class Loop:
         except (ValueError, KeyError, OSError, RuntimeError) as error:
             return {'allowed': False, 'reason': self.private_error(error)}
 
-    def bound(self, pr, issue, comments):
+    def bound(self, pr, issue, comments, prior=None):
         value = binding(pr, issue)
         # Exclude only our changing dashboards, never bot/Issue/reviewer evidence.
         conversation = [c for c in comments + self.gh.comments(issue_number(pr))
@@ -244,7 +246,56 @@ class Loop:
         feedback = [*conversation, *inline, *reviews, *threads]
         value['feedback_hash'] = hashlib.sha256(json.dumps(feedback, sort_keys=True).encode()).hexdigest()
         value['remote_review_complete'] = remote_review_complete(pr['head']['sha'], comments)
+        retry_id = getattr(self, 'review_retry_comment', None) or (prior or {}).get('review_retry_comment')
+        reference = getattr(self, 'review_retry_original', None) or (prior or {}).get('review_retry_original')
+        if not value['remote_review_complete'] and retry_id is not None and reference:
+            original = read_review_evidence(self.storage, reference)
+            if original.get('binding') != review_original_binding(pr, issue):
+                raise ValueError('Original provider observation belongs to different PR metadata/source')
+            retry = stalled_review_retry(pr, comments, inline, reviews, retry_id, original)
+            if retry:
+                value['review_retry'] = dict(retry, head=value['head'], base=value['base'], original_ref=reference)
         return value, feedback
+
+    def prepare_review_retry(self, pr):
+        """Capture actual API evidence before a single explicit retry, without posting one."""
+        if not eligible(pr, OWNER, REPO) or pr['state'] != 'open':
+            raise ValueError('Original observation requires an owned open PR')
+        issue = self.gh.issue(issue_number(pr))
+        original = {'binding': review_original_binding(pr, issue), 'comments': self.gh.comments(pr['number']),
+                    'inline': self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100'),
+                    'reviews': self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100')}
+        if review_original_binding(self.gh.pr(pr['number']), self.gh.issue(issue_number(pr))) != original['binding']:
+            raise ValueError('PR/Issue changed during original observation')
+        original['observed_at'] = datetime.now(timezone.utc).isoformat()
+        return {'review_retry_original': retain_review_evidence(self.storage, original),
+                'head': pr['head']['sha'], 'observed_at': original['observed_at']}
+
+    def validate_review(self, report, bound, acceptance=None):
+        verified = verify_independent_review(self.storage, report, bound) if bound.get('remote_review_complete') is False else False
+        validate_review(report, bound, acceptance, origin_verified=verified)
+
+    def accept_review(self, number, evidence):
+        """Accept a reviewer-issued origin-bound report without enrolling, rebinding or resuming."""
+        pr = self.gh.pr(number)
+        h, state, comment_id, comments = self.load(number)
+        if (not h or h.get('version') != 2 or h.get('host') != HOST or not h.get('owner') or state.get('paused') or
+                not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or
+                h.get('pr') != number or h.get('issue') != issue_number(pr) or
+                h.get('branch') != pr['head']['ref'] or h.get('target') != pr['base']['ref'] or
+                state.get('expected_head', h.get('head')) != pr['head']['sha'] or h.get('writer_stopped') is not True or
+                (self.storage / f'pr-{number}' / 'worker.json').exists()):
+            raise ValueError('Explicit report requires an existing stopped, unpaused v2 handoff')
+        self.source_safe(h)
+        bound, _ = self.bound(pr, self.gh.issue(h['issue']), comments, state)
+        if bound.get('remote_review_complete') is not False or 'review_retry' not in bound:
+            raise ValueError('Explicit stalled-review import requires a qualified pending-provider retry')
+        self.validate_review(evidence, bound)
+        state['review_retry_comment'] = bound['review_retry']['comment_id']
+        state['review_retry_original'] = bound['review_retry']['original_ref']
+        state.update(binding=bound, review=evidence, phase='reviewed')
+        self.save(pr, state, comment_id)
+        return {'pr': number, 'phase': 'reviewed', 'remote_review_complete': bound['remote_review_complete']}
 
     def source_safe(self, h):
         source = Path(h['source'])
@@ -347,7 +398,11 @@ class Loop:
                     self.invalidate_acceptance(state)
                 else:
                     raise ValueError('External push after handoff; explicit re-enrollment required')
-            bound, feedback = self.bound(pr, issue, comments)
+            bound, feedback = self.bound(pr, issue, comments, state)
+            for name in ('review_retry_comment', 'review_retry_original'):
+                selected = getattr(self, name, None)
+                if selected is not None:
+                    state[name] = selected
             if any(record and any(record.get(k) != bound[k] for k in ('head', 'base'))
                    for record in (state.get('binding'), state.get('gui'))):
                 self.invalidate_acceptance(state)
@@ -401,7 +456,7 @@ class Loop:
                 return {'pr': number, 'phase': 'base-synced'}
             if state.get('binding') == bound and state.get('review'):
                 try:
-                    validate_review(state['review'], bound, self.acceptance(pr, path))
+                    self.validate_review(state['review'], bound, self.acceptance(pr, path))
                 except ValueError:
                     self.invalidate_acceptance(state)
                     raise
@@ -410,6 +465,10 @@ class Loop:
             if gui_needed and acceptance.get('mode') in ('develop', 'tooling') and not acceptance.get('cases'):
                 acceptance = {'allowed': False, 'reason': 'Reviewer requires GUI Cases; declare them in the matrix'}
             action = next_action(state, bound, self.gh.ci(pr), gui_needed, acceptance)
+            if action == 'review' and bound.get('remote_review_complete') is False:
+                state.update(phase='independent-review-wait', next='Authorized independent top-level reviewer: inspect fresh full feedback and issue a private origin-bound report; accept-review never starts a replacement worker')
+                self.save(pr, state, comment_id)
+                return {'pr': number, 'phase': state['phase']}
             if action == 'review':
                 if state.get('reviews', 0) >= 8:
                     raise ValueError('Review limit reached; explicit resume required')
@@ -424,7 +483,7 @@ class Loop:
                                       'feedback': feedback, 'gui': state.get('gui'), 'target': pr['base']['ref'], 'acceptance': acceptance}, path.parent / 'workers',
                                       on_start=lambda pid: running.write_text(json.dumps({'pid': pid})))
                 running.unlink(missing_ok=True)
-                validate_review(report, bound, acceptance)
+                self.validate_review(report, bound, acceptance)
                 if git('rev-parse', 'HEAD', cwd=path) != pr['head']['sha'] or git('status', '--porcelain', cwd=path):
                     raise ValueError('Reviewer changed checkout; approval rejected')
                 state.update(binding=bound, review=report, phase='reviewed', errors=0, next='Reconcile verdict on the next tick')
@@ -453,13 +512,13 @@ class Loop:
                 if latest_issue.get('state') != 'open' or 'pull_request' in latest_issue:
                     raise ValueError('Issue must remain open until scoped acceptance is evaluated')
                 validate_issue(latest_issue)
-                now, _ = self.bound(latest, latest_issue, self.gh.comments(number))
+                now, _ = self.bound(latest, latest_issue, self.gh.comments(number), state)
                 if now != bound or self.gh.ci(latest) != 'success' or not self.acceptance(latest, path)['allowed']:
                     self.invalidate_acceptance(state)
                     state.update(phase='queued', next='PR/base/acceptance changed before merge; reconcile again')
                     self.save(latest, state, comment_id)
                     return {'pr': number, 'phase': 'changed-before-merge'}
-                validate_review(state['review'], now, self.acceptance(latest, path))
+                self.validate_review(state['review'], now, self.acceptance(latest, path))
                 state['acceptance'] = dict(acceptance, head=bound['head'], base=bound['base'])
                 self.gh.status(bound['head'], 'success', 'Independent review and target branch acceptance gate passed', pr['html_url'])
                 state.update(phase='merging', next='Read back GitHub merge result')
@@ -515,9 +574,11 @@ class Loop:
         report = state.get('review', {})
         current_issue = self.gh.issue(h['issue'])
         if 'feedback_hash' in bound:
-            current, _ = self.bound(pr, current_issue, self.gh.comments(pr['number']))
-            if current != bound or current.get('remote_review_complete') is not True:
+            current, _ = self.bound(pr, current_issue, self.gh.comments(pr['number']), state)
+            if current != bound or not remote_review_ready(current):
                 raise ValueError('Current post-merge feedback changed or provider review is pending; preserve resources')
+            if current.get('remote_review_complete') is False:
+                self.validate_review(report, current, state.get('acceptance'))
         accepted = state.get('acceptance', {})
         promotion_pass = (accepted.get('allowed') is True and accepted.get('mode') == 'promotion' and
                           accepted.get('gui_complete') is True and accepted.get('head') == bound.get('head') and
@@ -547,9 +608,11 @@ class Loop:
         if complete and bound.get('issue_hash') != binding(pr, issue)['issue_hash']:
             raise ValueError('Issue acceptance changed during handoff; re-review before closure')
         if complete and 'feedback_hash' in bound:
-            current, _ = self.bound(pr, issue, self.gh.comments(pr['number']))
-            if current != bound:
+            current, _ = self.bound(pr, issue, self.gh.comments(pr['number']), state)
+            if current != bound or not remote_review_ready(current):
                 raise ValueError('Feedback changed during handoff; preserve resources before closure')
+            if current.get('remote_review_complete') is False:
+                self.validate_review(report, current, state.get('acceptance'))
         if complete and issue['state'] == 'open':
             self.gh.api(f'repos/{REPO}/issues/{h["issue"]}', 'PATCH', {'state': 'closed', 'state_reason': 'completed', 'labels': done_labels(issue)})
             closed = self.gh.issue(h['issue'])
@@ -614,6 +677,100 @@ class Loop:
             git('worktree', 'remove', str(source))
         if old:
             git('update-ref', '-d', ref, old)
+
+
+def review_original_binding(pr, issue):
+    return {'kind': 'provider-original-v1', 'repository': REPO, 'pr': pr['number'], **binding(pr, issue)}
+
+
+def stalled_review_retry(pr, comments, inline, reviews, comment_id, original):
+    """Recognize one real Codex retry against an immutable pre-retry API observation."""
+    provider = 'chatgpt-codex-connector[bot]'
+    requested = lambda c: re.search(r'^\s*@codex\s+review\b', c.get('body', ''), re.M)
+    retried = lambda c: re.search(r're-request|再(?:レビュー)?依頼', c.get('body', ''), re.I)
+    head = pr['head']['sha']
+    try:
+        now = datetime.now(timezone.utc)
+        def posted(c):
+            timestamp = c.get('created_at') or c['submitted_at']
+            at = review_time(timestamp)
+            if at > now or review_time(c.get('updated_at', timestamp)) < at:
+                raise ValueError('Invalid server chronology')
+            return at
+        requests = [c for c in comments if requested(c)]
+        latest = max(requests, key=posted)
+        started = posted(latest)
+        same_head = lambda c: head in re.findall(r'\b[0-9a-f]{40}\b', c.get('body', ''))
+        if (type(comment_id) is not int or comment_id <= 0 or latest['id'] != comment_id or
+                latest['user']['login'] != OWNER or not same_head(latest) or not retried(latest) or
+                not re.search(r'(?:Reason|再(?:レビュー)?依頼|re-request)\s*[:：]\s*\S', latest['body'], re.I) or
+                latest.get('updated_at') != latest['created_at'] or
+                sum(bool(retried(c) and same_head(c)) for c in requests) != 1 or
+                any(review_time(c.get('updated_at', c['created_at'])) > started for c in requests)):
+            return None
+        observed = review_time(original['observed_at'])
+        if observed >= started or any(not isinstance(original[k], list) for k in ('comments', 'inline', 'reviews')):
+            return None
+        originals, completions = [], []
+        # Only the immutable pre-retry observation can establish the original obligation.
+        groups = [(comments, inline + reviews, now, False),
+                  (original['comments'], original['inline'] + original['reviews'], observed, True)]
+        for conversation, responses, cutoff, preserved in groups:
+            summaries = [c for c in conversation if c.get('user', {}).get('login') == provider and
+                         c.get('body', '').startswith('<!-- codex-pull-request-review-summary -->')]
+            if len(summaries) > 1:
+                return None
+            for c in conversation:
+                if preserved and requested(c) and same_head(c) and c['user']['login'] == OWNER and not retried(c):
+                    at = posted(c)
+                    if c.get('updated_at') == c['created_at'] and at < min(cutoff, started):
+                        originals.append(at)
+            for record in conversation + responses:
+                if record.get('user', {}).get('login') != provider:
+                    continue
+                created = posted(record)
+                updated = review_time(record.get('updated_at') or record.get('created_at') or record['submitted_at'])
+                if created > cutoff or updated > cutoff:
+                    return None
+                body = record.get('body', '')
+                if record in summaries:
+                    if 'created_at' not in record or 'updated_at' not in record:
+                        return None
+                    machine = re.search(r'<!-- codex-review-state:v1 (.+?) -->', body)
+                    if not machine:
+                        return None
+                    state = json.loads(machine[1])
+                    code = state['code_review']
+                    if (not {'status', 'commit_sha', 'has_any_findings', 'has_unresolved_findings'} <= set(code) or
+                            code['status'] not in ('queued', 'running', 'completed') or
+                            not re.fullmatch(r'[0-9a-f]{40}', str(code['commit_sha'])) or
+                            any(code[k] is not None and code[k] is not False for k in ('has_any_findings', 'has_unresolved_findings')) or
+                            any(v.get('status') is not None or v.get('has_any_findings') is True or
+                                v.get('has_unresolved_findings') is True for k, v in state.items() if k != 'code_review')):
+                        return None
+                    rows = [line for line in body.splitlines() if '**Code Review**' in line]
+                    match = re.fullmatch(r'\|[^|]*\*\*Code Review\*\*[^|]*\| [^|]*\*\*(Running|Queued|Completed)\*\* '
+                                         r'(?:since )?<relative-time datetime="([^"]+)">[^<]+</relative-time> '
+                                         r'\| `([0-9a-f]{7,40})` \|[^|]*\|', rows[0]) if len(rows) == 1 else None
+                    if not match or match[1].lower() != code['status'] or not code['commit_sha'].startswith(match[3]):
+                        return None
+                    at = review_time(match[2])
+                    if at > updated or at > cutoff:
+                        return None
+                    if code.get('commit_sha') == head and head.startswith(match[3]):
+                        if code['status'] == 'completed':
+                            completions.append(at)
+                        elif preserved and created < started and at < min(started, cutoff):
+                            originals.append(at)
+                    continue
+                current = record.get('commit_id', record.get('original_commit_id')) == head
+                if current or created >= started:
+                    return None  # A concrete response/finding is not a provider timeout.
+        if originals and not any(at >= max(originals) for at in completions):
+            return {'comment_id': comment_id, 'created_at': latest['created_at']}
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError):
+        pass
+    return None
 
 
 def remote_review_complete(head, comments, not_before=None):
@@ -741,9 +898,16 @@ def main():
     global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo-root', type=Path, default=ROOT, help='Trusted main checkout (bootstrap/test override)')
+    parser.add_argument('--review-retry-comment', type=int, help='Actual same-HEAD explicit retry ID; no retry is posted')
+    parser.add_argument('--review-retry-original', help='Private pre-retry API observation reference')
     sub = parser.add_subparsers(dest='action', required=True)
     tick = sub.add_parser('tick'); tick.add_argument('--pr', type=int)
     sub.add_parser('scan')
+    original = sub.add_parser('prepare-review-retry', help='Preserve one real pre-retry API observation; no provider request or worker')
+    original.add_argument('--pr', type=int, required=True)
+    accept = sub.add_parser('accept-review', help='Read an existing reviewer-issued private origin-bound report')
+    accept.add_argument('--pr', type=int, required=True)
+    accept.add_argument('--evidence', type=Path, required=True)
     feedback = sub.add_parser('feedback', help='Read-only fixed feedback snapshot; never starts a worker')
     feedback.add_argument('--pr', type=int, required=True)
     audit = sub.add_parser('cleanup-branches'); audit.add_argument('--apply', action='store_true')
@@ -763,11 +927,16 @@ def main():
     ROOT = args.repo_root.resolve()
     try:
         with coordinator_lock():
-            loop = Loop()
-            if args.action == 'feedback':
+            loop = Loop(review_retry_comment=args.review_retry_comment, review_retry_original=args.review_retry_original)
+            if args.action == 'prepare-review-retry':
+                result = loop.prepare_review_retry(loop.gh.pr(args.pr))
+            elif args.action == 'accept-review':
+                result = loop.accept_review(args.pr, json.loads(args.evidence.read_text()))
+            elif args.action == 'feedback':
                 pr = loop.gh.pr(args.pr)
-                bound, records = loop.bound(pr, loop.gh.issue(issue_number(pr)), loop.gh.comments(args.pr))
-                result = {'pr': args.pr, 'binding': bound, 'feedback': records}
+                _, prior, _, comments = loop.load(args.pr)
+                bound, records = loop.bound(pr, loop.gh.issue(issue_number(pr)), comments, prior)
+                result = {'pr': args.pr, 'binding': bound, 'feedback': records, 'review_wait_satisfied': remote_review_ready(bound)}
             elif args.action == 'cleanup-branches':
                 result = audit_branches(loop.gh, args.apply)
             elif args.action == 'rebind-target':
@@ -787,7 +956,7 @@ def main():
                                 current.get('issue') != h['issue'] or current.get('head') != pr['head']['sha'] or
                                 current.get('owner') != evidence.get('observer')):
                             raise ValueError('GUI evidence requires the current designated operator lease')
-                    bound, _ = loop.bound(pr, loop.gh.issue(h['issue']), comments)
+                    bound, _ = loop.bound(pr, loop.gh.issue(h['issue']), comments, state)
                     if not gui_pass(evidence, bound):
                         raise ValueError('GUI evidence is incomplete or belongs to another HEAD/base')
                     state['gui'] = evidence

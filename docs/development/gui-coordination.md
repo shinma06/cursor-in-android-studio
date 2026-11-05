@@ -78,6 +78,8 @@ state破損時はfail closed（操作停止）。ファイルを消して復帰�
 OS再起動や/tmp消失後も、GitHubのgui-runningと起動中アプリの確認が必要。
 人間がログイン/OS権限を操作する間は予約を保持し、Agent操作者は操作停止。人間の完了連絡後に画面とtokenを再確認する。
 
+安全STOPと所有返却は製品証拠の合否と分ける。実writer/process停止・復元/保全・custody・実返却条件を満たしたleaseは、製品PASS・offline封印・OMIL応答を待たず返す。停止宣言だけ、結果不明writeや所有不明では返却済みにせず、影響資源だけを保持する。方法前提が観察を妨げた場合は[既存の有限判断](omil-phase-review.md#stop-and-method-decisions)へ接続し、残る評価/整理ownerを記録する。
+
 ## 証拠・統合の扱い
 
 Case結果はsource HEAD、artifact hash、ロード実体、fixture、run ID、観察者、観察内容、共有可能な証拠と結び付ける。
