@@ -60,6 +60,15 @@ class ChronologyTests(unittest.TestCase):
         self.assertEqual(next_action(state, bound, 'success', False, {'allowed': False}), 'acceptance-wait')
         with self.assertRaises(ValueError): validate_review(report(), bound)
 
+    def test_updated_dashboard_cannot_supply_missing_pre_retry_obligation(self):
+        current = [dashboard(start=-40, updated=-30), retry()]
+        for name, comments in [('empty', []), ('old-head', [dashboard(head='f'*40)]),
+                               ('weak', [dict(dashboard(), body='Running')])]:
+            o = original(); o['comments'] = comments
+            with self.subTest(original=name):
+                self.assertIsNone(self.eligible(comments=current, observation=o))
+        self.assertIsNotNone(self.eligible(comments=current, observation=original()))
+
     def test_reject_edited_future_wrong_head_multiple_or_missing_real_retry(self):
         variants = []
         for change in ({'updated_at': at(-30)}, {'created_at': at(1), 'updated_at': at(1)},
@@ -91,6 +100,7 @@ class ChronologyTests(unittest.TestCase):
         complete = dashboard(start=-35, updated=-33, status='Completed')
         o = original(); o['comments'] = [dashboard(), complete]
         self.assertIsNone(self.eligible(observation=o))
+        self.assertIsNone(self.eligible(comments=[dashboard(start=-30, updated=-29, status='Completed'), retry()]))
         finding = {'id': 21, 'user': {'login': 'chatgpt-codex-connector[bot]'},
                    'created_at': at(-20), 'commit_id': HEAD, 'body': 'concrete defect'}
         self.assertIsNone(self.eligible(inline=[finding]))
@@ -213,6 +223,25 @@ class OriginAndConsumerTests(unittest.TestCase):
         f.loop.accept_review(36, r)
         self.assertEqual(f.loop.tick(36)['phase'], 'done'); self.assertEqual(f.gh.merges, 1)
         self.assertEqual(f.gh.issues[35]['state'], 'closed'); f.loop.cleanup.assert_called_once()
+
+    def test_missing_pre_retry_obligation_blocks_actual_origin_import_and_advance(self):
+        for name, comments in [('empty', []), ('old-head', [dashboard(head='f'*40)]),
+                               ('weak', [dict(dashboard(), body='Running')])]:
+            with self.subTest(original=name):
+                f = self.fixture()
+                f.gh.messages[36][1] = dashboard(start=-40, updated=-30)
+                o = original(f.gh.pull, f.gh.issue(35)); o['comments'] = comments
+                f.loop.review_retry_original = retain_review_evidence(f.loop.storage, o)
+                bound, _ = f.loop.bound(f.gh.pr(36), f.gh.issue(35), f.gh.comments(36))
+                self.assertNotIn('review_retry', bound)
+                with self.assertRaises(ValueError):
+                    aw.bind_independent_review(f.loop.storage, bound,
+                        dict(report(), session=REVIEWER, model='gpt-6.1-sol', review_binding=bound,
+                             feedback_hash=bound['feedback_hash']), TURN, [WRITER], self.home)
+                with self.assertRaises(ValueError): f.loop.accept_review(36, report())
+                self.assertEqual(f.loop.tick(36)['phase'], 'remote-review-wait')
+                f.worker.assert_not_called(); self.assertEqual(f.gh.merges, 0)
+                self.assertEqual(f.gh.issues[35]['state'], 'open'); f.loop.cleanup.assert_not_called()
 
     def test_finish_refuses_late_feedback_and_accept_never_resumes_paused_owner(self):
         f = self.fixture(); h,state,cid,_ = f.loop.load(36)

@@ -150,7 +150,7 @@ ready化に伴うprovider reviewと独立レビューは別に扱う。通常は
 
 次に担当が同じ40桁HEADを明記し、通常PRコメント `@codex review <full HEAD>` と `再依頼: <実際の理由>` で**一度だけ**明示再依頼する。実comment IDとserver `created_at`を読み戻す。本文内時刻・edited時刻・古い依頼からの待ち時間は起点にしない。自動投稿・繰返し・別serviceへの切替はしない。観測参照を紛失/改変した場合、再依頼後のsnapshotを再依頼前の原本へ見せかけない。
 
-`agent_loop.py --review-retry-comment <実ID> --review-retry-original <保管参照> feedback --pr N` は全conversation/inline/review/解決・outdated threadを再取得する。現summaryの機械状態と表示HEAD/開始時刻、再依頼前の実Running/Queued又は未編集のmaintainer同HEAD依頼、既知Completedとの開始/充足関係を同じ時系列で検査する。同dashboardの上書きは保存原本から照合し、弱い旧snapshot・異HEAD/別依頼・編集/未来/不正時刻・複数再依頼・既に完了した元義務・未知形式/実failure/具体応答や指摘は限定進行を通さない。別方式/securityの稼働義務も無視しない。新HEAD/base/metadataには旧観測を流用しない。
+`agent_loop.py --review-retry-comment <実ID> --review-retry-original <保管参照> feedback --pr N` は全conversation/inline/review/解決・outdated threadを再取得する。現summaryの機械状態と表示HEAD/開始時刻、再依頼前の保存原本にある実Running/Queued又は未編集のmaintainer同HEAD依頼、既知Completedとの開始/充足関係を同じ時系列で検査する。元義務の開始は保存原本だけから認定し、再依頼後に更新された現dashboardの古い表示開始時刻で原本の欠落を補わない。既知Completedは両snapshotから照合し続ける。同dashboardの上書きは保存原本から照合し、弱い旧snapshot・異HEAD/別依頼・編集/未来/不正時刻・複数再依頼・既に完了した元義務・未知形式/実failure/具体応答や指摘は限定進行を通さない。別方式/securityの稼働義務も無視しない。新HEAD/base/metadataには旧観測を流用しない。
 
 その**新しい実再依頼のserver created_atから30分**後も必要応答がなければ、`review_wait_satisfied`だけがtrueになり得る。`remote_review_complete`はfalseのまま。時間は待機資格に過ぎず、Agent review成功やmerge許可ではない。CASにはARBのorigin adapterがないため、既存の別top-level手動評価を次の明示経路で結び、停滞を理由にCLI子worker/代替actorを自動起動しない。
 

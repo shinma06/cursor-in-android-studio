@@ -712,15 +712,16 @@ def stalled_review_retry(pr, comments, inline, reviews, comment_id, original):
         if observed >= started or any(not isinstance(original[k], list) for k in ('comments', 'inline', 'reviews')):
             return None
         originals, completions = [], []
-        groups = [(comments, inline + reviews, now),
-                  (original['comments'], original['inline'] + original['reviews'], observed)]
-        for conversation, responses, cutoff in groups:
+        # Only the immutable pre-retry observation can establish the original obligation.
+        groups = [(comments, inline + reviews, now, False),
+                  (original['comments'], original['inline'] + original['reviews'], observed, True)]
+        for conversation, responses, cutoff, preserved in groups:
             summaries = [c for c in conversation if c.get('user', {}).get('login') == provider and
                          c.get('body', '').startswith('<!-- codex-pull-request-review-summary -->')]
             if len(summaries) > 1:
                 return None
             for c in conversation:
-                if requested(c) and same_head(c) and c['user']['login'] == OWNER and not retried(c):
+                if preserved and requested(c) and same_head(c) and c['user']['login'] == OWNER and not retried(c):
                     at = posted(c)
                     if c.get('updated_at') == c['created_at'] and at < min(cutoff, started):
                         originals.append(at)
@@ -759,7 +760,7 @@ def stalled_review_retry(pr, comments, inline, reviews, comment_id, original):
                     if code.get('commit_sha') == head and head.startswith(match[3]):
                         if code['status'] == 'completed':
                             completions.append(at)
-                        elif created < started and at < min(started, cutoff):
+                        elif preserved and created < started and at < min(started, cutoff):
                             originals.append(at)
                     continue
                 current = record.get('commit_id', record.get('original_commit_id')) == head
