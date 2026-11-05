@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inactive delivery definitions. Activation requires a separate reviewed change."""
+"""Guarded delivery readiness; actual publication requires its recorded scope."""
 import argparse
 import hashlib
 import io
@@ -23,12 +23,12 @@ MARKER = '<!-- plugin-delivery:v1\n'
 MAX_ARCHIVE = 256 * 1024 * 1024
 SHA = re.compile(r'[0-9a-f]{40}')
 HASH = re.compile(r'[0-9a-f]{64}')
-# No environment variable or existing event can enable the new operation.
-ENABLED = False
+# Readiness does not select a version or grant release scope; keep per-run records.
+ENABLED = True
 
 
 def require_enabled():
-    require(ENABLED, 'Delivery definitions are inactive; activation is outside Issue 572')
+    require(ENABLED, 'Delivery is inactive; the reviewed activation scope is required')
 
 
 def require(condition, message):

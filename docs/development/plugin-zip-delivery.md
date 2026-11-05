@@ -1,21 +1,30 @@
 # Plugin ZIPの配布
 
-## 現在の状態と非有効化の境界
+<a id="現在の状態と非有効化の境界"></a>
 
-[#572](https://github.com/shinma06/cursor-in-android-studio/issues/572)は、配布を **developの単一early → 固定正式候補Artifact → 受入・main promotion → 同じbytesの正式Release** へ統一する定義です。実有効化・運用試行・旧配布物の移行は含みません。製品はroot GradleのAndroid Studioプラグインです。製品source/build設定・既存Case・原失敗・main/developの機能差を変更しません。
+## 現在の状態と切替条件
 
-| 入口 | この定義を採用した時の状態 |
+[#572](https://github.com/shinma06/cursor-in-android-studio/issues/572)で採用した配布定義を、[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)で **developの単一early → 固定正式候補Artifact → 受入・main promotion → 同じbytesの正式Release** のguard付きreadinessへ接続します。現在は切替準備段階で、初回earlyの実公開・実workflow切替は未了です。以下は採用するsourceの動作と実切替の条件です。設定・run・公開source/hashの実結果は#599で確認し、source採用だけを稼働成功と扱いません。製品source/build設定・既存Case・原失敗・main/developの機能差は変更しません。
+
+OLDの重複選択・退役の工具修復は[#605](https://github.com/shinma06/cursor-in-android-studio/issues/605)でdevelop/mainへ採用し、[通常の毎時runで到達を確認済み](https://github.com/shinma06/cursor-in-android-studio/issues/605#issuecomment-6637287597)です。これはNEW切替や、[#579に残る旧Releaseの所有・許可・元FAILの解決](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6637403898)とは別です。旧資産/URLと元失敗を保持します。
+
+| 入口 | 採用するsourceのreadinessと境界 |
 | --- | --- |
-| `delivery.yml` | CI完了通知と手動入口を定義するが、全jobは固定 `false && main参照`。checkout・token利用・公開・削除に到達しない |
-| `release-candidate.yml` | 手動入口のみ。全jobは同じliteral false。build・Artifact uploadにも到達しない |
-| `release_delivery.py` / `release_candidate.py publish` | `ENABLED = False`で外部操作前に拒否する。環境変数・secret・既存eventでは解除できない |
+| `delivery.yml` | main参照のCI完了通知をdevelop early / main promotedへ、手動通知をstableへ渡す。未知event/branchはCLI呼出し前に拒否。既存のsource/Case/check/bytes/権限検査を維持 |
+| `release-candidate.yml` | main参照の手動入口のみ。repository権限はread-only、標準buildと候補Artifact保存を定義する。Release/tag公開は行わない |
+| `release_delivery.py` / `release_candidate.py publish` | `ENABLED = True`で既存guardを通る入口を準備する。正式versionの人間による受入前決定と具体的な公開scopeは作業記録へ残す。構文・Case検査の成功だけではその根拠にならない |
 | 新しいRC Release保存 | `release_candidate.py store`は書込み前に拒否する。保存済みRCは読取り可能なまま保全 |
-| 既存`branch-zip.yml` / `branch_zip.py` | **従来の配布・毎時巡回/cleanupを変更せず残す**。NEW CLIを呼ばない。これは有効化前の接続保全であり、恒久的な別配布方針ではない |
+| 既存`branch-zip.yml` / `branch_zip.py` | 旧sourceと全既存資産/URLを保全し、NEW CLIへ差し替えない。実切替時にworkflowを停止し、既存runをdrainする。disableは実行中runのcancelではない |
 | 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。構文検査だけ限定queue互換処理を通す。公開やNEW経路のdispatchは追加しない |
 
-従って、この定義のPR push/merge、遅着・pendingのCI通知、旧毎時eventからNEW経路の公開・削除・dispatch・移行は起動しません。**repository全体の旧公開処理が止まるという意味ではありません。** 旧branch配布は既存条件で引き続き実行し得ます。既存workflowの無効化・pending取消し、variables/secrets設定、App登録、権限付与、旧接続の撤去は今回実施しません。実APIで確認したtrigger/状態・確認不能項目と採用元の固定版はIssue/PRに記録します。
+実切替はPMが最終main/developと他のproduct push停止を固定してから、担当1名で次の順序を満たします。現在はこの操作を開始していません。sourceの固定falseを外すmain統合前にはNEWを停止保持し、遅着CI通知やmanual入力から公開へ到達しない状態を確認します。Draft PRでの検証だけでは、この実停止確認を代替しません。
 
-有効化担当は別の許可範囲で、旧自動接続と実行中runを照合し、所有を保って切替手順・認証・排他・停止/復旧条件を確定します。その後にコード上のgateとworkflowを通常レビューで変更します。値だけの設定で有効化したり、旧scheduleへNEW CLIを差し替えたりしません。develop側の共通運用定義は#573で同期します。定義同期をNEW経路の有効化やlive運用の切替済みと扱いません。
+1. 全関連namespace・所有claim・OLD/NEWの実workflow状態と実行中/待機run・遅着し得るmain CI/manual stable・候補入力を有限に照合する。未割当の正式公開へ到達し得る入力、所有不明や結果不明があれば、その操作を止めて解消する。通常main通知のno-opや未merge PRの拒否例だけで全入力を安全としない。
+2. NEWを停止保持し、OLD workflowを全branchに対して停止、実行済み/待機中runを所有を保ってdrainする。全guarded readinessをmainと必要なdevelop同期へ通常レビューで採用してから、初回earlyの固定tagを作る。earlyだけを先に採用して後からworkflowを変えない。
+3. 正当な最終develop CIがまだ実行中で、enable後のcompletionと排他を記録できる場合はその自然な通知を使う。過去completionの再送は仮定せず、dummy変更・rerun・新dispatchを作らない。成立しない場合はNEW停止/drain・単一operator・固定run/source/同一bytesを確認し、既存local early CLIを使って実公開をreadbackした後にNEWをenableする。
+4. 取得したCIのZIPを再build/再圧縮せず、source/run/hash/size、固定tag、本文、全asset、再downloadのbytesと公開URLを読み戻す。初回early1回を実観察し、正式version選択・候補実生成・正式公開は今回行わない。全readinessは将来の個別公開scopeや人間のversion決定を代行しない。
+
+実writeの結果不明は既存の限定readbackで確認し、盲目的に再試行しません。旧資産/URL・元FAIL・他owner・PAUSEDを保持します。workflow/tokenの既存権限guardを解除せず、同じtokenの再実行・環境変数・新secretを回避策にしません。
 
 ## 試験と配布生成を分ける
 
@@ -45,7 +54,7 @@ CIの `compatibility-input` は標準 `build/distributions/*.zip` と `manifest.
 
 ## 正式候補RCと同一ZIPの公開
 
-以下は**有効化後に使用する定義**です。#572の実装・検査では実行しません。正式versionは人間が受入前に決めます。例示のversionを採番したり、SNAPSHOT受入後にZIP内versionを書き換えたりしません。
+以下は**個別のversion・候補生成・公開scopeを確定した後に使う手順**です。#599ではreadinessだけを準備し、実行しません。正式versionは人間が受入前に決め、その判断と公開scopeを作業記録へ残します。例示のversionを採番したり、SNAPSHOT受入後にZIP内versionを書き換えたりしません。
 
 ### 1. sourceと正式versionを固定し、一度だけ生成する
 
@@ -79,7 +88,7 @@ python3 scripts/workflow/release_delivery.py stable --promotion-pr "$PROMOTION_P
 
 正式Releaseは同じtag/commit/identity/assets/bytesだけ再照合可能です。異なるbytes・公開済み不完全Releaseを自動修復/置換しません。asset削除やtag移動は実装しません。`make_latest: false` を維持し、古い版の復旧でlatestを巻き戻しません。latestの切替やrepository全体のimmutability設定は追加しません。後者はmutable earlyにも影響するため、有効化とは別に判断が必要です。
 
-Artifact期限切れの場合も、受入で固定した同じbundleがあれば次の定義で再検証できます。CLI自体は現在無効です。
+Artifact期限切れの場合も、受入で固定した同じbundleがあれば次の定義で再検証できます。実行には元のpromotionと具体的な復旧scopeが必要で、#599の初回early試行では使いません。
 
 ```bash
 python3 scripts/workflow/release_delivery.py stable \
@@ -92,7 +101,7 @@ python3 scripts/workflow/release_delivery.py stable \
 
 ### 既存の正式説明を訂正する
 
-既存の正式版の説明訂正は `release_candidate.py publish --update-notes` を使い、通常再実行で既存説明を無断変更しません。公開時に受け入れた同じbundle・元hash・promotion PRと、mainでレビュー済みのrelease-notes blockを照合します。変更できるのは説明だけで、tag・candidate/source/version/hash・全assetは同じままです。欠落/異なるbytes・未統合の説明は拒否します。以下は有効化後の定義で、この入口も現在はgateで無効です。
+既存の正式版の説明訂正は `release_candidate.py publish --update-notes` を使い、通常再実行で既存説明を無断変更しません。公開時に受け入れた同じbundle・元hash・promotion PRと、mainでレビュー済みのrelease-notes blockを照合します。変更できるのは説明だけで、tag・candidate/source/version/hash・全assetは同じままです。欠落/異なるbytes・未統合の説明は拒否します。この入口のreadinessは説明訂正の許可ではなく、#599の初回early試行では使いません。
 
 旧RCを使った正式版は元RCを `fetch --tag` で取得します。NEWのcandidate Artifactが現存する場合は、その固定runを `fetch --run` で指定します。`fetch` は `--tag` / `--run` のどちらか一方だけが必須です。次の取得例は該当する一方だけを使います。
 
@@ -115,7 +124,7 @@ python3 scripts/workflow/release_candidate.py publish \
 
 ## 排他・権限・復旧
 
-新workflowは全channelを `plugin-release-delivery` groupで直列化し、`queue: max` と `cancel-in-progress: false` を定義します。実行中A、待機中の正式配布Bへearly Cが後着しても、BをCで置き換えず両方を待機させます。待機は最大100runで、上限を超えた追加runは取消しになります。待機を開始した順の処理で、event発生順そのものは保証しません。取消し/失敗を完了扱いにせず、正式版は同じpromotion PRの明示復旧、earlyは元製品CI再実行などから現在HEADを再解決します。これはGitHub native queueの定義であり、現在は全jobが無効のため実動作を試行していません。ローカルCLIはActions lockを共有しません。有効化時に担当1名・実run終了/排他を確認し、workflowと並行実行しない手順を確定します。[GitHubのqueue仕様](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs)
+新workflowは全channelを `plugin-release-delivery` groupで直列化し、`queue: max` と `cancel-in-progress: false` を定義します。実行中A、待機中の正式配布Bへearly Cが後着しても、BをCで置き換えず両方を待機させます。待機は最大100runで、上限を超えた追加runは取消しになります。待機を開始した順の処理で、event発生順そのものは保証しません。取消し/失敗を完了扱いにせず、正式版は同じpromotion PRの明示復旧、earlyは元製品CI再実行などから現在HEADを再解決します。これはGitHub native queueの定義であり、readinessの合成検査とliveの実動作を区別します。切替準備時点ではlive未試行です。ローカルCLIはActions lockを共有しないため、上記の切替時に担当1名・実run終了/排他を確認し、workflowと並行実行しません。[GitHubのqueue仕様](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs)
 
 固定actionlint 1.7.12の[parser](https://github.com/rhysd/actionlint/blob/v1.7.12/parse.go#L756)はこのnative属性を未対応です。既存の固定version/checksumは維持し、[actionlint_check.py](../../scripts/workflow/actionlint_check.py)で当該deliveryの固定concurrency節を厳密に検査します。group・`queue: max`・`cancel-in-progress: false`が揃う1節だけを認め、そのqueue行だけをlint入力上の空行にして残りを[公式stdin入口](https://github.com/rhysd/actionlint/blob/v1.7.12/docs/usage.md#actionlint-command)で検査します。他workflowは原文で全検査し、他の構文・式・未知keyや重複・誤値をignoreしません。repository内のworkflow自体は変更せず、行番号も保持します。固定linterがnative対応した版へ通常更新できた時点でこの限定処理を外します。前回の未対応診断は履歴として保持し、queue定義を有効化scopeへ先送りしません。
 
@@ -129,11 +138,11 @@ publishはレビュー済みmain、buildはwrite tokenのない別runnerです�
 
 全件draftの場合は最新IDの候補を再利用します。集合全体のmarker・branch/source・名前・prerelease・mutableを検証し、古いdraftが空で、新ZIPが公開されてdigest/size/sourceを再読確認でき、同じHEADが維持される場合だけ、その呼出しで照合した古いdraftを削除します。所有不明・immutable・保護資産を持つdraftは書込み前に停止します。upload/PATCH失敗・HEAD移動・再読不一致では先行削除しません。後処理が途中失敗した後は既存の公開済み＋draftとして保全し、元失敗と残る退役を担当者へ引き継ぎます。再試行だけを理由にmixedのdraftを削除しません。 全件draftのPATCH失敗後も、同一source名の完了済みassetは有効なdigest/sizeを取得して再利用します。再buildのタイムスタンプ等でローカルZIPのbytesが変わっても既存uploadを置き換えず、公開後は既存assetのdigest/sizeで読み戻します。不完全・未知identityのassetは保全して停止します。 選択したdraftが1件でも、公開対象は空／正当な同SHA完了ZIP／所有済み空starterに限ります。全assetを専用一覧で取得し、公開直前に対象Releaseの所有・公開状態とasset全件・upload identity・HEADを再照合するため、公開直前の読み戻しで未知assetの並行追加を検出したdraftは公開せず停止します。GitHubの外部手動編集まで原子的にlockする保証ではありません。
 
-通常退役は開始時に公開済みsingle Releaseの正規前版が1 assetだけの場合に限定し、新ZIPの公開・再読後、その固定前版だけを照合して整理します。開始時から履歴/未知assetが複数ある場合は、draftが後から見えなくなってもそれらを保持します。all-draftでは他名assetを整理しません。既存orphan cleanupの単一asset契約は維持します。 通常の前版退役に限って、新uploadの既存`label`へ退役可能な各前版identityのhashを記録します。PATCH失敗や後処理失敗の再試行は、この持続的な根拠が現在の前版と一致する場合だけ退役でき、個数だけで保護履歴を通常前版と推定しません。本文切替後の前版退役が失敗した場合も、その根拠が一致して残っていればplanが未完了の通常retryを隠しません。PATCH失敗後に次の製品SHAへ進んでも、正常経路から証明できる未完了前版だけの根拠を引き継ぎ、検証・公開後の各DELETEと再読で部分失敗から再開します。保護履歴・未知assetには根拠を発行しません。mixedで既存の通常退役根拠が残っていた場合は同じReleaseの過去ZIPも含むlabelから根拠を解除して公開し、後からdraftが消えても保護履歴を退役しません。labelはGitHub上の表示にも使われる既存metadataであり、根拠がない/変わった場合は保全・照合へ戻します。同source markerを持つdraftの空starterだけは既存の部分upload再試行を許可し、未知の部分資産は停止します。mixedに残した履歴assetは単一asset用のorphan cleanup対象にしません。保管コピーの存在は元URL削除の許可ではありません。この工具修正のdevelop採用は、default mainを使う毎時経路への到達や、#599のNEW有効化・#579の元FAIL解消の実観察を意味しません。通常main-tooling適用と実到達のreadbackは別途必要です。
+通常退役は開始時に公開済みsingle Releaseの正規前版が1 assetだけの場合に限定し、新ZIPの公開・再読後、その固定前版だけを照合して整理します。開始時から履歴/未知assetが複数ある場合は、draftが後から見えなくなってもそれらを保持します。all-draftでは他名assetを整理しません。既存orphan cleanupの単一asset契約は維持します。 通常の前版退役に限って、新uploadの既存`label`へ退役可能な各前版identityのhashを記録します。PATCH失敗や後処理失敗の再試行は、この持続的な根拠が現在の前版と一致する場合だけ退役でき、個数だけで保護履歴を通常前版と推定しません。本文切替後の前版退役が失敗した場合も、その根拠が一致して残っていればplanが未完了の通常retryを隠しません。PATCH失敗後に次の製品SHAへ進んでも、正常経路から証明できる未完了前版だけの根拠を引き継ぎ、検証・公開後の各DELETEと再読で部分失敗から再開します。保護履歴・未知assetには根拠を発行しません。mixedで既存の通常退役根拠が残っていた場合は同じReleaseの過去ZIPも含むlabelから根拠を解除して公開し、後からdraftが消えても保護履歴を退役しません。labelはGitHub上の表示にも使われる既存metadataであり、根拠がない/変わった場合は保全・照合へ戻します。同source markerを持つdraftの空starterだけは既存の部分upload再試行を許可し、未知の部分資産は停止します。mixedに残した履歴assetは単一asset用のorphan cleanup対象にしません。保管コピーの存在は元URL削除の許可ではありません。この工具修正は#605でmain採用と毎時経路への実到達を確認済みですが、#599のNEW有効化・#579の所有/許可残件や元FAILの解消を意味しません。
 
 <a id="削除済み作業ブランチの掃除219"></a>
 
-branch別prerelease・毎時巡回/cleanupは切替前の旧接続として残っています。既存branch ZIPの実sourceは従来どおり本文/asset名で識別します。旧RC・正式版・過去QAリンクをearlyへ書き換えず、古いtag/assetの削除・移行は実施しません。旧RCの `fetch --tag` は固定source当時のQuail/Rabbit policy・全資料を読めるまま維持します。
+branch別prerelease・毎時巡回/cleanupのsourceは旧接続として保全し、実workflowの停止は上記の切替手順で照合します。既存branch ZIPの実sourceは従来どおり本文/asset名で識別します。旧RC・正式版・過去QAリンクをearlyへ書き換えず、古いtag/assetの削除・移行は実施しません。旧RCの `fetch --tag` は固定source当時のQuail/Rabbit policy・全資料を読めるまま維持します。
 
 [変更前の配布手順](https://github.com/shinma06/cursor-in-android-studio/blob/0c408f700bc63a4c04bebec5a4d3c5408b8e0d40/docs/development/plugin-zip-delivery.md)は、旧branch配布/cleanup・旧runtime/bootstrap・初回#127の観察・旧RC保存/取得・既存説明訂正の履歴と、切替前の旧接続を理解する参照先です。現在のNEW経路の有効化指示として実行しません。独自hook・他writer・PAUSED job・未解放claimを保全します。
 
