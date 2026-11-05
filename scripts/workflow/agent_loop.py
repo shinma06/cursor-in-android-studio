@@ -604,7 +604,7 @@ class Loop:
                 self.gh.merge(latest)
                 return self.continue_finish(number)
             else:
-                state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: leaseを取得し、実画面を観察して証拠を記録',
+                state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: 実対象・結果先・副作用の競合を調整し、実画面を観察して証拠を記録',
                              'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
                              'ci-wait': 'Wait for latest required CI checks', 'ci-failed': 'Inspect CI failure; resume after repair',
                              'remote-review-wait': 'Read current-HEAD provider completion and all feedback before independent review',
@@ -716,14 +716,6 @@ class Loop:
         return {'pr': pr['number'], 'phase': 'done', 'issue_closed': bool(complete)}
 
     def cleanup(self, pr, h):
-        from gui_lease import locked, transition
-        lease_dir = Path('/tmp') / f'cursor-in-android-studio-gui-{os.getuid()}'
-        with locked(lease_dir) as lease:
-            if transition(lease, 'status').get('state') != 'free':
-                raise ValueError('GUI is occupied; defer resource cleanup until operator release')
-            return self._cleanup_resources(pr, h)
-
-    def _cleanup_resources(self, pr, h):
         branch = h['branch']
         if branch in ('main', 'master', 'develop'):
             raise ValueError('Persistent branches must never be cleaned up')
@@ -1010,7 +1002,7 @@ def main():
     rebound.add_argument('--migration-record', type=Path, help='Private verified directory migration JSON')
     resume = sub.add_parser('resume'); resume.add_argument('--pr', type=int, required=True)
     resume.add_argument('--reason', required=True)
-    gui = sub.add_parser('gui'); gui.add_argument('--pr', type=int, required=True); gui.add_argument('--evidence', type=Path, required=True); gui.add_argument('--lease-token', required=True)
+    gui = sub.add_parser('gui'); gui.add_argument('--pr', type=int, required=True); gui.add_argument('--evidence', type=Path, required=True); gui.add_argument('--operator', required=True, help='Designated operator from the actual Issue/PR assignment; must match evidence observer')
     args = parser.parse_args()
     ROOT = args.repo_root.resolve()
     try:
@@ -1039,13 +1031,8 @@ def main():
                     raise ValueError('No local managed handoff')
                 if args.action == 'gui':
                     evidence = json.loads(args.evidence.read_text())
-                    from gui_lease import locked, transition
-                    with locked(Path('/tmp') / f'cursor-in-android-studio-gui-{os.getuid()}') as lease:
-                        current = transition(lease, 'status')
-                        if (current.get('token') != args.lease_token or current.get('expired') or
-                                current.get('issue') != h['issue'] or current.get('head') != pr['head']['sha'] or
-                                current.get('owner') != evidence.get('observer')):
-                            raise ValueError('GUI evidence requires the current designated operator lease')
+                    if not args.operator.strip() or evidence.get('observer') != args.operator:
+                        raise ValueError('GUI evidence observer must match the designated operator from the current assignment')
                     bound, _ = loop.bound(pr, loop.gh.issue(h['issue']), comments, state)
                     if not gui_pass(evidence, bound):
                         raise ValueError('GUI evidence is incomplete or belongs to another HEAD/base')

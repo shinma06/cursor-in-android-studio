@@ -11,7 +11,7 @@
 | SDK/build/profile・ZIP/JARとロード実体 | 対象branchの標準build/互換性policy、固定source/ZIP/JAR/hash・実IDE/JBR/PID/profileの照合。別branch/外部製品のPASSを転記しない |
 | AgentとAndroid IDE操作の正確な連携 | 呼出元/先・対象module/variant/device/run・permission・中止を検証。実端末固有の事実をfake/EMUから成功としない |
 
-全データ・内容・保存・境界の検証と、代表nativeの相互運用は役割が異なる。既存の十分なfile/回帰/API/CLI・実render読取りを先に評価し、残る具体的なUI/OS/consumer保証だけを最小のGUIへ割り当てる。追加toolが必要なら公式能力/版/互換性と導入・保守負担を比較する。十分な既存経路を優先し、試すためだけに依存/host設定を増やさない。実tool/OS同意・lease・privacy・所有fixture・有限な上限/復旧はすべての方法で守る。
+全データ・内容・保存・境界の検証と、代表nativeの相互運用は役割が異なる。既存の十分なfile/回帰/API/CLI・実render読取りを先に評価し、残る具体的なUI/OS/consumer保証だけを最小のGUIへ割り当てる。追加toolが必要なら公式能力/版/互換性と導入・保守負担を比較する。十分な既存経路を優先し、試すためだけに依存/host設定を増やさない。実tool/OS同意・実対象/副作用の[GUI調整](../development/gui-coordination.md)・privacy・所有fixture・有限な上限/復旧はすべての方法で守る。
 
 同じ候補/成果物/前提で各Caseの全条件を満たす観察は共有できる。新しい本文値やZIP名だけで全native操作を追加せず、関係する生成形式・導線・reader/runtime/display・設定/build/依存・失敗帰属を保証ごとに評価する。不明・変更の部分は新事実が必要。未知や製品failを根拠なく外部制約にしない。
 

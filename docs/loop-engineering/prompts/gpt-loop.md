@@ -11,7 +11,7 @@ Writer: <session>; independent reviewer: <different session or pending>; GUI ope
 The reviewer may use the same provider but must be a different session from the writer. Do not require three providers.
 Follow docs/development/codex-execution-policy.md. When GPT-6 Astra is the lead, do not spawn/delegate child agents; preserve existing owners and authorized scope in independent top-level coordination.
 Use an Issue claim, dedicated branch/worktree and PR. Never commit/push directly to main/develop.
-Use docs/development/gui-coordination.md for agent-desktop observation/input and supported fallback. Acquire the host-wide lease for shared or uncertain effects, runIde, installs and Case-mandated intervals.
+Use docs/development/gui-coordination.md for agent-desktop observation/input and supported fallback. GUI reservations are abolished, including for runIde, installs and old Case reservation clauses. Follow the canonical policy for actual targets/result-side effects and direct coordination of concrete conflicts; never replace reservations with a host-wide lock, global GO or mandatory acknowledgement. Preserve actual assignment/origin, human use, real tool/OS refusals and all other Case guarantees.
 If GUI tools are unavailable, hand off GUI work; if no capable operator is available, keep GUI blocked and continue independent non-GUI work. Preserve Computer Use-required Cases.
 Check claims and existing changes; fix the target Cases, related MV IDs and expected outcomes first.
 Limit product test inputs to the new fixtures. The writer makes plugin changes in the claimed development worktree, regardless of their client.

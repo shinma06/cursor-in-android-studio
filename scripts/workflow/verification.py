@@ -783,6 +783,7 @@ def render_queue(paths, promotion=None, git=git_read):
             rows.append((data, effective))
     lines = ['# 今回の動作確認一覧', '',
              '> 自動生成。結果は正本JSONへ入力して再生成してください。過去buildの結果は参考です。', '',
+             '現行の[GUI調整](../development/gui-coordination.md)を適用します。固定Case・原FAILの予約/lease条件は現運用では失効し、原文を保持します。Computer Use・担当/出所・build識別・観察等の保証は変更しません。', '',
              '固定候補SHA: ' + (candidate or '未固定'),
              '対象ZIP SHA-256: ' + (promotion.get('artifact_sha256') or '未登録'), '',
              '| Case / Issue / PR | 対象 | 候補結果 | main可否（Case単位） | 修正先 |',

@@ -21,6 +21,6 @@ Next: recipient, concrete action and condition; otherwise STOP.
 
 PMは固定成果・Issue/PR・artifact/reportの識別、独立性、実質評価、未解決と次ownerを受領する。詳細な全参照hash・ZIP member・XML等の照合はwriter/試験担当、独立レビュアー、実統合担当が責任を持つ。PMは一律に再実施せず、重大な不一致、欠けた/古いbinding、所有争い、タスク間矛盾、PM指定の明示規則に関係する範囲を確認する。[採用根拠](https://github.com/shinma06/android-replay-buffer/issues/280#issuecomment-6355145352)。詳細確認を省略する規則ではない。
 
-編成は保証→既存証拠→不足事実→手段から必要な役割だけ選ぶ。既存owner、実origin/model/effort、停止・未回収結果と共有負荷を確認する。実装/独立レビュー/PMの分離、単一writer/GUI leaseを維持し、空き人数を埋めない。解体では成果と残責任を受領し、実停止と所有の解放/保管を別々に確認する。archiveはclaim解放・cleanupではなく、旧担当を自動再開しない。
+編成は保証→既存証拠→不足事実→手段から必要な役割だけ選ぶ。既存owner、実origin/model/effort、停止・未回収結果と共有負荷を確認する。実装/独立レビュー/PMの分離、単一writerと[実対象ごとのGUI調整](gui-coordination.md)を維持し、空き人数を埋めない。解体では成果と残責任を受領し、実停止と所有の解放/保管を別々に確認する。archiveはclaim解放・cleanupではなく、旧担当を自動再開しない。
 
 新しい運用判断の前は、PMが[運用プロファイル](github-workflow.md#operations-profile)に従ってOMILに相談し、実在する許可済み経路で受領する。OMILは[portable brief](omil-portable.md)と[フェーズ点検](omil-phase-review.md)を使い、目的・方法・負担を必要な契機で検討する。実連絡先は既存private引継ぎに保持し、新registry・常駐役・通知routerを作らない。公開された役割説明だけで実sessionの存在や起動許可を証明しない。

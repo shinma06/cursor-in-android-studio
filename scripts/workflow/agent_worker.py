@@ -216,6 +216,8 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
         'When creating, updating, reviewing or auditing development context, apply the context policy in '
         'docs/architecture/knowledge.md; preserve evidence exceptions and existing scope/permissions. '
         'Use docs/development/team-worker-prompt.md for ready-role and stop/receipt boundaries. '
+        'GUI reservations are abolished; use docs/development/gui-coordination.md for actual target/result-side-effect '
+        'coordination, assigned operator and evidence requirements. Do not invent a host-wide lock or approval gate. '
         'For source/comment/Doc, example, configuration/schema or instruction changes and reviews, '
         'apply docs/development/comment-doc.md to the actual diff and affected contracts/callers/tests/references; '
         'preserve local why/non-obvious how and protected evidence. '

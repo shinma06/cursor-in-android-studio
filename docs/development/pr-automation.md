@@ -40,7 +40,7 @@ reviewerはread-onlyの独立session、fixerはworkspace-writeで指定ファイ
 JSONイベント・保存省略flagは[公式CLI説明](https://developers.openai.com/codex/noninteractive)と[CLI reference](https://developers.openai.com/codex/cli/reference)、保存記録の形式/配置は[Codex 0.163.0 protocol](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/protocol/src/protocol.rs#L3245)と[rollout recorder](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/rollout/src/recorder.rs#L1744)に基づきます。別版の互換性や実workerでの稼働確認は、この静的適合と合成検証からは主張しません。
 GPT-6 Astraがメインの場合は[Codex実行規約](codex-execution-policy.md)に従い、reviewer/fixerを現在のAgentの子として生成・委譲してはいけません。独立top-level Sessionとの連携かどうかを実行構造で確認し、workerという名称や自動化スクリプト経由を禁止回避の根拠にしません。
 GUI未実施/環境blocked/製品failだけを理由にdevelopのコード承認を拒否しません。コード不具合、必要テスト失敗、Case追跡不足は修正対象です。
-PMが選んだ有限の対象を、既存coordinatorは最大3 PRで交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。この3 PR上限はsessionやbuildの同時枠ではなく、PMの実負荷判断とGUI leaseを代替しません。
+PMが選んだ有限の対象を、既存coordinatorは最大3 PRで交代制に処理し、worker 10分、fix 3回、review 8回、通信等失敗3回で停止します。GUI待ちPRだけで全体を止めません。この3 PR上限はsessionやbuildの同時枠ではなく、PMの実負荷判断と実対象/副作用のGUI調整を代替しません。
 
 coordinatorはtarget refをAPIから取得し、fetchと再照合します。HEAD/base/target/題名/本文/Issue条件/feedback変更は承認を失効させます。
 base同期は通常merge → [共通Change Impact](change-impact.md)の必要テスト → 非force push → 独立再レビューです。知識のみのskipも判定結果を残し、dirty/remote HEAD/受入の照合は省略しません。未解決会話とstrict baseはGitHub保護も検査します。
@@ -51,8 +51,8 @@ base同期は通常merge → [共通Change Impact](change-impact.md)の必要テ
 - main promotion: `main..candidate` の全commitをmerge済みdevelop PRへ完全一意に対応付ける。通常はsquash結果、既存main同期mergeは[厳密なDAG照合](../verification/README.md#既存main同期mergeの履歴照合250)を通す。各PRの固定merge SHAに保存された全Caseが同じ候補/buildでpass。候補後の直接編集は2つの許可JSONだけ。後続mainの文書/toolingは[限定同期検証](../verification/README.md#候補固定後のmain同期533)を通す。merge commit専用。
 
 [確認結果の入力と候補固定](../verification/README.md)を参照してください。1 Caseだけのpassは全候補の合格ではありません。
-GUI lease付きの旧 `gui` 証拠登録は旧記録/互換用途に残しますが、promotionは候補の`promotion.results`を使用し、PR HEADの再GUIを要求しません。
-GUI操作自体は現在も能力・許可を確認した指定担当/人間のlease下で行います。状態のblockedと製品failを区別し、未実施はpassへ変えません。
+既存の `gui` 証拠登録は、現在の実assignmentで指定された担当を `--operator` へ渡し、既存evidenceの `observer` と照合します。予約tokenや旧共有leaseは要求/読取りしません。文字列一致はorigin認証ではなく、登録者が実担当/原証拠を照合します。promotionは候補の`promotion.results`を使用し、PR HEADの再GUIを要求しません。
+GUI操作は能力・許可を確認した指定担当/人間が[現行GUI調整](gui-coordination.md)に従って行います。予約制は廃止され、実対象/結果先/副作用の具体的な競合だけを担当間で調整します。状態のblockedと製品failを区別し、未実施はpassへ変えません。
 
 ## 対象branch変更・再開
 
@@ -103,7 +103,7 @@ python3 scripts/workflow/agent_loop.py continue-finish --pr N
 
 GitHub mergeを読み戻します。developでは固定mergeのCaseを読み、残CaseがあるときだけQAを作成/再利用します。新規QAはcanonical `test: #N 日本語の要約`、再利用は旧`[試験] #N `と新形式の元番号を厳密に照合します。重複・closed・所有/目標の矛盾は上書きせず戻します。元Case JSONの全文コピーをQAへ増やさず、固定merge/pathと全必要Case ID・手順/期待/次操作の正本を示し、native親子・内容と元Issue backlinkをreadbackしてから元実装Issueを閉じます。CaseなしならQAを作らず、元IssueとPRへPMのmain反映保管・未確認と次操作を記録し、両端readbackします。既存QAがあるno-Cases変更は自動処理せずownerへ戻します。API失敗/不一致ではcloseしません。既存QA本文/原失敗・履歴は保持します。
 mainで全受入済みのpromotion Issueは新candidate証拠を含む受入判定でclose可能です。元の機能/QA IssuesはPMが残条件を個別照合します。
-remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止・GUI lease空きの場合だけ削除します。
+remote branchはmerge対象HEADと一致、localは登録時HEADと一致・他worktree未使用・clean・worker停止と実対象の所有/利用を確認した場合だけ削除します。GUI leaseの有無/期限/空きを条件にせず、旧共有記録は変更しません。
 **main/master/developはどのcleanup経路でも削除しません。** `--force-with-lease`は一致確認付きIssue branch削除だけの限定使用です。
 cleanup中断は次tickで再試行し、merge成功だけで状態を消しません。
 
@@ -133,7 +133,7 @@ PM/coordinatorはmerge後の区切りで以下を確認し、Issue/PRへ結果�
 
 1. **統合**: PRのmerge SHA、受入、必要なQA引継ぎを読み戻す。
 2. **後片付け**: 既存の所有確認付きcleanupを実行し、保全済みtracking refの限定整理後にremote/localの対象branch、`origin/<branch>`、登録source/managed checkoutの残存を確認する。終了報告は削除済み/保留を分ける。既存`cleanup-branches`は補助監査であり、使用中worktree・remote実ref・未登録/旧形式・mergedでないPR等をすべて整理する仕組みではない。
-3. **保留**: branch、固定HEAD、残る資源の種類、理由、owner、次の操作/再開条件を元Issue/PRへ記録する。ローカル絶対パスはprivate registryだけに残す。GUI leaseで中断した場合、元coordinatorまたは明示引継ぎ先が解放確認後に既存登録の停止理由を照合し、通常のresume/cleanup手順を再開する。Issueがclosedでもこの後片付け責務は消えない。停止理由不明の自動再開、owner/sourceの付け替え、heartbeatの勝手な再開はしない。
+3. **保留**: branch、固定HEAD、残る資源の種類、理由、owner、次の操作/再開条件を元Issue/PRへ記録する。ローカル絶対パスはprivate registryだけに残す。旧GUI lease理由で中断した場合も、元coordinatorまたは明示引継ぎ先が残る実際の停止理由/所有/利用を照合して通常のresume/cleanup手順を再開する。旧予約の解放を待たず、PAUSEDを自動解除しない。Issueがclosedでもこの後片付け責務は消えない。停止理由不明の自動再開、owner/sourceの付け替え、heartbeatの勝手な再開はしない。
 
 mergedでなくclosed/supersededになったPR、PRのない旧形式branch、未追跡ファイルを持つworktreeは、自動cleanupへ無理に登録し直さない。代替PR/取り込み証拠、担当解放、未保存データの保全と削除範囲を確認してから別途判断する。`main/master/develop`、有効claim、未公開成果物、GUI証拠は保護し、件数ゼロのために削除しない。
 
