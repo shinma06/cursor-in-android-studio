@@ -23,7 +23,7 @@ PRのIssue番号、作者/repository、main/develop target、Integration/Verific
 source絶対パスとhostはprivate `.git/agent-loop/registry/` に0600で保存し、公開record全体のdigestで結び付けます。
 別host、registry欠落/改変/権限不整合はfail-closed。勝手なowner/source取り替えやregistry再生成はしません。原ownerの復旧確認が必要です。
 
-旧v1は同一hostの既存登録を読み取る互換性を維持しますが、新規登録では使いません。v2があるのにregistryを解決できない場合、v1へfallbackしません。
+実行用handoffはv2だけを選びます。旧HANDOFFv1をparse/選択せず、新しいv1コメントも有効v2を上書きしません。最新v2の欠落/不正を旧v1・旧世代・archiveで補いません。旧handoff原文はread-onlyの履歴/保管で扱い、STATEv1・native-session-v1・Caseのgpt/human・release markerは別の現用protocolとして維持します。
 既存marker/owner/sourceは自動移行しません。公開進捗ではhost/sourceを除去し、例外のraw診断はprivate localログへ保存、公開側はopaque診断IDだけを示します。
 
 ## 工程
@@ -85,6 +85,18 @@ before/afterのbranch・HEAD・空status・現在と同じinodeを照合しま�
 
 registry喪失、旧writer再開、予期しないcommitやdirty内容は保持して停止します。reset/stashで捨てず、通信切断後のpublishは記録済みSHAだけを再送します。
 
+## 終了済みPRの非実行と継続境界
+
+通常のload/tick/resume/gui/accept-review/enroll/rebindは、trusted own-repository PR APIのOPEN状態を先に確認します。closed/mergedはregistry/source/worker・state/attempt/claim変更前に拒否し、退役receiptや古い壊れたhandoff/STATEを読んで拒否理由を作りません。明示tickは `terminal-nonexecution`、scanは `terminal_prs` として示し、旧phaseをdoneへ正規化しません。feedbackはAPI原文をread-onlyで取得し、終了済みSTATEや実行sourceを解決しません。再OPENしたPRでもmissing/invalid v2はfail-closedで、元ownerの明示復旧へ戻します。
+
+通常のmerge直後は従来どおり同じtick内でQA/custody/cleanup/claim返却へ進みます。そのmerge前に既存STATEへ、当該registry_idと承認head/baseに結び付く `merge_intent` を保存します。中断後は元owner/coordinatorが次の専用継続を使います。
+
+```bash
+python3 scripts/workflow/agent_loop.py continue-finish --pr N
+```
+
+これは通常closed実行の迂回ではありません。confirmed merge、現在のv2/host/owner/停止・expected head、承認/review/Acceptance/full bindingとpending merge意図、merging/cleanup・非PAUSED、元sourceとworker不在を照合してから、既存finishの再取得・QA・cleanup・claim返却を継続します。phaseだけ・古いclosed・PAUSED・不明owner/原stateは継続資格にならず、失敗時も実資源や元FAILを保持します。古い中断がこの操作bindingを持たなければ、markerを後付けせず、元owner/PMの既存割当で残処理とcustodyを個別照合します。実資源の削除許可・原世代保管・actual retirement receiptは、非実行拒否とは別の操作責務です。
+
 ## 完了とcleanup
 
 GitHub mergeを読み戻します。developでは固定mergeのCaseを読み、残CaseがあるときだけQAを作成/再利用します。新規QAはcanonical `test: #N 日本語の要約`、再利用は旧`[試験] #N `と新形式の元番号を厳密に照合します。重複・closed・所有/目標の矛盾は上書きせず戻します。元Case JSONの全文コピーをQAへ増やさず、固定merge/pathと全必要Case ID・手順/期待/次操作の正本を示し、native親子・内容と元Issue backlinkをreadbackしてから元実装Issueを閉じます。CaseなしならQAを作らず、元IssueとPRへPMのmain反映保管・未確認と次操作を記録し、両端readbackします。既存QAがあるno-Cases変更は自動処理せずownerへ戻します。API失敗/不一致ではcloseしません。既存QA本文/原失敗・履歴は保持します。
@@ -123,10 +135,22 @@ PM/coordinatorはmerge後の区切りで以下を確認し、Issue/PRへ結果�
 
 mergedでなくclosed/supersededになったPR、PRのない旧形式branch、未追跡ファイルを持つworktreeは、自動cleanupへ無理に登録し直さない。代替PR/取り込み証拠、担当解放、未保存データの保全と削除範囲を確認してから別途判断する。`main/master/develop`、有効claim、未公開成果物、GUI証拠は保護し、件数ゼロのために削除しない。
 
+## exact旧名refの限定退役
+
+通常のpush・同名Issuebranch cleanup条件は維持します。別の旧名headを退役する場合だけ、現在のclean専用Issuebranchから、採用済みmainと同じguard/pre-push hookを保って次を使います。実処置前に対象ownerが停止・不要・権限・必要原本/実復元と現在の割当を確認します。
+
+```bash
+python3 scripts/workflow/git_guard.py retire-ref --packet /private/one-target-binding.json
+```
+
+一操作packetは0600のowned regular fileとし、schema=1、own repository、canonical git_common_dir、現在のoperation_branch/operation_headとtrusted_main、remote/remote_url、exact refs/heads refとexpected_oid、元custody_ownerと一致するowner、writer_stopped/unused=true、当該Issueの実assignment URL、既存manifestのpath/hashを固定します。manifestの同じremote-tracking ref/expected_OID、force_flags=false、保管bundleのhash・含有HEADとactual_restore_HEAD_treeを照合します。manifestやBooleanの存在だけで実資格を認定する認証機能ではなく、権限と原本内容の実質評価は担当者が保持します。
+
+wrapperは追加force指定を受けず、当該呼出しだけのpacket/hashを子hookへ渡し、通常の `git push remote :exactref` を1targetだけ実行します。[pre-pushの実remote名/locationとadvertised old OID](https://git-scm.com/docs/githooks#_pre_push)をpacketへ照合し、mixed/multi/update・保護branch・他namespace・現在の別Issuebranch・未知repo/remote/原本/改変hookを拒否します。hook後のremote変更はGit serverのold-ID比較で拒否し、成功後は同refの不在を読み戻します。結果不明・再作成時は無条件再試行せず保持します。恒久allowlistやforce/API迂回はなく、このsource変更で実legacy refを削除しません。
+
 ## 検証
 
 `python3 -m unittest discover -s scripts/workflow -p 'test_*.py'` はtarget変更、固定候補全範囲、古いbuild拒否、Case漏れ、
-GUI failのdevelop許可/main拒否、privacy registry、旧v1、QA引継ぎ後の元実装Issue close/失敗時open保持、main/develop cleanup禁止、review/fix/再レビューと再開を検証します。
+GUI failのdevelop許可/main拒否、privacy registry、v2限定/旧v1拒否、terminal非実行と限定finish継続、QA引継ぎ後の元実装Issue close/失敗時open保持、main/develop cleanup禁止、review/fix/再レビューと再開を検証します。
 
 - [GitHub commit statuses](https://docs.github.com/en/rest/commits/statuses)
 - [GitHub branch refs](https://docs.github.com/en/rest/git/refs#get-a-reference)

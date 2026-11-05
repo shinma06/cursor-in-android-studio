@@ -308,7 +308,9 @@ class OriginAndConsumerTests(FixedClockTests):
         h,state,cid,comments = f.loop.load(36); self.assertTrue(state['paused']); state['paused'] = False
         bound,_ = f.loop.bound(f.gh.pr(36),f.gh.issue(35),comments)
         r = aw.bind_independent_review(f.loop.storage,bound,dict(report(),session=REVIEWER,model='gpt-6.1-sol',review_binding=bound,feedback_hash=bound['feedback_hash']),TURN,[WRITER],self.home)
-        state.update(binding=bound,review=r,acceptance={'allowed':True,'mode':'tooling','cases':0}); f.gh.pull.update(merged=True,state='closed')
+        state.update(binding=bound,review=r,phase='merging',expected_head=bound['head'],
+                     merge_intent={'registry_id':h['registry_id'],'head':bound['head'],'base':bound['base']},
+                     acceptance={'allowed':True,'mode':'tooling','cases':0,'head':bound['head'],'base':bound['base']}); f.gh.pull.update(merged=True,state='closed')
         f.gh.comment(36,'new substantive feedback')
         with self.assertRaises(ValueError): f.loop.finish(f.gh.pr(36),h,state,cid)
         f.loop.cleanup.assert_not_called(); self.assertEqual(f.gh.issues[35]['state'],'open')
@@ -324,7 +326,9 @@ class OriginAndConsumerTests(FixedClockTests):
             with self.subTest(key=key), self.assertRaises(ValueError): f.loop.bound(q,i,f.gh.comments(36))
         h,state,cid,comments=f.loop.load(36); bound,_=f.loop.bound(p,issue,comments)
         r=aw.bind_independent_review(f.loop.storage,bound,dict(report(),session=REVIEWER,model='gpt-6.1-sol',review_binding=bound,feedback_hash=bound['feedback_hash']),TURN,[WRITER],self.home)
-        state.update(binding=bound,review=dict(r,evidence='unbound claim'),acceptance={'allowed':True,'mode':'tooling'})
+        state.update(binding=bound,review=dict(r,evidence='unbound claim'),phase='merging',expected_head=bound['head'],
+                     merge_intent={'registry_id':h['registry_id'],'head':bound['head'],'base':bound['base']},
+                     acceptance={'allowed':True,'mode':'tooling','head':bound['head'],'base':bound['base']})
         f.gh.pull.update(merged=True,state='closed')
         with self.assertRaises(ValueError): f.loop.finish(f.gh.pr(36),h,state,cid)
         f.loop.cleanup.assert_not_called()

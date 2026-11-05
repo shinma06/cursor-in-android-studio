@@ -29,9 +29,9 @@ def path_impacts(path, modes=('100644',)):
             or path.startswith(('gradle/', 'buildSrc/')) or p.suffix == '.gradle'
             or p.name in ('libs.versions.toml', 'proguard-rules.pro')):
         return {BUILD}
-    if path in ('.gitattributes', '.gitignore', 'scripts/workflow/branch_zip.py',
+    if path in ('.gitattributes', '.gitignore', 'scripts/workflow/github_api.py',
                 'scripts/workflow/change_impact.py', 'scripts/workflow/plugin_compatibility.py',
-                'scripts/workflow/plugin_compatibility.json', 'scripts/workflow/release_candidate.py', '.github/workflows/ci.yml', '.github/workflows/branch-zip.yml', '.github/workflows/release-candidate.yml'):
+                'scripts/workflow/plugin_compatibility.json', 'scripts/workflow/release_candidate.py', '.github/workflows/ci.yml', '.github/workflows/release-candidate.yml'):
         # These determine build inputs, classification, or artifact generation itself.
         return {BUILD, TOOLING}
     if (path.startswith(('scripts/workflow/', 'scripts/loop/')) and p.suffix in ('.py', '.sh')

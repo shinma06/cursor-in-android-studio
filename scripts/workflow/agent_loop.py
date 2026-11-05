@@ -28,7 +28,6 @@ from change_impact import git_impact, test_commands, report as impact_report
 REPO = 'shinma06/cursor-in-android-studio'
 OWNER = 'shinma06'
 ROOT = Path(__file__).resolve().parents[2]
-HANDOFF = '<!-- agent-loop-handoff:v1 -->'
 HANDOFF_V2 = '<!-- agent-loop-handoff:v2 -->'
 STATE = '<!-- agent-loop-state:v1 -->'
 HOST = socket.gethostname()
@@ -162,18 +161,93 @@ class Loop:
         if not common.is_absolute():
             common = ROOT / common
         self.storage = Path(storage) if storage else common.resolve() / 'agent-loop'
-        self.storage.mkdir(parents=True, exist_ok=True)
         self.worker = worker
         self.review_retry_comment = review_retry_comment
         self.review_retry_original = review_retry_original
 
-    def load(self, number):
+    def load(self, number, pr=None):
+        pr = pr or self.gh.pr(number)
+        if pr.get('number') != number or not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or pr.get('merged'):
+            raise ValueError('Normal execution requires an owned open PR; terminal records are read-only')
         comments = self.gh.comments(number)
-        legacy, legacy_id = unpack(comments, HANDOFF)
-        public, public_id = unpack(comments, HANDOFF_V2)
-        handoff = resolve(self.storage, public, HOST) if public and (not legacy_id or public_id > legacy_id) else legacy
+        public, _ = unpack(comments, HANDOFF_V2)
+        if not public:
+            return None, {}, None, comments
+        handoff = resolve(self.storage, public, HOST)
         state, comment_id = unpack(comments, STATE)
+        if state and state.get('phase') == 'done':
+            raise ValueError('Completed operation requires explicit owner recovery; do not reuse old approval')
         return handoff, state or {'phase': 'queued', 'fixes': 0, 'reviews': 0, 'errors': 0}, comment_id, comments
+
+    def feedback(self, pr):
+        comments = self.gh.comments(pr['number'])
+        if not eligible(pr, OWNER, REPO):
+            records = [*comments,
+                       *self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100'),
+                       *self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100'),
+                       *self.gh.review_threads(pr['number'])]
+            return {'pr': pr['number'], 'binding': None, 'feedback': records,
+                    'review_wait_satisfied': False, 'execution': 'read-only non-current metadata'}
+        # History never needs the retired execution registry or malformed terminal STATE.
+        prior, _ = unpack(comments, STATE) if pr['state'] == 'open' and not pr.get('merged') else (None, None)
+        bound, records = self.bound(pr, self.gh.issue(issue_number(pr)), comments, prior)
+        return {'pr': pr['number'], 'binding': bound, 'feedback': records,
+                'review_wait_satisfied': remote_review_ready(bound)}
+
+    @staticmethod
+    def pending_finish(pr, public, state):
+        bound, report, accepted = (state.get(key, {}) for key in ('binding', 'review', 'acceptance'))
+        intent = state.get('merge_intent')
+        if not all(isinstance(record, dict) for record in (bound, report, accepted)):
+            return False
+        return bool(pr.get('merged') and pr['state'] == 'closed' and eligible(pr, OWNER, REPO) and
+                    public and public.get('version') == 2 and public.get('owner') and
+                    public.get('writer_stopped') is True and public.get('pr') == pr['number'] and
+                    public.get('issue') == issue_number(pr) and public.get('branch') == pr['head']['ref'] and
+                    public.get('target') == pr['base']['ref'] and not state.get('paused') and
+                    state.get('phase') in ('merging', 'cleanup') and
+                    state.get('expected_head') == pr['head']['sha'] and
+                    isinstance(intent, dict) and intent == {'registry_id': public.get('registry_id'),
+                        'head': pr['head']['sha'], 'base': bound.get('base')} and
+                    bound.get('head') == pr['head']['sha'] and bound.get('base') == pr['base']['sha'] and
+                    report.get('verdict') == 'approved' and report.get('scope_complete') is True and
+                    report.get('head') == bound.get('head') and report.get('base') == bound.get('base') and
+                    accepted.get('allowed') is True and accepted.get('head') == bound.get('head') and
+                    accepted.get('base') == bound.get('base'))
+
+    def continue_finish(self, number):
+        """Continue only a live operation's recorded merge intent, never ordinary closed execution."""
+        pr = self.gh.pr(number)
+        if not pr.get('merged') or pr['state'] != 'closed' or not eligible(pr, OWNER, REPO):
+            raise ValueError('Postmerge continuation requires a confirmed owned merge')
+        comments = self.gh.comments(number)
+        try:
+            public, _ = unpack(comments, HANDOFF_V2)
+            state, comment_id = unpack(comments, STATE)
+            current_operation = bool(state and self.pending_finish(pr, public, state))
+        except (ValueError, KeyError, IndexError, TypeError):
+            current_operation = False
+        if not current_operation:
+            raise ValueError('No current unpaused pending merge operation; preserve historical custody')
+        h = resolve(self.storage, public, HOST)
+        self.source_safe(h)
+        if (self.storage / f'pr-{number}' / 'worker.json').exists():
+            raise ValueError('Worker state remains; preserve postmerge resources')
+        current, _ = self.bound(pr, self.gh.issue(h['issue']), comments, state)
+        if current != state['binding']:
+            raise ValueError('Postmerge binding changed; keep resources for the original owner')
+        self.validate_review(state['review'], current, state['acceptance'])
+        return self._finish_transition(pr, h, state, comment_id)
+
+    def _finish_transition(self, pr, h, state, comment_id):
+        if h.get('host') != HOST or not self.pending_finish(pr, h, state):
+            raise ValueError('No current bound postmerge operation; preserve resources')
+        try:
+            return self.finish(pr, h, state, comment_id)
+        except Exception as error:
+            state.update(phase='cleanup', next=self.private_error(error))
+            self.save(pr, state, comment_id)
+            return {'pr': pr['number'], 'phase': 'cleanup', 'error': state['next']}
 
     def save(self, pr, state, comment_id):
         state['updated_at'] = int(time.time())
@@ -238,7 +312,7 @@ class Loop:
         # Exclude only our changing dashboards, never bot/Issue/reviewer evidence.
         conversation = [c for c in comments + self.gh.comments(issue_number(pr))
                         if not (c['user']['login'] == OWNER and
-                                c['body'].startswith((HANDOFF, HANDOFF_V2, STATE, '<!-- agent-loop-progress:',
+                                c['body'].startswith(('<!-- agent-loop-handoff:v1 -->', HANDOFF_V2, STATE, '<!-- agent-loop-progress:',
                                                       '<!-- issue-qa-link:v1 ', '<!-- issue-qa-record:v1 ')))]
         inline = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/comments?per_page=100')
         reviews = self.gh.pages(f'repos/{REPO}/pulls/{pr["number"]}/reviews?per_page=100')
@@ -278,7 +352,7 @@ class Loop:
     def accept_review(self, number, evidence):
         """Accept a reviewer-issued origin-bound report without enrolling, rebinding or resuming."""
         pr = self.gh.pr(number)
-        h, state, comment_id, comments = self.load(number)
+        h, state, comment_id, comments = self.load(number, pr)
         if (not h or h.get('version') != 2 or h.get('host') != HOST or not h.get('owner') or state.get('paused') or
                 not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or
                 h.get('pr') != number or h.get('issue') != issue_number(pr) or
@@ -349,25 +423,18 @@ class Loop:
         state['phase'] = 'queued'
         state['next'] = 'Review the newly published HEAD'
 
-    def tick(self, number):
-        pr = self.gh.pr(number)
+    def tick(self, number, pr=None):
+        pr = pr or self.gh.pr(number)
+        if pr['state'] != 'open' or pr.get('merged'):
+            return {'pr': number, 'phase': 'terminal-nonexecution', 'next': 'Read-only history; current pending operation uses continue-finish'}
         if not eligible(pr, OWNER, REPO):
             return {'pr': number, 'phase': 'unmanaged'}
-        h, state, comment_id, comments = self.load(number)
+        h, state, comment_id, comments = self.load(number, pr)
         if (not h or h.get('host') != HOST or h.get('pr') != number or h.get('issue') != issue_number(pr)
                 or h.get('branch') != pr['head']['ref'] or h.get('target', 'main') != pr['base']['ref'] or h.get('writer_stopped') is not True):
             return {'pr': number, 'phase': 'unmanaged'}
         if not state.get('expected_head'):
             state['expected_head'] = h['head']
-        if pr.get('merged'):
-            if state.get('phase') == 'done':
-                return {'pr': number, 'phase': 'done'}
-            try:
-                return self.finish(pr, h, state, comment_id)
-            except Exception as error:
-                state.update(phase='cleanup', next=self.private_error(error))
-                self.save(pr, state, comment_id)
-                return {'pr': number, 'phase': 'cleanup', 'error': state['next']}
         if pr['state'] != 'open' or state.get('paused'):
             return {'pr': number, 'phase': state['phase']}
         if state.get('retry_at', 0) > time.time():
@@ -378,6 +445,11 @@ class Loop:
                 raise ValueError('Issue must remain open until scoped acceptance is evaluated')
             validate_issue(issue)
             self.source_safe(h)
+            attempt_file = self.storage / 'attempts.json'
+            attempts = json.loads(attempt_file.read_text()) if attempt_file.exists() else {}
+            attempts[str(number)] = time.time()
+            temporary = attempt_file.with_suffix('.tmp')
+            temporary.write_text(json.dumps(attempts)); os.replace(temporary, attempt_file)
             path = self.checkout(pr, h)
             running = self.storage / f'pr-{number}' / 'worker.json'
             if running.exists():
@@ -521,10 +593,11 @@ class Loop:
                 self.validate_review(state['review'], now, self.acceptance(latest, path))
                 state['acceptance'] = dict(acceptance, head=bound['head'], base=bound['base'])
                 self.gh.status(bound['head'], 'success', 'Independent review and target branch acceptance gate passed', pr['html_url'])
-                state.update(phase='merging', next='Read back GitHub merge result')
+                state.update(phase='merging', next='Read back GitHub merge result',
+                             merge_intent={'registry_id': h['registry_id'], 'head': bound['head'], 'base': bound['base']})
                 comment_id = self.save(pr, state, comment_id)
                 self.gh.merge(latest)
-                return self.finish(self.gh.pr(number), h, state, comment_id)
+                return self._finish_transition(self.gh.pr(number), h, state, comment_id)
             else:
                 state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: leaseを取得し、実画面を観察して証拠を記録',
                              'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
@@ -568,8 +641,11 @@ class Loop:
         git('commit', '-m', latest['title'], cwd=path)
 
     def finish(self, pr, h, state, comment_id):
-        if not pr.get('merged'):
-            raise ValueError('Cleanup requires confirmed GitHub merge')
+        if h.get('host') != HOST or not self.pending_finish(pr, h, state):
+            raise ValueError('Cleanup requires the current unpaused bound merge operation')
+        self.source_safe(h)
+        if (self.storage / f'pr-{pr["number"]}' / 'worker.json').exists():
+            raise ValueError('Worker state remains; preserve postmerge resources')
         bound = state.get('binding', {})
         report = state.get('review', {})
         current_issue = self.gh.issue(h['issue'])
@@ -577,8 +653,7 @@ class Loop:
             current, _ = self.bound(pr, current_issue, self.gh.comments(pr['number']), state)
             if current != bound or not remote_review_ready(current):
                 raise ValueError('Current post-merge feedback changed or provider review is pending; preserve resources')
-            if current.get('remote_review_complete') is False:
-                self.validate_review(report, current, state.get('acceptance'))
+            self.validate_review(report, current, state.get('acceptance'))
         accepted = state.get('acceptance', {})
         promotion_pass = (accepted.get('allowed') is True and accepted.get('mode') == 'promotion' and
                           accepted.get('gui_complete') is True and accepted.get('head') == bound.get('head') and
@@ -814,7 +889,7 @@ def enroll(loop, args):
     issue = loop.gh.issue(issue_number(pr))
     if issue['state'] != 'open' or 'pull_request' in issue:
         raise ValueError('Associated Issue is not open')
-    existing, state, state_id, _ = loop.load(args.pr)
+    existing, state, state_id, _ = loop.load(args.pr, pr)
     if existing:
         raise ValueError('Already enrolled; use resume for the existing handoff')
     h = {'pr': args.pr, 'issue': issue_number(pr), 'parent': args.parent, 'target': pr['base']['ref'],
@@ -834,7 +909,9 @@ def enroll(loop, args):
 
 def rebind_target(loop, args):
     pr = loop.gh.pr(args.pr)
-    h, state, sid, _ = loop.load(args.pr)
+    if not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or pr.get('merged'):
+        raise ValueError('Only an owned open PR can rebind')
+    h, state, sid, _ = loop.load(args.pr, pr)
     if not h or h.get('host') != HOST or not eligible(pr, OWNER, REPO) or pr['state'] != 'open':
         raise ValueError('No local open managed PR to rebind')
     if h['branch'] != pr['head']['ref'] or h['issue'] != issue_number(pr):
@@ -903,6 +980,8 @@ def main():
     sub = parser.add_subparsers(dest='action', required=True)
     tick = sub.add_parser('tick'); tick.add_argument('--pr', type=int)
     sub.add_parser('scan')
+    continuation = sub.add_parser('continue-finish', help='Continue an existing bound unpaused pending merge; never resume retired history')
+    continuation.add_argument('--pr', type=int, required=True)
     original = sub.add_parser('prepare-review-retry', help='Preserve one real pre-retry API observation; no provider request or worker')
     original.add_argument('--pr', type=int, required=True)
     accept = sub.add_parser('accept-review', help='Read an existing reviewer-issued private origin-bound report')
@@ -931,12 +1010,14 @@ def main():
             if args.action == 'prepare-review-retry':
                 result = loop.prepare_review_retry(loop.gh.pr(args.pr))
             elif args.action == 'accept-review':
+                pr = loop.gh.pr(args.pr)
+                if pr['state'] != 'open' or pr.get('merged'):
+                    raise ValueError('Normal execution requires an open PR; terminal records are read-only')
                 result = loop.accept_review(args.pr, json.loads(args.evidence.read_text()))
             elif args.action == 'feedback':
-                pr = loop.gh.pr(args.pr)
-                _, prior, _, comments = loop.load(args.pr)
-                bound, records = loop.bound(pr, loop.gh.issue(issue_number(pr)), comments, prior)
-                result = {'pr': args.pr, 'binding': bound, 'feedback': records, 'review_wait_satisfied': remote_review_ready(bound)}
+                result = loop.feedback(loop.gh.pr(args.pr))
+            elif args.action == 'continue-finish':
+                result = loop.continue_finish(args.pr)
             elif args.action == 'cleanup-branches':
                 result = audit_branches(loop.gh, args.apply)
             elif args.action == 'rebind-target':
@@ -944,7 +1025,7 @@ def main():
             elif args.action == 'enroll':
                 result = enroll(loop, args)
             elif args.action in ('resume', 'gui'):
-                pr = loop.gh.pr(args.pr); h, state, sid, comments = loop.load(args.pr)
+                pr = loop.gh.pr(args.pr); h, state, sid, comments = loop.load(args.pr, pr)
                 if not h or h['host'] != HOST:
                     raise ValueError('No local managed handoff')
                 if args.action == 'gui':
@@ -976,28 +1057,34 @@ def main():
                 prs = loop.gh.pages(f'repos/{REPO}/pulls?state=all&per_page=100')
                 targets = []
                 attempt_file = loop.storage / 'attempts.json'
-                attempts = json.loads(attempt_file.read_text()) if attempt_file.exists() else {}
-                skipped = []
+                attempts = {}
+                skipped, terminal = [], []
                 for pr in prs:
+                    if pr['state'] != 'open' or pr.get('merged'):
+                        terminal.append(pr['number'])
+                        continue
                     if eligible(pr, OWNER, REPO):
                         try:
-                            h, state, _, _ = loop.load(pr['number'])
+                            h, state, _, _ = loop.load(pr['number'], pr)
                         except (ValueError, KeyError, IndexError) as error:
                             skipped.append({'pr': pr['number'], 'error': str(error)})
                             continue
                         if h and h.get('host') == HOST and state.get('phase') != 'done':
                             targets.append(pr['number'])
                 if args.action == 'scan':
-                    result = {'managed_prs': targets, 'invalid_records': skipped}
+                    result = {'managed_prs': targets, 'terminal_prs': terminal, 'invalid_records': skipped}
                 else:
+                    if targets and args.pr is None and attempt_file.exists():
+                        attempts = json.loads(attempt_file.read_text())
                     selected = [args.pr] if args.pr else sorted(targets, key=lambda n: attempts.get(str(n), 0))[:3]
                     result = []
                     for n in selected:
-                        attempts[str(n)] = time.time()
-                        temporary = attempt_file.with_suffix('.tmp')
-                        temporary.write_text(json.dumps(attempts)); os.replace(temporary, attempt_file)
+                        current_pr = loop.gh.pr(n)
+                        if current_pr['state'] != 'open' or current_pr.get('merged'):
+                            result.append(loop.tick(n, current_pr))
+                            continue
                         try:
-                            result.append(loop.tick(n))
+                            result.append(loop.tick(n, current_pr))
                         except Exception as error:
                             result.append({'pr': n, 'phase': 'error', 'error': str(error)})
                     result.extend(skipped)
