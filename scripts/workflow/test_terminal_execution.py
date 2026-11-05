@@ -24,6 +24,10 @@ class TerminalExecutionTests(unittest.TestCase):
     def files(self):
         return {str(p): p.read_bytes() for p in self.f.loop.storage.rglob('*') if p.is_file()}
 
+    def handoff_for(self, pr):
+        return dict(self.f.fixture_handoff, pr=pr['number'], issue=al.issue_number(pr),
+                    branch=pr['head']['ref'], target=pr['base']['ref'])
+
     def command(self, *args):
         output, error = io.StringIO(), io.StringIO()
         with patch.object(al, 'Loop', return_value=self.f.loop), \
@@ -98,7 +102,7 @@ class TerminalExecutionTests(unittest.TestCase):
         with patch.object(f.gh, 'pages', return_value=prs), \
                 patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
                 patch.object(f.loop, 'load', side_effect=lambda n, pr: (
-                    {'host': al.HOST}, copy.deepcopy(states[n]), None, [])), \
+                    self.handoff_for(pr), copy.deepcopy(states[n]), None, [])), \
                 patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
             for _ in range(2):
                 self.assertEqual(self.command('tick')[0], 0)
@@ -126,7 +130,7 @@ class TerminalExecutionTests(unittest.TestCase):
                 patch.object(f.gh, 'pages', return_value=prs), \
                 patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
                 patch.object(f.loop, 'load', side_effect=lambda n, pr: (
-                    {'host': al.HOST}, copy.deepcopy(states[n]), None, [])), \
+                    self.handoff_for(pr), copy.deepcopy(states[n]), None, [])), \
                 patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
             for _ in range(2):
                 self.assertEqual(self.command('tick')[0], 0)
@@ -169,7 +173,7 @@ class TerminalExecutionTests(unittest.TestCase):
                         patch.object(f.gh, 'pages', return_value=prs), \
                         patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
                         patch.object(f.loop, 'load', side_effect=lambda n, pr: (
-                            {'host': al.HOST}, state if n == 36 else {'phase': 'queued'}, None, [])), \
+                            self.handoff_for(pr), state if n == 36 else {'phase': 'queued'}, None, [])), \
                         patch.object(f.loop, 'tick', return_value={'pr': 37, 'phase': 'reviewed'}) as tick:
                     code, output, error = self.command('tick')
                     self.assertEqual((code, error), (0, ''))
@@ -220,13 +224,50 @@ class TerminalExecutionTests(unittest.TestCase):
                         patch.object(f.gh, 'pages', return_value=prs), \
                         patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
                         patch.object(f.loop, 'load', side_effect=lambda n, pr: (
-                            {'host': al.HOST}, state if n == 36 else {'phase': 'queued'}, None, [])), \
+                            self.handoff_for(pr), state if n == 36 else {'phase': 'queued'}, None, [])), \
                         patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
                     code, _, error = self.command('tick')
                     self.assertEqual((code, error), (0, ''))
                     self.assertEqual([c.args[0] for c in tick.call_args_list], [36, 37] if ready else [37])
                 self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
         f.worker.assert_not_called()
+
+    def test_unmanaged_handoffs_do_not_starve_automatic_tick_or_change_records(self):
+        f = self.f; prs = []
+        for n in range(36, 40):
+            pr = copy.deepcopy(f.gh.pull); pr['number'] = n
+            pr['head']['ref'] = f'codex/{n-1}-fixture'
+            pr['body'] = pr['body'].replace('Issue: #35', f'Issue: #{n-1}').replace('tooling', 'develop')
+            pr['base']['ref'] = 'develop'; prs.append(pr)
+        (f.loop.storage/'attempts.json').write_text(json.dumps({str(n): n for n in range(36, 40)}))
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        for field, value in [('target', 'main'), ('pr', 999), ('issue', 999),
+                             ('branch', 'codex/999-other'), ('writer_stopped', False), ('host', 'elsewhere')]:
+            with self.subTest(field=field):
+                hands = {pr['number']: self.handoff_for(pr) for pr in prs}
+                for n in range(36, 39): hands[n][field] = value
+                with patch.object(f.gh, 'pages', return_value=prs), \
+                        patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
+                        patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                            copy.deepcopy(hands[n]), {'phase': 'queued'}, None, [])), \
+                        patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
+                    for _ in range(2): self.assertEqual(self.command('tick')[0], 0)
+                    self.assertEqual([c.args[0] for c in tick.call_args_list], [39, 39])
+                    code, output, _ = self.command('scan')
+                    self.assertEqual((code, json.loads(output)['managed_prs']),
+                                     (0, [39] if field == 'host' else [36, 37, 38, 39]))
+                self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
+    def test_real_target_mismatch_stops_before_attempt_or_state_write(self):
+        f = self.f
+        f.gh.pull['base']['ref'] = 'develop'
+        f.gh.pull['body'] = f.gh.pull['body'].replace('tooling', 'develop')
+        (f.loop.storage/'attempts.json').write_text(json.dumps({'36': 1}))
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        self.assertEqual(f.loop.tick(36), {'pr': 36, 'phase': 'unmanaged'})
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
 
     def test_v1_is_never_selected_and_reopened_missing_v2_cannot_fall_back(self):
         f = self.f; original = copy.deepcopy(f.gh.messages[36][0])

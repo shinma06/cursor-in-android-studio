@@ -152,6 +152,13 @@ def retry_timestamp(state):
     return value
 
 
+def handoff_matches(pr, handoff):
+    # Selection shares tick's metadata check so unmanaged records cannot starve ready work.
+    return bool(handoff and handoff.get('host') == HOST and handoff.get('pr') == pr['number'] and
+                handoff.get('issue') == issue_number(pr) and handoff.get('branch') == pr['head']['ref'] and
+                handoff.get('target', 'main') == pr['base']['ref'] and handoff.get('writer_stopped') is True)
+
+
 @contextmanager
 def coordinator_lock():
     # One active coordinator per OS user, including separate clones of this repo.
@@ -442,8 +449,7 @@ class Loop:
         if not eligible(pr, OWNER, REPO):
             return {'pr': number, 'phase': 'unmanaged'}
         h, state, comment_id, comments = self.load(number, pr)
-        if (not h or h.get('host') != HOST or h.get('pr') != number or h.get('issue') != issue_number(pr)
-                or h.get('branch') != pr['head']['ref'] or h.get('target', 'main') != pr['base']['ref'] or h.get('writer_stopped') is not True):
+        if not handoff_matches(pr, h):
             return {'pr': number, 'phase': 'unmanaged'}
         if not state.get('expected_head'):
             state['expected_head'] = h['head']
@@ -1074,7 +1080,8 @@ def main():
                             # Keep waiting records discoverable without consuming automatic execution slots.
                             if (h and h.get('host') == HOST and state.get('phase') != 'done' and
                                     (args.action == 'scan' or args.pr is not None or
-                                     (not state.get('paused') and retry_timestamp(state) <= time.time()))):
+                                     (handoff_matches(pr, h) and not state.get('paused') and
+                                      retry_timestamp(state) <= time.time()))):
                                 targets.append(pr['number'])
                         except (ValueError, KeyError, IndexError) as error:
                             skipped.append({'pr': pr['number'], 'error': str(error)})
