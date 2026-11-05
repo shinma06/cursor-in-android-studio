@@ -210,6 +210,9 @@ class Loop:
                     isinstance(intent, dict) and intent == {'registry_id': public.get('registry_id'),
                         'head': pr['head']['sha'], 'base': bound.get('base')} and
                     bound.get('head') == pr['head']['sha'] and bound.get('base') == pr['base']['sha'] and
+                    bound.get('target') == pr['base']['ref'] and
+                    all(re.fullmatch(r'[0-9a-f]{64}', str(bound.get(key, '')))
+                        for key in ('title_hash', 'body_hash', 'issue_hash', 'feedback_hash')) and
                     report.get('verdict') == 'approved' and report.get('scope_complete') is True and
                     report.get('head') == bound.get('head') and report.get('base') == bound.get('base') and
                     accepted.get('allowed') is True and accepted.get('head') == bound.get('head') and
