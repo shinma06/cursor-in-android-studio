@@ -173,6 +173,59 @@ class RefRetirementTests(unittest.TestCase):
         self.assertIn('remain executable', result.stderr)
         self.assertEqual(self.server('rev-parse', REF).stdout.strip(), self.head)
 
+    def recreate_after_deletion(self):
+        changed = self.new_remote_commit()
+        hook = self.remote/'hooks/post-receive'
+        hook.write_text('#!' + sys.executable + '\nimport os,subprocess\n'
+                        'env={k:v for k,v in os.environ.items() if not k.startswith("GIT_")}\n'
+                        f'subprocess.run(["git","--git-dir",{str(self.remote)!r},"update-ref",{REF!r},{changed!r}],env=env,check=True)\n')
+        hook.chmod(0o700)
+        return changed
+
+    def test_recreated_ref_is_reported_on_the_same_push_endpoint(self):
+        changed = self.recreate_after_deletion()
+        result = self.retire()
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn('Target present after deletion', result.stderr)
+        self.assertEqual(self.server('rev-parse', REF).stdout.strip(), changed)
+
+    def test_split_fetch_mirror_cannot_hide_recreated_push_ref(self):
+        mirror = self.folder/'mirror.git'
+        self.command('git', 'init', '--bare', '-q', str(mirror))
+        bridge = self.folder/'ssh-bridge.py'
+        bridge.write_text('#!' + sys.executable + '\nimport os,sys,shlex\n'
+                          'service,path=shlex.split(sys.argv[-1])\n'
+                          'assert service in ("git-upload-pack","git-receive-pack")\n'
+                          f'target={str(mirror)!r} if path=="fixture/mirror.git" else {str(self.remote)!r}\n'
+                          'os.execvp("git",["git",service.removeprefix("git-"),target])\n')
+        self.command('git', 'remote', 'set-url', 'origin', 'git@mirror.invalid:fixture/mirror.git')
+        self.command('git', 'remote', 'set-url', '--push', 'origin', URL)
+        changed = self.recreate_after_deletion()
+        self.assertEqual(self.command('git', 'ls-remote', '--heads', 'origin', REF).stdout, '')
+        result = self.retire()
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn('Target present after deletion', result.stderr)
+        self.assertEqual(self.server('rev-parse', REF).stdout.strip(), changed)
+
+    def test_required_original_digests_reject_missing_null_and_malformed_values(self):
+        original = json.loads(self.manifest.read_text())
+        for member in ('manifest', 'bundle'):
+            for value in (None, '', 0, 'g'*64, 'a'*63, 'a'*65, 'missing'):
+                self.server('update-ref', REF, self.head)
+                with self.subTest(member=member, value=value):
+                    packet = json.loads(json.dumps(self.packet))
+                    manifest = json.loads(json.dumps(original))
+                    record, key = ((packet['manifest'], 'sha256') if member == 'manifest'
+                                   else (manifest['ref_actions'][0], 'bundle_sha256'))
+                    if value == 'missing': record.pop(key)
+                    else: record[key] = value
+                    self.write(self.manifest, manifest)
+                    if member == 'bundle': packet['manifest']['sha256'] = self.digest(self.manifest)
+                    self.write(self.approval, packet)
+                    result = self.retire()
+                    self.assertNotEqual(result.returncode, 0, result.stdout)
+                    self.assertEqual(self.server('rev-parse', REF).stdout.strip(), self.head)
+
 
 if __name__ == '__main__':
     unittest.main()

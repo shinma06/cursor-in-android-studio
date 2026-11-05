@@ -24,14 +24,17 @@ def check_branch(branch):
         raise ValueError('Use an Issue branch in its own worktree: codex|claude|cursor/<issue>-<slug>. main/detached commits are forbidden.')
 
 
-def private_bytes(path, expected=None):
+def private_bytes(path, expected=...):
+    # Only the initial packet read omits its digest; supplied originals always require SHA-256.
+    if expected is not ... and (not isinstance(expected, str) or not re.fullmatch(r'[0-9a-f]{64}', expected)):
+        raise ValueError('Retirement original digest must be a SHA-256 hex string')
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(fd, 'rb') as stream:
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise ValueError('Retirement originals must be private and locally owned')
         raw = stream.read()
-    if expected is not None and hashlib.sha256(raw).hexdigest() != expected:
+    if expected is not ... and hashlib.sha256(raw).hexdigest() != expected:
         raise ValueError('Retirement original digest changed')
     return raw
 
@@ -140,7 +143,7 @@ def main():
                               git('rev-parse', 'HEAD'), bool(git('status', '--porcelain')))
             environment = dict(os.environ, CAS_REF_RETIREMENT_PACKET=str(args.packet.resolve()), CAS_REF_RETIREMENT_SHA256=digest)
             subprocess.run(['git', 'push', packet['remote'], ':' + packet['ref']], env=environment, check=True)
-            if git('ls-remote', '--heads', packet['remote'], packet['ref']):
+            if git('ls-remote', '--heads', packet['remote_url'], packet['ref']):
                 raise ValueError('Target present after deletion; preserve result and inspect without retry')
         elif sys.argv[1] == 'commit':
             check_branch(branch)

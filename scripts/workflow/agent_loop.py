@@ -442,6 +442,7 @@ class Loop:
             return {'pr': number, 'phase': state['phase']}
         if state.get('retry_at', 0) > time.time():
             return {'pr': number, 'phase': 'backoff'}
+        merge_requested = False
         try:
             issue = self.gh.issue(h['issue'])
             if issue['state'] != 'open' or 'pull_request' in issue:
@@ -599,8 +600,9 @@ class Loop:
                 state.update(phase='merging', next='Read back GitHub merge result',
                              merge_intent={'registry_id': h['registry_id'], 'head': bound['head'], 'base': bound['base']})
                 comment_id = self.save(pr, state, comment_id)
+                merge_requested = True
                 self.gh.merge(latest)
-                return self._finish_transition(self.gh.pr(number), h, state, comment_id)
+                return self.continue_finish(number)
             else:
                 state.update(phase=action, next={'gui-queued': '能力・許可を確認した指定GUI担当: leaseを取得し、実画面を観察して証拠を記録',
                              'acceptance-wait': acceptance.get('reason', 'Complete the required acceptance matrix'),
@@ -614,6 +616,10 @@ class Loop:
             self.save(pr, state, comment_id)
             return {'pr': number, 'phase': state['phase'], 'next': state.get('next')}
         except Exception as error:
+            if merge_requested:
+                # A lost response or changed custody cannot authorize saving the premerge STATE.
+                return {'pr': number, 'phase': 'postmerge-hold',
+                        'next': 'Read back merge and current custody; use continue-finish only while still qualified'}
             state['errors'] = state.get('errors', 0) + 1
             state['next'] = self.private_error(error)
             # Preserve recoverable phases, but never publish a fix whose model execution is unverified.

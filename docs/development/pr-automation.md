@@ -89,7 +89,7 @@ registry喪失、旧writer再開、予期しないcommitやdirty内容は保持�
 
 通常のload/tick/resume/gui/accept-review/enroll/rebindは、trusted own-repository PR APIのOPEN状態を先に確認します。closed/mergedはregistry/source/worker・state/attempt/claim変更前に拒否し、退役receiptや古い壊れたhandoff/STATEを読んで拒否理由を作りません。明示tickは `terminal-nonexecution`、scanは `terminal_prs` として示し、旧phaseをdoneへ正規化しません。feedbackはAPI原文をread-onlyで取得し、終了済みSTATEや実行sourceを解決しません。再OPENしたPRでもmissing/invalid v2はfail-closedで、元ownerの明示復旧へ戻します。
 
-通常のmerge直後は従来どおり同じtick内でQA/custody/cleanup/claim返却へ進みます。そのmerge前に既存STATEへ、当該registry_idと承認head/baseに結び付く `merge_intent` を保存します。中断後は元owner/coordinatorが次の専用継続を使います。
+通常のmerge直後も、最新のv2/STATE/registryを専用継続で再照合してから、同じtick内でQA/custody/cleanup/claim返却へ進みます。そのmerge前に既存STATEへ、当該registry_idと承認head/baseに結び付く `merge_intent` を保存します。merge応答の喪失や継続資格の変更は `postmerge-hold` とし、古いSTATEで最新PAUSED/ownerを上書きしません。中断後は元owner/coordinatorが次の専用継続を使います。
 
 ```bash
 python3 scripts/workflow/agent_loop.py continue-finish --pr N
@@ -145,7 +145,7 @@ python3 scripts/workflow/git_guard.py retire-ref --packet /private/one-target-bi
 
 一操作packetは0600のowned regular fileとし、schema=1、own repository、canonical git_common_dir、現在のoperation_branch/operation_headとtrusted_main、remote/remote_url、exact refs/heads refとexpected_oid、元custody_ownerと一致するowner、writer_stopped/unused=true、当該Issueの実assignment URL、既存manifestのpath/hashを固定します。manifestの同じremote-tracking ref/expected_OID、force_flags=false、保管bundleのhash・含有HEADとactual_restore_HEAD_treeを照合します。manifestやBooleanの存在だけで実資格を認定する認証機能ではなく、権限と原本内容の実質評価は担当者が保持します。
 
-wrapperは追加force指定を受けず、当該呼出しだけのpacket/hashを子hookへ渡し、通常の `git push remote :exactref` を1targetだけ実行します。[pre-pushの実remote名/locationとadvertised old OID](https://git-scm.com/docs/githooks#_pre_push)をpacketへ照合し、mixed/multi/update・保護branch・他namespace・現在の別Issuebranch・未知repo/remote/原本/改変hookを拒否します。hook後のremote変更はGit serverのold-ID比較で拒否し、成功後は同refの不在を読み戻します。結果不明・再作成時は無条件再試行せず保持します。恒久allowlistやforce/API迂回はなく、このsource変更で実legacy refを削除しません。
+wrapperは追加force指定を受けず、当該呼出しだけのpacket/hashを子hookへ渡し、通常の `git push remote :exactref` を1targetだけ実行します。manifest/bundleの必須hashは64桁の小文字hex文字列で照合し、null・欠落・不正値を削除前に拒否します。[pre-pushの実remote名/locationとadvertised old OID](https://git-scm.com/docs/githooks#_pre_push)をpacketへ照合し、mixed/multi/update・保護branch・他namespace・現在の別Issuebranch・未知repo/remote/原本/改変hookを拒否します。hook後のremote変更はGit serverのold-ID比較で拒否し、成功後は検証済みpush URLそのものへ同refの不在を読み戻します。fetch先mirrorの不在は削除先の証明にしません。結果不明・再作成時は無条件再試行せず保持します。恒久allowlistやforce/API迂回はなく、このsource変更で実legacy refを削除しません。
 
 ## 検証
 

@@ -143,6 +143,36 @@ class TerminalExecutionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'binding changed'): f.loop.continue_finish(36)
         self.assertEqual(f.gh.messages, before); self.assertEqual(f.gh.issues[35]['state'], 'open')
 
+    def test_merge_response_rechecks_latest_custody_without_stale_state_writes(self):
+        for change in ('paused', 'owner', 'registry', 'paused-response-error'):
+            with self.subTest(change=change):
+                f = fixtures.LoopTests('runTest'); f.setUp(); self.addCleanup(f.doCleanups)
+                f.loop.tick(36)
+                merge = f.gh.merge; observed = {}
+
+                def changed_merge(pr):
+                    merge(pr)
+                    if change.startswith('paused'):
+                        state, cid = al.unpack(f.gh.comments(36), al.STATE)
+                        f.gh.comment(36, al.pack(al.STATE, dict(state, paused=True, next='owner pause')), cid)
+                    elif change == 'owner':
+                        f.set_handoff(dict(f.fixture_handoff, owner='replacement-owner'))
+                    else:
+                        for p in (f.loop.storage/'registry').iterdir(): p.unlink()
+                    observed['messages'] = copy.deepcopy(f.gh.messages)
+                    observed['files'] = {str(p): p.read_bytes() for p in f.loop.storage.rglob('*') if p.is_file()}
+                    if change == 'paused-response-error':
+                        raise RuntimeError('response lost after owner paused')
+
+                f.gh.merge = changed_merge
+                result = f.loop.tick(36)
+                self.assertEqual(result['phase'], 'postmerge-hold')
+                self.assertEqual(f.gh.messages, observed['messages'])
+                self.assertEqual({str(p): p.read_bytes() for p in f.loop.storage.rglob('*') if p.is_file()}, observed['files'])
+                self.assertEqual(f.gh.issues[35]['state'], 'open')
+                f.loop.cleanup.assert_not_called()
+                self.assertEqual(f.gh.merges, 1); self.assertEqual(f.worker.call_count, 1)
+
 
 if __name__ == '__main__':
     unittest.main()
