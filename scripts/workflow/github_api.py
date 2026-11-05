@@ -25,5 +25,3 @@ def pages(path):
         if len(rows) < 100:
             return result
         page += 1
-
-
