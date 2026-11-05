@@ -15,7 +15,7 @@
 1. 最新mainを取得し、そのSHAから専用Issue branchを作る。計画内の変更だけを線形履歴でcommitする。mainが変わったら既存候補を自動merge/rebaseで受入済みにせず、新しいmain基点と新候補の検証をやり直す。
 2. 全既存mainテスト、必要tooling/CI、標準ZIP/構造、SDK入力拒否、同梱JAR/stdlib/JVMを確認する。CLI/Verifier成功と実IDE受入を区別する。
 3. version 0.1.0、候補SHA、出力先を固定し、[既存RC生成手順](plugin-zip-delivery.md#正式候補rcと同一zipの公開)のbuildへ `--scope-issue 409` を付ける。buildはその時点のorigin/mainにある計画と全commitを検査してから生成する。初回検証用buildは正式RCではなく、正式RCのディレクトリを再生成しない。
-4. 同じZIPで両IDE/JBRのVerifier、保存/取得hash照合、計画にあるQuail1/Quail4×Terminal ON/OFFの4Caseを実施する。main既存のチャット・設定・履歴の互換を含む。GUI lease・人間非操作確認・ロードbuild識別を保持し、未確認をpassにしない。
+4. 同じZIPで両IDE/JBRのVerifier、保存/取得hash照合、計画にあるQuail1/Quail4×Terminal ON/OFFの4Caseを実施する。main既存のチャット・設定・履歴の互換を含む。[GUI調整](gui-coordination.md)に従い実対象・副作用と人間の実利用を確認し、ロードbuild識別を保持して、未確認をpassにしない。
 5. `Integration: promotion` / `GUI: required` のmain向けPRに、計画内 `acceptance` と完全一致する `docs/verification/changes/issue-409.json`、および `docs/verification/promotion.json` を追加する。候補より後に変更できるのはこの2ファイルだけ。Caseの観察はpromotionのresultsへ記録し、計画本文を削減しない。
 
 promotion JSONはschema=1、scope="main"、base=固定main SHA、candidate=固定source SHA、artifact_sha256=同一ZIP hash、results=計画の全 `409:Case-ID` の観察結果。develop用のchanges配列は含めない。scope省略/"develop"は従来の全develop候補を検査し、未知scopeは拒否する。main限定はPRのIssueから計画pathを導出し、PR側の任意pathや新しい計画を信頼しない。

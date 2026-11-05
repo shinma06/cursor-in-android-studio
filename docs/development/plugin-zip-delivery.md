@@ -10,7 +10,7 @@
 
 OLDの重複選択・退役の工具修復は[#605](https://github.com/shinma06/cursor-in-android-studio/issues/605)でdevelop/mainへ採用し、[通常の毎時runで到達を確認済み](https://github.com/shinma06/cursor-in-android-studio/issues/605#issuecomment-6637287597)です。これはNEW切替や、[#579に残る旧Releaseの所有・許可・元FAILの解決](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6637403898)とは別です。旧資産/URLと元失敗を保持します。
 
-#579の残件管理は[PMへ引継ぎ済み](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6647561415)です。未知資源の所有・変更許可は未確定のまま保護し、管理受領を旧資源の変更許可や元FAILの解消とは扱いません。
+#579の残件管理は[PMへ引継ぎ済み](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6647561415)です。その時点の未知所有・元FAILは履歴として保持します。現在の旧資産退役は#623の対象別資格・本人許可・原本保管と復元確認で判断し、当時の未確定やURL保全を恒久的な削除禁止へ広げません。
 
 | 入口 | 現在のreadinessと境界 |
 | --- | --- |
@@ -18,7 +18,7 @@ OLDの重複選択・退役の工具修復は[#605](https://github.com/shinma06/
 | `release-candidate.yml` | **active**。main参照の手動入口のみ。repository権限はread-only、標準buildと候補Artifact保存を定義する。今回の候補実生成は未実施で、Release/tag公開は行わない |
 | `release_delivery.py` / `release_candidate.py publish` | `ENABLED = True`で既存guardを通る入口を準備する。正式versionの人間による受入前決定と具体的な公開scopeは作業記録へ残す。構文・Case検査の成功だけではその根拠にならない |
 | 新しいRC Release保存 | `release_candidate.py store`は書込み前に拒否する。保存済みRCは読取り可能なまま保全 |
-| 既存`branch-zip.yml` / `branch_zip.py` | workflowは **disabled_manually**、既存runはdrain済み。旧sourceと全既存資産/URLを保全し、NEW CLIへ差し替えない。disableは実行中runのcancelではない |
+| OLD workflow/publisher | 停止・drain確認後、#630でsourceを退役。NEWのGitHub transportは `github_api.py`、現Rabbit/JBR入力guardは現用build/互換検査へ保持。既存資産/URLの実退役は対象別の別操作であり、このsource変更では削除しない |
 | 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。構文検査だけ限定queue互換処理を通す。公開やNEW経路のdispatchは追加しない |
 
 ### 切替前の計画（履歴）
@@ -82,7 +82,7 @@ python3 scripts/workflow/release_candidate.py fetch \
   --run "$CANDIDATE_RUN" --sha256 "$HASH" --directory "$RC"
 ```
 
-GUI担当はこのZIPを使い、host lease・ロードJAR照合と、固定候補の全必要Caseまたはverificationで明示認定された既存証拠を評価します。新しいZIPや新しい方法だけでは、過去の原失敗・未達・実行義務を消しません。全commit/Caseを既存[promotion gate](../verification/README.md#固定候補からmainへ)で確認します。必要QAを保全し、空CaseのためのQAは作りません。
+GUI担当はこのZIPを使い、[実対象/副作用のGUI調整](gui-coordination.md)・ロードJAR照合と、固定候補の全必要Caseまたはverificationで明示認定された既存証拠を評価します。新しいZIPや新しい方法だけでは、過去の原失敗・未達・実行義務を消しません。全commit/Caseを既存[promotion gate](../verification/README.md#固定候補からmainへ)で確認します。必要QAを保全し、空CaseのためのQAは作りません。
 
 ### 3. 保護付きmain promotionの後、同じbytesを正式公開する
 
@@ -140,18 +140,13 @@ publishはレビュー済みmain、buildはwrite tokenのない別runnerです�
 
 失敗時はdraft・旧正常ZIP・新しい検証済みZIP・原失敗を保全します。Release/tag削除や保護回避で成功に見せません。結果不明の書込みは実状態を照合してから担当1名で再開し、同じ入力の再照合と新候補を区別します。実公開URL・source/version/hash/size・run/PRと残条件は既存Issue/PRへ残し、ローカルpath/host/認証情報を公開しません。
 
-## 旧配布・既存証拠の保全
+## 旧配布sourceの退役と証拠
 
-旧publisherの重複選択はplan/publishで共通です。同tagに公開済み1件があればそれを選び、同tagのdraftと既存asset/URLは変更しません。公開済みが複数なら停止します。planは本文markerが指す一意のuploaded ZIPを比較元に使い、保全assetが複数あることだけで再buildしません。
-
-全件draftの場合は最新IDの候補を再利用します。集合全体のmarker・branch/source・名前・prerelease・mutableを検証し、古いdraftが空で、新ZIPが公開されてdigest/size/sourceを再読確認でき、同じHEADが維持される場合だけ、その呼出しで照合した古いdraftを削除します。所有不明・immutable・保護資産を持つdraftは書込み前に停止します。upload/PATCH失敗・HEAD移動・再読不一致では先行削除しません。後処理が途中失敗した後は既存の公開済み＋draftとして保全し、元失敗と残る退役を担当者へ引き継ぎます。再試行だけを理由にmixedのdraftを削除しません。 全件draftのPATCH失敗後も、同一source名の完了済みassetは有効なdigest/sizeを取得して再利用します。再buildのタイムスタンプ等でローカルZIPのbytesが変わっても既存uploadを置き換えず、公開後は既存assetのdigest/sizeで読み戻します。不完全・未知identityのassetは保全して停止します。 選択したdraftが1件でも、公開対象は空／正当な同SHA完了ZIP／所有済み空starterに限ります。全assetを専用一覧で取得し、公開直前に対象Releaseの所有・公開状態とasset全件・upload identity・HEADを再照合するため、公開直前の読み戻しで未知assetの並行追加を検出したdraftは公開せず停止します。GitHubの外部手動編集まで原子的にlockする保証ではありません。
-
-通常退役は開始時に公開済みsingle Releaseの正規前版が1 assetだけの場合に限定し、新ZIPの公開・再読後、その固定前版だけを照合して整理します。開始時から履歴/未知assetが複数ある場合は、draftが後から見えなくなってもそれらを保持します。all-draftでは他名assetを整理しません。既存orphan cleanupの単一asset契約は維持します。 通常の前版退役に限って、新uploadの既存`label`へ退役可能な各前版identityのhashを記録します。PATCH失敗や後処理失敗の再試行は、この持続的な根拠が現在の前版と一致する場合だけ退役でき、個数だけで保護履歴を通常前版と推定しません。本文切替後の前版退役が失敗した場合も、その根拠が一致して残っていればplanが未完了の通常retryを隠しません。PATCH失敗後に次の製品SHAへ進んでも、正常経路から証明できる未完了前版だけの根拠を引き継ぎ、検証・公開後の各DELETEと再読で部分失敗から再開します。保護履歴・未知assetには根拠を発行しません。mixedで既存の通常退役根拠が残っていた場合は同じReleaseの過去ZIPも含むlabelから根拠を解除して公開し、後からdraftが消えても保護履歴を退役しません。labelはGitHub上の表示にも使われる既存metadataであり、根拠がない/変わった場合は保全・照合へ戻します。同source markerを持つdraftの空starterだけは既存の部分upload再試行を許可し、未知の部分資産は停止します。mixedに残した履歴assetは単一asset用のorphan cleanup対象にしません。保管コピーの存在は元URL削除の許可ではありません。この工具修正は#605でmain採用と毎時経路への実到達を確認済みですが、#599のNEW有効化・#579の所有/許可残件や元FAILの解消を意味しません。
+OLDのbranch別plan/publish/毎時巡回/cleanupと旧Quail/JDK選択を実行する入口はありません。#605の修復・実到達・原FAILと旧publisherの動作は[退役前の固定source](https://github.com/shinma06/cursor-in-android-studio/tree/12b77c77ba5d49d672c05e60a967a144c43b4388)と既存原本へ保持し、現在のCLIとして案内しません。NEWの固定候補・正式版/earlyは上記の現用入口と同じbytes/受入/所有guardを使います。保存済みRCのread-only取得も維持します。
 
 <a id="削除済み作業ブランチの掃除219"></a>
 
-branch別prerelease・毎時巡回/cleanupのsourceは旧接続として保全し、実workflowの停止は上記の切替手順で照合します。既存branch ZIPの実sourceは従来どおり本文/asset名で識別します。旧RC・正式版・過去QAリンクをearlyへ書き換えず、古いtag/assetの削除・移行は実施しません。旧RCの `fetch --tag` は固定source当時のQuail/Rabbit policy・全資料を読めるまま維持します。
+旧Release/tag/assetは、exact identity・所有と割当・参照/必要原本・hash付きcustodyと実復元を対象別に照合してから、#623の別担当が限定操作します。全OLD URLの永久保持も、一括削除も既定にはしません。source退役だけで資産削除や元FAIL解消を認定せず、旧RC・正式版・QAの参照をearlyへ書き換えません。
+旧RCの `fetch --tag` は固定source当時のQuail/Rabbit policy・全資料を読めるまま維持します。
 
-[変更前の配布手順](https://github.com/shinma06/cursor-in-android-studio/blob/0c408f700bc63a4c04bebec5a4d3c5408b8e0d40/docs/development/plugin-zip-delivery.md)は、旧branch配布/cleanup・旧runtime/bootstrap・初回#127の観察・旧RC保存/取得・既存説明訂正の履歴と、切替前の旧接続を理解する参照先です。現在のNEW経路の有効化指示として実行しません。独自hook・他writer・PAUSED job・未解放claimを保全します。
-
-根拠: [GitHub Release API](https://docs.github.com/en/rest/releases/releases)、[Artifact API](https://docs.github.com/en/rest/actions/artifacts)、[workflow_runの信頼境界](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)、[concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)、[JetBrains標準buildPlugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#build-plugin)。採用元の固定版・採用/適合/既存同等/非適用と、実装・合成検査・live未実施をIssue/PRで区別します。
+`bootstrap.sh`には旧 `plugin-zip/runtime/hooks` の識別だけを残します。古いworktreeから継承されたhook設定を通常の `.githooks` へ安全に戻すupgrade保証のためで、旧runtimeの起動・生成・ダウンロードはしません。未知custom hookは変更前に拒否し、実worktreeの継承・復旧と既存guardによる拒否を隔離検査します。

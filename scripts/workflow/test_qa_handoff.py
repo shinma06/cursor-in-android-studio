@@ -23,6 +23,8 @@ class GH(FakeGitHub):
         self.children = []
         self.fail_relationship = False
     def pages(self, path):
+        if '/pulls/' in path:
+            return []
         if '/sub_issues?' in path:
             return copy.deepcopy(self.children)
         return [dict(copy.deepcopy(x), number=n) for n, x in self.issues.items()]
@@ -282,8 +284,9 @@ class HandoffTests(unittest.TestCase):
 
 class ClosureTests(unittest.TestCase):
     setUp = tal.LoopTests.setUp
+    set_handoff = tal.LoopTests.set_handoff
     def finish(self, complete=True, fail_link=False, change_origin=False):
-        gh = GH(); gh.fail_link = fail_link; self.loop.gh = gh
+        gh = GH(); gh.fail_link = fail_link; self.loop.gh = self.gh = gh
         if change_origin:
             original_comment = gh.comment
             def comment(n, body, comment_id=None):
@@ -291,11 +294,16 @@ class ClosureTests(unittest.TestCase):
                 if n == 35: gh.issues[35]["body"] += " new acceptance"
                 return result
             gh.comment = comment
-        gh.pull.update(merged=True, merge_commit_sha='d'*40)
+        gh.pull.update(merged=True, state='closed', merge_commit_sha='d'*40)
         gh.pull['base']['ref'] = 'develop'
         gh.pull['body'] = gh.pull['body'].replace('tooling','develop').replace('GUI: not-required', 'GUI: required')
-        state = {'binding': al.binding(gh.pull, gh.issue(35)), 'review': dict(report(), issue_complete=complete)}
-        h = {'issue':35,'parent':1,'close_issue':False,'gui_required':False}
+        self.set_handoff(dict(self.fixture_handoff, target='develop', close_issue=False, gui_required=False))
+        h = self.fixture_handoff
+        bound, _ = self.loop.bound(gh.pull, gh.issue(35), gh.comments(36))
+        state = {'phase': 'merging', 'expected_head': HEAD, 'binding': bound,
+                 'review': dict(report(), issue_complete=complete),
+                 'acceptance': {'allowed': True, 'mode': 'develop', 'head': HEAD, 'base': BASE},
+                 'merge_intent': {'registry_id': h['registry_id'], 'head': HEAD, 'base': BASE}}
         with patch.object(al, 'git', return_value=__import__('json').dumps(CHANGE)) as git:
             result = self.loop.finish(gh.pull, h, state, None)
             if complete:

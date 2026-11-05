@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 634,
+  "gui_required": false,
+  "reason": "main採用済み#624/#630/#632の運用変更だけをdevelopへ限定同期する。製品コード、既存Case・原FAIL・promotion/scope/coverage/applicability/runs、実GUI・旧資源は変更しない。",
+  "cli_checks": [
+    "採用mainの12b77c77ba5d49d672c05e60a967a144c43b4388、a73e324fe5db4c9fa17e59ec656cc8858ae1efd5、6de442fc71785f5f9efe0bff7f00c1b5286f9471の3差分だけをdevelopへ対応付ける。main全体のmergeや任意の#627案は含めない。",
+    "develop固有のhuman-QA・lifecycle・restore説明、現Rabbit/JBR入力guardと製品/buildを保持する。既存changes全173原本・raw241 Caseと同期範囲外のblobを照合し、current表示は初期batchから予約失効注記だけを追加して生成する。",
+    "D1/D2、v2限定、terminal非実行/fresh finish、PAUSED非変更、OLD source退役/NEW輸送helper、資格付きref比較削除とGUI予約廃止の現用consumerを採用元へ照合する。型や項目の一致だけで実保証の同等性を認定しない。",
+    "GUI調整正本、両clientのstart/finish Skills、Cursor入口、生成worker/runtimeと検証表示の到達を確認する。実対象/副作用の調整、実担当・origin・build/観察の原証拠評価、既存cleanup guardを保持し、旧共有leaseをgateにしない。",
+    "develop上の競合解決箇所と関連回帰を確認し、通常hook/Change Impact/必要CIを通す。固定HEAD/base/全feedback・実origin・bundle復元とclean STOPPEDをPMへ渡し、同じ独立reviewerの評価へ戻す。",
+    "この段階はDraftまで。Ready/provider依頼/merge/元子Issue close、実registry/ref/client/Release/tag退役、primary developや旧source/claimの変更は行わない。両branchの採用・配置済みconsumer受入は後続担当へ残す。"
+  ],
+  "cases": []
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "issue": 630,
+  "gui_required": false,
+  "reason": "旧運用workflow/publisherとhandoff入口を現consumerから退役し、terminal通常実行拒否・現pendingfinish継続・資格付き旧名ref1件の通常hook受付を実装する運用tooling変更。製品src/build設定/製品Caseは変更せず、実registry/PAUSED/Release/ref削除は実行しない。",
+  "cli_checks": [
+    "NEW candidate/deliveryの共有GitHub transportと固定ZIP・正式候補/read-only RC/自然no-opの正常/拒否を検査し、OLD publisher/YAML/test依存が現実行系から消えたことを確認する。現在のRabbit/JBR build input guardを保持する。",
+    "HANDOFFv2のみ選択し、旧v1/旧世代fallbackを拒否。current v2正常・missing/digest/host/mode/ID異常、reopened missingを隔離検査し、現用STATEv1/native/Case/release protocolを維持する。",
+    "closed/merged通常load/tick/resume/gui/accept-review/rebind/enrollはsource/registry/state/attempt/claim操作前に拒否。feedback/scanは実行解決なし。現在のmerge意図/live binding/非PAUSED/原source/worker不在を満たすmerge直後・再起動finish継続とQA/custody/claim返却を検査し、歴史PAUSED/不正state/旧doneの復活を拒否する。",
+    "隔離した実Git/SSH transport/信頼済み実hookで旧名ref1件の正常削除、advertised OID以前の競合拒否、hook後のserver old-ID競合拒否を検査。private original/owner/割当/bundle/ref/remote/repo/cleanhead/採用hook不一致、混在/複数/更新/保護branch/他namespace/force optionを拒否する。実リポジトリの旧refは触らない。",
+    "固定cleanHEADの通常hookとCIが選ぶPython/Gradle/ZIP/互換検査を実施。配布/入力helperとclassifier自体に影響するため必要なbuild検査は維持し、同入力fullsuiteを重ねない。diff/schema/relative links/両client入口/公開privacyと必要原本・現live owner不変を確認する。",
+    "Draft固定HEAD/base/全feedback・actualorigin/model/独立review待ち・cleanSTOPPEDへ保管。今回はReady/provider/merge/実データ退役なし。main採用後に624分と1本の限定develop同期へまとめ、両branchconsumer確認後の実資源退役を623/628/別担当へ残す。"
+  ],
+  "cases": []
+}

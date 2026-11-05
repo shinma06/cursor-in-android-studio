@@ -5,7 +5,9 @@ from pathlib import Path
 import signal
 import subprocess
 import uuid
-from agent_policy import codex_session, session_fingerprint
+from datetime import datetime, timedelta, timezone
+from agent_policy import codex_session, session_fingerprint, remote_review_ready, review_time, validate_review
+from handoff_registry import retain_review_evidence, read_review_evidence, digest
 
 REPORT_SCHEMA = {
     'type': 'object', 'additionalProperties': False,
@@ -18,6 +20,7 @@ REPORT_SCHEMA = {
         'evidence': {'type': 'string'},
         'repair_revision': {'type': 'string'}, 'repair_assessment': {'type': 'string'},
         'certificate_revision': {'type': 'string'}, 'certificate_assessment': {'type': 'string'},
+        'feedback_hash': {'type': 'string'},
     },
     'required': ['verdict', 'head', 'base', 'scope_complete', 'issue_complete', 'gui_required', 'findings', 'evidence'],
 }
@@ -25,6 +28,83 @@ REPORT_SCHEMA = {
 
 class WorkerSettingsError(ValueError):
     """Unverified execution must not be recovered as a publishable fix."""
+
+
+def runtime_turn(session, turn_id, codex_home):
+    """Resolve original Codex records, never a role label or a report's settings claim."""
+    session = codex_session(session)
+    paths = list((Path(codex_home) / 'sessions').glob(f'*/*/*/rollout-*-{session}.jsonl'))
+    if len(paths) != 1 or paths[0].is_symlink():
+        raise ValueError('Missing or ambiguous actual session original')
+    metadata, contexts = [], []
+    with paths[0].open() as stream:
+        for line in stream:
+            record = json.loads(line)
+            if record.get('type') == 'session_meta':
+                metadata.append(record)
+            if record.get('type') == 'turn_context' and (turn_id is None or record['payload'].get('turn_id') == turn_id):
+                contexts.append(record)
+    if turn_id is None and contexts:
+        contexts = contexts[-1:]
+    if (len(metadata) != 1 or len(contexts) != 1 or metadata[0]['payload'].get('id') != session or
+            metadata[0]['payload'].get('session_id') != session or
+            metadata[0]['payload'].get('source') not in ('vscode', 'exec') or
+            metadata[0]['payload'].get('forked_from_id') or metadata[0]['payload'].get('parent_thread_id')):
+        raise ValueError('Independent top-level original/turn is not established')
+    return {'metadata': metadata[0], 'context': contexts[0]}
+
+
+def bind_independent_review(storage, bound, report, turn_id, contributors, codex_home=None):
+    """Reviewer-only import into the existing private store; no worker or GitHub mutation."""
+    home = Path(codex_home or os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
+    session = codex_session(os.environ.get('CODEX_THREAD_ID'))
+    if (report.get('verdict') != 'approved' or report.get('review_binding') != bound or
+            report.get('feedback_hash') != bound.get('feedback_hash')):
+        raise ValueError('Import only a complete approval authored against the exact fresh feedback binding')
+    if (report.get('session') != session or not isinstance(contributors, list) or not contributors or
+            session in contributors or len(set(contributors)) != len(contributors)):
+        raise ValueError('Use the actual reviewer session and complete, distinct contributor sessions')
+    original = runtime_turn(session, turn_id, home)
+    # Contributors stay raw/private. Completeness and source-role attribution still require the integrator's assessment.
+    contributor_runtime = {contributor: runtime_turn(contributor, None, home) for contributor in contributors}
+    now = datetime.now(timezone.utc)
+    if (not remote_review_ready(bound) or bound.get('remote_review_complete') is not False or
+            not review_time(bound['review_retry']['created_at']) + timedelta(minutes=30) <=
+                review_time(original['context']['timestamp']) <= now):
+        raise ValueError('Review the fresh snapshot in a turn after the new wait')
+    actual = original['context']['payload']
+    if report.get('model') != actual.get('model') or report.get('reasoning_effort') != actual.get('effort'):
+        raise ValueError('Report settings differ from actual reviewer runtime')
+    result = dict(report, session=session_fingerprint(session), reviewed_at=now.isoformat())
+    # Bind the same public representation that save/load consume; keep originals in the private proof.
+    from agent_loop import Loop
+    reader = object.__new__(Loop)
+    reader.storage = Path(storage)
+    if reader.public_state(result) != result:
+        raise ValueError('Use public-safe report references; retain private originals separately')
+    validate_review(result, bound, origin_verified=True)
+    proof = {'kind': 'stalled-review-origin-v1', 'binding': bound, 'report_hash': digest(result),
+             'session': session, 'turn_id': turn_id, 'contributors': contributors,
+             'contributor_runtime': contributor_runtime, 'runtime': original, 'original_report': report}
+    return dict(result, origin_receipt=retain_review_evidence(storage, proof))
+
+
+def verify_independent_review(storage, report, bound, codex_home=None):
+    if bound.get('remote_review_complete') is not False:
+        return False
+    proof = read_review_evidence(storage, report.get('origin_receipt'))
+    unsigned = {k: v for k, v in report.items() if k != 'origin_receipt'}
+    home = Path(codex_home or os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
+    if (proof.get('kind') != 'stalled-review-origin-v1' or proof.get('binding') != bound or
+            proof.get('report_hash') != digest(unsigned) or session_fingerprint(proof.get('session')) != report.get('session') or
+            not proof.get('contributors') or proof['session'] in proof['contributors'] or
+            set(proof.get('contributor_runtime', {})) != set(proof['contributors']) or
+            runtime_turn(proof['session'], proof['turn_id'], home) != proof.get('runtime')):
+        raise ValueError('Independent origin, report or full binding changed')
+    for session, original in proof['contributor_runtime'].items():
+        if runtime_turn(session, original['context']['payload']['turn_id'], home) != original:
+            raise ValueError('Actual contributor original changed')
+    return True
 
 
 def worker_environment():
@@ -90,6 +170,8 @@ def verify_runtime_settings(session, checkout, codex_home, model, effort):
 def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda pid: None):
     if role not in ('review', 'fix'):
         raise ValueError('Unknown worker role')
+    if role == 'review' and packet.get('remote_review_complete') is False:
+        raise WorkerSettingsError('Stalled provider needs the authorized top-level manual origin route, not a replacement worker')
     model = 'gpt-6.1-sol'
     effort = 'high'
     output_dir = Path(output_dir)
@@ -115,6 +197,9 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
         'Return repair_revision and substantive repair_assessment from acceptance. For certificate registration inspect originals, '
         'complete actual contributors, impact and full effective coverage, then return certificate_revision and certificate_assessment. '
         'Fingerprints alone are not origin or completeness proof. Missing or unknown evidence blocks approval. '
+        'For a pending provider, elapsed retry is only wait eligibility, never provider completion or approval. '
+        'A separate authorized top-level reviewer must inspect the full current snapshot, original pre-retry API evidence, '
+        'actual contributors and runtime origins and return the exact feedback_hash. Do not create a replacement actor. '
         'For develop, scope_complete concerns implementation/tests and complete acceptance tracking. '
         'Pending, blocked or failed GUI outcomes alone do not block code approval; preserve them in Cases. '
         'Concrete code defects and failing tests still require changes. For develop feature/bug/maintenance, issue_complete means all implementation acceptance is met or unfinished implementation has been preserved in explicitly linked separate Issues; GUI/main verification may remain in Cases for QA transfer. Never mark research/tracking complete merely because a child PR merged. For main, issue_complete requires all Issue acceptance. '
@@ -131,6 +216,8 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
         'When creating, updating, reviewing or auditing development context, apply the context policy in '
         'docs/architecture/knowledge.md; preserve evidence exceptions and existing scope/permissions. '
         'Use docs/development/team-worker-prompt.md for ready-role and stop/receipt boundaries. '
+        'GUI reservations are abolished; use docs/development/gui-coordination.md for actual target/result-side-effect '
+        'coordination, assigned operator and evidence requirements. Do not invent a host-wide lock or approval gate. '
         'For source/comment/Doc, example, configuration/schema or instruction changes and reviews, '
         'apply docs/development/comment-doc.md to the actual diff and affected contracts/callers/tests/references; '
         'preserve local why/non-obvious how and protected evidence. '
@@ -174,3 +261,20 @@ def run_worker(role, checkout, packet, output_dir, timeout=600, on_start=lambda 
     report['session'] = actual_session
     report['origin_evidence'] = 'Codex thread.started/turn.completed bound to fresh exec session_meta and checkout'
     return report
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Bind an existing independent stalled-review report; no model is launched.')
+    parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--binding', type=Path, required=True)
+    parser.add_argument('--storage', type=Path, required=True)
+    parser.add_argument('--turn', required=True)
+    parser.add_argument('--contributor', action='append', required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    result = bind_independent_review(args.storage, json.loads(args.binding.read_text()),
+                                     json.loads(args.report.read_text()), args.turn, args.contributor)
+    fd = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as stream:
+        json.dump(result, stream)

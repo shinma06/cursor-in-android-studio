@@ -31,7 +31,7 @@ For source/comment/Doc, example, configuration/schema or instruction changes and
 - [Codex execution policy](docs/development/codex-execution-policy.md): read before adding/delegating agents. GPT-6 Astra must not spawn/delegate child agents; use ordinary tools or justified independent top-level sessions. Other models follow the policy's applicability; #135 is the current authority. This does not constrain the product's Cursor Subagent support.
 - [PR automation](docs/development/pr-automation.md): stop the writer and confirm clean state before trusted-main v2 enrollment. Require separate-session fixed HEAD/base review and current successful test / PR policy / Agent review / Acceptance gate. Enrollment is not completion: PM/coordinator tracks actual execution, results and next owner. Do not change existing owner/source/registry or PAUSED heartbeat without coordination.
 - Apply the [operations profile](docs/development/github-workflow.md#operations-profile) for fixed pstack sources and Ponytail full. PM consults OMIL before new operational decisions and records the disposition. Workers report conflicts to PM. Continue agreed work and preserve immediately on a safety stop.
-- Follow [GUI coordination](docs/development/gui-coordination.md) for agent-desktop observation and input, target-specific Peekaboo or native Computer Use fallback, and explicit Case routes. Identify the loaded build and disposable fixture. Only verified independent background actions can overlap. Use the shared lease for conflicts or uncertain effects, including installs, restarts and runIde. Honor human use and active reservations.
+- Follow [GUI coordination](docs/development/gui-coordination.md) for agent-desktop observation and input, target-specific Peekaboo or native Computer Use fallback, and explicit Case routes. Identify the loaded build and disposable fixture. Check actual targets, result destinations and side effects; directly coordinate concrete conflicts under the canonical policy. Honor human use and real tool/OS refusals. GUI reservations are abolished, including for installs, restarts and runIde.
 - [Governance audit](docs/development/git-governance-audit.md): check existing triggers at start and integration/closure (major Milestone, High Impact, structural problems, 10 meaningful merges). The audit Issue is authoritative; do not add a full audit per PR or a second ledger.
 
 <a id="develop統合とmain昇格2026-09-07--83ユーザー方針"></a>
@@ -106,18 +106,18 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 25)"
 python3 scripts/workflow/change_impact.py --run-tests
 ./gradlew test          # Required for affected Kotlin/product changes
 ./gradlew buildPlugin   # Explicit Plugin ZIP build
-./gradlew runIde        # Requires the GUI lease
+./gradlew runIde        # Identify the target/build and coordinate actual conflicting effects
 ```
 
 Bootstrap/Gradle set `core.hooksPath .githooks`; pre-push checks branch/dirty/fast-forward and the selected tests. Never bypass hooks, use `--no-verify` or disable protection. There is a real JUnit 6 suite under `src/test/kotlin`; old claims of no tests are historical. No lint/static-analysis task is configured; verify the actual build before relying on stale documentation.
 
-Gradle runtime, Kotlin toolchain and JVM target are 25. `androidStudio("2026.2.1.8")` pins Rabbit 1 `AI-262.9437.185.2621.16467767` for local/CI/branch ZIP through the standard resolver. Use local SDK only with explicit `-PuseLocalPlatform=true -PplatformPath=...`; reject a full-build mismatch or unverifiable identity. `platformPath` alone must not change the default SDK. Old 2.10.5 URL failures do not justify disabling the current standard resolver; retain the legacy branch-ZIP fallback only for old branches.
+Gradle runtime, Kotlin toolchain and JVM target are 25. `androidStudio("2026.2.1.8")` pins Rabbit 1 `AI-262.9437.185.2621.16467767` for local/CI/current candidate ZIP through the standard resolver. Use local SDK only with explicit `-PuseLocalPlatform=true -PplatformPath=...`; reject a full-build mismatch or unverifiable identity. `platformPath` alone must not change the default SDK. Old 2.10.5 URL failures do not justify disabling the current standard resolver; the retired branch-ZIP fallback is historical source, not a current execution route.
 
 Preserve [main-scoped release](docs/development/main-scoped-release.md) (#408) and [ZIP delivery](docs/development/plugin-zip-delivery.md): fixed candidate, Rabbit/JBR25 and the same ZIP. Historical 0.1.0 evidence retains its Quail/JVM21 scope. Do not import all unreleased develop features into that main candidate.
 
 <a id="current-blocker-check-this-before-picking-a-task"></a>
 
-Use Pro/Teams for development/verification. Do not revive the old Free-tier `resource_exhausted` blocker unless Free is explicitly reintroduced. For qualified local-ZIP placement or Plugins GUI installation, use current operations guidance, actual profile/ZIP/JAR identity, preservation/recovery and the GUI lease. Do not require a Plugins-screen search for every test.
+Use Pro/Teams for development/verification. Do not revive the old Free-tier `resource_exhausted` blocker unless Free is explicitly reintroduced. For qualified local-ZIP placement or Plugins GUI installation, use current operations guidance, actual profile/ZIP/JAR identity, preservation/recovery and actual target/side-effect coordination. Do not require a Plugins-screen search for every test.
 
 <a id="architecture現行方式bの実装構造"></a>
 

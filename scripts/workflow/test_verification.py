@@ -337,8 +337,9 @@ class RegistryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.object(al, 'git', return_value=tmp):
             gh = Mock()
             gh.comments.return_value = [
-                {'id': 1, 'user': {'login': al.OWNER}, 'body': al.pack(al.HANDOFF, {'host': al.HOST, 'source': '/old'})},
+                {'id': 1, 'user': {'login': al.OWNER}, 'body': al.pack('<!-- agent-loop-handoff:v1 -->', {'host': 'old-private-host', 'source': '/old'})},
                 {'id': 2, 'user': {'login': al.OWNER}, 'body': al.pack(al.HANDOFF_V2, {'version': 2, 'registry_id': 'a' * 32})}]
+            gh.pr.return_value = dict(pr_data(), number=12)
             loop = al.Loop(gh, tmp)
             with self.assertRaises(ValueError): loop.load(12)
 
@@ -356,11 +357,12 @@ class RegistryTests(unittest.TestCase):
             loop = al.Loop(Mock(), tmp)
             for branch in ('main', 'master', 'develop'):
                 with self.assertRaisesRegex(ValueError, 'never be cleaned'):
-                    loop._cleanup_resources(pr_data(), {'branch': branch})
+                    loop.cleanup(pr_data(), {'branch': branch})
 
 
 class DevelopLoopTests(unittest.TestCase):
     setUp = tal.LoopTests.setUp
+    set_handoff = tal.LoopTests.set_handoff
     # Reuse the real transition fixture without duplicating inherited scenario discovery.
     def test_develop_tracking_merge_keeps_issue_open(self):
         self.gh.issues[35].update(title="[追跡] parent", labels=["type:tracking", "priority:P2", "status:review"])
@@ -368,7 +370,7 @@ class DevelopLoopTests(unittest.TestCase):
         self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'develop')
         h, _, _, _ = self.loop.load(36)
         h['target'] = 'develop'
-        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.set_handoff(h)
         original_git = al.git.side_effect
         al.git.side_effect = lambda *args, **kw: BASE if args[:2] == ('rev-parse', 'origin/develop') else original_git(*args, **kw)
         self.loop.acceptance.return_value = {'allowed': True, 'mode': 'develop', 'cases': 1}
@@ -381,14 +383,14 @@ class DevelopLoopTests(unittest.TestCase):
         self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'promotion')
         h, _, _, _ = self.loop.load(36)
         h['gui_required'] = True
-        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.set_handoff(h)
         self.worker.side_effect = lambda *a, **kw: dict(report(), gui_required=True)
         self.loop.acceptance.return_value = {'allowed': True, 'mode': 'promotion', 'cases': 1,
                                             'gui_complete': True, 'candidate': NEW}
         self.loop.tick(36)
         self.assertEqual(self.loop.tick(36)['phase'], 'done')
         self.assertEqual(self.gh.issues[35]['state'], 'closed')
-        _, state, _, _ = self.loop.load(36)
+        state, _ = al.unpack(self.gh.comments(36), al.STATE)
         self.assertNotIn('gui', state)
         self.assertEqual(state['acceptance']['candidate'], NEW)
 
@@ -407,11 +409,11 @@ class DevelopLoopTests(unittest.TestCase):
         self.assertEqual(h['source'], str(self.checkout.resolve()))
         with self.assertRaises(ValueError): al.enroll(self.loop, args)
 
-    def test_rebind_legacy_target_keeps_owner_private_and_invalidates_review(self):
+    def test_rebind_v2_target_keeps_source_private_and_invalidates_review(self):
         self.loop.tick(36)
         h, _, _, _ = self.loop.load(36)
-        h['owner'] = 'agent-loop@' + al.HOST
-        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        h['owner'] = 'fixture-writer'
+        self.set_handoff(h)
         self.gh.pull['base']['ref'] = 'develop'
         self.gh.pull['body'] = self.gh.pull['body'].replace('tooling', 'develop')
         public = al.rebind_target(self.loop, SimpleNamespace(pr=36, writer_stopped=True, source=None, migration_record=None))
@@ -428,7 +430,7 @@ class DevelopLoopTests(unittest.TestCase):
         original_head = 'e' * 40
         h['head'] = original_head
         h['previous_owner'] = 'gpt-original-writer'
-        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.set_handoff(h)
         self.loop.save(self.gh.pull, dict(state, expected_head=HEAD), sid)
         moved = self.checkout.parent / 'relocated'
         with patch('source_relocation.relocated_source', return_value=moved) as relocation:
@@ -444,7 +446,7 @@ class DevelopLoopTests(unittest.TestCase):
     def test_rebind_missing_source_does_not_silently_reregister(self):
         h, _, _, _ = self.loop.load(36)
         h['source'] = str(self.checkout.parent / 'missing')
-        self.gh.messages[36][0]['body'] = al.pack(al.HANDOFF, h)
+        self.set_handoff(h)
         with self.assertRaisesRegex(ValueError, 'Missing source'):
             al.rebind_target(self.loop, SimpleNamespace(pr=36, source=None, migration_record=None))
 

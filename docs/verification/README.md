@@ -1,5 +1,7 @@
 # 区切りごとの動作確認
 
+GUI操作には[現行GUI調整](../development/gui-coordination.md)を適用します。予約制は廃止済みで、固定Case・原FAIL・履歴の旧予約条件だけが現運用では失効します。原文を保管し、Computer Use、実担当/出所、build/fixture識別、観察等の保証は変更しません。
+
 対象Issue/QAの現行割当と[製品責任](responsibility.md)から保証→既存証拠→不足事実→最小手段を選びます。初期一覧は履歴で、新規試験の一律割当ではありません。
 
 人間はまず [QA — 人間向け試験](https://github.com/users/shinma06/projects/2/views/6) から対象QAを選び、本文の **試験内容ドキュメント** を開いてください。全open `type:qa` に個別手順書リンクを必須とします。[内容・作成/更新の規約](human-qa.md)に従います。

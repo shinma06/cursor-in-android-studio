@@ -12,7 +12,7 @@ import tempfile
 from urllib.parse import quote, unquote, urlsplit
 import zipfile
 
-import branch_zip as github
+import github_api as github
 import plugin_compatibility as pc
 from verification import verify_pr, git_read, scoped_candidate, PROMOTION
 
