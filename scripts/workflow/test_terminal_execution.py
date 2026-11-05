@@ -82,6 +82,34 @@ class TerminalExecutionTests(unittest.TestCase):
             resolve.assert_not_called()
         self.assertEqual(before, self.files()); f.worker.assert_not_called()
 
+    def test_paused_prs_remain_visible_without_starving_automatic_tick(self):
+        f = self.f; prs = []
+        for number in range(36, 40):
+            pr = copy.deepcopy(f.gh.pull); pr['number'] = number
+            pr['head']['ref'] = f'codex/{number-1}-fixture'
+            pr['body'] = pr['body'].replace('Issue: #35', f'Issue: #{number-1}')
+            prs.append(pr)
+        states = {number: {'phase': 'blocked', 'paused': number < 39} for number in range(36, 40)}
+        attempts = f.loop.storage/'attempts.json'
+        attempts.write_text(json.dumps({str(n): n for n in range(36, 40)}))
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        with patch.object(f.gh, 'pages', return_value=prs), \
+                patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
+                patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                    {'host': al.HOST}, copy.deepcopy(states[n]), None, [])), \
+                patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
+            for _ in range(2):
+                self.assertEqual(self.command('tick')[0], 0)
+            self.assertEqual([c.args[0] for c in tick.call_args_list], [39, 39])
+            states[39]['paused'] = True; tick.reset_mock()
+            code, output, _ = self.command('tick')
+            self.assertEqual((code, json.loads(output)), (0, [])); tick.assert_not_called()
+            code, output, _ = self.command('scan')
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(output)['managed_prs'], [36, 37, 38, 39])
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called()
+
     def test_v1_is_never_selected_and_reopened_missing_v2_cannot_fall_back(self):
         f = self.f; original = copy.deepcopy(f.gh.messages[36][0])
         f.gh.messages[36] = [{'id': 99, 'user': {'login': al.OWNER},

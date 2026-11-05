@@ -89,6 +89,8 @@ registry喪失、旧writer再開、予期しないcommitやdirty内容は保持�
 
 通常のload/tick/resume/gui/accept-review/enroll/rebindは、trusted own-repository PR APIのOPEN状態を先に確認します。closed/mergedはregistry/source/worker・state/attempt/claim変更前に拒否し、退役receiptや古い壊れたhandoff/STATEを読んで拒否理由を作りません。明示tickは `terminal-nonexecution`、scanは `terminal_prs` として示し、旧phaseをdoneへ正規化しません。feedbackはAPI原文をread-onlyで取得し、終了済みSTATEや実行sourceを解決しません。再OPENしたPRでもmissing/invalid v2はfail-closedで、元ownerの明示復旧へ戻します。
 
+scanは管理下のPAUSEDも表示しますが、引数なしの自動tickは選択対象からPAUSEDを除き、他の稼働可能なPRへ最大3枠を回します。PAUSEDのSTATE/attemptを更新して順番を送ったり、自動resumeしたりしません。
+
 通常のmerge直後も、最新のv2/STATE/registryを専用継続で再照合してから、同じtick内でQA/custody/cleanup/claim返却へ進みます。そのmerge前に既存STATEへ、当該registry_idと承認head/baseに結び付く `merge_intent` を保存します。merge応答の喪失や継続資格の変更は `postmerge-hold` とし、古いSTATEで最新PAUSED/ownerを上書きしません。中断後は元owner/coordinatorが次の専用継続を使います。
 
 ```bash
