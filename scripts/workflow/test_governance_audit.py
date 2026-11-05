@@ -99,7 +99,7 @@ sys.addaudithook(guard)
 importlib.import_module(sys.argv[2])
 """
         with tempfile.TemporaryDirectory() as directory:
-            for module in ('governance_audit', 'agent_loop', 'qa_handoff', 'branch_zip'):
+            for module in ('governance_audit', 'agent_loop', 'qa_handoff', 'github_api'):
                 with self.subTest(module=module):
                     result = subprocess.run(
                         [sys.executable, '-B', '-c', probe, str(Path(__file__).resolve().parent), module],
