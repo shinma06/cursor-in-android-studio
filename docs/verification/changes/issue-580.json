@@ -2,12 +2,13 @@
   "schema": 1,
   "issue": 580,
   "gui_required": false,
-  "reason": "全既存運用適用の現在分類と明示pendingを固定したcheckpoint台帳・管理/受入記録のみ。製品source/runtime、build、既存Case/原観察/原FAIL、workflow/public resourceの動作は変更しない。580/598全体完了、監査baseline更新、CasePASS、NEW実稼働を主張しないためGUI不要。",
+  "reason": "時点付き終端coverageと受入/保管責任の証拠更新のみ。製品source/runtime/build/配布logic・元Case/原FAILを変更しない。既存実行結果の再利用であり新buildの製品PASSではない。GUI不要Cases0、親580/598受入とmain反映は後段。",
   "cli_checks": [
-    "原main471/develop69fの全1065branch/path/revision/blob、925read/140reused、分類792/53/189/16/pending15と単一12列JSON・一意resource_idを照合",
-    "採用maina905/develop329のactual file deltaと新規19trackedを固定レビューsourceの同blob/文脈へ照合。metadata380と369actual/prep5のIDupsert、コピー非水増し、限定本人保留・未実施nativeを確認",
-    "python3 scripts/workflow/change_impact.py --base 32919f96da05c9b991036f109976ecd6d40e3f87 --run-tests（clean committed HEAD。既存classifierが選ぶworkflow/loop等だけ）",
-    "GUI不要Cases0/metadataの既存validator、JSON round-trip、相対リンク/公開安全性、git diff --check。#580/#598OPEN/監査baseline不更新/Refs580/582native本人保留と後送state deltaの時点を照合"
+    "元1065行のbranch/path/revision/blob/read provenanceと12列・一意resource_idを保持、checkpoint原分類と終端15行の実receiptを照合",
+    "sole private v004/formal受入・既存sidecar・588/599終端原本を再利用し、有限tracked77差分/新規11と同identityを照合。コピー非水増し・原FAIL/保護/未達/owner/再開条件を確認",
+    "614/618/619/620 native4/4実receipt・UI/API両端・保護差分0・元CLOSED/closedAt/Done/M6/parent保持と返却ACK/別FREEを照合。582本人hold・QA325/579残責任のPM受領と未達を保持",
+    "clean committed HEADの通常pre-push hookでchange_impact.py --base 2811a991a5783d317a3b96663b9afd301b9f9602 --run-tests相当の既存分類/必要検査。GUI/Gradle/buildPluginを追加実行しない",
+    "JSON round-trip/schema、全件counts/履歴/公開privacy、相対リンク、git diff --check。時点580/598OPEN・監査baseline不更新・main反映/primaryFF/独立reviewを後段と明記"
   ],
   "cases": []
 }
