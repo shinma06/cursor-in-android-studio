@@ -1,6 +1,6 @@
 # Change Impactと検証の選択
 
-配布の定義は[Plugin ZIPの配布](plugin-zip-delivery.md)へ統一します。#572の新delivery/candidate workflowとCLIは明示的に無効で、旧branch配布の接続は切替前のまま保全します。以下のbranch別比較・毎時/force_buildは現在残る旧接続の説明です。新経路は同じ `plugin_zip` 判定と既存CI Artifactを使い、docs/test-only通知では配布をno-opにします。試験義務・未知入力の安全側判定は変更しません。
+配布の定義は[Plugin ZIPの配布](plugin-zip-delivery.md#現在の状態と切替条件)へ統一します。#599は既存NEW全経路をguard付きreadinessへ接続する切替準備で、初回earlyの実公開は未了です。source採用・実workflow状態・実公開を区別し、OLD停止/drainとNEW開始は同手順で照合します。以下のbranch別比較・毎時/force_buildは保全するOLD sourceの説明です。NEWは同じ `plugin_zip` 判定と既存CI Artifactを使い、docs/test-only通知では配布をno-opにします。試験義務・未知入力の安全側判定は変更しません。
 
 2026-09-11 / #198。変更がruntime・build・tests・packaging・生成物・依存解決・配布・開発環境の意味を変えるかで、必要な検証を選ぶ。「コード以外」はskipの根拠にしない。分類と実行選択の正本は [change_impact.py](../../scripts/workflow/change_impact.py) だけで、workflow/hookごとにpath条件をコピーしない。
 
@@ -44,7 +44,9 @@ Gitの完全なraw diffをNUL区切りで読み、renameは旧pathの削除＋�
 | `.githooks/pre-commit` | branch/所有範囲の事故防止。コード変更を前提としないため常時維持 |
 | `.githooks/pre-push` | guard後、共通判定からPython/Gradleを選択。削除だけ・更新なしの既存skipは維持。ZIP/cacheは生成しない |
 | `ci.yml` push/PR | 軽量判定→選択したテスト。Gradle不要時はJDK/Gradle設定・Android Studioの取得/cacheまで省略 |
-| `branch-zip.yml` push/schedule/manual | 共通判定でZIPが必要なbranchだけmatrixへ。生成・転送・公開は同じplanから実施 |
+| `branch-zip.yml` push/schedule/manual | 切替前のOLD入口。共通判定と同じplanで生成・転送・公開。切替時は実workflowを停止/drainし、source/既存資産は保全 |
+| `delivery.yml` CI完了/manual | 既存CIの同じbytesをguard付きearly/promoted/stableへ接続するreadiness。docs/test-onlyはno-op。実切替は配布手順と#599のreadbackで確認 |
+| `release-candidate.yml` manual | 固定source/versionの標準buildと候補Artifact保存。read-only権限を維持し、Release/tag公開なし。#599では実候補生成を行わない |
 | `agent_loop.py` base同期/修正後push | trusted側classifierで固定base/新HEADを判定。選択テスト後もdirty、remote HEAD、Issue、再レビューの検査を維持 |
 | PR policy / Acceptance / Agent review | 検証対象がPR/Issue/Case/承認自体なのでImpactによるskipをしない |
 | `loop.py build` / `gui-fixture/build.py` / 手動Gradle | 実buildを明示要求する手順。Git event起点ではなく、固定QA証拠/成果物作成が目的なので省略しない |
