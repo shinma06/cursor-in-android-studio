@@ -4,20 +4,28 @@
 
 ## 現在の状態と切替条件
 
-[#572](https://github.com/shinma06/cursor-in-android-studio/issues/572)で採用した配布定義を、[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)で **developの単一early → 固定正式候補Artifact → 受入・main promotion → 同じbytesの正式Release** のguard付きreadinessへ接続します。現在は切替準備段階で、初回earlyの実公開・実workflow切替は未了です。以下は採用するsourceの動作と実切替の条件です。設定・run・公開source/hashの実結果は#599で確認し、source採用だけを稼働成功と扱いません。製品source/build設定・既存Case・原失敗・main/developの機能差は変更しません。
+[#572](https://github.com/shinma06/cursor-in-android-studio/issues/572)で採用した配布定義を、[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)で **developの単一early → 固定正式候補Artifact → 受入・main promotion → 同じbytesの正式Release** のguard付きreadinessへ接続しました。2026-11-05に[初回earlyを公開](https://github.com/shinma06/cursor-in-android-studio/releases/tag/early)し、[delivery・candidateの両NEW workflowをactive、OLD配布をdisabled_manuallyと確認](https://github.com/shinma06/cursor-in-android-studio/issues/599#issuecomment-6648089001)しました。全guarded入口が利用可能で、今回の正式version選択・候補実生成・正式公開は未実施です。将来の自動early・複数channel queue動作は未観測で、CLI1回の実公開と設定読戻しを区別します。
+
+初回earlyはRelease `434690553` / asset `711729856`、製品source `3cf0da9a204c45fa02d1e70f24cb9fd7fd4f4cb9` の[成功CI `41951260521`](https://github.com/shinma06/cursor-in-android-studio/actions/runs/41951260521) attempt1が生成した同じZIPです。SHA-256は `7d56dc3c4d1cc7aa06fc772c5a7aad6d8043cada8b9170ba9a72453227b4b93e`、2,071,134 bytes。`early` tagの固定保管anchorはmain `45a779ddf8cf1ec7127160a7ab9f2924a5fcfdb3` で、製品sourceは本文とZIP内部の上記develop SHAです。[API・認証なし公開URLのHTTP200と同一bytes、publisher停止の実績](https://github.com/shinma06/cursor-in-android-studio/issues/599#issuecomment-6647931682)を保持し、GUI受入の成功には置き換えません。以降の実設定・source/run/hash・公開readbackは#599を正本とし、製品source/build設定・既存Case・原失敗・main/developの機能差をこの案内更新で変更しません。
 
 OLDの重複選択・退役の工具修復は[#605](https://github.com/shinma06/cursor-in-android-studio/issues/605)でdevelop/mainへ採用し、[通常の毎時runで到達を確認済み](https://github.com/shinma06/cursor-in-android-studio/issues/605#issuecomment-6637287597)です。これはNEW切替や、[#579に残る旧Releaseの所有・許可・元FAILの解決](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6637403898)とは別です。旧資産/URLと元失敗を保持します。
 
-| 入口 | 採用するsourceのreadinessと境界 |
+#579の残件管理は[PMへ引継ぎ済み](https://github.com/shinma06/cursor-in-android-studio/issues/579#issuecomment-6647561415)です。未知資源の所有・変更許可は未確定のまま保護し、管理受領を旧資源の変更許可や元FAILの解消とは扱いません。
+
+| 入口 | 現在のreadinessと境界 |
 | --- | --- |
-| `delivery.yml` | main参照のCI完了通知をdevelop early / main promotedへ、手動通知をstableへ渡す。未知event/branchはCLI呼出し前に拒否。既存のsource/Case/check/bytes/権限検査を維持 |
-| `release-candidate.yml` | main参照の手動入口のみ。repository権限はread-only、標準buildと候補Artifact保存を定義する。Release/tag公開は行わない |
+| `delivery.yml` | **active**。main参照のCI完了通知をdevelop early / main promotedへ、手動通知をstableへ渡す。未知event/branchはCLI呼出し前に拒否。既存のsource/Case/check/bytes/権限検査を維持 |
+| `release-candidate.yml` | **active**。main参照の手動入口のみ。repository権限はread-only、標準buildと候補Artifact保存を定義する。今回の候補実生成は未実施で、Release/tag公開は行わない |
 | `release_delivery.py` / `release_candidate.py publish` | `ENABLED = True`で既存guardを通る入口を準備する。正式versionの人間による受入前決定と具体的な公開scopeは作業記録へ残す。構文・Case検査の成功だけではその根拠にならない |
 | 新しいRC Release保存 | `release_candidate.py store`は書込み前に拒否する。保存済みRCは読取り可能なまま保全 |
-| 既存`branch-zip.yml` / `branch_zip.py` | 旧sourceと全既存資産/URLを保全し、NEW CLIへ差し替えない。実切替時にworkflowを停止し、既存runをdrainする。disableは実行中runのcancelではない |
+| 既存`branch-zip.yml` / `branch_zip.py` | workflowは **disabled_manually**、既存runはdrain済み。旧sourceと全既存資産/URLを保全し、NEW CLIへ差し替えない。disableは実行中runのcancelではない |
 | 既存CI | テスト・標準ZIP・manifest・互換性検査とArtifactを従来どおり扱う。構文検査だけ限定queue互換処理を通す。公開やNEW経路のdispatchは追加しない |
 
-実切替はPMが最終main/developと他のproduct push停止を固定してから、担当1名で次の順序を満たします。現在はこの操作を開始していません。sourceの固定falseを外すmain統合前にはNEWを停止保持し、遅着CI通知やmanual入力から公開へ到達しない状態を確認します。Draft PRでの検証だけでは、この実停止確認を代替しません。
+### 切替前の計画（履歴）
+
+以下は#599で採用した切替前計画です。引用中の「現在」は計画当時を指し、実施結果は上記の公開・設定記録で確認します。過去completionの再送を仮定せず、今回は既存local early CLI1回の実公開・publisher停止後に両NEWを有効化しました。以下の保持を再実行の許可とは扱いません。
+
+> 実切替はPMが最終main/developと他のproduct push停止を固定してから、担当1名で次の順序を満たします。現在はこの操作を開始していません。sourceの固定falseを外すmain統合前にはNEWを停止保持し、遅着CI通知やmanual入力から公開へ到達しない状態を確認します。Draft PRでの検証だけでは、この実停止確認を代替しません。
 
 1. 全関連namespace・所有claim・OLD/NEWの実workflow状態と実行中/待機run・遅着し得るmain CI/manual stable・候補入力を有限に照合する。未割当の正式公開へ到達し得る入力、所有不明や結果不明があれば、その操作を止めて解消する。通常main通知のno-opや未merge PRの拒否例だけで全入力を安全としない。
 2. NEWを停止保持し、OLD workflowを全branchに対して停止、実行済み/待機中runを所有を保ってdrainする。全guarded readinessをmainと必要なdevelop同期へ通常レビューで採用してから、初回earlyの固定tagを作る。earlyだけを先に採用して後からworkflowを変えない。
@@ -54,7 +62,7 @@ CIの `compatibility-input` は標準 `build/distributions/*.zip` と `manifest.
 
 ## 正式候補RCと同一ZIPの公開
 
-以下は**個別のversion・候補生成・公開scopeを確定した後に使う手順**です。#599ではreadinessだけを準備し、実行しません。正式versionは人間が受入前に決め、その判断と公開scopeを作業記録へ残します。例示のversionを採番したり、SNAPSHOT受入後にZIP内versionを書き換えたりしません。
+以下は**個別のversion・候補生成・公開scopeを確定した後に使う手順**です。今回の#599では正式version選択・候補生成・正式公開は実行していません。正式versionは人間が受入前に決め、その判断と公開scopeを作業記録へ残します。例示のversionを採番したり、SNAPSHOT受入後にZIP内versionを書き換えたりしません。
 
 ### 1. sourceと正式versionを固定し、一度だけ生成する
 

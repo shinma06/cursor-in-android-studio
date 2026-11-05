@@ -41,7 +41,7 @@ macOSでJDK 25を登録していない場合は、Rabbit同梱JBRの`Contents/jb
 
 ## 配布版の選択
 
-NEW配布は[切替準備中](docs/development/plugin-zip-delivery.md#現在の状態と切替条件)です。既存のdevelop early・main promoted・manual stableと手動の固定候補Artifactをguard付きreadinessへ揃えますが、初回earlyの実公開は未了です。[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)の実設定・source/run/hash・公開readbackを確認してください。今回のreadinessは正式version選択・候補実生成・正式公開を含みません。旧ブランチZIPの実source、Rabbit移行のGUI/main受入、[旧正式v0.1.0の固定記録](docs/releases/0.1.0.md)は別に保持します。
+NEW配布は[全guarded入口が利用可能](docs/development/plugin-zip-delivery.md#現在の状態と切替条件)で、[初回earlyを公開済み](https://github.com/shinma06/cursor-in-android-studio/releases/tag/early)です。develop early・main promoted・manual stableと手動read-onlyの固定候補Artifact入口を有効化し、OLD配布は停止しています。今回の正式version選択・候補実生成・正式公開は未実施で、将来の自動early作動は未観測です。実設定・source/run/hash・公開readbackは[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)で確認してください。旧ブランチZIPの実source、Rabbit移行のGUI/main受入、[旧正式v0.1.0の固定記録](docs/releases/0.1.0.md)は別に保持します。
 
 ## Android Studio へのインストール
 
