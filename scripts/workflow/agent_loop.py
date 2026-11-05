@@ -1094,11 +1094,8 @@ def main():
                     selected = [args.pr] if args.pr else sorted(targets, key=lambda n: attempts.get(str(n), 0))[:3]
                     result = []
                     for n in selected:
-                        current_pr = loop.gh.pr(n)
-                        if current_pr['state'] != 'open' or current_pr.get('merged'):
-                            result.append(loop.tick(n, current_pr))
-                            continue
                         try:
+                            current_pr = loop.gh.pr(n)
                             result.append(loop.tick(n, current_pr))
                         except Exception as error:
                             result.append({'pr': n, 'phase': 'error', 'error': str(error)})

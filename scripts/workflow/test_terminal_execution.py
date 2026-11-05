@@ -155,6 +155,61 @@ class TerminalExecutionTests(unittest.TestCase):
         with patch.object(al.time, 'time', return_value=100):
             self.assertEqual(f.loop.tick(36), {'pr': 36, 'phase': 'backoff'})
         self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+
+    def test_selected_pr_refresh_failure_does_not_stop_adjacent_pr(self):
+        f = self.f
+        prs = [copy.deepcopy(f.gh.pull) for _ in range(2)]
+        prs[1].update(number=37, body=prs[1]['body'].replace('Issue: #35', 'Issue: #36'))
+        prs[1]['head']['ref'] = 'codex/36-fixture'
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        for error in (RuntimeError('PR API temporarily unavailable'), ValueError('Invalid base branch reference')):
+            def refresh(number):
+                if number == 36:
+                    raise error
+                return copy.deepcopy(prs[1])
+            with self.subTest(error=str(error)), \
+                    patch.object(f.gh, 'pages', return_value=prs), \
+                    patch.object(f.gh, 'pr', side_effect=refresh) as fetch, \
+                    patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                        self.handoff_for(pr), {'phase': 'queued'}, None, [])), \
+                    patch.object(f.loop, 'tick', return_value={'pr': 37, 'phase': 'reviewed'}) as tick:
+                code, output, stderr = self.command('tick')
+                self.assertEqual((code, stderr), (0, ''))
+                self.assertEqual(json.loads(output), [
+                    {'pr': 36, 'phase': 'error', 'error': str(error)},
+                    {'pr': 37, 'phase': 'reviewed'}])
+                self.assertEqual([c.args[0] for c in fetch.call_args_list], [36, 37])
+                tick.assert_called_once_with(37, prs[1])
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
+    def test_selected_pr_refresh_preserves_terminal_nonexecution_and_continues(self):
+        f = self.f
+        prs = [copy.deepcopy(f.gh.pull) for _ in range(2)]
+        prs[1].update(number=37, body=prs[1]['body'].replace('Issue: #35', 'Issue: #36'))
+        prs[1]['head']['ref'] = 'codex/36-fixture'
+        closed = dict(prs[0], state='closed', merged=True)
+        original_tick = f.loop.tick
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        def tick(number, current):
+            if number == 36:
+                return original_tick(number, current)
+            return {'pr': 37, 'phase': 'reviewed'}
+        with patch.object(f.gh, 'pages', return_value=prs), \
+                patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(closed if n == 36 else prs[1])), \
+                patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                    self.handoff_for(pr), {'phase': 'queued'}, None, [])) as load, \
+                patch.object(f.loop, 'tick', side_effect=tick), \
+                patch.object(al, 'resolve', side_effect=AssertionError('terminal must not resolve')):
+            code, output, stderr = self.command('tick')
+            self.assertEqual((code, stderr), (0, ''))
+            self.assertEqual(json.loads(output), [
+                {'pr': 36, 'phase': 'terminal-nonexecution',
+                 'next': 'Read-only history; current pending operation uses continue-finish'},
+                {'pr': 37, 'phase': 'reviewed'}])
+            self.assertEqual([c.args[0] for c in load.call_args_list], [36, 37])
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
         f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
 
     def test_invalid_retry_timestamp_isolated_without_stopping_adjacent_pr(self):
