@@ -4,6 +4,7 @@
   "gui_required": false,
   "reason": "main採用済み#624/#630/#632の運用変更だけをdevelopへ限定同期する。製品コード、既存Case・原FAIL・promotion/scope/coverage/applicability/runs、実GUI・旧資源は変更しない。",
   "cli_checks": [
+    "provider P2のbackoff starvationを修正する。古い3件がretry_at待機中でも4件目を連続自動tickで選択し、期限到達で再選択する。scan表示、明示tickのbackoff、attempts/STATE/PAUSEDの不変を隔離fixtureで確認する。新HEADは同じ独立reviewerへ戻し、mainの同じ不具合は未反映として残す。",
     "採用mainの12b77c77ba5d49d672c05e60a967a144c43b4388、a73e324fe5db4c9fa17e59ec656cc8858ae1efd5、6de442fc71785f5f9efe0bff7f00c1b5286f9471の3差分だけをdevelopへ対応付ける。main全体のmergeや任意の#627案は含めない。",
     "develop固有のhuman-QA・lifecycle・restore説明、現Rabbit/JBR入力guardと製品/buildを保持する。develop専用のimport副作用検査は退役moduleからgithub_apiへ対象を更新する。既存changes全173原本・raw241 Caseと、それ以外の同期範囲外blobを照合し、current表示は初期batchから予約失効注記だけを追加して生成する。",
     "D1/D2、v2限定、terminal非実行/fresh finish、PAUSED非変更、OLD source退役/NEW輸送helper、資格付きref比較削除とGUI予約廃止の現用consumerを採用元へ照合する。型や項目の一致だけで実保証の同等性を認定しない。",

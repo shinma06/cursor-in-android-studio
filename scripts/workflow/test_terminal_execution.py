@@ -110,6 +110,47 @@ class TerminalExecutionTests(unittest.TestCase):
         self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
         f.worker.assert_not_called()
 
+    def test_backoff_prs_remain_visible_without_starving_automatic_tick(self):
+        f = self.f; prs = []
+        for number in range(36, 40):
+            pr = copy.deepcopy(f.gh.pull); pr['number'] = number
+            pr['head']['ref'] = f'codex/{number-1}-fixture'
+            pr['body'] = pr['body'].replace('Issue: #35', f'Issue: #{number-1}')
+            prs.append(pr)
+        states = {n: {'phase': 'blocked', 'retry_at': 200 if n < 39 else 0} for n in range(36, 40)}
+        (f.loop.storage/'attempts.json').write_text(json.dumps({str(n): n for n in range(36, 40)}))
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        with patch.object(al.time, 'time', return_value=100), \
+                patch.object(f.gh, 'pages', return_value=prs), \
+                patch.object(f.gh, 'pr', side_effect=lambda n: copy.deepcopy(prs[n-36])), \
+                patch.object(f.loop, 'load', side_effect=lambda n, pr: (
+                    {'host': al.HOST}, copy.deepcopy(states[n]), None, [])), \
+                patch.object(f.loop, 'tick', return_value={'phase': 'reviewed'}) as tick:
+            for _ in range(2):
+                self.assertEqual(self.command('tick')[0], 0)
+            self.assertEqual([c.args[0] for c in tick.call_args_list], [39, 39])
+            code, output, _ = self.command('scan')
+            self.assertEqual((code, json.loads(output)['managed_prs']), (0, [36, 37, 38, 39]))
+            states[36]['retry_at'] = 100; tick.reset_mock()
+            self.assertEqual(self.command('tick')[0], 0)
+            self.assertEqual([c.args[0] for c in tick.call_args_list], [36, 39])
+            for state in states.values(): state['retry_at'] = 200
+            tick.reset_mock()
+            code, output, _ = self.command('tick')
+            self.assertEqual((code, json.loads(output)), (0, [])); tick.assert_not_called()
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called()
+
+    def test_explicit_backoff_tick_keeps_attempts_and_state_unchanged(self):
+        f = self.f
+        f.gh.comment(36, al.pack(al.STATE, {'phase': 'queued', 'retry_at': 200}))
+        (f.loop.storage/'attempts.json').write_text(json.dumps({'36': 1}))
+        before = self.files(); messages = copy.deepcopy(f.gh.messages)
+        with patch.object(al.time, 'time', return_value=100):
+            self.assertEqual(f.loop.tick(36), {'pr': 36, 'phase': 'backoff'})
+        self.assertEqual(before, self.files()); self.assertEqual(messages, f.gh.messages)
+        f.worker.assert_not_called(); f.loop.source_safe.assert_not_called()
+
     def test_v1_is_never_selected_and_reopened_missing_v2_cannot_fall_back(self):
         f = self.f; original = copy.deepcopy(f.gh.messages[36][0])
         f.gh.messages[36] = [{'id': 99, 'user': {'login': al.OWNER},

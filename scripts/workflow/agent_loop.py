@@ -1065,9 +1065,10 @@ def main():
                         except (ValueError, KeyError, IndexError) as error:
                             skipped.append({'pr': pr['number'], 'error': str(error)})
                             continue
-                        # Keep paused records discoverable without consuming automatic execution slots.
+                        # Keep waiting records discoverable without consuming automatic execution slots.
                         if (h and h.get('host') == HOST and state.get('phase') != 'done' and
-                                (args.action == 'scan' or not state.get('paused'))):
+                                (args.action == 'scan' or (not state.get('paused') and
+                                                         state.get('retry_at', 0) <= time.time()))):
                             targets.append(pr['number'])
                 if args.action == 'scan':
                     result = {'managed_prs': targets, 'terminal_prs': terminal, 'invalid_records': skipped}
