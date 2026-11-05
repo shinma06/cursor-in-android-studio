@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 615,
+  "gui_required": false,
+  "reason": "Browser QA用の独立loopback TLS fixtureの証明書鍵識別子を明示し、CLI回帰のstrict chain/name/trust検証を維持する修正のみ。製品source/runtime・native GUI/IDE/ADB/Emulator・OS信頼/hostsは変更しない。原失敗はhook unit2件で、元311/383はCases0。既存GUI Case/元FAILを訂正・成功化せず、Acceptance repair:none。",
+  "cli_checks": [
+    "固定HEADのtest_browser_fixture全回帰で、元失敗2件・正しいCA/IPv4/IPv6/localhost/IDN成功、未信頼CA/名前不一致拒否をVERIFY_X509_STRICTのまま確認。HTTP/control同一接続・setup失敗/所有cleanup/未知file保全も維持する。",
+    "通常pre-pushの共通Change Impactが選ぶworkflow/loop検査、git diff --checkとCases0 schemaを確認する。fixture/test/受入だけのTOOLINGで製品build入力不変ならGradle/ZIPは不要と理由を記録し、hookを迂回しない。",
+    "未変更develop0854667と失敗599e284a47の原2失敗・source/ZIP/log、private予備コピー結果を別原本で保全。元QA164/182/375/386等と599/588/325の未達/原Caseを変更しない。",
+    "別session固定HEAD/base評価・provider/4checks・通常develop採用は次段階で実結果を回収。mainに同じfixtureがあるため、develop採用後の必要最小main tooling反映を既存infra owner/PMが保管し、今回結果をmain済みへ転用しない。"
+  ],
+  "cases": []
+}
