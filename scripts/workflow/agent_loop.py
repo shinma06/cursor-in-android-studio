@@ -283,7 +283,7 @@ class Loop:
                 not eligible(pr, OWNER, REPO) or pr['state'] != 'open' or
                 h.get('pr') != number or h.get('issue') != issue_number(pr) or
                 h.get('branch') != pr['head']['ref'] or h.get('target') != pr['base']['ref'] or
-                h.get('head') != pr['head']['sha'] or h.get('writer_stopped') is not True or
+                state.get('expected_head', h.get('head')) != pr['head']['sha'] or h.get('writer_stopped') is not True or
                 (self.storage / f'pr-{number}' / 'worker.json').exists()):
             raise ValueError('Explicit report requires an existing stopped, unpaused v2 handoff')
         self.source_safe(h)

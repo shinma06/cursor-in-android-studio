@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import agent_loop as al
+import agent_policy as ap
 import agent_worker as aw
 from agent_policy import next_action, remote_review_ready, validate_review
 from handoff_registry import read_review_evidence, retain_review_evidence
@@ -18,7 +19,7 @@ import test_agent_loop as fixtures
 REVIEWER = '11111111-1111-4111-8111-111111111111'
 WRITER = '22222222-2222-4222-8222-222222222222'
 TURN = '33333333-3333-4333-8333-333333333333'
-NOW = datetime.now(timezone.utc)
+NOW = datetime(2026, 11, 5, tzinfo=timezone.utc)
 
 def at(minutes):
     return (NOW + timedelta(minutes=minutes)).isoformat()
@@ -40,7 +41,17 @@ def original(pr=None, issue=None):
     return {'binding': al.review_original_binding(pr or pr_data(), issue or {'body': 'scope'}),
             'observed_at': at(-32), 'comments': [dashboard()], 'inline': [], 'reviews': []}
 
-class ChronologyTests(unittest.TestCase):
+class FixedClock(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+
+class FixedClockTests(unittest.TestCase):
+    def setUp(self):
+        for module in (al, aw, ap):
+            self.enterContext(patch.object(module, 'datetime', FixedClock))
+
+class ChronologyTests(FixedClockTests):
     def eligible(self, comments=None, observation=None, inline=None, reviews=None):
         return al.stalled_review_retry(pr_data(), comments or [dashboard(-30, updated=-30), retry()],
                                        inline or [], reviews or [], 20, observation or original())
@@ -115,8 +126,9 @@ class ChronologyTests(unittest.TestCase):
         o['comments'][0] = dashboard(start=-39, updated=-38, status='Completed')
         self.assertIsNone(self.eligible(observation=o))
 
-class OriginAndConsumerTests(unittest.TestCase):
+class OriginAndConsumerTests(FixedClockTests):
     def setUp(self):
+        super().setUp()
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name); self.home = self.root/'codex'; self.storage = self.root/'storage'
         self.runtime(REVIEWER); self.runtime(WRITER)
@@ -223,6 +235,52 @@ class OriginAndConsumerTests(unittest.TestCase):
         f.loop.accept_review(36, r)
         self.assertEqual(f.loop.tick(36)['phase'], 'done'); self.assertEqual(f.gh.merges, 1)
         self.assertEqual(f.gh.issues[35]['state'], 'closed'); f.loop.cleanup.assert_called_once()
+
+    def test_coordinator_head_import_keeps_original_writer_safety_and_rejects_external_push(self):
+        f = self.fixture()
+        h, state, cid, _ = f.loop.load(36)
+        original_registry = {p: p.read_bytes() for p in (f.loop.storage/'registry').iterdir()}
+        managed = self.root/'managed-checkout'; managed.mkdir()
+        f.loop.checkout.return_value = managed
+        source = {'head': HEAD, 'status': ''}
+        def git(*args, cwd=None):
+            if args == ('branch', '--show-current'): return h['branch']
+            if args == ('rev-parse', 'HEAD'):
+                return source['head'] if Path(cwd) == Path(h['source']) else fixtures.NEW
+            if args == ('status', '--porcelain'):
+                return source['status'] if Path(cwd) == Path(h['source']) else ''
+            if args == ('rev-parse', 'origin/main'): return BASE
+            if args == ('rev-parse', 'origin/'+h['branch']): return fixtures.NEW
+            return ''
+        self.enterContext(patch.object(al, 'git', side_effect=git))
+        safe = self.enterContext(patch.object(f.loop, 'source_safe', wraps=lambda handoff: al.Loop.source_safe(f.loop, handoff)))
+        f.local_head = fixtures.NEW
+        f.loop.test_and_push(f.gh.pr(36), managed, state)
+        f.loop.save(f.gh.pr(36), state, cid)
+        f.gh.messages[36][1:3] = [dashboard(start=-30, updated=-30, head=fixtures.NEW),
+                                 dict(retry(), body=retry()['body'].replace(HEAD, fixtures.NEW))]
+        o = original(f.gh.pull, f.gh.issue(35)); o['comments'] = [dashboard(head=fixtures.NEW)]
+        f.loop.review_retry_original = retain_review_evidence(f.loop.storage, o)
+        bound, _ = f.loop.bound(f.gh.pr(36), f.gh.issue(35), f.gh.comments(36))
+        r = aw.bind_independent_review(f.loop.storage, bound,
+            dict(report(head=fixtures.NEW), session=REVIEWER, model='gpt-6.1-sol',
+                 review_binding=bound, feedback_hash=bound['feedback_hash']), TURN, [WRITER], self.home)
+        f.loop.accept_review(36, r)
+        self.assertEqual(safe.call_args.args[0]['head'], HEAD)
+        current_h, current_state, _, _ = f.loop.load(36)
+        self.assertEqual(current_h['head'], HEAD)
+        self.assertEqual(current_state['expected_head'], fixtures.NEW)
+        self.assertEqual(original_registry, {p: p.read_bytes() for p in original_registry})
+        f.gh.pull['head']['sha'] = 'd'*40
+        with self.assertRaises(ValueError): f.loop.accept_review(36, r)
+        f.gh.pull['head']['sha'] = fixtures.NEW
+        source['head'] = fixtures.NEW
+        with self.assertRaisesRegex(ValueError, 'Original writer resumed'): f.loop.accept_review(36, r)
+        source.update(head=HEAD, status='?? unowned')
+        with self.assertRaisesRegex(ValueError, 'handoff worktree has edits'): f.loop.accept_review(36, r)
+        source['status'] = ''
+        self.assertEqual(f.loop.tick(36)['phase'], 'done')
+        self.assertEqual(f.gh.merges, 1); f.worker.assert_not_called()
 
     def test_missing_pre_retry_obligation_blocks_actual_origin_import_and_advance(self):
         for name, comments in [('empty', []), ('old-head', [dashboard(head='f'*40)]),
