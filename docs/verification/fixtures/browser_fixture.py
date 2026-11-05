@@ -228,12 +228,15 @@ class Fixture:
     def certificates(self):
         def openssl(*args):
             subprocess.run(['openssl', *args], cwd=self.directory, check=True, capture_output=True, timeout=30)
+        # OpenSSL 4 no longer adds key identifiers implicitly.
         openssl('req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'ca.key', '-out', 'ca.pem',
                 '-days', '2', '-subj', '/CN=Browser QA ' + self.identity,
-                '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign')
+                '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
+                '-addext', 'subjectKeyIdentifier=hash')
         openssl('req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key', '-out', 'server.csr', '-subj', '/CN=localhost')
         (self.directory / 'server.ext').write_text(
             'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\n'
+            'subjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n'
             'extendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,DNS:' + IDN + ',IP:127.0.0.1,IP:::1\n')
         openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.pem', '-CAkey', 'ca.key', '-CAcreateserial',
                 '-out', 'server.pem', '-days', '2', '-extfile', 'server.ext')

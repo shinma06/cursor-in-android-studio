@@ -259,6 +259,7 @@ print('reclaimed')
 
     def test_TLS_requires_explicit_CA_and_matching_IP_localhost_or_IDN_without_DNS_change(self):
         trusted = ssl.create_default_context(cafile=str(self.fixture.directory / 'ca.pem'))
+        trusted.verify_flags |= ssl.VERIFY_X509_STRICT
         for host in ('127.0.0.1', 'localhost', fixture.IDN):
             status, body = self.tls(host, trusted)
             self.assertEqual(200, status)
@@ -273,6 +274,7 @@ print('reclaimed')
             self.skipTest(self.fixture.manifest.get('ipv6_unavailable', 'IPv6 unavailable'))
         self.assertEqual(200, self.request('/b', listener='http6')[0])
         trusted = ssl.create_default_context(cafile=str(self.fixture.directory / 'ca.pem'))
+        trusted.verify_flags |= ssl.VERIFY_X509_STRICT
         self.assertEqual(200, self.tls('::1', trusted, 'https6')[0])
 
     def test_listeners_are_dynamic_loopback_only_and_unknown_control_is_rejected(self):
