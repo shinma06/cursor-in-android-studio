@@ -2,12 +2,14 @@
   "schema": 1,
   "issue": 599,
   "gui_required": false,
-  "reason": "既存NEW配布workflow/CLIのguard付きreadinessと現在案内のみ。製品source/runtime/UI/保存形式は変更せずGUI不要。新しいGUI受入や正式version/候補/正式公開の成功を作らない。初回earlyの実操作はPMの最終base/排他/開始条件を満たした後に別途記録する。",
+  "reason": "今回は既存3文書の現状案内とCases0実績追補のみ。製品source/runtime/UI/保存形式・CLI/workflowlogic/guard/SDK/packageは変更せずGUI不要。以下の既存readiness検査義務と原証拠を保持し、末尾に今回の案内確認を追補する。初回earlyのCLI実公開・両NEWactiveの設定読戻しを、新しいGUI受入や将来自動early・正式version/候補/正式公開の成功へ置き換えない。",
   "cli_checks": [
     "focused test_release_delivery/test_release_candidate/test_actionlint_check: 既存入力拒否・source/hash/bytes・Case/check・権限/履歴/未知writeと3経路dispatcher/未知event拒否・manual read-only candidate・旧RC/store拒否を検証。合成結果をlive公開成功にしない。",
     "git diff --check、受入JSON schema/Cases0、変更した相対リンク/anchorと現在状態/切替条件/切替後予定文案を照合。固定actionlintのqueue限定projectionを維持。",
     "最終base追従後、通常共有Change Impactの選ぶworkflow/loop/Gradle検査と標準ZIP/構造/互換性を確認する。通常push/PRのprovider・別session固定HEAD/base review・4checksと採用結果はIssue/PRに記録し、未実施を成功へ置き換えない。",
-    "実開始時にOLD停止と全run drain、NEW停止保持、全readiness最終採用、所有/claim/有限formal入力/権限を照合。firstearly1回の実CI/source/ZIP hash/size/tag/asset再downloadと公開metadataをreadbackし、元FAIL/旧資産/URL/PAUSEDを保全。正式version選択・実候補生成・正式公開/dispatchは今回行わない。"
+    "実開始時にOLD停止と全run drain、NEW停止保持、全readiness最終採用、所有/claim/有限formal入力/権限を照合。firstearly1回の実CI/source/ZIP hash/size/tag/asset再downloadと公開metadataをreadbackし、元FAIL/旧資産/URL/PAUSEDを保全。正式version選択・実候補生成・正式公開/dispatchは今回行わない。",
+    "2026-11-05実績追補: Issue599 comment6647931682のRelease434690553/asset711729856は製品source3cf0da9・成功CI41951260521 attempt1の同じZIP、SHA2567d56dc3c4d1cc7aa06fc772c5a7aad6d8043cada8b9170ba9a72453227b4b93e/2071134bytes。APIと認証なし公開URLで照合済み。comment6648089001はdelivery394292718/candidate394292721 active、OLD353992272 disabledの実設定読戻し。新GUI PASSや将来自動動作の実測を追加しない。",
+    "今回の3Markdownと本Cases0追補について、固定HEAD/baseの通常Change Impact/hooksが選ぶ既存検査、diff check/schema、相対リンク/anchor、上記実績と現在案内/履歴の意味を照合する。新build/GUI/手動全suiteを追加せず、旧formal0.1.0・branch固有製品記述/guard/Case・元TLS/metadataFAIL・QA325未達・旧資産URL・579未知資源/管理PM受領と582nativeholdを保全する。独立review/provider/4checks/採用と599終端は次段階であり、この追補で新しい受入PASSを作らない。"
   ],
   "cases": []
 }
