@@ -88,7 +88,7 @@ python3 scripts/workflow/release_candidate.py fetch \
   --run "$CANDIDATE_RUN" --sha256 "$HASH" --directory "$RC"
 ```
 
-GUI担当はこのZIPを使い、host lease・ロードJAR照合と、固定候補の全必要Caseまたはverificationで明示認定された既存証拠を評価します。新しいZIPや新しい方法だけでは、過去の原失敗・未達・実行義務を消しません。全commit/Caseを既存[promotion gate](../verification/README.md#固定候補からmainへ)で確認します。必要QAを保全し、空CaseのためのQAは作りません。
+GUI担当はこのZIPを使い、[実対象/副作用のGUI調整](gui-coordination.md)・ロードJAR照合と、固定候補の全必要Caseまたはverificationで明示認定された既存証拠を評価します。新しいZIPや新しい方法だけでは、過去の原失敗・未達・実行義務を消しません。全commit/Caseを既存[promotion gate](../verification/README.md#固定候補からmainへ)で確認します。必要QAを保全し、空CaseのためのQAは作りません。
 
 ### 3. 保護付きmain promotionの後、同じbytesを正式公開する
 

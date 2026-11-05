@@ -357,7 +357,7 @@ class RegistryTests(unittest.TestCase):
             loop = al.Loop(Mock(), tmp)
             for branch in ('main', 'master', 'develop'):
                 with self.assertRaisesRegex(ValueError, 'never be cleaned'):
-                    loop._cleanup_resources(pr_data(), {'branch': branch})
+                    loop.cleanup(pr_data(), {'branch': branch})
 
 
 class DevelopLoopTests(unittest.TestCase):

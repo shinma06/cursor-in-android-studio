@@ -1,6 +1,6 @@
 # 実行記録と検証コマンド
 
-**GUI操作・runIde・配置/再起動の前に[ホスト共通lease](../development/gui-coordination.md)を取得する。** ビルドだけなら不要。
+GUI操作・runIde・配置/再起動は[GUI調整](../development/gui-coordination.md)を正本として、実対象・結果先・副作用の具体的な競合を担当間で調整する。予約/token/期限の取得・確認は不要。実担当と証拠の出所、ロードbuild・fixture・Computer Use等の保証は維持する。
 
 Python 3.9以降・Git・既存のGradle環境で動く。APIアクセス、送信、GUI操作、Issue更新はスクリプトに含めない。
 

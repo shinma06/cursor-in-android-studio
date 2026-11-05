@@ -12,7 +12,6 @@ import tempfile
 import unittest
 
 from git_guard import check_branch, check_push
-from gui_lease import locked, transition
 from pr_policy import validate
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -96,50 +95,6 @@ class GuardTest(unittest.TestCase):
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual((git_dir / 'config').read_bytes(), before)
-
-
-class LeaseTest(unittest.TestCase):
-    def test_expiry_does_not_steal_and_stale_release_fails(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / 'lease.json'
-            first = transition(path, 'acquire', owner='a', issue=31, run='a', head=SHA)
-            data = json.loads(path.read_text()); data['expires_at'] = 0
-            path.write_text(json.dumps(data))
-            self.assertTrue(transition(path, 'status')['expired'])
-            with self.assertRaises(ValueError):
-                transition(path, 'acquire', owner='b', issue=32, run='b', head=SHA)
-            transition(path, 'release', token=first['token'])
-            second = transition(path, 'acquire', owner='b', issue=32, run='b', head=SHA)
-            for action in ['release', 'renew']:
-                with self.assertRaises(ValueError):
-                    transition(path, action, token=first['token'])
-            self.assertEqual(transition(path, 'status')['token'], second['token'])
-
-    def test_corruption_fails_closed(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / 'lease.json'
-            for value in ['null', '{}', '{', '[]', '{"token":"a","owner":"x","expires_at":"bad"}']:
-                path.write_text(value)
-                for action in ['status', 'acquire']:
-                    with self.assertRaises(ValueError):
-                        transition(path, action, owner='x', issue=31, run='x', head=SHA)
-                self.assertEqual(path.read_text(), value)
-
-    def test_two_processes_have_exactly_one_winner(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            args = [sys.executable, str(ROOT / 'scripts/workflow/gui_lease.py'), '--state-dir', tmp,
-                    'acquire', '--owner', 'test', '--issue', '31', '--run', 'test', '--head', SHA]
-            processes = [subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
-            for process in processes:
-                process.communicate(timeout=10)
-            self.assertEqual(sorted(p.returncode for p in processes), [0, 1])
-
-    def test_rejects_public_state_directory(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            Path(tmp).chmod(0o755)
-            with self.assertRaises(ValueError):
-                with locked(Path(tmp)):
-                    self.fail('public state accepted')
 
 
 class PolicyTest(unittest.TestCase):

@@ -31,7 +31,7 @@ For source/comment/Doc, example, configuration/schema or instruction changes and
 - [Codex execution policy](docs/development/codex-execution-policy.md): read before adding/delegating agents. GPT-6 Astra must not spawn/delegate child agents; use ordinary tools or justified independent top-level sessions. Other models follow the policy's applicability; #135 is the current authority. This does not constrain the product's Cursor Subagent support.
 - [PR automation](docs/development/pr-automation.md): stop the writer and confirm clean state before trusted-main v2 enrollment. Require separate-session fixed HEAD/base review and current successful test / PR policy / Agent review / Acceptance gate. Enrollment is not completion: PM/coordinator tracks actual execution, results and next owner. Do not change existing owner/source/registry or PAUSED heartbeat without coordination.
 - Apply the [operations profile](docs/development/github-workflow.md#operations-profile) for fixed pstack sources and Ponytail full. PM consults OMIL before new operational decisions and records the disposition. Workers report conflicts to PM. Continue agreed work and preserve immediately on a safety stop.
-- Follow [GUI coordination](docs/development/gui-coordination.md) for agent-desktop observation and input, target-specific Peekaboo or native Computer Use fallback, and explicit Case routes. Identify the loaded build and disposable fixture. Only verified independent background actions can overlap. Use the shared lease for conflicts or uncertain effects, including installs, restarts and runIde. Honor human use and active reservations.
+- Follow [GUI coordination](docs/development/gui-coordination.md) for agent-desktop observation and input, target-specific Peekaboo or native Computer Use fallback, and explicit Case routes. Identify the loaded build and disposable fixture. Check actual targets, result destinations and side effects; directly coordinate concrete conflicts under the canonical policy. Honor human use and real tool/OS refusals. GUI reservations are abolished, including for installs, restarts and runIde.
 - [Governance audit](docs/development/git-governance-audit.md): check existing triggers at start and integration/closure (major Milestone, High Impact, structural problems, 10 meaningful merges). The audit Issue is authoritative; do not add a full audit per PR or a second ledger.
 
 <a id="develop統合とmain昇格2026-09-07--83ユーザー方針"></a>
@@ -94,7 +94,7 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 25)"
 python3 scripts/workflow/change_impact.py --run-tests
 ./gradlew test          # Required for affected Kotlin/product changes
 ./gradlew buildPlugin   # Explicit Plugin ZIP build
-./gradlew runIde        # Requires the GUI lease
+./gradlew runIde        # Identify the target/build and coordinate actual conflicting effects
 ```
 
 Bootstrap/Gradle set `core.hooksPath .githooks`; pre-push checks branch/dirty/fast-forward and the selected tests. Never bypass hooks, use `--no-verify` or disable protection. There is a real JUnit 6 suite under `src/test/kotlin`; old claims of no tests are historical. No lint/static-analysis task is configured; verify the actual build before relying on stale documentation.
@@ -105,7 +105,7 @@ Preserve [main-scoped release](docs/development/main-scoped-release.md) (#408) a
 
 <a id="current-blocker-check-this-before-picking-a-task"></a>
 
-Use Pro/Teams for development/verification; do not revive the old Free-tier `resource_exhausted` blocker unless Free is explicitly reintroduced. Main F-60 image UI is unimplemented; the documented headless path-reference route needs its live spike in #10. There is no automatic update channel. For qualified local-ZIP placement or Plugins GUI installation, use the current operations guidance, actual profile/ZIP/JAR identity, preservation/recovery and GUI lease; do not require a Plugins-screen search for every test.
+Use Pro/Teams for development/verification; do not revive the old Free-tier `resource_exhausted` blocker unless Free is explicitly reintroduced. Main F-60 image UI is unimplemented; the documented headless path-reference route needs its live spike in #10. There is no automatic update channel. For qualified local-ZIP placement or Plugins GUI installation, use the current operations guidance, actual profile/ZIP/JAR identity, preservation/recovery and actual target/side-effect coordination; do not require a Plugins-screen search for every test.
 
 <a id="architecture現行方式bの実装構造"></a>
 

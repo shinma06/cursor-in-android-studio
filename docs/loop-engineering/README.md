@@ -4,7 +4,7 @@
 
 ## 担当と適用条件
 
-[GitHub開発規約の役割条件](../development/github-workflow.md#正本と役割)に従い、GPT/Codex・Claude・Cursorのいずれも開発を担当できます。必要な能力・実tool・許可・claimで選び、3者の併用は必須にしません。独立レビューはwriterと別sessionで行います。GUI操作は対応可能な指定担当に割り当て、[GUI調整](../development/gui-coordination.md)に従って経路・lease区間を確認します。人間への引継ぎはCaseの範囲内で行います。GUI toolがなければGUIだけを引き継ぎ、未確保ならblockedを記録します。
+[GitHub開発規約の役割条件](../development/github-workflow.md#正本と役割)に従い、GPT/Codex・Claude・Cursorのいずれも開発を担当できます。必要な能力・実tool・許可・claimで選び、3者の併用は必須にしません。独立レビューはwriterと別sessionで行います。GUI操作は対応可能な指定担当に割り当て、[GUI調整](../development/gui-coordination.md)に従って経路・実対象・結果先・副作用と担当間の具体的な競合を確認します。人間への引継ぎはCaseの範囲内で行います。GUI toolがなければGUIだけを引き継ぎ、未確保ならblockedを記録します。
 
 Cursor IDEはUXの比較対象、Android Studio内のプラグインは製品検証対象です。fixture内だけの編集制限はこの試験への入力に適用し、開発担当としてのCursorを制限しません。CLIによる版・ログ・ディスク確認は画面観察を補助します。GUI待ちでも別worktreeの実装・テスト・レビューは進められます。
 
@@ -26,9 +26,9 @@ flowchart LR
 1. [開始手順](../development/github-workflow.md#開始)に従い、対象Issueの全コメント・claim・Project・意図したbaseと作業treeを確認します。既存の編集を保持し、専用branch/worktreeとPRを使います。
 2. 公開可能な担当IDで `Starting loop: owner=<writer>; scope=…; base=…; GUI=<operator or pending>; reviewer=<separate session or pending>; budget=…` を記録します。未解放claimを時間だけで奪いません。host・絶対パス・tokenはprivate registryだけへ保存します。
 3. 1つのUX問題と対象Caseに絞り、[シナリオ](scenarios.md)のMV IDを必要なCaseへ対応付けます。初期状態・期待結果・許可された編集先を固定します。標準予算は**45分、修正3回、試験対象への送信8回**です。保存キー`max_cursor_sends`は維持します。これは運用上の上限で、スクリプトは自動強制しません。ユーザー指定を優先します。
-4. GUI依頼を登録し、指定担当がCaseの経路・対象と結果先を確認し、必要な区間でleaseを取得します。agent-desktopで新しい観測→限定入力→再観察の順に進め、結果不明の入力は再送しません。具体的な限界がある操作のfallbackと人間への引継ぎは[GUI調整](../development/gui-coordination.md)に従います。
+4. GUI依頼を登録し、指定担当がCaseの経路・対象と結果先を確認し、実際に競合する副作用を担当間で調整します。agent-desktopで新しい観測→限定入力→再観察の順に進め、結果不明の入力は再送しません。具体的な限界がある操作のfallbackと人間への引継ぎは[GUI調整](../development/gui-coordination.md)に従います。
 5. 実装担当が最小修正と必要テストを行い、[独立レビュー依頼](prompts/claude-review.md)を別sessionへ渡します。指摘の採否と理由を記録します。レビュー役は変更・GUI操作をせず、固定HEAD/baseを確認します。
-6. 変更・未知の影響と不足事実に必要なCase・隣接保証を再確認します。新buildが必要な場合は[現行build手順](../../CLAUDE.md#commands)に従い、install・再起動はleaseを持つ担当が行います。[実行記録](evidence.md)にsource・ZIP・実ロードの同一性を残します。原FAIL、全有効保証とComputer Use等の実施義務を保持し、別ZIPや文書変更だけを理由に全native操作を反復しません。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
+6. 変更・未知の影響と不足事実に必要なCase・隣接保証を再確認します。新buildが必要な場合は[現行build手順](../../CLAUDE.md#commands)に従い、install・再起動は実対象・副作用を確認した指定担当が行います。[実行記録](evidence.md)にsource・ZIP・実ロードの同一性を残します。原FAIL、全有効保証とComputer Use等の実施義務を保持し、別ZIPや文書変更だけを理由に全native操作を反復しません。通常の文書変更は[Change Impact](../development/change-impact.md)の検証で進めます。
 7. 実観察と正式に認定された再利用を区別してCase結果へ記録し、[finish-work](../../.agents/skills/finish-work/SKILL.md)へ進みます。developは必要テスト・独立レビュー・全Case追跡があればGUI pending/blocked/failを保ったまま統合できます。元受入NGの修正は[追加gate](../verification/README.md#元の受入ngを直すdevelop-pr)を満たします。main promotionは固定候補の全commit・全必要Caseを現行観察または正式に認定された証拠で充足してからです。Caseなしなら空QAを作らず、既存Issue/PRにPMのmain反映保管と次操作を残します。
 
 ## 停止と再開
@@ -41,7 +41,7 @@ flowchart LR
 | 許可外変更・予期しない外部操作・復元先不明 | Stopし差分を確認する。原因不明のまま再送しない |
 | 予算上限・同じ修正で改善なし | 証拠を保存し、分割または次の操作を引き継ぐ |
 
-再開時は`next_action`、claim、HEAD、ロードbuild、fixture差分、lease token/期限を再確認します。修正後は新run IDを作り、前runをリンクします。古いGUI要素番号を使い回さず、passは正式な証拠再利用条件だけで扱い、停止するプロセスを特定します。全IDE/agentの一括killはしません。
+再開時は`next_action`、claim、HEAD、ロードbuild、fixture差分、実対象の現在状態と担当間の実競合を再確認します。修正後は新run IDを作り、前runをリンクします。古いGUI要素番号を使い回さず、passは正式な証拠再利用条件だけで扱い、停止するプロセスを特定します。全IDE/agentの一括killはしません。
 
 ## 利用する環境と入口
 

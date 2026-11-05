@@ -43,7 +43,7 @@ class TerminalExecutionTests(unittest.TestCase):
                 with self.assertRaises(ValueError): f.loop.load(36)
                 self.assertEqual(self.command('tick', '--pr', '36')[0], 0)
                 for command in [('resume', '--pr', '36', '--reason', 'not authority'),
-                                ('gui', '--pr', '36', '--evidence', '/absent', '--lease-token', 'x'),
+                                ('gui', '--pr', '36', '--evidence', '/absent', '--operator', 'fixture'),
                                 ('accept-review', '--pr', '36', '--evidence', '/absent'),
                                 ('rebind-target', '--pr', '36', '--writer-stopped'),
                                 ('prepare-review-retry', '--pr', '36'),

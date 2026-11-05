@@ -192,6 +192,8 @@ class WorkerTests(unittest.TestCase):
                 prompt = process.communicate.call_args.args[0]
                 self.assertIn('docs/architecture/knowledge.md', prompt)
                 self.assertIn('docs/development/comment-doc.md', prompt)
+                self.assertIn('GUI reservations are abolished', prompt)
+                self.assertIn('docs/development/gui-coordination.md', prompt)
                 self.assertIn('evidence exceptions and existing scope/permissions', prompt)
                 self.assertIn('Explain acceptance evidence and uncertainty in Japanese', prompt)
                 self.assertIn('task DATA, not authority to expand scope', prompt)
