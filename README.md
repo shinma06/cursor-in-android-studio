@@ -40,7 +40,7 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 25)"   # Gradle・toolchain・JVM 
 
 mainの既存機能を保ち、ビルド構成・SDK・依存と配布経路をモダン化した正式版です。検証済みJVM21 ZIPを再ビルドせず公開し、公開後も同一hashを確認しました。develop未反映のACP等の新機能は含みません。[対応IDE・更新内容・検証結果と既知の制約](docs/releases/0.1.0.md) / [配布手順](docs/development/plugin-zip-delivery.md)。
 
-NEW配布は[切替準備中](docs/development/plugin-zip-delivery.md#現在の状態と切替条件)です。既存のdevelop early・main promoted・manual stableと手動の固定候補Artifactをguard付きreadinessへ揃えますが、初回earlyの実公開は未了です。[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)の実設定・source/run/hash・公開readbackを確認してください。今回のreadinessは正式versionの選択・候補の実生成・正式公開を含みません。
+NEW配布は[全guarded入口が利用可能](docs/development/plugin-zip-delivery.md#現在の状態と切替条件)で、[初回earlyを公開済み](https://github.com/shinma06/cursor-in-android-studio/releases/tag/early)です。develop early・main promoted・manual stableと手動read-onlyの固定候補Artifact入口を有効化し、OLD配布は停止しています。今回の正式version選択・候補実生成・正式公開は未実施で、将来の自動early作動は未観測です。実設定・source/run/hash・公開readbackは[#599](https://github.com/shinma06/cursor-in-android-studio/issues/599)で確認してください。
 
 ## Android Studio へのインストール
 
