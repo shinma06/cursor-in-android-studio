@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issue": 615,
+  "gui_required": false,
+  "reason": "mainにも残る独立loopback Browser QA fixtureへ、develop PR616で採用したCA/leaf鍵識別子の明示だけを反映する。製品source/runtime・native GUI/IDE/ADB/Emulator・OS信頼/hostsは変更しない。元311/383はCases0、今回もhook CLI失敗の修正でありAcceptance repair:none。元GUI/QAのFAILや未達は変更しない。",
+  "cli_checks": [
+    "固定main HEADのfixture実体を、PR616承認済みのtest_browser_fixture全13回帰へ明示して実行する。回帰moduleとfixture blobのSHA対応、実import pathとsubprocess SOURCEを記録し、mainに無関係なdevelop test一式を取り込まない。",
+    "元失敗2件を含む正しいCA/IPv4/IPv6/localhost/IDN成功、未信頼CA/名前不一致拒否をstrict検証のまま確認する。HTTP/control同一接続・setup失敗/所有cleanup/未知file保全も既存回帰で確認する。",
+    "通常pre-pushの共通Change Impactに従うworkflow/loop検査、diff checkとCases0 schemaを確認する。製品build入力不変のTOOLINGでGradle/ZIP不要なら理由を記録し、hookは迂回しない。",
+    "599 e284a47と未変更085 baseの元2失敗、初Acceptance宣言parse FAIL、develop採用3f1fe9と旧ZIP/logを別原本で保持する。main候補の独立review/4checks/通常採用は次段階であり、599のbase同期・新候補へ旧承認を転用しない。"
+  ],
+  "cases": []
+}
