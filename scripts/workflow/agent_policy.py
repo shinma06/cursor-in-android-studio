@@ -4,10 +4,37 @@ import hashlib
 import json
 import re
 import uuid
+from datetime import datetime, timedelta, timezone
 from git_guard import BRANCH
 
 CONTEXT = 'Agent review'
 SHA = re.compile(r'[0-9a-f]{40}')
+REVIEW_REFERENCE = re.compile(r'[0-9a-f]{32}:[0-9a-f]{64}')
+
+
+def review_time(value):
+    if not isinstance(value, str):
+        raise ValueError('Expected a server timestamp')
+    at = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    if at.tzinfo is None:
+        raise ValueError('Timestamp requires a timezone')
+    return at
+
+
+def remote_review_ready(bound, now=None):
+    """Waiting eligibility is separate from provider completion and review approval."""
+    if bound.get('remote_review_complete') is not False:
+        return bound.get('remote_review_complete') is True or 'remote_review_complete' not in bound
+    retry = bound.get('review_retry')
+    try:
+        if (not isinstance(retry, dict) or set(retry) != {'head', 'base', 'comment_id', 'created_at', 'original_ref'} or
+                type(retry['comment_id']) is not int or retry['comment_id'] <= 0 or
+                not REVIEW_REFERENCE.fullmatch(str(retry['original_ref'])) or
+                any(retry[k] != bound.get(k) for k in ('head', 'base'))):
+            return False
+        return review_time(retry['created_at']) + timedelta(minutes=30) <= (now or datetime.now(timezone.utc))
+    except (ValueError, TypeError, OverflowError):
+        return False
 
 SESSION_HASH = re.compile(r'(?:codex|native)-session-sha256:[0-9a-f]{64}')
 NATIVE_SESSION = re.compile(r'native-session-v1:([0-9a-f]+):([0-9a-f]+)')
@@ -89,7 +116,7 @@ def binding(pr, issue):
             'issue_hash': hashlib.sha256((issue.get('body') or '').encode()).hexdigest()}
 
 
-def validate_review(report, expected, acceptance=None):
+def validate_review(report, expected, acceptance=None, *, origin_verified=False):
     if (report.get('model') not in ('gpt-6.1-sol', 'gpt-6-astra') or
             report.get('reasoning_effort') not in ('medium', 'high', 'xhigh') or
             not report.get('model_evidence')):
@@ -108,6 +135,13 @@ def validate_review(report, expected, acceptance=None):
         raise ValueError('Review session/evidence missing')
     if report['verdict'] == 'approved' and (report['findings'] or not report['scope_complete']):
         raise ValueError('Approval conflicts with incomplete scope or unresolved findings')
+    if report['verdict'] == 'approved' and expected.get('remote_review_complete') is False:
+        if (not remote_review_ready(expected) or not origin_verified or
+                report.get('review_binding') != expected or report.get('feedback_hash') != expected.get('feedback_hash')):
+            raise ValueError('Stalled provider requires elapsed retry, actual independent origin and full feedback binding')
+        assessed = review_time(report.get('reviewed_at'))
+        if not review_time(expected['review_retry']['created_at']) + timedelta(minutes=30) <= assessed <= datetime.now(timezone.utc):
+            raise ValueError('Independent assessment must follow the new 30-minute wait')
     if report['verdict'] == 'approved' and (acceptance or {}).get('repair_revision'):
         session = report['session'] if SESSION_HASH.fullmatch(report['session']) else session_fingerprint(report['session'])
         if (report.get('repair_revision') != acceptance['repair_revision'] or
@@ -142,7 +176,7 @@ def gui_pass(evidence, bound):
 
 
 def next_action(state, bound, ci, gui, acceptance=None):
-    if bound.get('remote_review_complete') is False:
+    if not remote_review_ready(bound):
         return 'remote-review-wait'
     if state.get('binding') != bound:
         return 'review'

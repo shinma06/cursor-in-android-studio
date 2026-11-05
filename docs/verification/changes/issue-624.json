@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "issue": 624,
+  "gui_required": false,
+  "reason": "D1の既存運用入口とD2のcoordinator/validator/worker/既存private evidence consumer・拒否テストのみ。製品runtime/build/GUI/Case・既存registry実データ/PAUSED/配布設定は変更しない。実停滞適用や製品PASSを合成検査で作らない。",
+  "cli_checks": [
+    "D1の観察を妨げる方法前提/実安全停止と復元未了/安全返却後のoffline整理を代表反例で評価し、既存OMIL/停止/GUI/worker入口へ接続する。",
+    "D2の同HEAD実再依頼1件/servercreated_at/30分境界/再依頼前生snapshot・元義務と既知完了時系列を検査。編集/未来/異HEAD/別依頼/重複/弱いsnapshot/不正・未知入力/実failure・具体指摘を拒否。",
+    "実別origin/非fork/runtimeモデル・設定、全HEAD/base/target/title/body/Issue/feedback bindingとprivate receiptを検査。自己origin/欠落/改変/古いturn・未独立評価・後着feedbackを拒否し、advance/通常CI/Acceptance/merge直前・postmerge/finishで保持。",
+    "固定cleanHEADの通常Change Impact/hooksが選ぶworkflow/loop検査、diff check、Cases0schema/相対リンク/公開privacy/同client入口を確認する。新build/GUI/重複手動fullsuiteを行わない。",
+    "main先行source採用と必要develop同期・既存registry切替/旧v1やOLD退役は623/624の後段。既存owner/source/PAUSEDをenroll/rebind/resumeせず、実provider再依頼/例外発動・独立承認/Ready/merge/closeを今回実行しない。"
+  ],
+  "cases": []
+}
