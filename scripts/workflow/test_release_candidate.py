@@ -12,7 +12,6 @@ import zipfile
 
 import release_candidate as rc
 import plugin_compatibility as pc
-import branch_zip
 import release_delivery
 
 
@@ -389,9 +388,6 @@ class ReleaseTest(unittest.TestCase):
                 (path/'a.zip').write_bytes(b'changed')
                 with self.assertRaisesRegex(ValueError,'no overwrite'):rc.preserve('plugin-rc-test','main',path,['a.zip'],True,'body')
                 self.assertEqual(state['bytes'][2],b'original')
-                self.assertIsNone(branch_zip.cleanup_identity(state['release']))
-                state['release']['prerelease']=False
-                self.assertIsNone(branch_zip.cleanup_identity(state['release']))
 
     def test_publication_requires_merged_promotion_matching_candidate_hash_and_checks(self):
         candidate='a'*40; head='b'*40; base='c'*40; merge='d'*40; sha='e'*64

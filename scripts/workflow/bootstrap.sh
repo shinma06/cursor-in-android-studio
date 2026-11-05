@@ -32,4 +32,4 @@ worktree_config = subprocess.run(['git', 'config', '--bool', '--get', 'extension
 if worktree_config.stdout.strip() == 'true':
     subprocess.run(['git', 'config', '--worktree', 'core.hooksPath', '.githooks'], check=True)
 PY
-printf '%s\n' 'Repository protection hooks installed. ZIP downloads are available on GitHub Releases.'
+printf '%s\n' 'Repository protection hooks installed. Build/download guidance: docs/development/plugin-zip-delivery.md'

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-mode="$(python3 scripts/workflow/git_guard.py push)"
+mode="$(python3 scripts/workflow/git_guard.py push "$@")"
 if [ "$mode" = skip ]; then exit 0; fi
 # Git exports repository-local variables into hooks. Tests create foreign repos;
 # clear these before any tests/Gradle so git init cannot target the source repo.
